@@ -1,0 +1,102 @@
+/* =========================================================================
+ * Base layer — global element defaults that are theme-aware via tokens.
+ * Wrapped in `@layer base` so Tailwind hoists this into the base cascade.
+ * ========================================================================= */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-family: var(--font-sans);
+  }
+
+  body {
+    @apply bg-surface-subtle text-content antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-semibold tracking-tight text-content;
+  }
+
+  a {
+    @apply text-primary-600 underline-offset-2 transition-colors;
+  }
+  a:hover {
+    @apply text-primary-700;
+  }
+  .dark a {
+    @apply text-primary-400;
+  }
+  .dark a:hover {
+    @apply text-primary-300;
+  }
+
+  hr {
+    @apply border-border;
+  }
+
+  :focus-visible {
+    @apply outline-none;
+    box-shadow: var(--shadow-ring);
+    border-radius: var(--radius-base);
+  }
+
+  ::selection {
+    @apply bg-primary-500/20 text-content;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-border-strong/60;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-content-subtle;
+  }
+}
+
+/* =========================================================================
+ * Theme transition. The `.theme-switching` class is added to <html> for
+ * ~220 ms by `ThemeService` whenever light ↔ dark flips. We declare a
+ * universal transition only during that window so the rest of the time
+ * hover / focus animations keep their original durations.
+ *
+ * Properties chosen on purpose: only colors and shadows. We do NOT animate
+ * layout properties to avoid jank.
+ * ========================================================================= */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease,
+    fill 200ms ease,
+    stroke 200ms ease,
+    box-shadow 200ms ease,
+    outline-color 200ms ease !important;
+}
+
+/* Respect users who explicitly request reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .theme-switching,
+  .theme-switching *,
+  .theme-switching *::before,
+  .theme-switching *::after {
+    transition: none !important;
+  }
+}

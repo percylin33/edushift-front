@@ -1,0 +1,38 @@
+/* =========================================================================
+ * Utilities layer — small purpose-specific utilities we want available
+ * everywhere without writing custom CSS in components.
+ * ========================================================================= */
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .text-pretty  { text-wrap: pretty;  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-border-strong) / 0.7) transparent;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ring-focus { box-shadow: var(--shadow-ring); }
+
+  .bg-gradient-brand {
+    background-image: linear-gradient(
+      135deg,
+      rgb(var(--color-primary-500)) 0%,
+      rgb(var(--color-primary-700)) 100%
+    );
+  }
+
+  .bg-grid {
+    background-image:
+      linear-gradient(rgb(var(--color-border) / 0.6) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--color-border) / 0.6) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+}

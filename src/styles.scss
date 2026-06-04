@@ -1,0 +1,21 @@
+/* =========================================================================
+ * EduShift — Global stylesheet entry
+ * -------------------------------------------------------------------------
+ * Because every custom rule is wrapped in `@layer base/components/utilities`,
+ * Tailwind hoists each block into the right cascade slot regardless of where
+ * it appears in the source. That lets us keep the cleaner `@use` syntax at
+ * the top and put the `@tailwind` directives afterwards.
+ *
+ * Token declarations (`:root`, `.dark`, `[data-tenant]`) emit plain CSS
+ * variables; they sit above the layers and are always available.
+ * ========================================================================= */
+
+@use 'styles/tokens';
+@use 'styles/base';
+@use 'styles/components';
+@use 'styles/utilities';
+@use 'styles/animations';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
