@@ -1,29 +1,33 @@
 import { UserStatus } from '@core/enums';
 
 /**
- * RAW shape returned by `POST /api/v1/auth/login` and `POST /api/v1/auth/refresh`.
- * Mirrors the backend `AuthResponse` Java record one-to-one.
+ * RAW shape returned by every backend endpoint that issues a session
+ * (`POST /v1/auth/login`, `POST /v1/auth/refresh`, and as of Sprint 2
+ * also `POST /v1/tenants/register`). Mirrors the backend `AuthResponse`
+ * Java record one-to-one (RFC 6749 §5 alignment, no envelope).
  *
- * `AuthApiService.login` / `.refresh` adapt this into the project-internal
- * {@link com.edushift.frontend.AuthSession} (computes `expiresAt` from
- * `expiresInSec`), so consumers never see this raw shape.
+ * <p>Lives in {@code core/models} on purpose: more than one feature
+ * (auth + tenants/self-signup) needs to consume this contract, and we
+ * don't want feature-to-feature imports just to share a wire DTO.
  *
- * @see https://datatracker.ietf.org/doc/html/rfc6749#section-5 (OAuth 2.0 §5)
+ * <p>Adapted into the project-internal {@link AuthSession} by
+ * {@link toAuthSession} (see {@code core/adapters}); consumers should
+ * not work with the raw shape directly.
  */
 export interface AuthResponseRaw {
   accessToken: string;
   refreshToken: string;
   /** Always `'Bearer'` — present for RFC 6750 conformance, not used by the client. */
   tokenType: 'Bearer' | string;
-  /** Access token TTL in seconds. Used to compute `expiresAt`. */
+  /** Access token TTL in seconds. Used to compute the session's `expiresAt`. */
   expiresInSec: number;
   user: UserSummaryRaw;
 }
 
 /**
  * RAW backend `UserSummary` record (the 5-field projection returned by
- * login/refresh; the backend deliberately keeps it small to avoid a second
- * round-trip for the dashboard shell).
+ * login/refresh/register; the backend deliberately keeps it small to
+ * avoid a second round-trip for the dashboard shell).
  */
 export interface UserSummaryRaw {
   publicUuid: string;
@@ -36,8 +40,8 @@ export interface UserSummaryRaw {
 /**
  * RAW backend `UserResponse` record (full user, returned by `GET /auth/me`).
  *
- * Wrapped in {@link com.edushift.frontend.ApiResponse}{@code <UserResponse>}
- * by the controller — consumers should unwrap before using.
+ * <p>Wrapped in {@code ApiResponse<UserResponseRaw>} by the controller —
+ * consumers should unwrap before using.
  */
 export interface UserResponseRaw {
   publicUuid: string;

@@ -15,7 +15,14 @@ export const API = {
   },
   TENANTS: {
     ROOT: `${BASE}/tenants`,
-    CURRENT: `${BASE}/tenants/current`
+    /** Authenticated `GET` returns the caller's tenant; `PATCH` updates it (TENANT_ADMIN). */
+    ME: `${BASE}/tenants/me`,
+    /** Public lookup used by the login screen to fetch branding before authentication. */
+    BY_SLUG: (slug: string) => `${BASE}/tenants/by-slug/${encodeURIComponent(slug)}`,
+    /** Public self-signup: creates a tenant + admin and returns an auth session. */
+    REGISTER: `${BASE}/tenants/register`,
+    /** Onboarding lifecycle hop PENDING → ACTIVE. Idempotent on already-ACTIVE tenants. */
+    ACTIVATE: `${BASE}/tenants/me/activate`
   },
   DASHBOARD: {
     ROOT: `${BASE}/dashboard`,

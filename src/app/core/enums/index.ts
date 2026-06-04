@@ -4,3 +4,5 @@ export * from './http-status.enum';
 export * from './theme.enum';
 export * from './feature.enum';
 export * from './permission.enum';
+export * from './tenant-status.enum';
+export * from './tenant-plan.enum';

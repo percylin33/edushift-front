@@ -180,6 +180,17 @@ import { LoginRequest } from '../../models';
             <app-icon name="arrow-right" [size]="16" />
           }
         </button>
+
+        <p class="pt-1 text-center text-xs text-content-muted">
+          ¿No tienes cuenta?
+          <a
+            [routerLink]="registerRoute"
+            class="font-medium text-primary-700 hover:text-primary-800
+                   dark:text-primary-300 dark:hover:text-primary-200"
+          >
+            Crea tu institución
+          </a>
+        </p>
       </form>
     </div>
   `
@@ -193,6 +204,7 @@ export class LoginComponent {
   private readonly route = inject(ActivatedRoute);
 
   readonly forgotPasswordRoute = ROUTES.AUTH.FORGOT_PASSWORD;
+  readonly registerRoute = ROUTES.AUTH.REGISTER;
 
   readonly form: FormGroup = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email, Validators.maxLength(254)]],
