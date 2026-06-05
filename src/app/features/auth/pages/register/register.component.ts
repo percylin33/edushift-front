@@ -21,6 +21,7 @@ import { ApiError, ApiResponse } from '@core/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 
 import { RegisterTenantRequest, TenantApiService } from '@features/tenants';
+import { AuthApiService } from '../../services/auth-api.service';
 import { AuthStore } from '../../store/auth.store';
 
 /**
@@ -304,6 +305,7 @@ import { AuthStore } from '../../store/auth.store';
 export class RegisterComponent {
   private readonly fb = inject(FormBuilder);
   private readonly tenantApi = inject(TenantApiService);
+  private readonly authApi = inject(AuthApiService);
   private readonly auth = inject(AuthService);
   private readonly tenant = inject(TenantService);
   private readonly store = inject(AuthStore);
@@ -434,6 +436,15 @@ export class RegisterComponent {
       .register(payload)
       .pipe(
         tap((session) => this.auth.setSession(session)),
+        /* `register` returns a lean {@code UserSummary}; chain {@code /auth/me}
+         * so role-gated guards see the freshly-minted {@code TENANT_ADMIN}
+         * instead of an empty role set. */
+        switchMap(() =>
+          this.authApi.me().pipe(
+            tap((user) => this.auth.setUser(user)),
+            catchError(() => of(null))
+          )
+        ),
         switchMap(() =>
           this.tenantApi.findCurrent().pipe(
             tap((tenant) => this.tenant.setTenant(tenant, 'header')),

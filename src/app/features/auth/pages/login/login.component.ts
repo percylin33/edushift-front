@@ -13,7 +13,8 @@ import {
   Validators
 } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { finalize } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { catchError, finalize, switchMap, tap } from 'rxjs/operators';
 
 import { AuthService } from '@core/services';
 import { ROUTES } from '@core/constants';
@@ -268,10 +269,26 @@ export class LoginComponent {
 
     this.authApi
       .login(payload)
-      .pipe(finalize(() => this.store.setLoading(false)))
+      .pipe(
+        /*
+         * `/auth/login` returns a lean {@code UserSummary} (no roles) so the
+         * shell can render immediately. We chain {@code /auth/me} to enrich
+         * the session with roles before navigating, otherwise role-gated
+         * guards (e.g. {@code TENANT_ADMIN} on `/users`) bounce to `/403`.
+         * If `/auth/me` fails we still proceed: the boot initializer will
+         * retry on the next reload, and most pages are role-tolerant.
+         */
+        tap((session) => this.auth.setSession(session)),
+        switchMap(() =>
+          this.authApi.me().pipe(
+            tap((user) => this.auth.setUser(user)),
+            catchError(() => of(null))
+          )
+        ),
+        finalize(() => this.store.setLoading(false))
+      )
       .subscribe({
-        next: (session) => {
-          this.auth.setSession(session);
+        next: () => {
           const returnUrl =
             this.route.snapshot.queryParamMap.get('returnUrl') ?? ROUTES.DASHBOARD.ROOT;
           this.router.navigateByUrl(returnUrl);

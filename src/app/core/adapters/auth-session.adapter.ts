@@ -1,3 +1,4 @@
+import { UserRole } from '@core/enums';
 import { AuthResponseRaw, AuthSession, User, UserResponseRaw, UserSummary, UserSummaryRaw } from '@core/models';
 
 /**
@@ -61,8 +62,21 @@ export function toUser(raw: UserResponseRaw): User {
     phone: raw.phone ?? undefined,
     emailVerified: raw.emailVerified,
     mfaEnabled: raw.mfaEnabled,
+    roles: toRoles(raw.roles),
     lastLoginAt: raw.lastLoginAt ?? undefined,
     createdAt: raw.createdAt ?? undefined,
     updatedAt: raw.updatedAt ?? undefined
   };
+}
+
+/**
+ * Narrow the backend's {@code String[]} role payload to the typed
+ * {@link UserRole} enum, dropping anything the frontend doesn't know
+ * about (forward-compat: a backend role added before the SPA is
+ * redeployed should not crash the navigation guards).
+ */
+export function toRoles(raw: string[] | null | undefined): UserRole[] {
+  if (!raw || raw.length === 0) return [];
+  const known = new Set<string>(Object.values(UserRole));
+  return raw.filter((r): r is UserRole => known.has(r));
 }

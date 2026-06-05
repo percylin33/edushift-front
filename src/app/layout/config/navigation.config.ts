@@ -1,4 +1,4 @@
-import { FeatureKey, Permission } from '@core/enums';
+import { FeatureKey, Permission, UserRole } from '@core/enums';
 import { ROUTES } from '@core/constants';
 import { NavigationGroup } from '../models';
 
@@ -29,12 +29,18 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         feature: FeatureKey.Dashboard
       },
       {
+        /*
+         * Sprint 3 keeps the students module role-gated (TENANT_ADMIN
+         * only) — same trade-off as the users entry, see
+         * docs/product/sprints/sprint-03-users-students.md. Fine-grained
+         * `students:*` permissions land with the security sprint.
+         */
         id: 'students',
         label: 'Estudiantes',
-        icon: 'users',
+        icon: 'graduation-cap',
         route: ROUTES.STUDENTS.ROOT,
         feature: FeatureKey.Students,
-        permissions: [Permission.StudentsRead]
+        roles: [UserRole.TenantAdmin]
       },
       {
         id: 'academic',
@@ -135,6 +141,19 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
     id: 'system',
     label: 'Sistema',
     items: [
+      /*
+       * Sprint 3 keeps user management role-gated (TENANT_ADMIN only).
+       * Fine-grained `users:*` permissions land with the security
+       * sprint — see docs/product/sprints/sprint-03-users-students.md.
+       */
+      {
+        id: 'users',
+        label: 'Usuarios',
+        icon: 'users',
+        route: ROUTES.USERS.ROOT,
+        feature: FeatureKey.Users,
+        roles: [UserRole.TenantAdmin]
+      },
       {
         id: 'settings',
         label: 'Configuración',

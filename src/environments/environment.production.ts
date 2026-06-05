@@ -23,6 +23,7 @@ export const environment: AppEnvironment = {
   features: {
     dashboard: true,
     auth: true,
+    users: true,
     students: true,
     academic: true,
     attendance: true,

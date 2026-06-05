@@ -8,6 +8,7 @@
 export enum FeatureKey {
   Dashboard     = 'dashboard',
   Auth          = 'auth',
+  Users         = 'users',
   Students      = 'students',
   Academic      = 'academic',
   Attendance    = 'attendance',

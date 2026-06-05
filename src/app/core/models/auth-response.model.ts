@@ -54,6 +54,12 @@ export interface UserResponseRaw {
   status: UserStatus;
   emailVerified: boolean;
   mfaEnabled: boolean;
+  /**
+   * Backend serializes role names (UPPER_CASE) as a JSON array. We accept the
+   * Java {@code Set<String>} contract verbatim — the adapter narrows them to
+   * the {@link com.edushift.frontend.UserRole} enum afterwards.
+   */
+  roles?: string[] | null;
   lastLoginAt?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;

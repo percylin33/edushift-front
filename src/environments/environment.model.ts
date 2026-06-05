@@ -29,6 +29,7 @@ export interface AppEnvironment {
   features: {
     dashboard: boolean;
     auth: boolean;
+    users: boolean;
     students: boolean;
     academic: boolean;
     attendance: boolean;

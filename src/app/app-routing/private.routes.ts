@@ -28,6 +28,13 @@ export const PRIVATE_ROUTES: Routes = [
           import('@features/dashboard/dashboard.routes').then((m) => m.DASHBOARD_ROUTES)
       },
       {
+        path: 'users',
+        canActivate: [featureFlagGuard],
+        data: { feature: FeatureKey.Users, breadcrumb: 'Usuarios', title: 'Usuarios' },
+        loadChildren: () =>
+          import('@features/users/users.routes').then((m) => m.USERS_ROUTES)
+      },
+      {
         path: 'students',
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Students, breadcrumb: 'Estudiantes', title: 'Estudiantes' },

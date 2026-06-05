@@ -11,6 +11,15 @@ export const ROUTES = {
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password'
   },
+  INVITATION: {
+    /**
+     * Public landing page for redeeming an invitation token. Hit by the
+     * recipient via the link the admin shares; renders the preflight
+     * (welcome + email) and the password form.
+     */
+    ACCEPT: (token: string) => `/invitation/${token}`,
+    ROOT: '/invitation'
+  },
   ONBOARDING: {
     ROOT: '/onboarding',
     WELCOME: '/onboarding/welcome',
@@ -20,11 +29,17 @@ export const ROUTES = {
   DASHBOARD: {
     ROOT: '/dashboard'
   },
+  USERS: {
+    ROOT: '/users',
+    LIST: '/users',
+    detail: (id: string) => `/users/${id}`
+  },
   STUDENTS: {
     ROOT: '/students',
     LIST: '/students',
     NEW: '/students/new',
-    detail: (id: string) => `/students/${id}`
+    detail: (id: string) => `/students/${id}`,
+    edit: (id: string) => `/students/${id}/edit`
   },
   ACADEMIC: {
     ROOT: '/academic',
