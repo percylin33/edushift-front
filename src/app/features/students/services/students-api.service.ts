@@ -10,9 +10,16 @@ import {
   BulkImportJobResponseRaw,
   BulkImportRowError,
   BulkImportRowErrorRaw,
+  CreateEnrollmentRequest,
   CreateStudentRequest,
+  EnrollmentDetail,
+  EnrollmentListItemRaw,
+  EnrollmentResponseRaw,
+  EnrollmentRow,
   Guardian,
   GuardianResponseRaw,
+  SectionStudentRosterItem,
+  SectionStudentRosterItemRaw,
   StudentDetail,
   StudentListFilters,
   StudentListItemRaw,
@@ -20,7 +27,8 @@ import {
   StudentResponseRaw,
   StudentRow,
   UpdateGuardianLinkRequest,
-  UpdateStudentRequest
+  UpdateStudentRequest,
+  WithdrawEnrollmentRequest
 } from '../models';
 
 /**
@@ -72,6 +80,8 @@ export class StudentsApiService {
       search: filters.search?.trim() || undefined,
       enrollmentStatus: filters.enrollmentStatus,
       gradeLevelId: filters.gradeLevelId,
+      currentSectionId: filters.currentSectionId,
+      currentAcademicYearId: filters.currentAcademicYearId,
       page: pagination.page,
       size: pagination.size,
       sort: pagination.sort
@@ -228,6 +238,80 @@ export class StudentsApiService {
     );
   }
 
+  // ===========================================================================
+  // Enrollments (FE-4.7 / BE-4.8)
+  // ===========================================================================
+
+  /**
+   * Lista el historial completo de matrículas del estudiante
+   * (ACTIVE + terminales). Sin envelope; el back retorna
+   * {@code List<EnrollmentListItem>} ordenado por
+   * {@code enrolledAt} desc.
+   */
+  listEnrollments(studentPublicUuid: string): Observable<EnrollmentRow[]> {
+    return this.api
+      .get<EnrollmentListItemRaw[]>(API.STUDENTS.ENROLLMENTS(studentPublicUuid))
+      .pipe(map((rows) => rows.map((r) => this.toEnrollmentRow(r))));
+  }
+
+  /**
+   * Crea una matrícula {@code (student, section, year)}. Errores:
+   * <ul>
+   *   <li>409 {@code ENROLLMENT_YEAR_MISMATCH} — section.year ≠ request.year.</li>
+   *   <li>409 {@code ENROLLMENT_DATE_OUT_OF_YEAR} — enrolledAt fuera del año.</li>
+   *   <li>409 {@code STUDENT_ALREADY_ENROLLED} — ya tiene ACTIVE para
+   *       este (student, year).</li>
+   *   <li>404 {@code RESOURCE_NOT_FOUND}.</li>
+   * </ul>
+   */
+  createEnrollment(
+    studentPublicUuid: string,
+    request: CreateEnrollmentRequest
+  ): Observable<EnrollmentDetail> {
+    return this.api
+      .post<ApiResponse<EnrollmentResponseRaw>, CreateEnrollmentRequest>(
+        API.STUDENTS.ENROLLMENTS(studentPublicUuid),
+        request
+      )
+      .pipe(map((envelope) => this.toEnrollmentDetail(envelope.data)));
+  }
+
+  /**
+   * Soft-end de matrícula. {@code status} debe ser terminal
+   * ({@code WITHDRAWN | TRANSFERRED | GRADUATED}); ACTIVE lo
+   * rechaza con 400 {@code INVALID_WITHDRAW_STATUS}.
+   *
+   * <p>Idempotente: re-issue sobre una row terminal devuelve el
+   * snapshot actual.</p>
+   */
+  withdrawEnrollment(
+    enrollmentPublicUuid: string,
+    request: WithdrawEnrollmentRequest
+  ): Observable<EnrollmentDetail> {
+    return this.api
+      .post<ApiResponse<EnrollmentResponseRaw>, WithdrawEnrollmentRequest>(
+        API.ENROLLMENTS.WITHDRAW(enrollmentPublicUuid),
+        request
+      )
+      .pipe(map((envelope) => this.toEnrollmentDetail(envelope.data)));
+  }
+
+  /**
+   * Roster activo de una sección. Devuelve solo
+   * {@code status == ACTIVE}; las matrículas terminales no
+   * aparecen aquí (forman parte del histórico del estudiante).
+   * Ordenado alfabéticamente por apellido.
+   */
+  listSectionRoster(
+    sectionPublicUuid: string
+  ): Observable<SectionStudentRosterItem[]> {
+    return this.api
+      .get<SectionStudentRosterItemRaw[]>(
+        API.ACADEMIC.SECTIONS.STUDENTS(sectionPublicUuid)
+      )
+      .pipe(map((rows) => rows.map((r) => this.toRosterItem(r))));
+  }
+
   // ---------------------------------------------------------------------------
   // Adapters
   // ---------------------------------------------------------------------------
@@ -319,6 +403,56 @@ export class StudentsApiService {
   ): BulkImportRowError[] {
     if (!raw || raw.length === 0) return [];
     return raw.map((e) => ({ row: e.row, code: e.code, message: e.message }));
+  }
+
+  private toEnrollmentRow(raw: EnrollmentListItemRaw): EnrollmentRow {
+    return {
+      publicUuid: raw.publicUuid,
+      studentPublicUuid: raw.studentPublicUuid,
+      studentFullName: raw.studentFullName,
+      sectionPublicUuid: raw.sectionPublicUuid,
+      sectionName: raw.sectionName,
+      academicYearPublicUuid: raw.academicYearPublicUuid,
+      academicYearName: raw.academicYearName,
+      enrolledAt: this.parseDate(raw.enrolledAt),
+      withdrawnAt: this.parseDate(raw.withdrawnAt),
+      status: raw.status,
+      active: raw.active
+    };
+  }
+
+  private toEnrollmentDetail(raw: EnrollmentResponseRaw): EnrollmentDetail {
+    return {
+      publicUuid: raw.publicUuid,
+      studentPublicUuid: raw.studentPublicUuid,
+      studentFullName: raw.studentFullName,
+      studentDocumentNumber: raw.studentDocumentNumber,
+      sectionPublicUuid: raw.sectionPublicUuid,
+      sectionName: raw.sectionName,
+      academicYearPublicUuid: raw.academicYearPublicUuid,
+      academicYearName: raw.academicYearName,
+      enrolledAt: this.parseDate(raw.enrolledAt),
+      withdrawnAt: this.parseDate(raw.withdrawnAt),
+      status: raw.status,
+      active: raw.active,
+      notes: raw.notes ?? undefined,
+      createdAt: this.parseDate(raw.createdAt),
+      updatedAt: this.parseDate(raw.updatedAt)
+    };
+  }
+
+  private toRosterItem(
+    raw: SectionStudentRosterItemRaw
+  ): SectionStudentRosterItem {
+    return {
+      enrollmentPublicUuid: raw.enrollmentPublicUuid,
+      studentPublicUuid: raw.studentPublicUuid,
+      studentFullName: raw.studentFullName,
+      studentDocumentNumber: raw.studentDocumentNumber,
+      studentDocumentType: raw.studentDocumentType,
+      studentEmail: raw.studentEmail ?? undefined,
+      enrolledAt: this.parseDate(raw.enrolledAt)
+    };
   }
 
   private parseDate(value: string | null | undefined): Date | undefined {

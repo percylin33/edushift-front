@@ -55,6 +55,35 @@ export const API = {
     /** Public: accept an invitation token (returns an auth session). */
     ACCEPT: `${BASE}/users/invitations/accept`
   },
+  TEACHERS: {
+    /** {@code GET|POST /v1/teachers}. {@code GET} acepta {@code ?search&employmentStatus&hasUserAccount} + paginación Spring. */
+    ROOT: `${BASE}/teachers`,
+    /** {@code GET|PUT|DELETE /v1/teachers/{publicUuid}}. */
+    BY_ID: (publicUuid: string) =>
+      `${BASE}/teachers/${encodeURIComponent(publicUuid)}`,
+    /** {@code POST /v1/teachers/{publicUuid}/link-user} — vincula a un User existente con rol TEACHER. */
+    LINK_USER: (publicUuid: string) =>
+      `${BASE}/teachers/${encodeURIComponent(publicUuid)}/link-user`,
+    /** {@code POST /v1/teachers/{publicUuid}/invite} — crea invitación con metadata.teacherId. */
+    INVITE: (publicUuid: string) =>
+      `${BASE}/teachers/${encodeURIComponent(publicUuid)}/invite`,
+    /**
+     * {@code GET|POST /v1/teachers/{publicUuid}/assignments} (BE-4.7).
+     * {@code GET} acepta {@code ?periodId&active=true|false}.
+     */
+    ASSIGNMENTS: (publicUuid: string) =>
+      `${BASE}/teachers/${encodeURIComponent(publicUuid)}/assignments`
+  },
+  ASSIGNMENTS: {
+    /** {@code DELETE /v1/assignments/{publicUuid}} — soft-end de assignment (BE-4.7). */
+    BY_ID: (publicUuid: string) =>
+      `${BASE}/assignments/${encodeURIComponent(publicUuid)}`
+  },
+  ENROLLMENTS: {
+    /** {@code POST /v1/enrollments/{publicUuid}/withdraw} — soft-end de enrollment (BE-4.8). */
+    WITHDRAW: (publicUuid: string) =>
+      `${BASE}/enrollments/${encodeURIComponent(publicUuid)}/withdraw`
+  },
   STUDENTS: {
     ROOT: `${BASE}/students`,
     /** {@code GET|PUT|DELETE /v1/students/{publicUuid}}. */
@@ -74,14 +103,69 @@ export const API = {
       `${BASE}/students/${encodeURIComponent(studentPublicUuid)}/guardians`,
     /** {@code PUT|DELETE /v1/students/{studentUuid}/guardians/{guardianUuid}}. */
     GUARDIAN_BY_ID: (studentPublicUuid: string, guardianPublicUuid: string) =>
-      `${BASE}/students/${encodeURIComponent(studentPublicUuid)}/guardians/${encodeURIComponent(guardianPublicUuid)}`
+      `${BASE}/students/${encodeURIComponent(studentPublicUuid)}/guardians/${encodeURIComponent(guardianPublicUuid)}`,
+    /** {@code GET|POST /v1/students/{publicUuid}/enrollments} (BE-4.8). */
+    ENROLLMENTS: (studentPublicUuid: string) =>
+      `${BASE}/students/${encodeURIComponent(studentPublicUuid)}/enrollments`
   },
   ACADEMIC: {
     ROOT: `${BASE}/academic`,
-    COURSES: `${BASE}/academic/courses`,
-    CLASSES: `${BASE}/academic/classes`,
-    GRADES: `${BASE}/academic/grades`,
-    SCHEDULE: `${BASE}/academic/schedule`
+    YEARS: {
+      /** {@code GET|POST /v1/academic/years}. */
+      ROOT: `${BASE}/academic/years`,
+      /** {@code GET|PUT|DELETE /v1/academic/years/{publicUuid}}. */
+      BY_ID: (publicUuid: string) =>
+        `${BASE}/academic/years/${encodeURIComponent(publicUuid)}`,
+      /** {@code POST /v1/academic/years/{publicUuid}/activate}. Cierra el ACTIVE previo en la misma tx. */
+      ACTIVATE: (publicUuid: string) =>
+        `${BASE}/academic/years/${encodeURIComponent(publicUuid)}/activate`
+    },
+    LEVELS: {
+      /** {@code GET|POST /v1/academic/levels}. {@code GET} retorna lista plana (no envelope). */
+      ROOT: `${BASE}/academic/levels`,
+      /** {@code GET|PUT|DELETE /v1/academic/levels/{publicUuid}}. */
+      BY_ID: (publicUuid: string) =>
+        `${BASE}/academic/levels/${encodeURIComponent(publicUuid)}`,
+      /** {@code GET|POST /v1/academic/levels/{levelUuid}/grades}. */
+      GRADES: (levelUuid: string) =>
+        `${BASE}/academic/levels/${encodeURIComponent(levelUuid)}/grades`,
+      /** {@code PUT|DELETE /v1/academic/levels/{levelUuid}/grades/{gradeUuid}}. */
+      GRADE_BY_ID: (levelUuid: string, gradeUuid: string) =>
+        `${BASE}/academic/levels/${encodeURIComponent(levelUuid)}/grades/${encodeURIComponent(gradeUuid)}`,
+      /** {@code PATCH /v1/academic/levels/{levelUuid}/grades/reorder}. */
+      GRADES_REORDER: (levelUuid: string) =>
+        `${BASE}/academic/levels/${encodeURIComponent(levelUuid)}/grades/reorder`
+    },
+    SECTIONS: {
+      /** {@code GET|POST /v1/academic/sections}. {@code GET} acepta filtros {@code ?academicYearId&gradeId&levelId}. */
+      ROOT: `${BASE}/academic/sections`,
+      /** {@code GET|PUT|DELETE /v1/academic/sections/{publicUuid}}. */
+      BY_ID: (publicUuid: string) =>
+        `${BASE}/academic/sections/${encodeURIComponent(publicUuid)}`,
+      /** {@code GET /v1/academic/sections/{publicUuid}/teachers} (BE-4.7). Acepta {@code ?periodId}. */
+      TEACHERS: (sectionPublicUuid: string) =>
+        `${BASE}/academic/sections/${encodeURIComponent(sectionPublicUuid)}/teachers`,
+      /** {@code GET /v1/academic/sections/{publicUuid}/students} (BE-4.8) — roster activo. */
+      STUDENTS: (sectionPublicUuid: string) =>
+        `${BASE}/academic/sections/${encodeURIComponent(sectionPublicUuid)}/students`
+    },
+    COURSES: {
+      /** {@code GET|POST /v1/academic/courses}. {@code GET} acepta filtros {@code ?levelId&isActive}. */
+      ROOT: `${BASE}/academic/courses`,
+      /** {@code GET|PUT|DELETE /v1/academic/courses/{publicUuid}}. */
+      BY_ID: (publicUuid: string) =>
+        `${BASE}/academic/courses/${encodeURIComponent(publicUuid)}`,
+      /** {@code POST /v1/academic/courses/{publicUuid}/levels} — replace semantics. */
+      LEVELS: (publicUuid: string) =>
+        `${BASE}/academic/courses/${encodeURIComponent(publicUuid)}/levels`
+    },
+    PERIODS: {
+      /** {@code GET|POST /v1/academic/periods}. {@code GET} acepta {@code ?academicYearId&periodType}. */
+      ROOT: `${BASE}/academic/periods`,
+      /** {@code GET|PUT|DELETE /v1/academic/periods/{publicUuid}}. */
+      BY_ID: (publicUuid: string) =>
+        `${BASE}/academic/periods/${encodeURIComponent(publicUuid)}`
+    }
   },
   PAYMENTS: {
     ROOT: `${BASE}/payments`,

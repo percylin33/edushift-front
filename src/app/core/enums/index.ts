@@ -10,5 +10,7 @@ export * from './invitation-status.enum';
 export * from './document-type.enum';
 export * from './gender.enum';
 export * from './enrollment-status.enum';
+export * from './student-enrollment-status.enum';
+export * from './employment-status.enum';
 export * from './bulk-import-status.enum';
 export * from './relationship-type.enum';

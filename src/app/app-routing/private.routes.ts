@@ -42,6 +42,13 @@ export const PRIVATE_ROUTES: Routes = [
           import('@features/students/students.routes').then((m) => m.STUDENTS_ROUTES)
       },
       {
+        path: 'teachers',
+        canActivate: [featureFlagGuard],
+        data: { feature: FeatureKey.Teachers, breadcrumb: 'Docentes', title: 'Docentes' },
+        loadChildren: () =>
+          import('@features/teachers/teachers.routes').then((m) => m.TEACHERS_ROUTES)
+      },
+      {
         path: 'academic',
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Academic, breadcrumb: 'Académico', title: 'Académico' },

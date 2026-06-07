@@ -5,3 +5,6 @@ export * from './relationship-badge.component';
 export * from './add-guardian-modal.component';
 export * from './edit-guardian-link-modal.component';
 export * from './guardians-section.component';
+export * from './enroll-student-modal.component';
+export * from './withdraw-enrollment-modal.component';
+export * from './enrollments-section.component';

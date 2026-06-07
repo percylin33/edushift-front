@@ -10,6 +10,7 @@ export enum FeatureKey {
   Auth          = 'auth',
   Users         = 'users',
   Students      = 'students',
+  Teachers      = 'teachers',
   Academic      = 'academic',
   Attendance    = 'attendance',
   Payments      = 'payments',

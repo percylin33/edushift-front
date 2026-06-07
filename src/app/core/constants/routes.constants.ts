@@ -41,12 +41,34 @@ export const ROUTES = {
     detail: (id: string) => `/students/${id}`,
     edit: (id: string) => `/students/${id}/edit`
   },
+  TEACHERS: {
+    ROOT: '/teachers',
+    LIST: '/teachers',
+    NEW: '/teachers/new',
+    detail: (id: string) => `/teachers/${id}`,
+    edit: (id: string) => `/teachers/${id}/edit`
+  },
   ACADEMIC: {
     ROOT: '/academic',
-    COURSES: '/academic/courses',
-    CLASSES: '/academic/classes',
-    GRADES: '/academic/grades',
-    SCHEDULE: '/academic/schedule'
+    YEARS: {
+      LIST: '/academic/years',
+      NEW: '/academic/years/new',
+      edit: (id: string) => `/academic/years/${id}/edit`
+    },
+    LEVELS: {
+      LIST: '/academic/levels',
+      detail: (id: string) => `/academic/levels/${id}`
+    },
+    SECTIONS: {
+      LIST: '/academic/sections',
+      detail: (id: string) => `/academic/sections/${id}`
+    },
+    COURSES: {
+      LIST: '/academic/courses'
+    },
+    PERIODS: {
+      LIST: '/academic/periods'
+    }
   },
   ATTENDANCE: {
     ROOT: '/attendance',

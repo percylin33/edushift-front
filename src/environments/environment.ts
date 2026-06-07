@@ -29,6 +29,7 @@ export const environment: AppEnvironment = {
     auth: true,
     users: true,
     students: true,
+    teachers: true,
     academic: true,
     attendance: true,
     payments: true,

@@ -116,6 +116,20 @@ export interface StudentListFilters {
   search?: string;
   enrollmentStatus?: EnrollmentStatus;
   gradeLevelId?: string;
+  /**
+   * Filtra por la sección activa del student (FE-4.7 / BE-4.8).
+   * El back acepta un solo UUID; la UI usa un dropdown con las
+   * secciones del año activo.
+   */
+  currentSectionId?: string;
+  /**
+   * Acota por año académico de la enrollment ACTIVE. Usado en
+   * combinación con {@link #currentSectionId} para descartar
+   * matrículas pasadas que comparten el mismo public_uuid de
+   * sección por re-creación. La UI lo deja implícito (= año
+   * activo) en la mayoría de los flows.
+   */
+  currentAcademicYearId?: string;
 }
 
 /**

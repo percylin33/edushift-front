@@ -7,7 +7,8 @@ import {
   signal
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
 import { EnrollmentStatus } from '@core/enums';
 import {
@@ -17,6 +18,12 @@ import {
   PageHeaderComponent,
   SpinnerComponent
 } from '@shared/components';
+import { AcademicApiService } from '@features/academic/services';
+import {
+  AcademicYearRow,
+  AcademicYearStatus,
+  SectionRow
+} from '@features/academic/models';
 import {
   BulkImportModalComponent,
   EnrollmentStatusBadgeComponent
@@ -81,7 +88,7 @@ import { StudentListFilters } from '../../models';
       <!-- Filtros -->
       <section class="card mb-4">
         <div class="card-body grid gap-3 sm:grid-cols-12">
-          <div class="sm:col-span-8">
+          <div class="sm:col-span-6">
             <label class="label" for="students-search">Buscar</label>
             <div class="relative">
               <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-content-subtle">
@@ -98,7 +105,7 @@ import { StudentListFilters } from '../../models';
             </div>
           </div>
 
-          <div class="sm:col-span-4">
+          <div class="sm:col-span-3">
             <label class="label" for="students-status">Matrícula</label>
             <select
               id="students-status"
@@ -111,6 +118,29 @@ import { StudentListFilters } from '../../models';
                 <option [ngValue]="opt.value">{{ opt.label }}</option>
               }
             </select>
+          </div>
+
+          <div class="sm:col-span-3">
+            <label class="label" for="students-section">Sección actual</label>
+            <select
+              id="students-section"
+              class="select"
+              [ngModel]="currentSectionId()"
+              (ngModelChange)="onCurrentSectionChange($event)"
+              [disabled]="loadingSections() || sections().length === 0"
+            >
+              <option [ngValue]="null">Todas</option>
+              @for (s of sections(); track s.publicUuid) {
+                <option [ngValue]="s.publicUuid">
+                  {{ s.gradeName }} · {{ s.name }}
+                </option>
+              }
+            </select>
+            @if (!loadingSections() && !activeYear()) {
+              <p class="hint mt-1 text-xs text-content-muted">
+                Sin año activo
+              </p>
+            }
           </div>
         </div>
       </section>
@@ -239,13 +269,22 @@ import { StudentListFilters } from '../../models';
 })
 export class StudentsListComponent implements OnInit {
   private readonly store = inject(StudentsStore);
+  private readonly academicApi = inject(AcademicApiService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   protected readonly Math = Math;
   protected readonly newRoute = ROUTES.STUDENTS.NEW;
 
   protected readonly search = signal<string>('');
   protected readonly enrollmentStatus = signal<EnrollmentStatus | null>(null);
+  protected readonly currentSectionId = signal<string | null>(null);
   protected readonly bulkOpen = signal(false);
+
+  /** Año académico ACTIVE — gateway del filtro currentSectionId. */
+  protected readonly activeYear = signal<AcademicYearRow | null>(null);
+  protected readonly sections = signal<SectionRow[]>([]);
+  protected readonly loadingSections = signal<boolean>(false);
 
   protected readonly items = this.store.items;
   protected readonly hasItems = this.store.hasItems;
@@ -274,16 +313,29 @@ export class StudentsListComponent implements OnInit {
   /** Debounce timer for the text search. Cancelled on every keystroke. */
   private searchDebounce: ReturnType<typeof setTimeout> | null = null;
 
-  ngOnInit(): void {
-    /* Hydrate local inputs from the store so navigating back from a
-     * detail page preserves the filters the admin had configured. */
-    const f = this.store.filters();
-    this.search.set(f.search ?? '');
-    this.enrollmentStatus.set(f.enrollmentStatus ?? null);
+  async ngOnInit(): Promise<void> {
+    /* Sync inicial: query params > store snapshot > defaults.
+     * Esto permite compartir URL con filtros aplicados (FE-4.7). */
+    const qp = this.route.snapshot.queryParamMap;
+    const storeFilters = this.store.filters();
 
-    if (this.store.items().length === 0) {
-      void this.store.loadList();
-    }
+    const searchInit = qp.get('search') ?? storeFilters.search ?? '';
+    const statusRaw = qp.get('status') ?? storeFilters.enrollmentStatus;
+    const sectionInit = qp.get('currentSectionId') ?? storeFilters.currentSectionId ?? null;
+
+    this.search.set(searchInit);
+    this.enrollmentStatus.set(this.parseStatus(statusRaw));
+    this.currentSectionId.set(sectionInit);
+
+    /* Cargamos secciones del año activo en paralelo al list inicial.
+     * Si el filtro currentSectionId vino por URL pero el año activo
+     * no responde, dejamos el filtro aplicado igual: el back lo
+     * resuelve por publicUuid sin importar la lista del dropdown. */
+    void this.fetchActiveYearSections();
+
+    /* applyFilters dispara el primer load con todos los filtros
+     * sincronizados — más simple que comparar y decidir. */
+    await this.applyFilters({ skipUrlSync: true });
   }
 
   // ===========================================================================
@@ -298,6 +350,11 @@ export class StudentsListComponent implements OnInit {
 
   protected onStatusChange(value: EnrollmentStatus | null): void {
     this.enrollmentStatus.set(value);
+    void this.applyFilters();
+  }
+
+  protected onCurrentSectionChange(value: string | null): void {
+    this.currentSectionId.set(value);
     void this.applyFilters();
   }
 
@@ -346,11 +403,80 @@ export class StudentsListComponent implements OnInit {
     });
   }
 
-  private async applyFilters(): Promise<void> {
+  private async applyFilters(
+    options: { skipUrlSync?: boolean } = {}
+  ): Promise<void> {
     const filters: StudentListFilters = {
       search: this.search().trim() || undefined,
-      enrollmentStatus: this.enrollmentStatus() ?? undefined
+      enrollmentStatus: this.enrollmentStatus() ?? undefined,
+      currentSectionId: this.currentSectionId() ?? undefined
     };
+    if (!options.skipUrlSync) {
+      void this.syncUrl(filters);
+    }
     await this.store.applyFilters(filters);
+  }
+
+  /**
+   * Refleja los filtros activos en {@code ?search&status&currentSectionId}.
+   * {@code merge} preserva otros params (ej. {@code page} si lo
+   * agregamos en otro sprint). {@code replaceUrl} evita ensuciar el
+   * historial con cada keystroke.
+   */
+  private async syncUrl(filters: StudentListFilters): Promise<void> {
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        search: filters.search ?? null,
+        status: filters.enrollmentStatus ?? null,
+        currentSectionId: filters.currentSectionId ?? null
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+  }
+
+  /**
+   * Carga el año académico ACTIVE + sus secciones para el dropdown
+   * del filtro. Si no hay año activo, el dropdown queda deshabilitado
+   * con un hint inline; el usuario igualmente puede tener el filtro
+   * aplicado por URL — el back resuelve por UUID.
+   */
+  private async fetchActiveYearSections(): Promise<void> {
+    this.loadingSections.set(true);
+    try {
+      const years = await firstValueFrom(this.academicApi.listYears());
+      const active =
+        years.find((y) => y.status === AcademicYearStatus.Active) ?? null;
+      this.activeYear.set(active);
+      if (!active) {
+        this.sections.set([]);
+        return;
+      }
+      const sections = await firstValueFrom(
+        this.academicApi.listSections({
+          academicYearPublicUuid: active.publicUuid
+        })
+      );
+      this.sections.set(sections);
+    }
+    catch {
+      this.activeYear.set(null);
+      this.sections.set([]);
+    }
+    finally {
+      this.loadingSections.set(false);
+    }
+  }
+
+  /**
+   * Convierte el query param crudo (string) a {@link EnrollmentStatus}
+   * verificando que sea uno de los valores válidos. Anti-XSS y
+   * anti-mistype: si llega "ENROLED" mal escrito, lo descartamos.
+   */
+  private parseStatus(raw: string | null | undefined): EnrollmentStatus | null {
+    if (!raw) return null;
+    const valid = Object.values(EnrollmentStatus) as string[];
+    return valid.includes(raw) ? (raw as EnrollmentStatus) : null;
   }
 }

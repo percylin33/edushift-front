@@ -31,6 +31,7 @@ export interface AppEnvironment {
     auth: boolean;
     users: boolean;
     students: boolean;
+    teachers: boolean;
     academic: boolean;
     attendance: boolean;
     payments: boolean;

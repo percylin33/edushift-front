@@ -17,6 +17,7 @@ import {
 } from '@shared/components';
 import {
   EnrollmentStatusBadgeComponent,
+  EnrollmentsSectionComponent,
   GuardiansSectionComponent
 } from '../../components';
 import { StudentsStore } from '../../store';
@@ -49,6 +50,7 @@ import { StudentDetail } from '../../models';
     IconComponent,
     SpinnerComponent,
     EnrollmentStatusBadgeComponent,
+    EnrollmentsSectionComponent,
     GuardiansSectionComponent
   ],
   template: `
@@ -166,6 +168,8 @@ import { StudentDetail } from '../../models';
               </div>
             </div>
           </section>
+
+          <app-enrollments-section [student]="s" />
 
           <app-guardians-section [studentPublicUuid]="s.publicUuid" />
 

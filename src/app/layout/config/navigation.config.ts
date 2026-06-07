@@ -43,36 +43,67 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         roles: [UserRole.TenantAdmin]
       },
       {
+        /*
+         * Sprint 4 (FE-4.6) — padrón de docentes. Mismo trade-off
+         * de role-gating (TENANT_ADMIN) hasta que la security sprint
+         * agregue `teachers:*` permissions.
+         */
+        id: 'teachers',
+        label: 'Docentes',
+        icon: 'users',
+        route: ROUTES.TEACHERS.ROOT,
+        feature: FeatureKey.Teachers,
+        roles: [UserRole.TenantAdmin]
+      },
+      {
+        /*
+         * Sprint 4 reescribe la taxonomía académica: el módulo expone
+         * cinco sub-módulos (años, niveles, secciones, cursos,
+         * periodos). FE-4.1..4.5 los entregan navegables todos.
+         *
+         * Role-gating en lugar de permission-gating mientras la
+         * security sprint no popule el array `User.permissions`
+         * (hoy el backend solo emite roles — ver UserRole.java).
+         * Mismo trade-off que students/teachers/users; el guard de
+         * `academic.routes.ts` ya enforce TENANT_ADMIN, así que esto
+         * es solo UX hint para que el item aparezca en el sidebar.
+         */
         id: 'academic',
         label: 'Académico',
         icon: 'book-open',
         route: ROUTES.ACADEMIC.ROOT,
         feature: FeatureKey.Academic,
-        permissions: [Permission.AcademicRead],
+        roles: [UserRole.TenantAdmin],
         children: [
+          {
+            id: 'academic-years',
+            label: 'Años académicos',
+            route: ROUTES.ACADEMIC.YEARS.LIST,
+            roles: [UserRole.TenantAdmin]
+          },
+          {
+            id: 'academic-levels',
+            label: 'Niveles y grados',
+            route: ROUTES.ACADEMIC.LEVELS.LIST,
+            roles: [UserRole.TenantAdmin]
+          },
+          {
+            id: 'academic-sections',
+            label: 'Secciones',
+            route: ROUTES.ACADEMIC.SECTIONS.LIST,
+            roles: [UserRole.TenantAdmin]
+          },
           {
             id: 'academic-courses',
             label: 'Cursos',
-            route: ROUTES.ACADEMIC.COURSES,
-            permissions: [Permission.AcademicRead]
+            route: ROUTES.ACADEMIC.COURSES.LIST,
+            roles: [UserRole.TenantAdmin]
           },
           {
-            id: 'academic-classes',
-            label: 'Clases',
-            route: ROUTES.ACADEMIC.CLASSES,
-            permissions: [Permission.AcademicRead]
-          },
-          {
-            id: 'academic-grades',
-            label: 'Notas',
-            route: ROUTES.ACADEMIC.GRADES,
-            permissions: [Permission.AcademicRead]
-          },
-          {
-            id: 'academic-schedule',
-            label: 'Horario',
-            route: ROUTES.ACADEMIC.SCHEDULE,
-            permissions: [Permission.AcademicRead]
+            id: 'academic-periods',
+            label: 'Periodos',
+            route: ROUTES.ACADEMIC.PERIODS.LIST,
+            roles: [UserRole.TenantAdmin]
           }
         ]
       },

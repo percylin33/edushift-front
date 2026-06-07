@@ -15,6 +15,7 @@ import {
 } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
 import { DocumentType, EnrollmentStatus, Gender } from '@core/enums';
 import { ApiError } from '@core/models';
@@ -24,6 +25,12 @@ import {
   PageHeaderComponent,
   SpinnerComponent
 } from '@shared/components';
+import { AcademicApiService } from '@features/academic/services';
+import {
+  AcademicYearRow,
+  AcademicYearStatus,
+  SectionRow
+} from '@features/academic/models';
 import { StudentsStore } from '../../store';
 import {
   CreateStudentRequest,
@@ -273,6 +280,50 @@ import {
                   formControlName="enrollmentDate"
                 />
               </div>
+
+              @if (!editing()) {
+                <div class="field sm:col-span-12">
+                  <label class="label" for="sectionPublicUuid">
+                    Sección del año activo
+                    <span class="text-content-muted text-xs">(opcional)</span>
+                  </label>
+                  @if (loadingSections()) {
+                    <p class="text-xs text-content-muted">
+                      Cargando secciones disponibles…
+                    </p>
+                  } @else if (!activeYear()) {
+                    <p class="text-xs text-content-muted">
+                      No hay año académico activo. Crea y activa uno desde
+                      <em>Académico</em> para matricular en el momento de
+                      registrar al estudiante.
+                    </p>
+                  } @else if (sections().length === 0) {
+                    <p class="text-xs text-content-muted">
+                      El año {{ activeYear()?.name }} no tiene secciones.
+                      Crea al menos una desde <em>Académico → Secciones</em>
+                      para usar este atajo.
+                    </p>
+                  } @else {
+                    <select
+                      id="sectionPublicUuid"
+                      class="select"
+                      formControlName="sectionPublicUuid"
+                    >
+                      <option [ngValue]="null">No matricular ahora</option>
+                      @for (s of sections(); track s.publicUuid) {
+                        <option [ngValue]="s.publicUuid">
+                          {{ s.gradeName }} · {{ s.name }} ({{ s.levelCode }})
+                        </option>
+                      }
+                    </select>
+                    <p class="hint mt-1 text-xs text-content-muted">
+                      Si seleccionas una sección, el sistema crea
+                      automáticamente la matrícula activa después del alta
+                      del estudiante.
+                    </p>
+                  }
+                </div>
+              }
             </div>
           </section>
 
@@ -302,8 +353,19 @@ export class StudentFormComponent implements OnInit {
   private readonly store = inject(StudentsStore);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly academicApi = inject(AcademicApiService);
 
   protected readonly listRoute = ROUTES.STUDENTS.LIST;
+
+  /**
+   * Año académico ACTIVE del tenant — gateway de la matrícula opcional.
+   * Cargado una sola vez en {@link ngOnInit} cuando estamos en modo
+   * <em>create</em>; en edit no aplica porque las matrículas se
+   * gestionan desde el detail.
+   */
+  protected readonly activeYear = signal<AcademicYearRow | null>(null);
+  protected readonly sections = signal<SectionRow[]>([]);
+  protected readonly loadingSections = signal<boolean>(false);
 
   /** Edit-mode public UUID, captured once at init. */
   private editId: string | null = null;
@@ -376,7 +438,14 @@ export class StudentFormComponent implements OnInit {
     phone: ['', [Validators.maxLength(32)]],
     address: ['', [Validators.maxLength(500)]],
     enrollmentStatus: [null as EnrollmentStatus | null],
-    enrollmentDate: [null as string | null]
+    enrollmentDate: [null as string | null],
+    /**
+     * Sección opcional al crear (FE-4.7). Cuando está seteada, el
+     * {@link onSubmit} encadena {@code enrollStudent} después del
+     * {@code create}; si esa segunda mutación falla, se navega al
+     * detail con un toast manejado por el store.
+     */
+    sectionPublicUuid: [null as string | null]
   });
 
   async ngOnInit(): Promise<void> {
@@ -395,6 +464,12 @@ export class StudentFormComponent implements OnInit {
          * to a missing aggregate. */
         await this.router.navigate([ROUTES.STUDENTS.LIST]);
       }
+    } else {
+      /* En modo create cargamos secciones del año activo para el
+       * shortcut de matrícula. Si no hay year activo o no hay
+       * secciones, el campo se renderiza con un hint inline en lugar
+       * del dropdown. */
+      void this.fetchActiveYearSections();
     }
   }
 
@@ -420,6 +495,12 @@ export class StudentFormComponent implements OnInit {
         const request = this.toCreateRequest();
         const created = await this.store.create(request);
         if (created) {
+          /* Si el admin eligió sección, encadenamos la matrícula.
+           * El segundo paso falla independiente del primero: el
+           * estudiante ya está creado, así que navegamos al detail
+           * pase lo que pase y dejamos que el banner del store
+           * informe del fallo de enrollment si lo hubo. */
+          await this.maybeEnrollAfterCreate(created.publicUuid);
           await this.router.navigate([ROUTES.STUDENTS.detail(created.publicUuid)]);
         }
       }
@@ -578,5 +659,69 @@ export class StudentFormComponent implements OnInit {
         break;
     }
     this.fieldErrors.set(next);
+  }
+
+  /**
+   * Carga el año académico ACTIVE + sus secciones para el dropdown
+   * de matrícula opcional. Se invoca solo en modo create. Si el
+   * fetch falla, dejamos el estado limpio (vacío) y el render
+   * cae al hint "no hay año activo".
+   */
+  private async fetchActiveYearSections(): Promise<void> {
+    this.loadingSections.set(true);
+    try {
+      const years = await firstValueFrom(this.academicApi.listYears());
+      const active =
+        years.find((y) => y.status === AcademicYearStatus.Active) ?? null;
+      this.activeYear.set(active);
+      if (!active) {
+        this.sections.set([]);
+        return;
+      }
+      const sections = await firstValueFrom(
+        this.academicApi.listSections({
+          academicYearPublicUuid: active.publicUuid
+        })
+      );
+      this.sections.set(sections);
+    }
+    catch {
+      this.activeYear.set(null);
+      this.sections.set([]);
+    }
+    finally {
+      this.loadingSections.set(false);
+    }
+  }
+
+  /**
+   * Si el form trae {@code sectionPublicUuid}, encadena
+   * {@link StudentsStore#enrollStudent} usando la fecha de hoy y el
+   * año académico activo. Mantenemos la llamada aislada del
+   * {@code create} para que un fallo aquí no rompa la UX general:
+   * el estudiante queda creado y el banner del store muestra el
+   * error de matrícula.
+   */
+  private async maybeEnrollAfterCreate(
+    studentPublicUuid: string
+  ): Promise<void> {
+    const sectionUuid = this.form.getRawValue().sectionPublicUuid;
+    const year = this.activeYear();
+    if (!sectionUuid || !year) return;
+
+    /* Local-tz yyyy-MM-dd: {@code toDateInput} usa UTC y puede
+     * shiftear el día en zonas con offset negativo (Lima = -05).
+     * Construimos la fecha de hoy directamente en local. */
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const enrolledAt = `${yyyy}-${mm}-${dd}`;
+
+    await this.store.enrollStudent(studentPublicUuid, {
+      sectionPublicUuid: sectionUuid,
+      academicYearPublicUuid: year.publicUuid,
+      enrolledAt
+    });
   }
 }

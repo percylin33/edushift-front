@@ -4,16 +4,23 @@ import { StudentsApiService } from '../services';
 import {
   AddGuardianRequest,
   BulkImportJob,
+  CreateEnrollmentRequest,
   CreateStudentRequest,
+  EnrollmentDetail,
+  EnrollmentRow,
   Guardian,
   StudentDetail,
   StudentListFilters,
   StudentListPagination,
   StudentRow,
   UpdateGuardianLinkRequest,
-  UpdateStudentRequest
+  UpdateStudentRequest,
+  WithdrawEnrollmentRequest
 } from '../models';
-import { isTerminalBulkImportStatus } from '@core/enums';
+import {
+  StudentEnrollmentStatus,
+  isTerminalBulkImportStatus
+} from '@core/enums';
 
 interface PaginationState {
   /** Zero-based page index (Spring contract). */
@@ -76,6 +83,13 @@ export class StudentsStore {
   private readonly _loadingGuardians = signal(false);
   private readonly _savingGuardian = signal(false);
 
+  // -------- enrollments slice (FE-4.7) --------
+  private readonly _enrollments = signal<EnrollmentRow[]>([]);
+  private readonly _loadingEnrollments = signal(false);
+  private readonly _savingEnrollment = signal(false);
+  /** Owner del cache; previene mostrar el historial de otro estudiante en flight. */
+  private readonly _enrollmentsOwner = signal<string | null>(null);
+
   // -------- shared --------
   private readonly _error = signal<string | null>(null);
 
@@ -94,6 +108,21 @@ export class StudentsStore {
   readonly guardians = this._guardians.asReadonly();
   readonly loadingGuardians = this._loadingGuardians.asReadonly();
   readonly savingGuardian = this._savingGuardian.asReadonly();
+
+  readonly enrollments = this._enrollments.asReadonly();
+  readonly loadingEnrollments = this._loadingEnrollments.asReadonly();
+  readonly savingEnrollment = this._savingEnrollment.asReadonly();
+
+  /**
+   * Matrícula ACTIVE actual ({@code status === ACTIVE}). El back
+   * garantiza a lo más una por (student, year) via partial unique
+   * index, pero en pleno año transitorio puede haber más de una si
+   * hay matrícula histórica de un año anterior re-leída por error;
+   * tomamos la primera para no romper el render.
+   */
+  readonly activeEnrollment = computed<EnrollmentRow | null>(() =>
+    this._enrollments().find((e) => e.active) ?? null
+  );
 
   readonly error = this._error.asReadonly();
 
@@ -414,6 +443,148 @@ export class StudentsStore {
     }
   }
 
+  // ===========================================================================
+  // Enrollments (FE-4.7)
+  // ===========================================================================
+
+  /**
+   * Carga el historial completo (ACTIVE + terminales) del estudiante,
+   * cacheado en {@link #enrollments}. El cache se invalida en
+   * {@link #clearEnrollments} y al cambiar el {@code studentPublicUuid}.
+   */
+  async loadEnrollments(studentPublicUuid: string): Promise<void> {
+    /* Guard contra carreras: si el caller cambia de student mientras
+     * está en flight, descartamos la respuesta vieja. */
+    this._enrollmentsOwner.set(studentPublicUuid);
+    this._loadingEnrollments.set(true);
+    this._error.set(null);
+
+    try {
+      const rows = await firstValueFrom(
+        this.api.listEnrollments(studentPublicUuid)
+      );
+      if (this._enrollmentsOwner() === studentPublicUuid) {
+        this._enrollments.set(rows);
+      }
+    }
+    catch (err) {
+      this._error.set(this.toErrorMessage(err));
+      if (this._enrollmentsOwner() === studentPublicUuid) {
+        this._enrollments.set([]);
+      }
+    }
+    finally {
+      this._loadingEnrollments.set(false);
+    }
+  }
+
+  /**
+   * Crea una matrícula. Refresca el historial post-creación para
+   * que las dos rows (la nueva ACTIVE y la previa terminada por el
+   * back si se hizo dual-write) queden consistentes.
+   */
+  async enrollStudent(
+    studentPublicUuid: string,
+    request: CreateEnrollmentRequest
+  ): Promise<EnrollmentDetail | null> {
+    this._savingEnrollment.set(true);
+    this._error.set(null);
+
+    try {
+      const created = await firstValueFrom(
+        this.api.createEnrollment(studentPublicUuid, request)
+      );
+      /* Refrescamos en lugar de prepend manual: el back puede haber
+       * cerrado otras rows (ej. status del student que pasa a
+       * ENROLLED) y solo el list garantiza el orden correcto. */
+      await this.loadEnrollments(studentPublicUuid);
+      /* Re-fetch del detail para que el row del padrón refleje el
+       * status actualizado (si aplica). */
+      if (this._selected()?.publicUuid === studentPublicUuid) {
+        await this.loadDetail(studentPublicUuid);
+      }
+      return created;
+    }
+    catch (err) {
+      this._error.set(this.toErrorMessage(err));
+      return null;
+    }
+    finally {
+      this._savingEnrollment.set(false);
+    }
+  }
+
+  /**
+   * Soft-end de una matrícula. Actualiza optimistamente el row en
+   * el cache (transición {@code active: true → false},
+   * {@code status} ← request.status, {@code withdrawnAt} ← request.withdrawnAt)
+   * antes de la respuesta del back.
+   */
+  async withdrawEnrollment(
+    enrollmentPublicUuid: string,
+    request: WithdrawEnrollmentRequest
+  ): Promise<EnrollmentDetail | null> {
+    this._savingEnrollment.set(true);
+    this._error.set(null);
+
+    try {
+      const result = await firstValueFrom(
+        this.api.withdrawEnrollment(enrollmentPublicUuid, request)
+      );
+      this._enrollments.update((rows) =>
+        rows.map((r) =>
+          r.publicUuid === enrollmentPublicUuid
+            ? {
+                ...r,
+                status: result.status,
+                active: result.active,
+                withdrawnAt: result.withdrawnAt
+              }
+            : r
+        )
+      );
+      return result;
+    }
+    catch (err) {
+      this._error.set(this.toErrorMessage(err));
+      return null;
+    }
+    finally {
+      this._savingEnrollment.set(false);
+    }
+  }
+
+  /**
+   * Cambio de sección: encadena {@link #withdrawEnrollment} (status
+   * {@code TRANSFERRED}) sobre la matrícula activa con
+   * {@link #enrollStudent} para la nueva sección. Si la primera
+   * mutación falla, la segunda no se ejecuta y devolvemos
+   * {@code null}; si la primera tiene éxito y la segunda falla, el
+   * back queda con la row activa terminada y la nueva sin crear —
+   * el caller decide si reintenta o muestra un alert al usuario.
+   */
+  async transferStudentSection(
+    studentPublicUuid: string,
+    activeEnrollmentPublicUuid: string,
+    transferDate: string,
+    create: CreateEnrollmentRequest
+  ): Promise<EnrollmentDetail | null> {
+    const withdrawn = await this.withdrawEnrollment(
+      activeEnrollmentPublicUuid,
+      {
+        status: StudentEnrollmentStatus.Transferred,
+        withdrawnAt: transferDate
+      }
+    );
+    if (!withdrawn) return null;
+    return this.enrollStudent(studentPublicUuid, create);
+  }
+
+  clearEnrollments(): void {
+    this._enrollments.set([]);
+    this._enrollmentsOwner.set(null);
+  }
+
   /** Manually re-poll the active job (e.g. on a "Refresh" button). */
   async refreshBulkJob(): Promise<void> {
     const current = this._bulkJob();
@@ -448,6 +619,10 @@ export class StudentsStore {
     this._guardians.set([]);
     this._loadingGuardians.set(false);
     this._savingGuardian.set(false);
+    this._enrollments.set([]);
+    this._enrollmentsOwner.set(null);
+    this._loadingEnrollments.set(false);
+    this._savingEnrollment.set(false);
     this.resetBulkImport();
   }
 
