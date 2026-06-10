@@ -7,7 +7,8 @@ import {
   signal
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ROUTES } from '@core/constants';
 import {
   EmptyStateComponent,
   IconComponent,
@@ -48,6 +49,7 @@ import { CourseDetail, CourseRow } from '../../models';
   imports: [
     CommonModule,
     FormsModule,
+    RouterLink,
     EmptyStateComponent,
     IconComponent,
     SpinnerComponent,
@@ -218,6 +220,14 @@ import { CourseDetail, CourseRow } from '../../models';
                   </td>
                   <td class="text-right">
                     <div class="inline-flex items-center gap-1">
+                      <a
+                        [routerLink]="detailRoute(row.publicUuid)"
+                        class="btn btn-ghost btn-sm"
+                        [attr.aria-label]="'Ver detalle de ' + row.name"
+                      >
+                        <app-icon name="arrow-right" [size]="16" />
+                        <span class="hidden sm:inline">Detalle</span>
+                      </a>
                       <button
                         type="button"
                         class="btn btn-ghost btn-sm"
@@ -307,6 +317,9 @@ export class CoursesListComponent implements OnInit {
   protected readonly isEmpty = this.store.isCoursesEmpty;
   protected readonly errorMessage = this.store.error;
   protected readonly filteredRows = this.store.filteredCourses;
+
+  protected readonly detailRoute = (publicUuid: string): string =>
+    ROUTES.ACADEMIC.COURSES.detail(publicUuid);
 
   protected readonly levelFilter = signal<string | null>(null);
   protected readonly activeFilter = signal<boolean | null>(null);

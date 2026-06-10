@@ -56,6 +56,13 @@ export const PRIVATE_ROUTES: Routes = [
           import('@features/academic/academic.routes').then((m) => m.ACADEMIC_ROUTES)
       },
       {
+        path: 'learning-sessions',
+        canActivate: [featureFlagGuard],
+        data: { feature: FeatureKey.Sessions, breadcrumb: 'Sesiones', title: 'Sesiones de Aprendizaje' },
+        loadChildren: () =>
+          import('@features/sessions/sessions.routes').then((m) => m.SESSIONS_ROUTES)
+      },
+      {
         path: 'attendance',
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Attendance, breadcrumb: 'Asistencia', title: 'Asistencia' },

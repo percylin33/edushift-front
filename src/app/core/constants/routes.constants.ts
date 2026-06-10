@@ -64,11 +64,18 @@ export const ROUTES = {
       detail: (id: string) => `/academic/sections/${id}`
     },
     COURSES: {
-      LIST: '/academic/courses'
+      LIST: '/academic/courses',
+      detail: (id: string) => `/academic/courses/${id}`
     },
     PERIODS: {
       LIST: '/academic/periods'
     }
+  },
+  SESSIONS: {
+    ROOT: '/learning-sessions',
+    LIST: '/learning-sessions',
+    NEW: '/learning-sessions/new',
+    detail: (id: string) => `/learning-sessions/${id}`
   },
   ATTENDANCE: {
     ROOT: '/attendance',

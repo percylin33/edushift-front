@@ -12,6 +12,7 @@ export enum FeatureKey {
   Students      = 'students',
   Teachers      = 'teachers',
   Academic      = 'academic',
+  Sessions      = 'sessions',
   Attendance    = 'attendance',
   Payments      = 'payments',
   Ai            = 'ai',

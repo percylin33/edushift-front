@@ -20,12 +20,13 @@ import {
   EmploymentStatusBadgeComponent,
   InviteTeacherDialogComponent,
   LinkUserDialogComponent,
-  TeacherAssignmentsTabComponent
+  TeacherAssignmentsTabComponent,
+  TeacherScheduleTabComponent
 } from '../../components';
 import { TeachersStore } from '../../store';
 import { EMPLOYMENT_STATUS_LABELS } from '../../models';
 
-type TabId = 'info' | 'account' | 'assignments' | 'specializations';
+type TabId = 'info' | 'account' | 'assignments' | 'specializations' | 'schedule';
 
 /**
  * `/teachers/:id` — detail page con cuatro tabs.
@@ -66,7 +67,8 @@ type TabId = 'info' | 'account' | 'assignments' | 'specializations';
     EmploymentStatusBadgeComponent,
     InviteTeacherDialogComponent,
     LinkUserDialogComponent,
-    TeacherAssignmentsTabComponent
+    TeacherAssignmentsTabComponent,
+    TeacherScheduleTabComponent
   ],
   template: `
     <app-page-container size="wide">
@@ -246,6 +248,9 @@ type TabId = 'info' | 'account' | 'assignments' | 'specializations';
           @case ('assignments') {
             <app-teacher-assignments-tab [teacher]="t" />
           }
+          @case ('schedule') {
+            <app-teacher-schedule-tab [teacherPublicUuid]="t.publicUuid" />
+          }
           @case ('specializations') {
             <section class="card">
               <header class="card-header">
@@ -332,7 +337,8 @@ export class TeacherDetailComponent implements OnInit {
     { id: 'info',            label: 'Información' },
     { id: 'account',         label: 'Cuenta' },
     { id: 'assignments',     label: 'Asignaciones' },
-    { id: 'specializations', label: 'Especialidades' }
+    { id: 'specializations', label: 'Especialidades' },
+    { id: 'schedule',        label: 'Horario' }
   ];
 
   async ngOnInit(): Promise<void> {
@@ -449,6 +455,6 @@ export class TeacherDetailComponent implements OnInit {
   }
 
   private isValidTab(value: string): value is TabId {
-    return ['info', 'account', 'assignments', 'specializations'].includes(value);
+    return ['info', 'account', 'assignments', 'specializations', 'schedule'].includes(value);
   }
 }

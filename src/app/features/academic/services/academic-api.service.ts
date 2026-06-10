@@ -16,6 +16,14 @@ import {
   AcademicYearListItemRaw,
   AcademicYearResponseRaw,
   AcademicYearRow,
+  CapacityDetail,
+  CapacityReorderRequest,
+  CapacityResponseRaw,
+  CompetencyDetail,
+  CompetencyListItemRaw,
+  CompetencyReorderRequest,
+  CompetencyResponseRaw,
+  CompetencyRow,
   CourseDetail,
   CourseListFilters,
   CourseListItemRaw,
@@ -24,24 +32,42 @@ import {
   CreateAcademicLevelRequest,
   CreateAcademicPeriodRequest,
   CreateAcademicYearRequest,
+  CreateCapacityRequest,
+  CreateCompetencyRequest,
   CreateCourseRequest,
   CreateGradeRequest,
   CreateSectionRequest,
+  CreateTimeSlotRequest,
+  CreateUnitRequest,
   Grade,
   GradeReorderRequest,
   GradeResponseRaw,
+  ScheduleSlotItem,
+  ScheduleSlotItemRaw,
   SectionDetail,
   SectionListFilters,
   SectionListItemRaw,
   SectionResponseRaw,
   SectionRow,
+  SeedCompetenciesResponse,
+  TimeSlotDetail,
+  TimeSlotResponseRaw,
+  UnitDetail,
+  UnitListItemRaw,
+  UnitReorderRequest,
+  UnitResponseRaw,
+  UnitRow,
   UpdateAcademicLevelRequest,
   UpdateAcademicPeriodRequest,
   UpdateAcademicYearRequest,
+  UpdateCapacityRequest,
+  UpdateCompetencyRequest,
   UpdateCourseLevelsRequest,
   UpdateCourseRequest,
   UpdateGradeRequest,
   UpdateSectionRequest,
+  UpdateTimeSlotRequest,
+  UpdateUnitRequest,
   parseLocalDate
 } from '../models';
 
@@ -99,6 +125,16 @@ import {
  *   <li>{@link #createPeriod} → {@code POST   /v1/academic/periods}</li>
  *   <li>{@link #updatePeriod} → {@code PUT    /v1/academic/periods/{publicUuid}}</li>
  *   <li>{@link #deletePeriod} → {@code DELETE /v1/academic/periods/{publicUuid}}</li>
+ * </ul>
+ *
+ * <h3>Endpoint coverage (FE-5A.1)</h3>
+ * <ul>
+ *   <li>{@link #listUnits}    → {@code GET    /v1/academic/courses/{courseUuid}/units}</li>
+ *   <li>{@link #createUnit}   → {@code POST   /v1/academic/courses/{courseUuid}/units}</li>
+ *   <li>{@link #reorderUnits} → {@code PATCH  /v1/academic/courses/{courseUuid}/units/reorder}</li>
+ *   <li>{@link #getUnit}      → {@code GET    /v1/academic/units/{publicUuid}}</li>
+ *   <li>{@link #updateUnit}   → {@code PUT    /v1/academic/units/{publicUuid}}</li>
+ *   <li>{@link #deleteUnit}   → {@code DELETE /v1/academic/units/{publicUuid}}</li>
  * </ul>
  *
  * <p>Adapters al final convierten las fechas ISO a {@link Date} y
@@ -511,6 +547,346 @@ export class AcademicApiService {
     return this.api.delete<void>(API.ACADEMIC.PERIODS.BY_ID(publicUuid));
   }
 
+  // ===========================================================================
+  // Units (BE-5A.1)
+  // ===========================================================================
+
+  /**
+   * Lista las unidades del curso ordenadas por {@code displayOrder asc}.
+   * Backend retorna lista plana sin envelope (mismo patrón que
+   * {@code listLevels} y {@code listGrades}).
+   */
+  listUnits(courseUuid: string): Observable<UnitRow[]> {
+    return this.api
+      .get<UnitListItemRaw[]>(API.ACADEMIC.COURSES.UNITS(courseUuid))
+      .pipe(map((rows) => rows.map((r) => this.toUnitRow(r))));
+  }
+
+  getUnit(publicUuid: string): Observable<UnitDetail> {
+    return this.api
+      .get<ApiResponse<UnitResponseRaw>>(API.ACADEMIC.UNITS.BY_ID(publicUuid))
+      .pipe(map((envelope) => this.toUnitDetail(envelope.data)));
+  }
+
+  /**
+   * Crea una unidad bajo el curso. Errores conocidos:
+   * <ul>
+   *   <li>409 {@code UNIT_NAME_EXISTS} — nombre duplicado dentro del
+   *       curso (case-insensitive).</li>
+   *   <li>400 {@code UNIT_DATE_INVERTED} — {@code startDate > endDate}.</li>
+   *   <li>409 {@code UNIT_ORDER_TAKEN} — colisión en
+   *       {@code displayOrder} (raro: explícito en payload).</li>
+   * </ul>
+   */
+  createUnit(
+    courseUuid: string,
+    request: CreateUnitRequest
+  ): Observable<UnitDetail> {
+    return this.api
+      .post<ApiResponse<UnitResponseRaw>, CreateUnitRequest>(
+        API.ACADEMIC.COURSES.UNITS(courseUuid),
+        request
+      )
+      .pipe(map((envelope) => this.toUnitDetail(envelope.data)));
+  }
+
+  /**
+   * Partial-merge sobre los campos pedagógicos. <strong>No incluye
+   * {@code displayOrder}</strong> — para mover una unidad usa
+   * {@link #reorderUnits}.
+   */
+  updateUnit(
+    publicUuid: string,
+    patch: UpdateUnitRequest
+  ): Observable<UnitDetail> {
+    return this.api
+      .put<ApiResponse<UnitResponseRaw>, UpdateUnitRequest>(
+        API.ACADEMIC.UNITS.BY_ID(publicUuid),
+        patch
+      )
+      .pipe(map((envelope) => this.toUnitDetail(envelope.data)));
+  }
+
+  /**
+   * Soft-delete. 409 {@code UNIT_HAS_SESSIONS} si tiene sesiones
+   * vivas (no canceladas) — activado por BE-5A.4.
+   */
+  deleteUnit(publicUuid: string): Observable<void> {
+    return this.api.delete<void>(API.ACADEMIC.UNITS.BY_ID(publicUuid));
+  }
+
+  /**
+   * Reordena unidades del curso. Backend usa estrategia two-phase
+   * (parking en ordinales temporales) idéntica a {@code reorderGrades}
+   * para no romper el unique parcial
+   * {@code uk_academic_units_course_order_active}.
+   *
+   * <p>Retorna la lista de {@code UnitDetail} con los nuevos ordinales
+   * (envelope {@code data}). La UI puede usarla para reemplazar el
+   * estado tras commit.</p>
+   */
+  reorderUnits(
+    courseUuid: string,
+    request: UnitReorderRequest
+  ): Observable<UnitDetail[]> {
+    return this.api
+      .patch<ApiResponse<UnitResponseRaw[]>, UnitReorderRequest>(
+        API.ACADEMIC.COURSES.UNITS_REORDER(courseUuid),
+        request
+      )
+      .pipe(map((envelope) => envelope.data.map((r) => this.toUnitDetail(r))));
+  }
+
+  // ===========================================================================
+  // Competencies & Capacities (BE-5A.2)
+  // ===========================================================================
+
+  /**
+   * Lista las competencias del curso ordenadas por {@code displayOrder asc}.
+   * Acepta filtro opcional {@code isActive}.
+   */
+  listCompetencies(courseUuid: string, isActive?: boolean): Observable<CompetencyRow[]> {
+    const params: Record<string, string | undefined> = {
+      isActive: isActive === undefined ? undefined : String(isActive)
+    };
+    return this.api
+      .get<CompetencyListItemRaw[]>(API.ACADEMIC.COURSES.COMPETENCIES(courseUuid), params)
+      .pipe(map((rows) => rows.map((r) => this.toCompetencyRow(r))));
+  }
+
+  getCompetency(publicUuid: string): Observable<CompetencyDetail> {
+    return this.api
+      .get<ApiResponse<CompetencyResponseRaw>>(API.ACADEMIC.COMPETENCIES.BY_ID(publicUuid))
+      .pipe(map((envelope) => this.toCompetencyDetail(envelope.data)));
+  }
+
+  /**
+   * Crea una competencia bajo el curso. Errores conocidos:
+   * <ul>
+   *   <li>409 {@code COMPETENCY_CODE_TAKEN} — código duplicado en el curso.</li>
+   *   <li>409 {@code COMPETENCY_ORDER_TAKEN} — colisión en {@code displayOrder}.</li>
+   * </ul>
+   */
+  createCompetency(
+    courseUuid: string,
+    request: CreateCompetencyRequest
+  ): Observable<CompetencyDetail> {
+    return this.api
+      .post<ApiResponse<CompetencyResponseRaw>, CreateCompetencyRequest>(
+        API.ACADEMIC.COURSES.COMPETENCIES(courseUuid),
+        request
+      )
+      .pipe(map((envelope) => this.toCompetencyDetail(envelope.data)));
+  }
+
+  /**
+   * Partial-merge sobre los campos de la competencia. <strong>No incluye
+   * {@code displayOrder}</strong> — para mover una competencia usa
+   * {@link #reorderCompetencies}.
+   */
+  updateCompetency(
+    publicUuid: string,
+    patch: UpdateCompetencyRequest
+  ): Observable<CompetencyDetail> {
+    return this.api
+      .put<ApiResponse<CompetencyResponseRaw>, UpdateCompetencyRequest>(
+        API.ACADEMIC.COMPETENCIES.BY_ID(publicUuid),
+        patch
+      )
+      .pipe(map((envelope) => this.toCompetencyDetail(envelope.data)));
+  }
+
+  /**
+   * Soft-delete. 409 {@code COMPETENCY_IN_USE_BY_SESSIONS} si tiene sesiones
+   * vivas (activado por BE-5A.4).
+   */
+  deleteCompetency(publicUuid: string): Observable<void> {
+    return this.api.delete<void>(API.ACADEMIC.COMPETENCIES.BY_ID(publicUuid));
+  }
+
+  /**
+   * Reordena competencias del curso. Backend usa estrategia two-phase
+   * (parking en ordinales temporales) idéntica a {@code reorderUnits}.
+   */
+  reorderCompetencies(
+    courseUuid: string,
+    request: CompetencyReorderRequest
+  ): Observable<CompetencyDetail[]> {
+    return this.api
+      .patch<ApiResponse<CompetencyResponseRaw[]>, CompetencyReorderRequest>(
+        API.ACADEMIC.COURSES.COMPETENCIES_REORDER(courseUuid),
+        request
+      )
+      .pipe(map((envelope) => envelope.data.map((r) => this.toCompetencyDetail(r))));
+  }
+
+  /**
+   * Siembra el catálogo MINEDU mínimo según el {@code code} del curso.
+   * Idempotente: si ya hay ≥1 competencia, retorna {@code seeded=false}.
+   */
+  seedCompetencies(courseUuid: string): Observable<SeedCompetenciesResponse> {
+    return this.api
+      .post<ApiResponse<SeedCompetenciesResponse>>(API.ACADEMIC.COURSES.COMPETENCIES_SEED(courseUuid))
+      .pipe(map((envelope) => envelope.data));
+  }
+
+  /**
+   * Lista las capacidades de una competencia ordenadas por {@code displayOrder asc}.
+   * Acepta filtro opcional {@code isActive}.
+   */
+  listCapacities(competencyUuid: string, isActive?: boolean): Observable<CapacityDetail[]> {
+    const params: Record<string, string | undefined> = {
+      isActive: isActive === undefined ? undefined : String(isActive)
+    };
+    return this.api
+      .get<CapacityResponseRaw[]>(API.ACADEMIC.COMPETENCIES.CAPACITIES(competencyUuid), params)
+      .pipe(map((rows) => rows.map((r) => this.toCapacityDetail(r))));
+  }
+
+  /**
+   * Crea una capacidad bajo la competencia. Errores conocidos:
+   * <ul>
+   *   <li>409 {@code CAPACITY_CODE_TAKEN} — código duplicado en la competencia.</li>
+   *   <li>409 {@code CAPACITY_ORDER_TAKEN} — colisión en {@code displayOrder}.</li>
+   * </ul>
+   */
+  createCapacity(
+    competencyUuid: string,
+    request: CreateCapacityRequest
+  ): Observable<CapacityDetail> {
+    return this.api
+      .post<ApiResponse<CapacityResponseRaw>, CreateCapacityRequest>(
+        API.ACADEMIC.COMPETENCIES.CAPACITIES(competencyUuid),
+        request
+      )
+      .pipe(map((envelope) => this.toCapacityDetail(envelope.data)));
+  }
+
+  /**
+   * Partial-merge sobre los campos de la capacidad. <strong>No incluye
+   * {@code displayOrder}</strong> — para mover una capacidad usa
+   * {@link #reorderCapacities}.
+   */
+  updateCapacity(
+    publicUuid: string,
+    patch: UpdateCapacityRequest
+  ): Observable<CapacityDetail> {
+    return this.api
+      .put<ApiResponse<CapacityResponseRaw>, UpdateCapacityRequest>(
+        API.ACADEMIC.CAPACITIES.BY_ID(publicUuid),
+        patch
+      )
+      .pipe(map((envelope) => this.toCapacityDetail(envelope.data)));
+  }
+
+  /**
+   * Soft-delete. 409 {@code CAPACITY_IN_USE_BY_SESSIONS} si tiene sesiones
+   * vivas (activado por BE-5A.4).
+   */
+  deleteCapacity(publicUuid: string): Observable<void> {
+    return this.api.delete<void>(API.ACADEMIC.CAPACITIES.BY_ID(publicUuid));
+  }
+
+  /**
+   * Reordena capacidades de la competencia. Backend usa estrategia two-phase.
+   */
+  reorderCapacities(
+    competencyUuid: string,
+    request: CapacityReorderRequest
+  ): Observable<CapacityDetail[]> {
+    return this.api
+      .patch<ApiResponse<CapacityResponseRaw[]>, CapacityReorderRequest>(
+        API.ACADEMIC.COMPETENCIES.CAPACITIES_REORDER(competencyUuid),
+        request
+      )
+      .pipe(map((envelope) => envelope.data.map((r) => this.toCapacityDetail(r))));
+  }
+
+  // ===========================================================================
+  // Schedule & Time Slots (BE-5A.3)
+  // ===========================================================================
+
+  /**
+   * Obtiene el horario semanal de un docente (todas sus asignaciones activas).
+   * {@code teacher} viene como {@code null} en la respuesta (el caller ya es el docente).
+   */
+  getTeacherSchedule(teacherUuid: string, periodId?: string): Observable<ScheduleSlotItem[]> {
+    const params: Record<string, string | undefined> = {
+      periodId
+    };
+    return this.api
+      .get<ScheduleSlotItemRaw[]>(API.ACADEMIC.SCHEDULE.TEACHER_SCHEDULE(teacherUuid), params)
+      .pipe(map((rows) => rows.map((r) => this.toScheduleSlotItem(r))));
+  }
+
+  /**
+   * Obtiene el horario semanal de una sección.
+   * {@code section} viene como {@code null} en la respuesta.
+   */
+  getSectionSchedule(sectionUuid: string, periodId?: string): Observable<ScheduleSlotItem[]> {
+    const params: Record<string, string | undefined> = {
+      periodId
+    };
+    return this.api
+      .get<ScheduleSlotItemRaw[]>(API.ACADEMIC.SCHEDULE.SECTION_SCHEDULE(sectionUuid), params)
+      .pipe(map((rows) => rows.map((r) => this.toScheduleSlotItem(r))));
+  }
+
+  /**
+   * Lista las asignaciones de docentes del tenant.
+   * Acepta filtros opcionales para la cascada del formulario de sesiones.
+   */
+  listAssignments(filters: { teacherId?: string; sectionId?: string; courseId?: string; activeOnly?: boolean } = {}): Observable<any[]> {
+    const params: Record<string, string | undefined> = {
+      teacherId: filters.teacherId,
+      sectionId: filters.sectionId,
+      courseId: filters.courseId,
+      activeOnly: filters.activeOnly === undefined ? undefined : String(filters.activeOnly)
+    };
+    return this.api.get<any[]>(API.TEACHER_ASSIGNMENTS.ROOT, params);
+  }
+
+  /**
+   * Obtiene el detalle de un time slot.
+   */
+  getTimeSlot(publicUuid: string): Observable<TimeSlotDetail> {
+    return this.api
+      .get<ApiResponse<TimeSlotResponseRaw>>(API.ACADEMIC.TIME_SLOTS.BY_ID(publicUuid))
+      .pipe(map((envelope) => this.toTimeSlotDetail(envelope.data)));
+  }
+
+  /**
+   * Crea un time slot para una asignación.
+   * Errores: 400 {@code TIME_SLOT_DATE_INVERTED}, 409 {@code TIME_SLOT_OVERLAP}, 409 {@code ASSIGNMENT_NOT_ACTIVE}.
+   */
+  createTimeSlot(assignmentUuid: string, request: CreateTimeSlotRequest): Observable<TimeSlotDetail> {
+    return this.api
+      .post<ApiResponse<TimeSlotResponseRaw>, CreateTimeSlotRequest>(
+        API.ACADEMIC.TIME_SLOTS.BY_ASSIGNMENT(assignmentUuid),
+        request
+      )
+      .pipe(map((envelope) => this.toTimeSlotDetail(envelope.data)));
+  }
+
+  /**
+   * Actualiza un time slot.
+   */
+  updateTimeSlot(publicUuid: string, patch: UpdateTimeSlotRequest): Observable<TimeSlotDetail> {
+    return this.api
+      .put<ApiResponse<TimeSlotResponseRaw>, UpdateTimeSlotRequest>(
+        API.ACADEMIC.TIME_SLOTS.BY_ID(publicUuid),
+        patch
+      )
+      .pipe(map((envelope) => this.toTimeSlotDetail(envelope.data)));
+  }
+
+  /**
+   * Soft-delete de un time slot.
+   */
+  deleteTimeSlot(publicUuid: string): Observable<void> {
+    return this.api.delete<void>(API.ACADEMIC.TIME_SLOTS.BY_ID(publicUuid));
+  }
+
   // ---------------------------------------------------------------------------
   // Adapters
   // ---------------------------------------------------------------------------
@@ -651,9 +1027,123 @@ export class AcademicApiService {
     };
   }
 
+  private toUnitRow(raw: UnitListItemRaw): UnitRow {
+    return {
+      publicUuid: raw.publicUuid,
+      name: raw.name,
+      displayOrder: raw.displayOrder,
+      startDate: raw.startDate ? parseLocalDate(raw.startDate) : undefined,
+      endDate: raw.endDate ? parseLocalDate(raw.endDate) : undefined,
+      isActive: raw.isActive,
+      sessionCount: raw.sessionCount
+    };
+  }
+
+  private toUnitDetail(raw: UnitResponseRaw): UnitDetail {
+    return {
+      publicUuid: raw.publicUuid,
+      course: {
+        publicUuid: raw.course.publicUuid,
+        code: raw.course.code,
+        name: raw.course.name
+      },
+      name: raw.name,
+      description: raw.description ?? undefined,
+      displayOrder: raw.displayOrder,
+      startDate: raw.startDate ? parseLocalDate(raw.startDate) : undefined,
+      endDate: raw.endDate ? parseLocalDate(raw.endDate) : undefined,
+      isActive: raw.isActive,
+      sessionCount: raw.sessionCount,
+      createdAt: this.parseDate(raw.createdAt),
+      updatedAt: this.parseDate(raw.updatedAt)
+    };
+  }
+
   private parseDate(value: string | null | undefined): Date | undefined {
     if (!value) return undefined;
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? undefined : d;
+  }
+
+  private toCompetencyRow(raw: CompetencyListItemRaw): CompetencyRow {
+    return {
+      publicUuid: raw.publicUuid,
+      code: raw.code,
+      name: raw.name,
+      displayOrder: raw.displayOrder,
+      isActive: raw.isActive,
+      capacityCount: raw.capacityCount,
+      capacities: []
+    };
+  }
+
+  private toCompetencyDetail(raw: CompetencyResponseRaw): CompetencyDetail {
+    return {
+      publicUuid: raw.publicUuid,
+      course: raw.course,
+      code: raw.code,
+      name: raw.name,
+      description: raw.description ?? undefined,
+      displayOrder: raw.displayOrder,
+      isActive: raw.isActive,
+      capacityCount: raw.capacities.length,
+      capacities: raw.capacities.map((c) => ({
+        publicUuid: c.publicUuid,
+        code: c.code,
+        name: c.name,
+        displayOrder: c.displayOrder,
+        isActive: c.isActive,
+        competency: {
+          publicUuid: raw.publicUuid,
+          code: raw.code,
+          name: raw.name,
+          course: raw.course
+        }
+      })),
+      createdAt: this.parseDate(raw.createdAt),
+      updatedAt: this.parseDate(raw.updatedAt)
+    };
+  }
+
+  private toCapacityDetail(raw: CapacityResponseRaw): CapacityDetail {
+    return {
+      publicUuid: raw.publicUuid,
+      competency: raw.competency,
+      code: raw.code,
+      name: raw.name,
+      description: raw.description ?? undefined,
+      displayOrder: raw.displayOrder,
+      isActive: raw.isActive,
+      createdAt: this.parseDate(raw.createdAt),
+      updatedAt: this.parseDate(raw.updatedAt)
+    };
+  }
+
+  private toScheduleSlotItem(raw: ScheduleSlotItemRaw): ScheduleSlotItem {
+    return {
+      slotPublicUuid: raw.slotPublicUuid,
+      assignmentPublicUuid: raw.assignmentPublicUuid,
+      dayOfWeek: raw.dayOfWeek,
+      startTime: raw.startTime,
+      endTime: raw.endTime,
+      classroom: raw.classroom ?? undefined,
+      teacher: raw.teacher ?? undefined,
+      course: raw.course,
+      section: raw.section ?? undefined,
+      period: raw.period
+    };
+  }
+
+  private toTimeSlotDetail(raw: TimeSlotResponseRaw): TimeSlotDetail {
+    return {
+      publicUuid: raw.publicUuid,
+      assignmentPublicUuid: raw.assignmentPublicUuid,
+      dayOfWeek: raw.dayOfWeek,
+      startTime: raw.startTime,
+      endTime: raw.endTime,
+      classroom: raw.classroom ?? undefined,
+      createdAt: this.parseDate(raw.createdAt),
+      updatedAt: this.parseDate(raw.updatedAt)
+    };
   }
 }

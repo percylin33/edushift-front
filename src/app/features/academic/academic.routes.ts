@@ -116,6 +116,19 @@ export const ACADEMIC_ROUTES: Routes = [
           )
       },
       {
+        path: 'courses/:id',
+        canActivate: [roleGuard],
+        data: {
+          roles: [UserRole.TenantAdmin],
+          breadcrumb: 'Detalle',
+          title: 'Detalle de curso'
+        },
+        loadComponent: () =>
+          import('./pages/course-detail/course-detail.component').then(
+            (m) => m.CourseDetailComponent
+          )
+      },
+      {
         path: 'periods',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin], title: 'Periodos' },

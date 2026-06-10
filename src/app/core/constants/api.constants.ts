@@ -74,6 +74,13 @@ export const API = {
     ASSIGNMENTS: (publicUuid: string) =>
       `${BASE}/teachers/${encodeURIComponent(publicUuid)}/assignments`
   },
+  TEACHER_ASSIGNMENTS: {
+    /** {@code GET /v1/teacher-assignments} — lista asignaciones con filtros. */
+    ROOT: `${BASE}/teacher-assignments`,
+    /** {@code GET|PUT|DELETE /v1/teacher-assignments/{publicUuid}}. */
+    BY_ID: (publicUuid: string) =>
+      `${BASE}/teacher-assignments/${encodeURIComponent(publicUuid)}`
+  },
   ASSIGNMENTS: {
     /** {@code DELETE /v1/assignments/{publicUuid}} — soft-end de assignment (BE-4.7). */
     BY_ID: (publicUuid: string) =>
@@ -157,7 +164,59 @@ export const API = {
         `${BASE}/academic/courses/${encodeURIComponent(publicUuid)}`,
       /** {@code POST /v1/academic/courses/{publicUuid}/levels} — replace semantics. */
       LEVELS: (publicUuid: string) =>
-        `${BASE}/academic/courses/${encodeURIComponent(publicUuid)}/levels`
+        `${BASE}/academic/courses/${encodeURIComponent(publicUuid)}/levels`,
+      /** {@code GET|POST /v1/academic/courses/{courseUuid}/units} (BE-5A.1). */
+      UNITS: (courseUuid: string) =>
+        `${BASE}/academic/courses/${encodeURIComponent(courseUuid)}/units`,
+      /** {@code PATCH /v1/academic/courses/{courseUuid}/units/reorder} (BE-5A.1). */
+      UNITS_REORDER: (courseUuid: string) =>
+        `${BASE}/academic/courses/${encodeURIComponent(courseUuid)}/units/reorder`,
+      /** {@code GET|POST /v1/academic/courses/{courseUuid}/competencies} (BE-5A.2). */
+      COMPETENCIES: (courseUuid: string) =>
+        `${BASE}/academic/courses/${encodeURIComponent(courseUuid)}/competencies`,
+      /** {@code PATCH /v1/academic/courses/{courseUuid}/competencies/reorder} (BE-5A.2). */
+      COMPETENCIES_REORDER: (courseUuid: string) =>
+        `${BASE}/academic/courses/${encodeURIComponent(courseUuid)}/competencies/reorder`,
+      /** {@code POST /v1/academic/courses/{courseUuid}/competencies/seed-defaults} (BE-5A.2). */
+      COMPETENCIES_SEED: (courseUuid: string) =>
+        `${BASE}/academic/courses/${encodeURIComponent(courseUuid)}/competencies/seed-defaults`
+    },
+    UNITS: {
+      /** {@code GET|PUT|DELETE /v1/academic/units/{publicUuid}} (BE-5A.1). */
+      BY_ID: (publicUuid: string) =>
+        `${BASE}/academic/units/${encodeURIComponent(publicUuid)}`
+    },
+    COMPETENCIES: {
+      /** {@code GET|PUT|DELETE /v1/academic/competencies/{publicUuid}} (BE-5A.2). */
+      BY_ID: (publicUuid: string) =>
+        `${BASE}/academic/competencies/${encodeURIComponent(publicUuid)}`,
+      /** {@code GET|POST /v1/academic/competencies/{competencyUuid}/capacities} (BE-5A.2). */
+      CAPACITIES: (competencyUuid: string) =>
+        `${BASE}/academic/competencies/${encodeURIComponent(competencyUuid)}/capacities`,
+      /** {@code PATCH /v1/academic/competencies/{competencyUuid}/capacities/reorder} (BE-5A.2). */
+      CAPACITIES_REORDER: (competencyUuid: string) =>
+        `${BASE}/academic/competencies/${encodeURIComponent(competencyUuid)}/capacities/reorder`
+    },
+    CAPACITIES: {
+      /** {@code GET|PUT|DELETE /v1/academic/capacities/{publicUuid}} (BE-5A.2). */
+      BY_ID: (publicUuid: string) =>
+        `${BASE}/academic/capacities/${encodeURIComponent(publicUuid)}`
+    },
+    SCHEDULE: {
+      /** {@code GET /v1/teachers/{teacherUuid}/schedule?periodId=<uuid>} (BE-5A.3). */
+      TEACHER_SCHEDULE: (teacherUuid: string) =>
+        `${BASE}/teachers/${encodeURIComponent(teacherUuid)}/schedule`,
+      /** {@code GET /v1/academic/sections/{sectionUuid}/schedule?periodId=<uuid>} (BE-5A.3). */
+      SECTION_SCHEDULE: (sectionUuid: string) =>
+        `${BASE}/academic/sections/${encodeURIComponent(sectionUuid)}/schedule`
+    },
+    TIME_SLOTS: {
+      /** {@code GET|POST /v1/teacher-assignments/{assignmentUuid}/time-slots} (BE-5A.3). */
+      BY_ASSIGNMENT: (assignmentUuid: string) =>
+        `${BASE}/teacher-assignments/${encodeURIComponent(assignmentUuid)}/time-slots`,
+      /** {@code GET|PUT|DELETE /v1/time-slots/{publicUuid}} (BE-5A.3). */
+      BY_ID: (publicUuid: string) =>
+        `${BASE}/time-slots/${encodeURIComponent(publicUuid)}`
     },
     PERIODS: {
       /** {@code GET|POST /v1/academic/periods}. {@code GET} acepta {@code ?academicYearId&periodType}. */
@@ -171,6 +230,21 @@ export const API = {
     ROOT: `${BASE}/payments`,
     INVOICES: `${BASE}/payments/invoices`,
     TRANSACTIONS: `${BASE}/payments/transactions`
+  },
+  SESSIONS: {
+    ROOT: `${BASE}/learning-sessions`,
+    /** {@code GET|PUT|DELETE /v1/learning-sessions/{publicUuid}} (BE-5A.4). */
+    BY_ID: (publicUuid: string) => `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}`,
+    /** {@code POST /v1/learning-sessions/{publicUuid}/start} (BE-5A.4). */
+    START: (publicUuid: string) => `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}/start`,
+    /** {@code POST /v1/learning-sessions/{publicUuid}/complete} (BE-5A.4). */
+    COMPLETE: (publicUuid: string) => `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}/complete`,
+    /** {@code POST /v1/learning-sessions/{publicUuid}/cancel} (BE-5A.4). */
+    CANCEL: (publicUuid: string) => `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}/cancel`,
+    /** {@code GET /v1/teacher-assignments/{assignmentUuid}/sessions} (BE-5A.4). */
+    BY_ASSIGNMENT: (assignmentUuid: string) => `${BASE}/teacher-assignments/${encodeURIComponent(assignmentUuid)}/sessions`,
+    /** {@code GET /v1/academic/units/{unitUuid}/sessions} (BE-5A.4). */
+    BY_UNIT: (unitUuid: string) => `${BASE}/academic/units/${encodeURIComponent(unitUuid)}/sessions`
   },
   AI: {
     ROOT: `${BASE}/ai`,

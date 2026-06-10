@@ -19,12 +19,13 @@ import {
   AcademicYearStatusBadgeComponent,
   SectionFormModalComponent,
   SectionRosterTabComponent,
-  SectionTeachersTabComponent
+  SectionTeachersTabComponent,
+  SectionScheduleTabComponent
 } from '../../components';
 import { AcademicStore } from '../../store';
 import { isSectionMutable } from '../../models';
 
-type SectionTab = 'info' | 'roster' | 'teachers';
+type SectionTab = 'info' | 'roster' | 'teachers' | 'schedule';
 
 /**
  * `/academic/sections/:id` — vista detail de una sección con tabs
@@ -57,7 +58,8 @@ type SectionTab = 'info' | 'roster' | 'teachers';
     AcademicYearStatusBadgeComponent,
     SectionFormModalComponent,
     SectionRosterTabComponent,
-    SectionTeachersTabComponent
+    SectionTeachersTabComponent,
+    SectionScheduleTabComponent
   ],
   template: `
     <app-page-container>
@@ -165,6 +167,9 @@ type SectionTab = 'info' | 'roster' | 'teachers';
           @case ('teachers') {
             <app-section-teachers-tab [sectionPublicUuid]="sec.publicUuid" />
           }
+          @case ('schedule') {
+            <app-section-schedule-tab [sectionPublicUuid]="sec.publicUuid" />
+          }
         }
       } @else if (loading()) {
         <div class="flex items-center justify-center py-16">
@@ -218,11 +223,12 @@ export class SectionDetailComponent implements OnInit {
   protected readonly tabs: ReadonlyArray<{
     id: SectionTab;
     label: string;
-    icon: 'info' | 'users' | 'user';
+    icon: 'info' | 'users' | 'user' | 'calendar';
   }> = [
     { id: 'info',     label: 'Info',     icon: 'info' },
     { id: 'roster',   label: 'Roster',   icon: 'users' },
-    { id: 'teachers', label: 'Docentes', icon: 'user' }
+    { id: 'teachers', label: 'Docentes', icon: 'user' },
+    { id: 'schedule', label: 'Horario',  icon: 'calendar' }
   ];
 
   async ngOnInit(): Promise<void> {
