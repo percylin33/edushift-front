@@ -8,6 +8,8 @@ import {
   input,
   signal
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { ROUTES } from '@core/constants';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { PERIOD_TYPE_LABELS } from '@features/academic/models';
 import { TeacherDetail } from '../models';
@@ -35,6 +37,7 @@ import { CreateAssignmentModalComponent } from './create-assignment-modal.compon
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
+    RouterLink,
     IconComponent,
     SpinnerComponent,
     CreateAssignmentModalComponent
@@ -165,19 +168,29 @@ import { CreateAssignmentModalComponent } from './create-assignment-modal.compon
                       }
                     </td>
                     <td class="text-right">
-                      @if (a.active) {
-                        <button
-                          type="button"
-                          class="btn btn-ghost btn-xs text-danger-600 hover:bg-danger-50"
-                          [disabled]="saving()"
-                          (click)="onSoftEnd(a.publicUuid, a.sectionName, a.courseCode)"
+                      <div class="flex justify-end gap-1">
+                        <a
+                          [routerLink]="evaluationsRoute(a.publicUuid)"
+                          class="btn btn-ghost btn-xs"
+                          title="Ver evaluaciones de esta asignación"
                         >
-                          <app-icon name="x" [size]="14" />
-                          <span>Finalizar</span>
-                        </button>
-                      } @else {
-                        <span class="text-xs text-content-muted">cerrada</span>
-                      }
+                          <app-icon name="target" [size]="14" />
+                          <span>Evaluaciones</span>
+                        </a>
+                        @if (a.active) {
+                          <button
+                            type="button"
+                            class="btn btn-ghost btn-xs text-danger-600 hover:bg-danger-50"
+                            [disabled]="saving()"
+                            (click)="onSoftEnd(a.publicUuid, a.sectionName, a.courseCode)"
+                          >
+                            <app-icon name="x" [size]="14" />
+                            <span>Finalizar</span>
+                          </button>
+                        } @else {
+                          <span class="text-xs text-content-muted">cerrada</span>
+                        }
+                      </div>
                     </td>
                   </tr>
                 }
@@ -201,6 +214,10 @@ export class TeacherAssignmentsTabComponent implements OnInit {
   private readonly store = inject(TeacherAssignmentsStore);
 
   readonly teacher = input.required<TeacherDetail>();
+
+  protected evaluationsRoute(assignmentPublicUuid: string): string {
+    return ROUTES.EVALUATIONS.byAssignment(assignmentPublicUuid);
+  }
 
   protected readonly rows = this.store.assignments;
   protected readonly loading = this.store.loading;

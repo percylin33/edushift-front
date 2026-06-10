@@ -77,6 +77,26 @@ export const ROUTES = {
     NEW: '/learning-sessions/new',
     detail: (id: string) => `/learning-sessions/${id}`
   },
+  EVALUATIONS: {
+    ROOT: '/evaluations',
+    /** {@code /evaluations/by-assignment/{assignmentUuid}} — listing por assignment. */
+    byAssignment: (assignmentUuid: string) =>
+      `/evaluations/by-assignment/${assignmentUuid}`,
+    /** {@code /evaluations/{publicUuid}} — detail con tabs Overview / Rúbrica / Notas. */
+    detail: (publicUuid: string) => `/evaluations/${publicUuid}`,
+    /** {@code /evaluations/{publicUuid}/grades} — tabla de grade records (FE-5B.3). */
+    grades: (publicUuid: string) => `/evaluations/${publicUuid}/grades`,
+    /** {@code /evaluations/by-assignment/{assignmentUuid}/gradebook} — matrix (FE-5B.4). */
+    gradeBook: (assignmentUuid: string) =>
+      `/evaluations/by-assignment/${assignmentUuid}/gradebook`
+  },
+  RUBRICS: {
+    ROOT: '/rubrics',
+    LIST: '/rubrics',
+    NEW: '/rubrics/new',
+    detail: (id: string) => `/rubrics/${id}`,
+    edit: (id: string) => `/rubrics/${id}/edit`
+  },
   ATTENDANCE: {
     ROOT: '/attendance',
     DAILY: '/attendance/daily',

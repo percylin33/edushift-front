@@ -33,6 +33,9 @@ export interface AppEnvironment {
     students: boolean;
     teachers: boolean;
     academic: boolean;
+    sessions: boolean;
+    evaluations: boolean;
+    rubrics: boolean;
     attendance: boolean;
     payments: boolean;
     ai: boolean;

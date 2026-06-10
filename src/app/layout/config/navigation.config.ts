@@ -108,6 +108,20 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         ]
       },
       {
+        /*
+         * Sprint 5B (FE-5B.2) — catálogo de rúbricas. El listing global
+         * lo merece (las evaluations cuelgan de assignment, pero las
+         * rúbricas son tenant-wide y pre-existentes a la creación de
+         * cualquier evaluation). Mismo trade-off de role-gating.
+         */
+        id: 'rubrics',
+        label: 'Rúbricas',
+        icon: 'layers',
+        route: ROUTES.RUBRICS.ROOT,
+        feature: FeatureKey.Rubrics,
+        roles: [UserRole.TenantAdmin, UserRole.Teacher]
+      },
+      {
         id: 'attendance',
         label: 'Asistencia',
         icon: 'calendar-check',

@@ -63,6 +63,32 @@ export const PRIVATE_ROUTES: Routes = [
           import('@features/sessions/sessions.routes').then((m) => m.SESSIONS_ROUTES)
       },
       {
+        path: 'evaluations',
+        canActivate: [featureFlagGuard],
+        data: {
+          feature: FeatureKey.Evaluations,
+          breadcrumb: 'Evaluaciones',
+          title: 'Evaluaciones'
+        },
+        loadChildren: () =>
+          import('@features/evaluations/evaluations.routes').then(
+            (m) => m.EVALUATIONS_ROUTES
+          )
+      },
+      {
+        path: 'rubrics',
+        canActivate: [featureFlagGuard],
+        data: {
+          feature: FeatureKey.Rubrics,
+          breadcrumb: 'Rúbricas',
+          title: 'Rúbricas'
+        },
+        loadChildren: () =>
+          import('@features/rubrics/rubrics.routes').then(
+            (m) => m.RUBRICS_ROUTES
+          )
+      },
+      {
         path: 'attendance',
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Attendance, breadcrumb: 'Asistencia', title: 'Asistencia' },

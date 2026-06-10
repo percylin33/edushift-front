@@ -246,6 +246,51 @@ export const API = {
     /** {@code GET /v1/academic/units/{unitUuid}/sessions} (BE-5A.4). */
     BY_UNIT: (unitUuid: string) => `${BASE}/academic/units/${encodeURIComponent(unitUuid)}/sessions`
   },
+  EVALUATIONS: {
+    /** {@code GET|POST /v1/academic/teacher-assignments/{assignmentUuid}/evaluations} (BE-5B.1). */
+    BY_ASSIGNMENT: (assignmentUuid: string) =>
+      `${BASE}/academic/teacher-assignments/${encodeURIComponent(assignmentUuid)}/evaluations`,
+    /** {@code GET|PUT|DELETE /v1/academic/evaluations/{publicUuid}} (BE-5B.1). */
+    BY_ID: (publicUuid: string) =>
+      `${BASE}/academic/evaluations/${encodeURIComponent(publicUuid)}`,
+    /** {@code POST /v1/academic/evaluations/{publicUuid}/publish} (BE-5B.1). */
+    PUBLISH: (publicUuid: string) =>
+      `${BASE}/academic/evaluations/${encodeURIComponent(publicUuid)}/publish`,
+    /** {@code POST /v1/academic/evaluations/{publicUuid}/close} (BE-5B.1). */
+    CLOSE: (publicUuid: string) =>
+      `${BASE}/academic/evaluations/${encodeURIComponent(publicUuid)}/close`,
+    /** {@code POST|GET|DELETE /v1/academic/evaluations/{publicUuid}/rubric} (BE-5B.4). */
+    RUBRIC: (publicUuid: string) =>
+      `${BASE}/academic/evaluations/${encodeURIComponent(publicUuid)}/rubric`
+  },
+  GRADE_RECORDS: {
+    /** {@code GET|POST /v1/academic/evaluations/{evaluationUuid}/grade-records} (BE-5B.3). */
+    BY_EVALUATION: (evaluationUuid: string) =>
+      `${BASE}/academic/evaluations/${encodeURIComponent(evaluationUuid)}/grade-records`,
+    /** {@code POST /v1/academic/evaluations/{evaluationUuid}/grade-records/bulk} (BE-5B.3). */
+    BULK: (evaluationUuid: string) =>
+      `${BASE}/academic/evaluations/${encodeURIComponent(evaluationUuid)}/grade-records/bulk`,
+    /** {@code GET|PUT|DELETE /v1/academic/grade-records/{publicUuid}} (BE-5B.3). */
+    BY_ID: (publicUuid: string) =>
+      `${BASE}/academic/grade-records/${encodeURIComponent(publicUuid)}`
+  },
+  GRADE_BOOK: {
+    /** {@code GET /v1/academic/teacher-assignments/{publicUuid}/gradebook} (BE-5B.4). */
+    BY_ASSIGNMENT: (assignmentUuid: string) =>
+      `${BASE}/academic/teacher-assignments/${encodeURIComponent(assignmentUuid)}/gradebook`
+  },
+  RUBRICS: {
+    /** {@code GET|POST /v1/academic/rubrics} (BE-5B.2). Acepta {@code ?systemOnly&isActive&q}. */
+    ROOT: `${BASE}/academic/rubrics`,
+    /** {@code GET /v1/academic/rubrics/system} — seed MINEDU on-demand (BE-5B.2). */
+    SYSTEM: `${BASE}/academic/rubrics/system`,
+    /** {@code GET|PUT|DELETE /v1/academic/rubrics/{publicUuid}} (BE-5B.2). */
+    BY_ID: (publicUuid: string) =>
+      `${BASE}/academic/rubrics/${encodeURIComponent(publicUuid)}`,
+    /** {@code POST /v1/academic/rubrics/{publicUuid}/fork} (BE-5B.2). */
+    FORK: (publicUuid: string) =>
+      `${BASE}/academic/rubrics/${encodeURIComponent(publicUuid)}/fork`
+  },
   AI: {
     ROOT: `${BASE}/ai`,
     CHAT: `${BASE}/ai/chat`,
