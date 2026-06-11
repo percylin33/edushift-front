@@ -303,5 +303,35 @@ export const API = {
   NOTIFICATIONS: {
     ROOT: `${BASE}/notifications`,
     PREFERENCES: `${BASE}/notifications/preferences`
+  },
+  ATTENDANCE: {
+    /** {@code POST /v1/attendance/sessions} (BE-6.4). 200 si ya hay ACTIVE, 201 si se acaba de crear. */
+    SESSIONS_ROOT: `${BASE}/attendance/sessions`,
+    /** {@code PATCH /v1/attendance/sessions/{publicUuid}/close} (BE-6.4). */
+    CLOSE_SESSION: (publicUuid: string) =>
+      `${BASE}/attendance/sessions/${encodeURIComponent(publicUuid)}/close`,
+    /** {@code POST /v1/attendance/sessions/{publicUuid}/check-in} (BE-6.4). */
+    CHECK_IN: (publicUuid: string) =>
+      `${BASE}/attendance/sessions/${encodeURIComponent(publicUuid)}/check-in`,
+    /** {@code GET /v1/attendance/sessions/{publicUuid}/records} (BE-6.4). */
+    SESSION_RECORDS: (publicUuid: string) =>
+      `${BASE}/attendance/sessions/${encodeURIComponent(publicUuid)}/records`,
+    /** {@code PUT /v1/attendance/records/{publicUuid}} (BE-6.4). */
+    RECORD_BY_ID: (publicUuid: string) =>
+      `${BASE}/attendance/records/${encodeURIComponent(publicUuid)}`,
+    /**
+     * {@code GET /v1/students/{publicUuid}/attendance-qr} (BE-6.3).
+     * Binario: response TypeScript = `Blob`. Acepta `Accept: image/png|image/svg+xml`.
+     */
+    STUDENT_QR: (publicUuid: string) =>
+      `${BASE}/students/${encodeURIComponent(publicUuid)}/attendance-qr`,
+    /** {@code GET /v1/students/{publicUuid}/attendance-qr/info} (BE-6.3). */
+    STUDENT_QR_INFO: (publicUuid: string) =>
+      `${BASE}/students/${encodeURIComponent(publicUuid)}/attendance-qr/info`,
+    /** {@code POST /v1/students/{publicUuid}/attendance-qr/rotate} (BE-6.3). */
+    STUDENT_QR_ROTATE: (publicUuid: string) =>
+      `${BASE}/students/${encodeURIComponent(publicUuid)}/attendance-qr/rotate`,
+    /** {@code GET /v1/attendance/dashboard/overview} (BE-6.5). Solo TENANT_ADMIN. */
+    DASHBOARD_OVERVIEW: `${BASE}/attendance/dashboard/overview`
   }
 } as const;

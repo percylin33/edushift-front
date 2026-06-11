@@ -44,5 +44,13 @@ export const environment: AppEnvironment = {
   logging: {
     level: 'debug',
     enableRemote: false
+  },
+  attendance: {
+    scannerEngine: 'zxing-ngx',
+    scanCooldownMs: 1500,
+    feedbackDismissMs: 3000,
+    offlineBannerCopy: 'Sin conexión. Vuelve a conectarte para escanear.',
+    pwaDisplay: 'standalone',
+    pwaStartUrl: '/attendance/scanner'
   }
 };

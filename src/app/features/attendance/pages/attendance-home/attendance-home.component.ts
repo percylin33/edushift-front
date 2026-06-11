@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { ROUTES } from '@core/constants';
 import {
   EmptyStateComponent,
   IconComponent,
@@ -6,33 +8,86 @@ import {
   PageHeaderComponent
 } from '@shared/components';
 
+/**
+ * `/attendance` — landing page for the attendance module.
+ *
+ * <p>Kept intentionally light: it's a hub that links into the
+ * scanner (the primary docente flow) and the sessions list (the
+ * admin / review flow). Heavier dashboard widgets (KPIs, charts)
+ * land in FE-6.5.</p>
+ */
 @Component({
   selector: 'app-attendance-home',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageContainerComponent, PageHeaderComponent, EmptyStateComponent, IconComponent],
+  imports: [
+    RouterLink,
+    PageContainerComponent,
+    PageHeaderComponent,
+    EmptyStateComponent,
+    IconComponent
+  ],
   template: `
     <app-page-container>
       <app-page-header
         title="Asistencia"
         subtitle="Control diario, historial y reportes."
       >
-        <button type="button" class="btn btn-primary btn-sm">
-          <app-icon name="calendar-check" [size]="16" />
-          <span class="hidden sm:inline">Tomar asistencia</span>
-        </button>
+        <a
+          [routerLink]="scannerRoute"
+          class="btn btn-primary btn-sm"
+        >
+          <app-icon name="target" [size]="16" />
+          <span class="hidden sm:inline">Abrir scanner</span>
+        </a>
       </app-page-header>
 
-      <div class="card">
+      <div class="grid gap-3 sm:grid-cols-2">
+        <a
+          [routerLink]="scannerRoute"
+          class="card hover:shadow-md transition"
+        >
+          <div class="card-body flex flex-row items-center gap-3">
+            <app-icon name="target" [size]="32" class="text-primary" />
+            <div class="flex-1">
+              <p class="font-semibold">Scanner</p>
+              <p class="text-sm text-content-muted">
+                Toma asistencia escaneando el QR de cada alumno.
+              </p>
+            </div>
+            <app-icon name="chevron-right" [size]="20" class="text-content-subtle" />
+          </div>
+        </a>
+        <a
+          [routerLink]="sessionsRoute"
+          class="card hover:shadow-md transition"
+        >
+          <div class="card-body flex flex-row items-center gap-3">
+            <app-icon name="calendar-check" [size]="32" class="text-primary" />
+            <div class="flex-1">
+              <p class="font-semibold">Sesiones</p>
+              <p class="text-sm text-content-muted">
+                Lista de sesiones, abre nuevas, edita rosters.
+              </p>
+            </div>
+            <app-icon name="chevron-right" [size]="20" class="text-content-subtle" />
+          </div>
+        </a>
+      </div>
+
+      <div class="card mt-4">
         <div class="card-body">
           <app-empty-state
-            icon="calendar-check"
-            title="Aún no hay registros"
-            description="Esta es la vista de inicio del módulo de asistencia."
+            icon="bar-chart"
+            title="Dashboard (FE-6.5)"
+            description="KPIs y widgets llegan en el siguiente sub-ticket."
           />
         </div>
       </div>
     </app-page-container>
   `
 })
-export class AttendanceHomeComponent {}
+export class AttendanceHomeComponent {
+  protected readonly scannerRoute = ROUTES.ATTENDANCE.SCANNER;
+  protected readonly sessionsRoute = ROUTES.ATTENDANCE.SESSIONS;
+}

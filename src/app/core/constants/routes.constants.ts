@@ -99,6 +99,9 @@ export const ROUTES = {
   },
   ATTENDANCE: {
     ROOT: '/attendance',
+    SCANNER: '/attendance/scanner',
+    SESSIONS: '/attendance/sessions',
+    session: (id: string) => `/attendance/sessions/${id}`,
     DAILY: '/attendance/daily',
     HISTORY: '/attendance/history',
     REPORTS: '/attendance/reports'
