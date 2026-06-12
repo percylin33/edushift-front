@@ -4,7 +4,7 @@ export const environment: AppEnvironment = {
   production: false,
   appName: 'EduShift',
   appVersion: '0.0.0-dev',
-  apiUrl: 'http://localhost:8080/api',
+  apiUrl: 'https://3vmchk6t-8080.brs.devtunnels.ms/api',
   apiVersion: 'v1',
   defaultLocale: 'es',
   supportedLocales: ['es', 'en'],
@@ -43,8 +43,8 @@ export const environment: AppEnvironment = {
   },
   attendance: {
     scannerEngine: 'zxing-ngx',
-    scanCooldownMs: 1500,
-    feedbackDismissMs: 3000,
+    scanCooldownMs: 1200,
+    feedbackDismissMs: 1200,
     offlineBannerCopy: 'Sin conexión. Vuelve a conectarte para escanear.',
     pwaDisplay: 'standalone',
     pwaStartUrl: '/attendance/scanner'

@@ -52,3 +52,55 @@ export interface CreateSessionRequest {
   /** `yyyy-MM-dd` — backend tolerates ISO instant; we keep the strict form. */
   occurredOn: string;
 }
+
+/**
+ * Slim wire format returned by `GET /v1/attendance/sessions`
+ * (Sprint 6 / BE-6.7).
+ *
+ * <p>Lighter than {@link AttendanceSessionResponseRaw}: the
+ * counters are nullable (only populated for {@code CLOSED} rows)
+ * and {@code sectionName} / {@code sectionGradeName} are first-class
+ * fields so the FE can render the "sección" column without a
+ * separate fetch.</p>
+ */
+export interface AttendanceSessionListItemRaw {
+  publicUuid: string;
+  sectionPublicUuid: string;
+  sectionName?: string | null;
+  sectionGradeName?: string | null;
+  occurredOn: string;
+  slot: AttendanceSessionSlot;
+  status: AttendanceSessionStatus;
+  startsAt: string;
+  closedAt?: string | null;
+  presentCount?: number | null;
+  lateCount?: number | null;
+  absentCount?: number | null;
+  excusedCount?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * UI-friendly version of {@link AttendanceSessionListItemRaw}.
+ * `sectionLabel` is a pre-computed `gradeName · name` string for
+ * convenient table rendering.
+ */
+export interface AttendanceSessionListItem {
+  publicUuid: string;
+  sectionPublicUuid: string;
+  sectionName?: string;
+  sectionGradeName?: string;
+  sectionLabel: string;
+  occurredOn: Date;
+  slot: AttendanceSessionSlot;
+  status: AttendanceSessionStatus;
+  startsAt: Date;
+  closedAt?: Date;
+  presentCount?: number;
+  lateCount?: number;
+  absentCount?: number;
+  excusedCount?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}

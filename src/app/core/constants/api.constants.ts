@@ -332,6 +332,26 @@ export const API = {
     STUDENT_QR_ROTATE: (publicUuid: string) =>
       `${BASE}/students/${encodeURIComponent(publicUuid)}/attendance-qr/rotate`,
     /** {@code GET /v1/attendance/dashboard/overview} (BE-6.5). Solo TENANT_ADMIN. */
-    DASHBOARD_OVERVIEW: `${BASE}/attendance/dashboard/overview`
+    DASHBOARD_OVERVIEW: `${BASE}/attendance/dashboard/overview`,
+    /**
+     * {@code POST /v1/attendance/manual-check-in} (BE-6.8 — manual fallback).
+     * Roles: TENANT_ADMIN + TEACHER. 200 si ya existía un record, 201 si fue creado.
+     * El backend auto-resuelve la sesión a partir del enrollment activo del alumno.
+     */
+    MANUAL_CHECK_IN: `${BASE}/attendance/manual-check-in`,
+    /**
+     * {@code POST /v1/attendance/scan-check-in} (BE-6.8.b — session-less QR scan).
+     * Roles: TENANT_ADMIN + TEACHER. Mismo contrato que `CHECK_IN` pero el
+     * backend auto-resuelve la sesión a partir del enrollment activo del alumno
+     * (idéntico flujo al manual fallback). Pensado para auxiliar en la puerta del
+     * colegio escaneando QRs sin pre-abrir una sesión por sección.
+     */
+    SCAN_CHECK_IN: `${BASE}/attendance/scan-check-in`,
+    /**
+     * {@code GET /v1/attendance/students/lookup} (BE-6.8 — manual fallback picker).
+     * Roles: TENANT_ADMIN + TEACHER. Acepta `?q&levelPublicUuid&gradePublicUuid&sectionPublicUuid` + paginación Spring.
+     * Retorna alumnos con enrollment ACTIVO únicamente (proyección lean, sin PII).
+     */
+    STUDENT_LOOKUP: `${BASE}/attendance/students/lookup`
   }
 } as const;

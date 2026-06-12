@@ -168,21 +168,6 @@ import {
           <div class="flex items-center justify-center py-16">
             <app-spinner [size]="24" label="Cargando sesiones…" />
           </div>
-        } @else if (store.listEndpointMissing()) {
-          <app-empty-state
-            icon="calendar-check"
-            title="Listado de sesiones pendiente de backend"
-            description="El endpoint GET /v1/attendance/sessions llega en BE-6.7 (DEBT-ATT-5). Mientras tanto, abre la sesión desde el scanner o usa el botón Nueva sesión."
-          >
-            <a [routerLink]="scannerRoute" class="btn btn-primary btn-sm">
-              <app-icon name="target" [size]="14" />
-              <span>Abrir scanner</span>
-            </a>
-            <button type="button" class="btn btn-outline btn-sm" (click)="openModal()">
-              <app-icon name="plus" [size]="14" />
-              <span>Nueva sesión</span>
-            </button>
-          </app-empty-state>
         } @else if (!store.hasListItems()) {
           <app-empty-state
             icon="calendar-check"
@@ -215,7 +200,7 @@ import {
                         {{ session.startsAt | date: 'shortTime' }}
                       </div>
                     </td>
-                    <td>{{ session.sectionName ?? session.sectionPublicUuid }}</td>
+                    <td>{{ session.sectionLabel }}</td>
                     <td>{{ session.slot }}</td>
                     <td>
                       <app-attendance-status-badge [status]="session.status" />
@@ -266,10 +251,6 @@ export class AttendanceSessionsListPageComponent implements OnInit {
   protected status: AttendanceSessionStatus | null = null;
 
   async ngOnInit(): Promise<void> {
-    // Tell the store the listing endpoint is missing in the backend
-    // (BE-6.7). When it lands, flip this to `false`.
-    this.store.acknowledgeListEndpointPending();
-
     // Hydrate filters from the URL.
     const qp = this.route.snapshot.queryParamMap;
     this.date = qp.get('date') ?? today();

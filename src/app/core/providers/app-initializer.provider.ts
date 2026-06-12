@@ -77,10 +77,18 @@ function appInitializerFactory(): () => Promise<void> {
     const { slug, resolvedFrom } = tenantService.resolveSlug();
     /* Optimistic placeholder so theme / interceptors have a tenant id
      * during the bootstrap fetch below. {@code status: ACTIVE} keeps
-     * existing guards permissive while the real DTO is in flight. */
+     * existing guards permissive while the real DTO is in flight.
+     *
+     * IMPORTANT: do NOT persist the placeholder — only the authoritative
+     * tenant returned by {@code findBySlug} below should land in storage.
+     * Persisting the placeholder is what caused the "stale tunnel id"
+     * bug: when {@code resolveSlug} fell back to a bogus value (e.g. the
+     * devtunnel host's first label), the failed hydration would still
+     * leave that value cached for every subsequent boot. */
     tenantService.setTenant(
       { id: slug, slug, name: slug, status: TenantStatus.Active, isActive: true },
-      resolvedFrom
+      resolvedFrom,
+      { persist: false }
     );
 
     /* FE-2.4 — hydrate the tenant from the public `by-slug` endpoint.

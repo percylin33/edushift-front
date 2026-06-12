@@ -72,7 +72,13 @@ export class TokenRefreshService {
 		}
 
 		this.inflight$ = this.authApi.refresh(refreshToken).pipe(
-			tap((session) => this.auth.setSession(session)),
+			/* Use `rotateTokens` (not `setSession`) so the cached rich
+			 * `User` (with roles/permissions from `/auth/me`) is preserved
+			 * across silent refreshes. `/auth/refresh` only returns the
+			 * 5-field `UserSummary`, so calling `setSession` here would
+			 * strip authorization data and collapse the navigation
+			 * sidebar to a single item ("only Dashboard" bug). */
+			tap((session) => this.auth.rotateTokens(session)),
 			map((session) => session.accessToken),
 			finalize(() => {
 				this.inflight$ = null;

@@ -211,14 +211,25 @@ import { StudentListFilters } from '../../models';
                       {{ formatDate(student.enrollmentDate) }}
                     </td>
                     <td class="text-right">
-                      <a
-                        [routerLink]="detailLink(student.publicUuid)"
-                        class="btn btn-ghost btn-sm"
-                        aria-label="Ver detalle"
-                      >
-                        <span class="hidden sm:inline">Ver</span>
-                        <app-icon name="chevron-right" [size]="16" />
-                      </a>
+                      <div class="flex items-center justify-end gap-1">
+                        <a
+                          [routerLink]="qrLink(student.publicUuid)"
+                          class="btn btn-ghost btn-sm"
+                          [attr.aria-label]="'Generar credencial QR de ' + student.fullName"
+                          title="Credencial QR"
+                          data-testid="student-qr-link"
+                        >
+                          <app-icon name="qr-code" [size]="16" />
+                        </a>
+                        <a
+                          [routerLink]="detailLink(student.publicUuid)"
+                          class="btn btn-ghost btn-sm"
+                          aria-label="Ver detalle"
+                        >
+                          <span class="hidden sm:inline">Ver</span>
+                          <app-icon name="chevron-right" [size]="16" />
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 }
@@ -392,6 +403,10 @@ export class StudentsListComponent implements OnInit {
 
   protected detailLink(publicUuid: string): string {
     return ROUTES.STUDENTS.detail(publicUuid);
+  }
+
+  protected qrLink(publicUuid: string): string {
+    return ROUTES.STUDENTS.qr(publicUuid);
   }
 
   protected formatDate(date: Date | undefined): string {

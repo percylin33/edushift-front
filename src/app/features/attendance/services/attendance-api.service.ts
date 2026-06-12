@@ -10,9 +10,17 @@ import {
   AttendanceRecord,
   AttendanceRecordResponseRaw,
   AttendanceSession,
+  AttendanceSessionListItem,
+  AttendanceSessionListItemRaw,
   AttendanceSessionResponseRaw,
+  AttendanceSessionSlot,
+  AttendanceSessionStatus,
+  AttendanceStudentLookupItem,
+  AttendanceStudentLookupPage,
   CheckInRequest,
   CreateSessionRequest,
+  ManualCheckInRequest,
+  StudentLookupFilters,
   UpdateRecordRequest
 } from '../models';
 
@@ -78,6 +86,49 @@ export class AttendanceApiService {
   }
 
   /**
+   * Tenant-scoped paginated listing of sessions (Sprint 6 / BE-6.7).
+   *
+   * <p>All filters are optional and AND-combined. The backend already
+   * scopes by tenant — we never send {@code tenantId} in the request
+   * (see {@code multi-tenant-rules.mdc}). Pagination follows Spring
+   * Data convention: {@code page=0&size=20&sort=occurredOn,DESC}.</p>
+   */
+  listSessions(
+    filters: AttendanceListFilters = {},
+    page: AttendanceListPage = {}
+  ): Observable<AttendanceListResult<AttendanceSessionListItem>> {
+    const params: Record<string, string | undefined> = {
+      sectionPublicUuid: filters.sectionPublicUuid,
+      from: filters.from,
+      to: filters.to,
+      slot: filters.slot,
+      status: filters.status,
+      page: page.page !== undefined ? String(page.page) : '0',
+      size: page.size !== undefined ? String(page.size) : '20',
+      sort: page.sort ?? 'occurredOn,DESC'
+    };
+    return this.api
+      .get<
+        ApiResponse<{
+          content: AttendanceSessionListItemRaw[];
+          totalElements: number;
+          totalPages: number;
+          number: number;
+          size: number;
+        }>
+      >(API.ATTENDANCE.SESSIONS_ROOT, params)
+      .pipe(
+        map((envelope) => ({
+          items: envelope.data.content.map((row) => this.toListItem(row)),
+          totalElements: envelope.data.totalElements,
+          totalPages: envelope.data.totalPages,
+          page: envelope.data.number,
+          size: envelope.data.size
+        }))
+      );
+  }
+
+  /**
    * Register a check-in. The backend stamps {@code wasIdempotent=true}
    * on the envelope when the record was already present; we surface
    * that on a sibling field for the scanner feedback chip to consume.
@@ -95,6 +146,88 @@ export class AttendanceApiService {
         map((envelope) => ({
           record: this.toRecord(envelope.data),
           wasIdempotent: Boolean((envelope as { wasIdempotent?: boolean }).wasIdempotent)
+        }))
+      );
+  }
+
+  /**
+   * Session-less QR check-in (BE-6.8.b — scanner fallback). Same
+   * `qrToken` payload as {@link #checkIn} but the URL drops the
+   * `sessionPublicUuid` path segment — the backend auto-resolves the
+   * session from the student's current ACTIVE enrollment, just like
+   * {@link #manualCheckIn}. Surfaces `wasIdempotent=true` on repeat
+   * scans of the same student in the resolved session.
+   */
+  scanCheckIn(
+    qrToken: string
+  ): Observable<{ record: AttendanceRecord; wasIdempotent: boolean }> {
+    return this.api
+      .post<
+        ApiResponse<AttendanceRecordResponseRaw> & { wasIdempotent?: boolean },
+        { qrToken: string }
+      >(API.ATTENDANCE.SCAN_CHECK_IN, { qrToken })
+      .pipe(
+        map((envelope) => ({
+          record: this.toRecord(envelope.data),
+          wasIdempotent: Boolean((envelope as { wasIdempotent?: boolean }).wasIdempotent)
+        }))
+      );
+  }
+
+  /**
+   * Manual check-in by `studentPublicUuid` (BE-6.8 — manual fallback).
+   * The backend auto-resolves the target session from the student's
+   * current ACTIVE enrollment; we never send a `sessionPublicUuid`.
+   *
+   * <p>Surfaces `wasIdempotent=true` on the envelope when the
+   * student was already marked in the resolved session (same shape
+   * as {@link #checkIn}).</p>
+   */
+  manualCheckIn(
+    request: ManualCheckInRequest
+  ): Observable<{ record: AttendanceRecord; wasIdempotent: boolean }> {
+    return this.api
+      .post<ApiResponse<AttendanceRecordResponseRaw> & { wasIdempotent?: boolean }, ManualCheckInRequest>(
+        API.ATTENDANCE.MANUAL_CHECK_IN,
+        request
+      )
+      .pipe(
+        map((envelope) => ({
+          record: this.toRecord(envelope.data),
+          wasIdempotent: Boolean((envelope as { wasIdempotent?: boolean }).wasIdempotent)
+        }))
+      );
+  }
+
+  /**
+   * Student lookup for the manual fallback picker (BE-6.8). Returns a
+   * Spring Data page of lean projections; restricted server-side to
+   * students with an ACTIVE enrollment so every hit is actionable.
+   *
+   * <p>Server hard-caps `size` at 50; passing a larger value is
+   * silently clamped.</p>
+   */
+  lookupStudents(
+    filters: StudentLookupFilters = {},
+    page: AttendanceListPage = {}
+  ): Observable<AttendanceListResult<AttendanceStudentLookupItem>> {
+    const params: Record<string, string | undefined> = {
+      q: filters.q,
+      levelPublicUuid: filters.levelPublicUuid,
+      gradePublicUuid: filters.gradePublicUuid,
+      sectionPublicUuid: filters.sectionPublicUuid,
+      page: page.page !== undefined ? String(page.page) : '0',
+      size: page.size !== undefined ? String(page.size) : '20'
+    };
+    return this.api
+      .get<ApiResponse<AttendanceStudentLookupPage>>(API.ATTENDANCE.STUDENT_LOOKUP, params)
+      .pipe(
+        map((envelope) => ({
+          items: envelope.data.content,
+          totalElements: envelope.data.totalElements,
+          totalPages: envelope.data.totalPages,
+          page: envelope.data.number,
+          size: envelope.data.size
         }))
       );
   }
@@ -186,6 +319,31 @@ export class AttendanceApiService {
     };
   }
 
+  private toListItem(raw: AttendanceSessionListItemRaw): AttendanceSessionListItem {
+    const grade = raw.sectionGradeName ?? '';
+    const name = raw.sectionName ?? '';
+    const sectionLabel =
+      grade && name ? `${grade} · ${name}` : grade || name || raw.sectionPublicUuid;
+    return {
+      publicUuid: raw.publicUuid,
+      sectionPublicUuid: raw.sectionPublicUuid,
+      sectionName: raw.sectionName ?? undefined,
+      sectionGradeName: raw.sectionGradeName ?? undefined,
+      sectionLabel,
+      occurredOn: this.parseDate(raw.occurredOn) ?? new Date(),
+      slot: raw.slot,
+      status: raw.status,
+      startsAt: this.parseDate(raw.startsAt) ?? new Date(),
+      closedAt: this.parseDate(raw.closedAt),
+      presentCount: raw.presentCount ?? undefined,
+      lateCount: raw.lateCount ?? undefined,
+      absentCount: raw.absentCount ?? undefined,
+      excusedCount: raw.excusedCount ?? undefined,
+      createdAt: this.parseDate(raw.createdAt) ?? new Date(),
+      updatedAt: this.parseDate(raw.updatedAt) ?? new Date()
+    };
+  }
+
   private toRecord(raw: AttendanceRecordResponseRaw): AttendanceRecord {
     return {
       publicUuid: raw.publicUuid,
@@ -222,4 +380,38 @@ export class AttendanceApiService {
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? undefined : d;
   }
+}
+
+/**
+ * Optional filter shape for {@link AttendanceApiService.listSessions}
+ * (Sprint 6 / BE-6.7). All fields are optional and AND-combined.
+ * `date` is sugar for `from=date&to=date` (one-day window) and is
+ * resolved by the caller before hitting the service.
+ */
+export interface AttendanceListFilters {
+  sectionPublicUuid?: string;
+  from?: string;
+  to?: string;
+  slot?: AttendanceSessionSlot;
+  status?: AttendanceSessionStatus;
+}
+
+export interface AttendanceListPage {
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
+/**
+ * Minimal page envelope — matches the shape Spring Data's
+ * {@code Page<T>} serialises as JSON. Defined locally to avoid
+ * coupling every consumer to a generic {@code Page<T>} helper in
+ * {@code @core/models} (kept lean on purpose).
+ */
+export interface AttendanceListResult<T> {
+  items: T[];
+  totalElements: number;
+  totalPages: number;
+  page: number;
+  size: number;
 }

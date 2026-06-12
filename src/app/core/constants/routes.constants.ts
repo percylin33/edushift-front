@@ -39,7 +39,9 @@ export const ROUTES = {
     LIST: '/students',
     NEW: '/students/new',
     detail: (id: string) => `/students/${id}`,
-    edit: (id: string) => `/students/${id}/edit`
+    edit: (id: string) => `/students/${id}/edit`,
+    /** {@code /students/:id/qr} — printable attendance credential page (FE-6.3). */
+    qr: (id: string) => `/students/${id}/qr`
   },
   TEACHERS: {
     ROOT: '/teachers',

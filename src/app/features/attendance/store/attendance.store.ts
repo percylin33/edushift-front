@@ -5,10 +5,11 @@ import {
   AttendanceRecord,
   AttendanceRecordStatus,
   AttendanceSession,
+  AttendanceSessionListItem,
   AttendanceSessionSlot,
   AttendanceSessionStatus,
-  CheckInRequest,
   CreateSessionRequest,
+  ManualCheckInRequest,
   UpdateRecordRequest
 } from '../models';
 
@@ -38,6 +39,7 @@ export type ScanOutcome =
   | { kind: 'expired'; reason: string }
   | { kind: 'tenant-mismatch' }
   | { kind: 'not-enrolled'; reason: string }
+  | { kind: 'no-active-enrollment'; reason: string }
   | { kind: 'session-closed' }
   | { kind: 'network' }
   | { kind: 'unknown'; reason: string };
@@ -79,20 +81,29 @@ export class AttendanceStore {
   // -------- scanner slice --------
   private readonly _scanning = signal(false);
   private readonly _lastScan = signal<ScanOutcome>({ kind: 'idle' });
+  /**
+   * Daily aggregate of successful scans (camera + manual picker) across
+   * every session the auxiliary touched today. Drives the "Escaneados
+   * hoy" counter on the scanner page when there is no active session
+   * in the store (the typical "auxiliary at the school entrance" flow,
+   * where scans land in many sessions auto-resolved by the backend).
+   * Keyed by YYYY-MM-DD so the counter rolls over at midnight without
+   * needing a reload.
+   */
+  private readonly _dailyScans = signal<{ date: string; count: number }>({
+    date: this.todayKey(),
+    count: 0
+  });
 
   // -------- error slice --------
   private readonly _error = signal<string | null>(null);
 
-  // -------- list slice (FE-6.2) --------
-  private readonly _listItems = signal<AttendanceSession[]>([]);
+  // -------- list slice (FE-6.2 / BE-6.7) --------
+  private readonly _listItems = signal<AttendanceSessionListItem[]>([]);
   private readonly _listFilters = signal<AttendanceSessionListFilters>({});
   private readonly _loadingList = signal(false);
-  /**
-   * When true, the list endpoint is not yet wired in the backend
-   * (BE-6.7, tracked as `DEBT-ATT-5`). The page renders the
-   * "endpoint pending" empty state and skips the network call.
-   */
-  private readonly _listEndpointMissing = signal(true);
+  private readonly _listTotalElements = signal(0);
+  private readonly _listTotalPages = signal(0);
 
   // -------- public readonly signals --------
   readonly currentSession = this._currentSession.asReadonly();
@@ -105,7 +116,8 @@ export class AttendanceStore {
   readonly listItems = this._listItems.asReadonly();
   readonly listFilters = this._listFilters.asReadonly();
   readonly loadingList = this._loadingList.asReadonly();
-  readonly listEndpointMissing = this._listEndpointMissing.asReadonly();
+  readonly listTotalElements = this._listTotalElements.asReadonly();
+  readonly listTotalPages = this._listTotalPages.asReadonly();
 
   readonly hasActiveSession = computed(() => this._currentSession()?.status === 'ACTIVE');
   readonly presentCount = computed(
@@ -116,6 +128,7 @@ export class AttendanceStore {
   );
   readonly totalCount = computed(() => this._records().length);
   readonly hasListItems = computed(() => this._listItems().length > 0);
+  readonly dailyScanCount = computed(() => this._dailyScans().count);
 
   // ===========================================================================
   // Sessions
@@ -176,31 +189,34 @@ export class AttendanceStore {
    */
   async applyListFilters(filters: AttendanceSessionListFilters): Promise<void> {
     this._listFilters.set(filters);
-    if (this._listEndpointMissing()) {
-      this._listItems.set([]);
-      return;
-    }
     this._loadingList.set(true);
     this._error.set(null);
     try {
-      // The actual call will land in BE-6.7 (DEBT-ATT-5). For now we
-      // resolve to an empty list.
-      this._listItems.set([]);
+      // Translate the URL-friendly filter shape into the API's
+      // snake-case form. `date` is sugar for `from=date&to=date`.
+      const from = filters.date;
+      const to = filters.date;
+      const result = await firstValueFrom(
+        this.api.listSessions(
+          {
+            sectionPublicUuid: filters.sectionPublicUuid,
+            from,
+            to,
+            slot: filters.slot,
+            status: filters.status
+          },
+          { page: 0, size: 20, sort: 'occurredOn,DESC' }
+        )
+      );
+      this._listItems.set(result.items);
+      this._listTotalElements.set(result.totalElements);
+      this._listTotalPages.set(result.totalPages);
     } catch (err) {
       this._error.set(this.toErrorMessage(err));
+      this._listItems.set([]);
     } finally {
       this._loadingList.set(false);
     }
-  }
-
-  /**
-   * Confirm the list endpoint is missing and silently short-circuit
-   * future {@link #applyListFilters} calls. Called by the page on
-   * boot so we don't have to remember to wire the flag at the
-   * call site.
-   */
-  acknowledgeListEndpointPending(): void {
-    this._listEndpointMissing.set(true);
   }
 
   // ===========================================================================
@@ -255,14 +271,14 @@ export class AttendanceStore {
    * union so the feedback chip doesn't have to inspect raw
    * {@code ApiError.code} values. Unknown codes fall through to
    * {@link ScanOutcome.kind: 'unknown'}.
+   *
+   * <p><b>BE-6.8.b</b> — the QR scan no longer requires a
+   * pre-opened session: the backend auto-resolves it from the
+   * student's current ACTIVE enrollment (same flow as
+   * {@link #manualCheckIn}). This unlocks the "auxiliary at the
+   * school entrance" use case where N sections are attended at once.</p>
    */
-  async scan(qrToken: string, sessionPublicUuid?: string): Promise<ScanOutcome> {
-    const session = sessionPublicUuid ?? this._currentSession()?.publicUuid;
-    if (!session) {
-      const outcome: ScanOutcome = { kind: 'unknown', reason: 'No hay sesión activa' };
-      this._lastScan.set(outcome);
-      return outcome;
-    }
+  async scan(qrToken: string): Promise<ScanOutcome> {
     if (this._scanning()) {
       // Cooldown: another scan is in flight. Return idle so the chip
       // doesn't flicker.
@@ -270,18 +286,79 @@ export class AttendanceStore {
     }
 
     this._scanning.set(true);
-    const payload: CheckInRequest = { qrToken, sessionPublicUuid: session };
     try {
       const { record, wasIdempotent } = await firstValueFrom(
-        this.api.checkIn(session, payload)
+        this.api.scanCheckIn(qrToken)
       );
-      this._records.update((rows) => {
-        const idx = rows.findIndex((r) => r.publicUuid === record.publicUuid);
-        if (idx === -1) return [...rows, record];
-        const next = [...rows];
-        next[idx] = record;
-        return next;
-      });
+      // Only update the in-memory roster when the resolved record
+      // belongs to the session the scanner page is currently viewing
+      // (mirrors the manualCheckIn behaviour for consistency).
+      const currentUuid = this._currentSession()?.publicUuid;
+      if (currentUuid && record.sessionPublicUuid === currentUuid) {
+        this._records.update((rows) => {
+          const idx = rows.findIndex((r) => r.publicUuid === record.publicUuid);
+          if (idx === -1) return [...rows, record];
+          const next = [...rows];
+          next[idx] = record;
+          return next;
+        });
+      }
+      if (!wasIdempotent) {
+        this.incrementDailyScans();
+      }
+      const outcome: ScanOutcome = { kind: 'ok', record, idempotent: wasIdempotent };
+      this._lastScan.set(outcome);
+      return outcome;
+    } catch (err) {
+      const outcome = this.toScanOutcome(err);
+      this._lastScan.set(outcome);
+      return outcome;
+    } finally {
+      this._scanning.set(false);
+    }
+  }
+
+  /**
+   * Manual check-in via the search picker fallback (Sprint 6 /
+   * FE-6.8). Same {@link ScanOutcome} shape as {@link #scan} so the
+   * feedback chip is a single rendering surface for both flows.
+   *
+   * <p>Differences with {@link #scan}:</p>
+   * <ul>
+   *   <li>No `qrToken`; the request carries only `studentPublicUuid`
+   *       (and optional admin overrides).</li>
+   *   <li>No `sessionPublicUuid`; the backend auto-resolves it from
+   *       the student's current ACTIVE enrollment.</li>
+   *   <li>If the resolved session does not match the one we're
+   *       currently viewing, the in-memory roster is not touched —
+   *       the record exists in another section's session.</li>
+   * </ul>
+   */
+  async manualCheckIn(studentPublicUuid: string): Promise<ScanOutcome> {
+    if (this._scanning()) {
+      return { kind: 'idle' };
+    }
+    this._scanning.set(true);
+    const payload: ManualCheckInRequest = { studentPublicUuid };
+    try {
+      const { record, wasIdempotent } = await firstValueFrom(
+        this.api.manualCheckIn(payload)
+      );
+      // Only update the in-memory roster when the resolved record
+      // belongs to the session the scanner page is currently viewing.
+      const currentUuid = this._currentSession()?.publicUuid;
+      if (currentUuid && record.sessionPublicUuid === currentUuid) {
+        this._records.update((rows) => {
+          const idx = rows.findIndex((r) => r.publicUuid === record.publicUuid);
+          if (idx === -1) return [...rows, record];
+          const next = [...rows];
+          next[idx] = record;
+          return next;
+        });
+      }
+      if (!wasIdempotent) {
+        this.incrementDailyScans();
+      }
       const outcome: ScanOutcome = { kind: 'ok', record, idempotent: wasIdempotent };
       this._lastScan.set(outcome);
       return outcome;
@@ -336,6 +413,11 @@ export class AttendanceStore {
         return { kind: 'tenant-mismatch' };
       case 'STUDENT_NOT_ENROLLED':
         return { kind: 'not-enrolled', reason: message || 'Alumno no matriculado' };
+      case 'STUDENT_NO_ACTIVE_ENROLLMENT':
+        return {
+          kind: 'no-active-enrollment',
+          reason: message || 'El alumno no tiene matrícula activa'
+        };
       case 'SESSION_CLOSED':
       case 'SESSION_ALREADY_CLOSED':
         return { kind: 'session-closed' };
@@ -350,5 +432,27 @@ export class AttendanceStore {
     if (typeof err === 'string') return err;
     const message = (err as { message?: string })?.message;
     return message ?? 'Error inesperado';
+  }
+
+  /**
+   * Increment the daily aggregate counter. Rolls over to a fresh
+   * bucket when crossing midnight so an auxiliary who left the
+   * scanner open overnight sees a clean count next morning.
+   */
+  private incrementDailyScans(): void {
+    const today = this.todayKey();
+    this._dailyScans.update((prev) =>
+      prev.date === today
+        ? { date: today, count: prev.count + 1 }
+        : { date: today, count: 1 }
+    );
+  }
+
+  private todayKey(): string {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 }

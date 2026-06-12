@@ -49,18 +49,50 @@ export class AuthService {
   readonly roles = computed<UserRole[]>(() => this._user()?.roles ?? []);
   readonly permissions = computed<Permission[]>(() => this._user()?.permissions ?? []);
 
-  /** Persist a fresh session (post-login or post-refresh). Replaces any prior session in full. */
+  /**
+   * Persist a fresh session at login. Replaces user + tokens in full.
+   *
+   * <p>Only the login path should call this; the silent-refresh path uses
+   * {@link #rotateTokens} so it doesn't downgrade the rich {@link User}
+   * (with `roles`, `permissions`) back to a {@link UserSummary} (5
+   * fields). See the rationale on {@link #rotateTokens}.
+   *
+   * <p>{@link UserSummary} is structurally assignable to {@link User}
+   * because every field beyond the summary is optional on the User
+   * interface — TypeScript does not widen the runtime shape, just allows
+   * the assignment. The object is enriched later by {@link #setUser}
+   * after {@code /auth/me}.
+   */
   setSession(session: AuthSession): void {
-    /* `UserSummary` is structurally assignable to `User` because every
-     * field beyond the summary is `?` on the User interface — TypeScript
-     * does NOT widen the runtime shape, just allows the assignment. The
-     * object is enriched later by `setUser(...)` after `/auth/me`. */
     this._user.set(session.user as User);
     this._accessToken.set(session.accessToken);
     this._refreshToken.set(session.refreshToken);
     this._expiresAt.set(session.expiresAt);
 
     this.storage.set(STORAGE_KEYS.CURRENT_USER, session.user);
+    this.storage.set(STORAGE_KEYS.AUTH_TOKEN, session.accessToken);
+    this.storage.set(STORAGE_KEYS.REFRESH_TOKEN, session.refreshToken);
+    this.storage.set(STORAGE_KEYS.AUTH_EXPIRES_AT, session.expiresAt.toISOString());
+  }
+
+  /**
+   * Rotate just the token triple (access / refresh / expiresAt) without
+   * touching the cached {@link User}.
+   *
+   * <p>This is the right primitive for the silent-refresh flow. The
+   * backend's {@code POST /auth/refresh} returns the same minimal
+   * {@link UserSummary} that login does (5 fields, no `roles` /
+   * `permissions`) — overwriting the in-memory user with that summary
+   * would silently strip authorization data and collapse the navigation
+   * shell ("only Dashboard" bug). Since a refresh round-trip rotates
+   * tokens for the same identity, the cached user is still authoritative
+   * and we keep it as-is.
+   */
+  rotateTokens(session: AuthSession): void {
+    this._accessToken.set(session.accessToken);
+    this._refreshToken.set(session.refreshToken);
+    this._expiresAt.set(session.expiresAt);
+
     this.storage.set(STORAGE_KEYS.AUTH_TOKEN, session.accessToken);
     this.storage.set(STORAGE_KEYS.REFRESH_TOKEN, session.refreshToken);
     this.storage.set(STORAGE_KEYS.AUTH_EXPIRES_AT, session.expiresAt.toISOString());

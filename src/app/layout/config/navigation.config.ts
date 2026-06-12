@@ -122,30 +122,34 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         roles: [UserRole.TenantAdmin, UserRole.Teacher]
       },
       {
+        /*
+         * Sprint 6 — el sidebar usa role-gating (mismo trade-off que
+         * students/teachers/academic) porque el backend aún no popula
+         * `User.permissions`. Las sub-rutas reales son
+         * `/attendance/sessions` y `/attendance/scanner`; los paths
+         * `/attendance/daily|history|reports` declarados en
+         * ROUTES.ATTENDANCE no tienen entrada en attendance.routes.ts
+         * todavía, así que no se exponen como children hasta que las
+         * pantallas existan (FE-6.4 dashboard / reportes).
+         */
         id: 'attendance',
         label: 'Asistencia',
         icon: 'calendar-check',
-        route: ROUTES.ATTENDANCE.ROOT,
+        route: ROUTES.ATTENDANCE.SESSIONS,
         feature: FeatureKey.Attendance,
-        permissions: [Permission.AttendanceRead],
+        roles: [UserRole.TenantAdmin, UserRole.Teacher],
         children: [
           {
-            id: 'attendance-daily',
-            label: 'Hoy',
-            route: ROUTES.ATTENDANCE.DAILY,
-            permissions: [Permission.AttendanceRead]
+            id: 'attendance-sessions',
+            label: 'Sesiones',
+            route: ROUTES.ATTENDANCE.SESSIONS,
+            roles: [UserRole.TenantAdmin, UserRole.Teacher]
           },
           {
-            id: 'attendance-history',
-            label: 'Historial',
-            route: ROUTES.ATTENDANCE.HISTORY,
-            permissions: [Permission.AttendanceRead]
-          },
-          {
-            id: 'attendance-reports',
-            label: 'Reportes',
-            route: ROUTES.ATTENDANCE.REPORTS,
-            permissions: [Permission.AttendanceRead]
+            id: 'attendance-scanner',
+            label: 'Escáner QR',
+            route: ROUTES.ATTENDANCE.SCANNER,
+            roles: [UserRole.TenantAdmin, UserRole.Teacher]
           }
         ]
       },

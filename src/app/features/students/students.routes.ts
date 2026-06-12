@@ -68,5 +68,22 @@ export const STUDENTS_ROUTES: Routes = [
       import('./pages/student-form/student-form.component').then(
         (m) => m.StudentFormComponent
       )
+  },
+  {
+    /* FE-6.3 — Credencial QR del alumno. TEACHER también, alineado con
+     * el endpoint backend que permite hasAnyRole('TENANT_ADMIN','TEACHER').
+     * El botón de rotación dentro de la página queda gateado por canRotate
+     * (solo TENANT_ADMIN), reflejando el RBAC del POST /attendance-qr/rotate. */
+    path: ':id/qr',
+    canActivate: [roleGuard],
+    data: {
+      roles: [UserRole.TenantAdmin, UserRole.Teacher],
+      breadcrumb: 'Credencial',
+      title: 'Credencial QR'
+    },
+    loadComponent: () =>
+      import('./pages/student-qr/student-qr.component').then(
+        (m) => m.StudentQrPageComponent
+      )
   }
 ];
