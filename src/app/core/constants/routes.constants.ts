@@ -132,6 +132,44 @@ export const ROUTES = {
     USERS: '/settings/users',
     BILLING: '/settings/billing'
   },
+  LMS: {
+    ROOT: '/lms',
+    /** {@code /lms/sections/{sectionUuid}/assignments} — list del docente. */
+    sectionAssignments: (sectionUuid: string) =>
+      `/lms/sections/${sectionUuid}/assignments`,
+    /** {@code /lms/students/{studentUuid}/assignments} — "Mis tareas" del alumno. */
+    studentAssignments: (studentUuid: string) =>
+      `/lms/students/${studentUuid}/assignments`,
+    /** {@code /lms/assignments/new?section={sectionUuid}} — crear. */
+    assignmentNew: (sectionUuid: string) =>
+      `/lms/assignments/new?section=${sectionUuid}`,
+    /** {@code /lms/assignments/{uuid}} — detail. */
+    assignmentDetail: (uuid: string) => `/lms/assignments/${uuid}`,
+    /** {@code /lms/assignments/{uuid}/edit} — editar (DRAFT). */
+    assignmentEdit: (uuid: string) => `/lms/assignments/${uuid}/edit`,
+    /** {@code /lms/assignments/{uuid}/grade} — listing de entregas (TEACHER). */
+    assignmentGrade: (uuid: string) => `/lms/assignments/${uuid}/grade`,
+    /** {@code /lms/assignments/{uuid}/submit} — entregar (STUDENT/PARENT). */
+    assignmentSubmit: (uuid: string) => `/lms/assignments/${uuid}/submit`,
+    /** {@code /lms/sections/{sectionUuid}/materials} — materiales de la sección. */
+    sectionMaterials: (sectionUuid: string) =>
+      `/lms/sections/${sectionUuid}/materials`,
+    /** {@code /lms/sections/{sectionUuid}/quizzes} — quizzes de la sección. (FE-7b.0) */
+    sectionQuizzes: (sectionUuid: string) =>
+      `/lms/sections/${sectionUuid}/quizzes`,
+    /** {@code /lms/quizzes/new?section={sectionUuid}} — crear quiz. (FE-7b.0) */
+    quizNew: (sectionUuid: string) => `/lms/quizzes/new?section=${sectionUuid}`,
+    /** {@code /lms/quizzes/{uuid}} — detalle del quiz. (FE-7b.0) */
+    quizDetail: (uuid: string) => `/lms/quizzes/${uuid}`,
+    /** {@code /lms/quizzes/{uuid}/edit} — editar quiz en DRAFT. (FE-7b.1) */
+    quizEdit: (uuid: string) => `/lms/quizzes/${uuid}/edit`,
+    /** {@code /lms/quizzes/{uuid}/take} — tomar quiz (STUDENT/PARENT). (FE-7b.0) */
+    quizTake: (uuid: string) => `/lms/quizzes/${uuid}/take`,
+    /** {@code /lms/quizzes/{uuid}/results} — resultados del quiz. (FE-7b.0) */
+    quizResults: (uuid: string) => `/lms/quizzes/${uuid}/results`,
+    /** {@code /lms/quizzes/{uuid}/grade} — cola de grading (TEACHER). (FE-7b.3) */
+    quizGrade: (uuid: string) => `/lms/quizzes/${uuid}/grade`
+  },
   ERRORS: {
     NOT_FOUND: '/404',
     FORBIDDEN: '/403'

@@ -39,7 +39,8 @@ export const environment: AppEnvironment = {
     ai: true,
     reports: true,
     notifications: true,
-    settings: true
+    settings: true,
+    lms: true
   },
   logging: {
     level: 'debug',

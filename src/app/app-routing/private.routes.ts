@@ -134,6 +134,12 @@ export const PRIVATE_ROUTES: Routes = [
         data: { feature: FeatureKey.Settings, breadcrumb: 'Configuración', title: 'Configuración' },
         loadChildren: () =>
           import('@features/settings/settings.routes').then((m) => m.SETTINGS_ROUTES)
+      },
+      {
+        path: 'lms',
+        canActivate: [featureFlagGuard],
+        data: { feature: FeatureKey.Lms, breadcrumb: 'LMS', title: 'LMS' },
+        loadChildren: () => import('@features/lms/lms.routes').then((m) => m.LMS_ROUTES)
       }
     ]
   }

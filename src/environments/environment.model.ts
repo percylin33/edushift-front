@@ -70,6 +70,7 @@ export interface AppEnvironment {
     reports: boolean;
     notifications: boolean;
     settings: boolean;
+    lms: boolean;
   };
   logging: {
     level: LogLevel;

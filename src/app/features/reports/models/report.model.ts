@@ -1,22 +1,23 @@
-import { BaseEntity } from '@core/models';
+export type ReportType = 'GRADE_BOOK' | 'ATTENDANCE_SUMMARY' | 'PERIOD_CLOSE' | 'STUDENT_TRANSCRIPT';
+export type ReportFormat = 'PDF' | 'XLSX' | 'CSV';
+export type ReportStatus = 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED' | 'CANCELLED';
 
-export type ReportFormat = 'pdf' | 'xlsx' | 'csv' | 'json';
-export type ReportStatus = 'pending' | 'generating' | 'ready' | 'failed';
-
-export interface Report extends BaseEntity {
-  name: string;
-  description?: string;
-  category: 'academic' | 'financial' | 'attendance' | 'custom';
-  status: ReportStatus;
+export interface ReportJob {
+  publicUuid: string;
+  reportType: ReportType;
   format: ReportFormat;
-  downloadUrl?: string;
-  generatedAt?: string;
+  status: ReportStatus;
+  progressPct: number;
+  errorCode?: string;
+  errorMessage?: string;
+  requestedAt: string;
+  startedAt?: string;
+  finishedAt?: string;
 }
 
-export interface ReportRequest {
-  category: Report['category'];
+export interface CreateReportPayload {
+  reportType: ReportType;
   format: ReportFormat;
-  filters?: Record<string, unknown>;
-  dateFrom?: string;
-  dateTo?: string;
+  params?: string;
+  idemKey?: string;
 }

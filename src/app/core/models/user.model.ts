@@ -42,7 +42,8 @@ export interface User extends UserSummary {
   createdAt?: string;
   updatedAt?: string;
 
-  /** RBAC (Sprint 2). Empty in Sprint 1 because the backend does not emit it yet. */
+  /** RBAC. Populated by the backend on every `/auth/me` (Sprint 2) and from
+   *  granular authority mappers in Sprint 7a (BE-7a.3 — LMS authorities). */
   roles?: UserRole[];
   permissions?: Permission[];
 

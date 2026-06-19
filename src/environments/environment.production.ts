@@ -35,7 +35,11 @@ export const environment: AppEnvironment = {
     ai: true,
     reports: true,
     notifications: true,
-    settings: true
+    settings: true,
+    // LMS (Sprint 7a). Kept off in production until the pilot signs off
+    // on the back-end (BE-7a.0..5). The flag is consulted by
+    // `featureFlagGuard` to short-circuit the whole `/lms/*` tree.
+    lms: false
   },
   logging: {
     level: 'warn',

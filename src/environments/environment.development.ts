@@ -4,7 +4,7 @@ export const environment: AppEnvironment = {
   production: false,
   appName: 'EduShift',
   appVersion: '0.0.0-dev',
-  apiUrl: 'https://3vmchk6t-8080.brs.devtunnels.ms/api',
+  apiUrl: 'http://localhost:8080/api',
   apiVersion: 'v1',
   defaultLocale: 'es',
   supportedLocales: ['es', 'en'],
@@ -35,7 +35,10 @@ export const environment: AppEnvironment = {
     ai: true,
     reports: true,
     notifications: true,
-    settings: true
+    settings: true,
+    // LMS (Sprint 7a). Off by default in production until BE-7a.0..5 are
+    // signed off; flipped on in dev to allow exercising the new tree.
+    lms: true
   },
   logging: {
     level: 'debug',

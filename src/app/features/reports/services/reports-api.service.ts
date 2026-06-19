@@ -1,23 +1,26 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '@core/services';
-import { API } from '@core/constants';
-import { Paginated } from '@core/models';
-import { Report, ReportRequest } from '../models';
+import { CreateReportPayload, ReportJob } from '../models/report.model';
 
+const BASE = '/api/v1/reports';
+
+/**
+ * Reports REST service (Sprint 9 / FE-9.3).
+ */
 @Injectable({ providedIn: 'root' })
 export class ReportsApiService {
   private readonly api = inject(ApiService);
 
-  list(): Observable<Paginated<Report>> {
-    return this.api.get<Paginated<Report>>(API.REPORTS.ROOT);
+  create(payload: CreateReportPayload): Observable<ReportJob> {
+    return this.api.post<ReportJob>(BASE, payload);
   }
 
-  generate(payload: ReportRequest): Observable<Report> {
-    return this.api.post<Report>(API.REPORTS.ROOT, payload);
+  get(publicUuid: string): Observable<ReportJob> {
+    return this.api.get<ReportJob>(`${BASE}/${publicUuid}`);
   }
 
-  export(id: string): Observable<{ url: string }> {
-    return this.api.post<{ url: string }>(`${API.REPORTS.EXPORT}/${id}`);
+  downloadUrl(publicUuid: string): string {
+    return `${BASE}/${publicUuid}/download`;
   }
 }

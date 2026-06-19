@@ -1,4 +1,4 @@
-import { UserRole } from '@core/enums';
+import { Permission, UserRole } from '@core/enums';
 import { AuthResponseRaw, AuthSession, User, UserResponseRaw, UserSummary, UserSummaryRaw } from '@core/models';
 
 /**
@@ -63,6 +63,7 @@ export function toUser(raw: UserResponseRaw): User {
     emailVerified: raw.emailVerified,
     mfaEnabled: raw.mfaEnabled,
     roles: toRoles(raw.roles),
+    permissions: toPermissions(raw.permissions),
     lastLoginAt: raw.lastLoginAt ?? undefined,
     createdAt: raw.createdAt ?? undefined,
     updatedAt: raw.updatedAt ?? undefined
@@ -79,4 +80,17 @@ export function toRoles(raw: string[] | null | undefined): UserRole[] {
   if (!raw || raw.length === 0) return [];
   const known = new Set<string>(Object.values(UserRole));
   return raw.filter((r): r is UserRole => known.has(r));
+}
+
+/**
+ * Narrow the backend's {@code String[]} authorities payload to the typed
+ * {@link Permission} enum. Symmetric to {@link toRoles}: unknown authority
+ * strings (e.g. a future `LMS_AI_TUTOR_USE` the SPA hasn't been redeployed
+ * to learn) are silently dropped, keeping `*hasPermission` and
+ * `permissionGuard` fail-closed.
+ */
+export function toPermissions(raw: string[] | null | undefined): Permission[] {
+  if (!raw || raw.length === 0) return [];
+  const known = new Set<string>(Object.values(Permission));
+  return raw.filter((p): p is Permission => known.has(p));
 }

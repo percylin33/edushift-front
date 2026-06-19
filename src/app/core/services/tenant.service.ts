@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { environment } from '@env/environment';
 import { STORAGE_KEYS } from '@core/constants';
+import { TenantStatus } from '@core/enums';
 import { Tenant, TenantContext } from '@core/models';
 import { TenantThemeService } from '@core/theming';
 import { StorageService } from './storage.service';
@@ -138,6 +139,38 @@ export class TenantService {
    * backend hydration: caching a placeholder is what produces the "stale
    * tunnel id" bug when the hydration fails (e.g. tenant doesn't exist).</p>
    */
+  /**
+   * Pre-login slug override. The login screen calls this with the slug the
+   * user typed in the "Institución" field so the {@code tenant.interceptor}
+   * sends the right {@code X-Tenant-Slug}. We can't call {@link setTenant}
+   * here because we don't yet have the full {@link Tenant} object — that
+   * arrives after the backend authenticates and the session boot fetches
+   * {@code /tenants/me}. The placeholder is replaced once the real tenant
+   * is hydrated.
+   *
+   * <p>Why this exists at all: in dev (localhost, no subdomain) the
+   * resolution chain falls through to the localStorage cache, which holds
+   * the slug of the <em>last</em> successful login. Without this method,
+   * a user who logs out of tenant A and tries to log into tenant B would
+   * silently send {@code X-Tenant-Slug: A} and get a "BAD_CREDENTIALS"
+   * 401, with no UI to course-correct. In production with subdomain
+   * resolution this branch is rarely taken but the override remains
+   * useful for tenants accessed by query param.
+   */
+  setSlug(slug: string): void {
+    const trimmed = slug?.trim().toLowerCase();
+    if (!trimmed) return;
+    const placeholder: Tenant = {
+      id: '',
+      slug: trimmed,
+      name: trimmed,
+      status: TenantStatus.Active,
+      isActive: true
+    };
+    this._context.set({ tenant: placeholder, resolvedFrom: 'header' });
+    this.storage.set(STORAGE_KEYS.CURRENT_TENANT, trimmed);
+  }
+
   setTenant(
     tenant: Tenant | null,
     resolvedFrom: TenantContext['resolvedFrom'] = 'default',

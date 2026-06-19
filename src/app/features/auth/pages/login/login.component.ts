@@ -16,7 +16,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { of } from 'rxjs';
 import { catchError, finalize, switchMap, tap } from 'rxjs/operators';
 
-import { AuthService } from '@core/services';
+import { AuthService, TenantService } from '@core/services';
 import { ROUTES } from '@core/constants';
 import { ApiError, ApiResponse } from '@core/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
@@ -77,6 +77,40 @@ import { LoginRequest } from '../../models';
       }
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
+        <!-- Tenant slug (institución) -->
+        <div class="space-y-1.5">
+          <label for="tenantSlug" class="block text-sm font-medium text-content">Institución</label>
+          <div class="relative">
+            <span
+              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-content-subtle"
+            >
+              <app-icon name="graduation-cap" [size]="16" />
+            </span>
+            <input
+              id="tenantSlug"
+              type="text"
+              autocomplete="organization"
+              formControlName="tenantSlug"
+              spellcheck="false"
+              autocapitalize="off"
+              [attr.aria-invalid]="tenantSlugInvalid()"
+              [attr.aria-describedby]="tenantSlugInvalid() ? 'tenant-error' : 'tenant-help'"
+              placeholder="tecnosur"
+              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm text-content
+                     placeholder:text-content-subtle
+                     focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30
+                     disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
+            />
+          </div>
+          @if (tenantSlugInvalid()) {
+            <p id="tenant-error" class="text-xs text-danger">{{ tenantSlugError() }}</p>
+          } @else {
+            <p id="tenant-help" class="text-xs text-content-subtle">
+              Identificador de tu colegio (slug). Ej: <code>tecnosur</code>, <code>demo</code>.
+            </p>
+          }
+        </div>
+
         <!-- Email -->
         <div class="space-y-1.5">
           <label for="email" class="block text-sm font-medium text-content">Correo</label>
@@ -200,6 +234,7 @@ export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly authApi = inject(AuthApiService);
   private readonly auth = inject(AuthService);
+  private readonly tenant = inject(TenantService);
   private readonly store = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -207,7 +242,21 @@ export class LoginComponent {
   readonly forgotPasswordRoute = ROUTES.AUTH.FORGOT_PASSWORD;
   readonly registerRoute = ROUTES.AUTH.REGISTER;
 
+  /* Pre-fill the institución field with the tenant resolved by
+   * {@link TenantService} (subdomain in production, query param if present,
+   * cached slug otherwise). The user can override before submitting — that's
+   * the whole point of surfacing the field instead of trusting the cache
+   * silently (#bug 2026-06-14: cached slug from a previous login was sent
+   * to /auth/login when switching tenants, producing BAD_CREDENTIALS). */
   readonly form: FormGroup = this.fb.nonNullable.group({
+    tenantSlug: [
+      this.tenant.tenantSlug() ?? '',
+      [
+        Validators.required,
+        Validators.maxLength(64),
+        Validators.pattern(/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/i)
+      ]
+    ],
     email: ['', [Validators.required, Validators.email, Validators.maxLength(254)]],
     password: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(128)]],
     remember: [true]
@@ -222,6 +271,19 @@ export class LoginComponent {
 
   readonly loading = this.store.loading;
   readonly errorMessage = this.store.error;
+
+  readonly tenantSlugInvalid = computed(() => {
+    const ctrl = this.form.get('tenantSlug');
+    return !!ctrl && ctrl.touched && ctrl.invalid;
+  });
+  readonly tenantSlugError = computed(() => {
+    const ctrl = this.form.get('tenantSlug');
+    if (!ctrl) return '';
+    if (ctrl.hasError('required')) return 'Ingresa el identificador de tu institución.';
+    if (ctrl.hasError('pattern')) return 'Solo letras, números y guiones (3-64 caracteres).';
+    if (ctrl.hasError('maxlength')) return 'El identificador es demasiado largo.';
+    return '';
+  });
 
   readonly emailInvalid = computed(() => {
     const ctrl = this.form.get('email');
@@ -259,10 +321,15 @@ export class LoginComponent {
       return;
     }
 
+    const tenantSlug: string = this.form.controls['tenantSlug'].value.trim().toLowerCase();
     const payload: LoginRequest = {
       email: this.form.controls['email'].value.trim().toLowerCase(),
       password: this.form.controls['password'].value
     };
+
+    /* Push the user-provided slug into TenantService BEFORE firing /login so
+     * the tenant.interceptor reads it instead of the stale cached value. */
+    this.tenant.setSlug(tenantSlug);
 
     this.store.setLoading(true);
     this.store.setError(null);

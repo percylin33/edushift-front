@@ -60,6 +60,14 @@ export interface UserResponseRaw {
    * the {@link com.edushift.frontend.UserRole} enum afterwards.
    */
   roles?: string[] | null;
+  /**
+   * Fine-grained authorities emitted by `LmsRoleAuthorityMapper` and any
+   * future module mapper (Sprint 7a BE-7a.3). Strings are authority names
+   * (e.g. `LMS_TASK_READ`, `students:write`); the adapter narrows them to
+   * the {@link com.edushift.frontend.Permission} enum, dropping anything
+   * the frontend doesn't know about (forward-compat).
+   */
+  permissions?: string[] | null;
   lastLoginAt?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;

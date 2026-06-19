@@ -229,7 +229,14 @@ export const API = {
   PAYMENTS: {
     ROOT: `${BASE}/payments`,
     INVOICES: `${BASE}/payments/invoices`,
-    TRANSACTIONS: `${BASE}/payments/transactions`
+    TRANSACTIONS: `${BASE}/payments/transactions`,
+    // Sprint 10 / FE-10.1.
+    INVOICE_BY_ID: (publicUuid: string) =>
+      `${BASE}/payments/invoices/${encodeURIComponent(publicUuid)}`,
+    INVOICE_PAYMENTS: (publicUuid: string) =>
+      `${BASE}/payments/invoices/${encodeURIComponent(publicUuid)}/payments`,
+    INVOICE_CHECKOUT: (publicUuid: string) =>
+      `${BASE}/payments/invoices/${encodeURIComponent(publicUuid)}/checkout`
   },
   SESSIONS: {
     ROOT: `${BASE}/learning-sessions`,
@@ -294,7 +301,15 @@ export const API = {
   AI: {
     ROOT: `${BASE}/ai`,
     CHAT: `${BASE}/ai/chat`,
-    INSIGHTS: `${BASE}/ai/insights`
+    INSIGHTS: `${BASE}/ai/insights`,
+    // Sprint 8 / BE-8.1 — generate session outline (MINEDU template, strict JSON)
+    GENERATE_SESSION: `${BASE}/ai/generate-session`,
+    // Sprint 8 / BE-8.2 — generate rubric criteria (supports seedRubricId fork, ADR-8.3)
+    GENERATE_RUBRIC: `${BASE}/ai/generate-rubric`,
+    // Sprint 8 / BE-8.4 — usage dashboard (TENANT_ADMIN)
+    USAGE_SUMMARY: `${BASE}/ai/usage/summary`,
+    USAGE_DAILY: `${BASE}/ai/usage/daily`,
+    USAGE_EXPORT_CSV: `${BASE}/ai/usage/export.csv`
   },
   REPORTS: {
     ROOT: `${BASE}/reports`,
@@ -302,7 +317,12 @@ export const API = {
   },
   NOTIFICATIONS: {
     ROOT: `${BASE}/notifications`,
-    PREFERENCES: `${BASE}/notifications/preferences`
+    PREFERENCES: `${BASE}/notifications/preferences`,
+    // Sprint 9 / FE-9.1 — bell + center.
+    UNREAD_COUNT: `${BASE}/notifications/unread-count`,
+    MARK_READ: (publicUuid: string) =>
+      `${BASE}/notifications/${encodeURIComponent(publicUuid)}/read`,
+    MARK_ALL_READ: `${BASE}/notifications/read-all`
   },
   ATTENDANCE: {
     /** {@code POST /v1/attendance/sessions} (BE-6.4). 200 si ya hay ACTIVE, 201 si se acaba de crear. */
@@ -353,5 +373,124 @@ export const API = {
      * Retorna alumnos con enrollment ACTIVO únicamente (proyección lean, sin PII).
      */
     STUDENT_LOOKUP: `${BASE}/attendance/students/lookup`
+  },
+  LMS: {
+    ROOT: `${BASE}/lms`,
+    /** {@code POST /v1/lms/assignments} (BE-7a.2) — crear. */
+    ASSIGNMENTS_ROOT: `${BASE}/lms/assignments`,
+    /** {@code GET /v1/lms/assignments/{uuid}} (BE-7a.2) — detalle. */
+    ASSIGNMENT_BY_UUID: (publicUuid: string) =>
+      `${BASE}/lms/assignments/${encodeURIComponent(publicUuid)}`,
+    /** {@code PATCH /v1/lms/assignments/{uuid}} (BE-7a.2) — editar (DRAFT). */
+    ASSIGNMENT_PATCH: (publicUuid: string) =>
+      `${BASE}/lms/assignments/${encodeURIComponent(publicUuid)}`,
+    /** {@code POST /v1/lms/assignments/{uuid}/publish} (BE-7a.2) — DRAFT → PUBLISHED. */
+    ASSIGNMENT_PUBLISH: (publicUuid: string) =>
+      `${BASE}/lms/assignments/${encodeURIComponent(publicUuid)}/publish`,
+    /** {@code POST /v1/lms/assignments/{uuid}/close} (BE-7a.2) — PUBLISHED → CLOSED. */
+    ASSIGNMENT_CLOSE: (publicUuid: string) =>
+      `${BASE}/lms/assignments/${encodeURIComponent(publicUuid)}/close`,
+    /** {@code GET /v1/lms/sections/{uuid}/assignments} (BE-7a.2) — paginated listing (TEACHER). */
+    ASSIGNMENTS_BY_SECTION: (sectionUuid: string) =>
+      `${BASE}/lms/sections/${encodeURIComponent(sectionUuid)}/assignments`,
+    /** {@code GET /v1/lms/students/{uuid}/assignments} (BE-7a.2) — paginated listing (STUDENT/PARENT). */
+    ASSIGNMENTS_BY_STUDENT: (studentUuid: string) =>
+      `${BASE}/lms/students/${encodeURIComponent(studentUuid)}/assignments`,
+    /** {@code POST /v1/lms/assignments/{uuid}/submissions} (BE-7a.2) — entregar. */
+    ASSIGNMENT_SUBMISSIONS: (assignmentUuid: string) =>
+      `${BASE}/lms/assignments/${encodeURIComponent(assignmentUuid)}/submissions`,
+    /** {@code GET /v1/lms/assignments/{uuid}/submissions} (BE-7a.2) — listing (TEACHER). */
+    ASSIGNMENT_SUBMISSIONS_LIST: (assignmentUuid: string) =>
+      `${BASE}/lms/assignments/${encodeURIComponent(assignmentUuid)}/submissions`,
+    /** {@code GET /v1/lms/students/{uuid}/submissions} (BE-7a.2) — listing (STUDENT/PARENT). */
+    SUBMISSIONS_BY_STUDENT: (studentUuid: string) =>
+      `${BASE}/lms/students/${encodeURIComponent(studentUuid)}/submissions`,
+    /** {@code PATCH /v1/lms/submissions/{uuid}} (BE-7a.2) — editar entrega. */
+    SUBMISSION_PATCH: (submissionUuid: string) =>
+      `${BASE}/lms/submissions/${encodeURIComponent(submissionUuid)}`,
+    /** {@code PATCH /v1/lms/submissions/{uuid}/grade} (BE-7a.2) — calificar. */
+    SUBMISSION_GRADE: (submissionUuid: string) =>
+      `${BASE}/lms/submissions/${encodeURIComponent(submissionUuid)}/grade`,
+    /** {@code PATCH /v1/lms/submissions/{uuid}/return} (BE-7a.2) — devolver. */
+    SUBMISSION_RETURN: (submissionUuid: string) =>
+      `${BASE}/lms/submissions/${encodeURIComponent(submissionUuid)}/return`,
+    /** {@code POST /v1/lms/sections/{uuid}/materials} (BE-7a.1) — upload multipart. */
+    SECTION_MATERIALS: (sectionUuid: string) =>
+      `${BASE}/lms/sections/${encodeURIComponent(sectionUuid)}/materials`,
+    /** {@code GET /v1/lms/sections/{uuid}/materials} (BE-7a.1) — listing. */
+    SECTION_MATERIALS_LIST: (sectionUuid: string) =>
+      `${BASE}/lms/sections/${encodeURIComponent(sectionUuid)}/materials`,
+    /** {@code GET|DELETE /v1/lms/materials/{uuid}} (BE-7a.1) — detalle / soft-delete. */
+    MATERIAL_BY_UUID: (publicUuid: string) =>
+      `${BASE}/lms/materials/${encodeURIComponent(publicUuid)}`,
+    /** {@code GET /v1/lms/materials/{uuid}/download} (BE-7a.1) — 302 al signed URL de Firebase. */
+    MATERIAL_DOWNLOAD: (publicUuid: string) =>
+      `${BASE}/lms/materials/${encodeURIComponent(publicUuid)}/download`,
+
+    // -------------------------------------------------------------------------
+    // Quizzes (Sprint 7b, BE-7b.0). Backend endpoints are not yet implemented;
+    // these constants are placeholders so the FE can wire its API service and
+    // the route guards in FE-7b.0/7b.1/7b.2/7b.3 without waiting for BE.
+    // -------------------------------------------------------------------------
+    /** `GET /v1/lms/sections/{uuid}/quizzes` (BE-7b.0) — listado de quizzes de la sección. */
+    SECTION_QUIZZES: (sectionPublicUuid: string) =>
+      `${BASE}/lms/sections/${encodeURIComponent(sectionPublicUuid)}/quizzes`,
+    /** `POST /v1/lms/sections/{uuid}/quizzes` (BE-7b.0) — crear quiz. */
+    SECTION_QUIZZES_CREATE: (sectionPublicUuid: string) =>
+      `${BASE}/lms/sections/${encodeURIComponent(sectionPublicUuid)}/quizzes`,
+    /** `GET /v1/lms/quizzes/{uuid}` (BE-7b.0) — detalle de quiz. */
+    QUIZ_BY_UUID: (publicUuid: string) =>
+      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}`,
+    /** `PATCH /v1/lms/quizzes/{uuid}` (BE-7b.0) — editar quiz (DRAFT). */
+    QUIZ_PATCH: (publicUuid: string) =>
+      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}`,
+    /** `DELETE /v1/lms/quizzes/{uuid}` (BE-7b.0) — eliminar quiz. */
+    QUIZ_DELETE: (publicUuid: string) =>
+      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}`,
+    /** `POST /v1/lms/quizzes/{uuid}/publish` (BE-7b.0) — publicar quiz. */
+    QUIZ_PUBLISH: (publicUuid: string) =>
+      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}/publish`,
+    /** `POST /v1/lms/quizzes/{uuid}/close` (BE-7b.1) — cerrar quiz. */
+    QUIZ_CLOSE: (publicUuid: string) =>
+      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}/close`,
+    /** `POST /v1/lms/quizzes/{uuid}/questions` (BE-7b.1) — añadir pregunta. */
+    QUIZ_ADD_QUESTION: (publicUuid: string) =>
+      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}/questions`,
+    /** `POST /v1/lms/questions/{uuid}/options` (BE-7b.1) — añadir opción MC. */
+    QUESTION_ADD_OPTION: (publicUuid: string) =>
+      `${BASE}/lms/questions/${encodeURIComponent(publicUuid)}/options`,
+    /** `POST /v1/lms/quizzes/{uuid}/attempts` (BE-7b.1) — iniciar intento. */
+    QUIZ_ATTEMPT_START: (publicUuid: string) =>
+      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}/attempts`,
+    /** `GET /v1/lms/attempts/{uuid}` (BE-7b.1) — detalle del intento. */
+    QUIZ_ATTEMPT_BY_UUID: (attemptPublicUuid: string) =>
+      `${BASE}/lms/attempts/${encodeURIComponent(attemptPublicUuid)}`,
+    /** `PATCH /v1/lms/attempts/{uuid}` (BE-7b.1) — autosave de respuestas. */
+    QUIZ_ATTEMPT_PATCH: (attemptPublicUuid: string) =>
+      `${BASE}/lms/attempts/${encodeURIComponent(attemptPublicUuid)}`,
+    /** `POST /v1/lms/attempts/{uuid}/submit` (BE-7b.1) — submit final. */
+    QUIZ_ATTEMPT_SUBMIT: (attemptPublicUuid: string) =>
+      `${BASE}/lms/attempts/${encodeURIComponent(attemptPublicUuid)}/submit`,
+    /** `GET /v1/lms/quizzes/{uuid}/attempts` (BE-7b.1) — listado de intentos (TEACHER). */
+    QUIZ_ATTEMPTS_LIST: (publicUuid: string) =>
+      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}/attempts`,
+    /** `POST /v1/lms/attempts/{uuid}/grade` (BE-7b.1) — calificar short-answers (TEACHER). */
+    QUIZ_ATTEMPT_GRADE: (attemptPublicUuid: string) =>
+      `${BASE}/lms/attempts/${encodeURIComponent(attemptPublicUuid)}/grade`,
+    /** `GET /v1/lms/quizzes/{uuid}/grading-queue` (BE-7b.2) — cola de SHORT_ANSWER pendientes. */
+    QUIZ_GRADING_QUEUE: (publicUuid: string) =>
+      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}/grading-queue`,
+    /** `PATCH /v1/lms/quizzes/{quizUuid}/attempts/{attemptUuid}/answers/{answerUuid}` (BE-7b.2) — override single-answer. */
+    QUIZ_ANSWER_GRADE: (quizPublicUuid: string, attemptPublicUuid: string, answerPublicUuid: string) =>
+      `${BASE}/lms/quizzes/${encodeURIComponent(quizPublicUuid)}/attempts/${encodeURIComponent(attemptPublicUuid)}/answers/${encodeURIComponent(answerPublicUuid)}`,
+
+    // -------------------------------------------------------------------------
+    // AI assistant (Sprint 7c, BE-7c.1). Gated by `LMS_AI_GENERATE`
+    // (TENANT_ADMIN + TEACHER). See `docs/modules/ai.md` §3.
+    // -------------------------------------------------------------------------
+    /** `POST /v1/lms/ai/quiz-questions` (BE-7c.1) — ask the LLM to suggest
+     * N questions (MC/TF/SHORT_ANSWER) for the given topic. Synchronous;
+     * 1-3s typical latency. Subject to the tenant's daily/monthly quota. */
+    AI_SUGGEST_QUESTIONS: `${BASE}/lms/ai/quiz-questions`
   }
 } as const;
