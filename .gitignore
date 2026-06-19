@@ -40,3 +40,7 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Local build/test logs
+ng-*.log
+tsc-*.log
