@@ -115,7 +115,7 @@ export interface AttendanceDashboardOverview {
  * absent rate per section.
  */
 export function toDashboardOverview(
-  raw: AttendanceDashboardOverviewRaw
+  raw: AttendanceDashboardOverviewRaw,
 ): AttendanceDashboardOverview {
   return {
     generatedAt: new Date(raw.generatedAt),
@@ -126,28 +126,24 @@ export function toDashboardOverview(
     totalAbsencesToday: raw.totalAbsencesToday,
     topAbsentSections: raw.topAbsentSections.map(toTopSection),
     recentClosedSessions: raw.recentClosedSessions.map(toRecentSession),
-    noClassToday: raw.enrollmentsConsidered === 0
+    noClassToday: raw.enrollmentsConsidered === 0,
   };
 }
 
 function toTopSection(raw: AttendanceTopSectionRaw): AttendanceTopSection {
   const rate =
-    raw.enrolledStudents > 0
-      ? Math.round((raw.absentCount / raw.enrolledStudents) * 1000) / 10
-      : 0;
+    raw.enrolledStudents > 0 ? Math.round((raw.absentCount / raw.enrolledStudents) * 1000) / 10 : 0;
   return {
     sectionPublicUuid: raw.sectionPublicUuid,
     sectionName: raw.sectionName,
     gradeName: raw.gradeName ?? undefined,
     absentCount: raw.absentCount,
     enrolledStudents: raw.enrolledStudents,
-    absentRatePct: rate
+    absentRatePct: rate,
   };
 }
 
-function toRecentSession(
-  raw: AttendanceRecentSessionRaw
-): AttendanceRecentSession {
+function toRecentSession(raw: AttendanceRecentSessionRaw): AttendanceRecentSession {
   return {
     sessionPublicUuid: raw.sessionPublicUuid,
     sectionPublicUuid: raw.sectionPublicUuid,
@@ -159,7 +155,7 @@ function toRecentSession(
     lateCount: raw.lateCount,
     absentCount: raw.absentCount,
     excusedCount: raw.excusedCount,
-    totalRecords: raw.totalRecords
+    totalRecords: raw.totalRecords,
   };
 }
 

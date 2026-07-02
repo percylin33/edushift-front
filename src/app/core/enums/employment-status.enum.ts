@@ -21,11 +21,11 @@
  * </ul>
  */
 export enum EmploymentStatus {
-  Active    = 'ACTIVE',
-  OnLeave   = 'ON_LEAVE',
-  Resigned  = 'RESIGNED',
-  Retired   = 'RETIRED',
-  Suspended = 'SUSPENDED'
+  Active = 'ACTIVE',
+  OnLeave = 'ON_LEAVE',
+  Resigned = 'RESIGNED',
+  Retired = 'RETIRED',
+  Suspended = 'SUSPENDED',
 }
 
 /** {@code true} sii el docente puede recibir nuevas asignaciones (BE-4.7). */

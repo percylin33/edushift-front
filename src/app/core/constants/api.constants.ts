@@ -7,11 +7,26 @@ export const API = {
   AUTH: {
     ROOT: `${BASE}/auth`,
     LOGIN: `${BASE}/auth/login`,
+    /**
+     * `POST /v1/auth/google` — verify a Google `id_token` returned by the FE
+     * popup, resolve / auto-provision the matching user inside the tenant
+     * identified by `X-Tenant-Slug`, and return the same bearer pair as
+     * `/login`. Public endpoint (no `Authorization` header required).
+     */
+    GOOGLE: `${BASE}/auth/google`,
     LOGOUT: `${BASE}/auth/logout`,
     REFRESH: `${BASE}/auth/refresh`,
     ME: `${BASE}/auth/me`,
     FORGOT_PASSWORD: `${BASE}/auth/forgot-password`,
-    RESET_PASSWORD: `${BASE}/auth/reset-password`
+    RESET_PASSWORD: `${BASE}/auth/reset-password`,
+    /** `GET /v1/auth/reset-password/validate?token=...` (Sprint 17 / BE-17.1). */
+    RESET_PASSWORD_VALIDATE: `${BASE}/auth/reset-password/validate`,
+    // Sprint 17 / BE-17.2 + FE-17.3 — MFA (TOTP) flow.
+    MFA_ENROLL_START: `${BASE}/auth/mfa/enroll/start`,
+    MFA_ENROLL_VERIFY: `${BASE}/auth/mfa/enroll/verify`,
+    MFA_CHALLENGE: `${BASE}/auth/mfa/challenge`,
+    MFA_DISABLE: `${BASE}/auth/mfa/disable`,
+    MFA_REGENERATE_RECOVERY: `${BASE}/auth/mfa/recovery-codes/regenerate`,
   },
   TENANTS: {
     ROOT: `${BASE}/tenants`,
@@ -22,12 +37,12 @@ export const API = {
     /** Public self-signup: creates a tenant + admin and returns an auth session. */
     REGISTER: `${BASE}/tenants/register`,
     /** Onboarding lifecycle hop PENDING → ACTIVE. Idempotent on already-ACTIVE tenants. */
-    ACTIVATE: `${BASE}/tenants/me/activate`
+    ACTIVATE: `${BASE}/tenants/me/activate`,
   },
   DASHBOARD: {
     ROOT: `${BASE}/dashboard`,
     METRICS: `${BASE}/dashboard/metrics`,
-    WIDGETS: `${BASE}/dashboard/widgets`
+    WIDGETS: `${BASE}/dashboard/widgets`,
   },
   USERS: {
     ROOT: `${BASE}/users`,
@@ -41,61 +56,56 @@ export const API = {
     ENABLE: (publicUuid: string) => `${BASE}/users/${encodeURIComponent(publicUuid)}/enable`,
     /** Trigger an admin-driven password reset (202 Accepted, async delivery). */
     RESET_PASSWORD: (publicUuid: string) =>
-      `${BASE}/users/${encodeURIComponent(publicUuid)}/reset-password`
+      `${BASE}/users/${encodeURIComponent(publicUuid)}/reset-password`,
+    /** Self-service endpoints (any authenticated user, not admin-only). */
+    AVATAR: `${BASE}/users/me/avatar`,
   },
   INVITATIONS: {
     /** Admin: create + list under {@code /v1/users/invitations}. */
     ROOT: `${BASE}/users/invitations`,
     /** Admin: cancel a pending invitation by publicUuid. */
-    BY_ID: (publicUuid: string) =>
-      `${BASE}/users/invitations/${encodeURIComponent(publicUuid)}`,
+    BY_ID: (publicUuid: string) => `${BASE}/users/invitations/${encodeURIComponent(publicUuid)}`,
     /** Public: preflight an invitation token (renders the accept page header). */
-    BY_TOKEN: (token: string) =>
-      `${BASE}/users/invitations/by-token/${encodeURIComponent(token)}`,
+    BY_TOKEN: (token: string) => `${BASE}/users/invitations/by-token/${encodeURIComponent(token)}`,
     /** Public: accept an invitation token (returns an auth session). */
-    ACCEPT: `${BASE}/users/invitations/accept`
+    ACCEPT: `${BASE}/users/invitations/accept`,
   },
   TEACHERS: {
     /** {@code GET|POST /v1/teachers}. {@code GET} acepta {@code ?search&employmentStatus&hasUserAccount} + paginación Spring. */
     ROOT: `${BASE}/teachers`,
     /** {@code GET|PUT|DELETE /v1/teachers/{publicUuid}}. */
-    BY_ID: (publicUuid: string) =>
-      `${BASE}/teachers/${encodeURIComponent(publicUuid)}`,
+    BY_ID: (publicUuid: string) => `${BASE}/teachers/${encodeURIComponent(publicUuid)}`,
     /** {@code POST /v1/teachers/{publicUuid}/link-user} — vincula a un User existente con rol TEACHER. */
     LINK_USER: (publicUuid: string) =>
       `${BASE}/teachers/${encodeURIComponent(publicUuid)}/link-user`,
     /** {@code POST /v1/teachers/{publicUuid}/invite} — crea invitación con metadata.teacherId. */
-    INVITE: (publicUuid: string) =>
-      `${BASE}/teachers/${encodeURIComponent(publicUuid)}/invite`,
+    INVITE: (publicUuid: string) => `${BASE}/teachers/${encodeURIComponent(publicUuid)}/invite`,
     /**
      * {@code GET|POST /v1/teachers/{publicUuid}/assignments} (BE-4.7).
      * {@code GET} acepta {@code ?periodId&active=true|false}.
      */
     ASSIGNMENTS: (publicUuid: string) =>
-      `${BASE}/teachers/${encodeURIComponent(publicUuid)}/assignments`
+      `${BASE}/teachers/${encodeURIComponent(publicUuid)}/assignments`,
   },
   TEACHER_ASSIGNMENTS: {
     /** {@code GET /v1/teacher-assignments} — lista asignaciones con filtros. */
     ROOT: `${BASE}/teacher-assignments`,
     /** {@code GET|PUT|DELETE /v1/teacher-assignments/{publicUuid}}. */
-    BY_ID: (publicUuid: string) =>
-      `${BASE}/teacher-assignments/${encodeURIComponent(publicUuid)}`
+    BY_ID: (publicUuid: string) => `${BASE}/teacher-assignments/${encodeURIComponent(publicUuid)}`,
   },
   ASSIGNMENTS: {
     /** {@code DELETE /v1/assignments/{publicUuid}} — soft-end de assignment (BE-4.7). */
-    BY_ID: (publicUuid: string) =>
-      `${BASE}/assignments/${encodeURIComponent(publicUuid)}`
+    BY_ID: (publicUuid: string) => `${BASE}/assignments/${encodeURIComponent(publicUuid)}`,
   },
   ENROLLMENTS: {
     /** {@code POST /v1/enrollments/{publicUuid}/withdraw} — soft-end de enrollment (BE-4.8). */
     WITHDRAW: (publicUuid: string) =>
-      `${BASE}/enrollments/${encodeURIComponent(publicUuid)}/withdraw`
+      `${BASE}/enrollments/${encodeURIComponent(publicUuid)}/withdraw`,
   },
   STUDENTS: {
     ROOT: `${BASE}/students`,
     /** {@code GET|PUT|DELETE /v1/students/{publicUuid}}. */
-    BY_ID: (publicUuid: string) =>
-      `${BASE}/students/${encodeURIComponent(publicUuid)}`,
+    BY_ID: (publicUuid: string) => `${BASE}/students/${encodeURIComponent(publicUuid)}`,
     BULK_IMPORT: {
       /** {@code POST /v1/students/bulk-import} (multipart). */
       ROOT: `${BASE}/students/bulk-import`,
@@ -103,7 +113,7 @@ export const API = {
       TEMPLATE: `${BASE}/students/bulk-import/template`,
       /** {@code GET /v1/students/bulk-import/{publicUuid}}. */
       BY_ID: (publicUuid: string) =>
-        `${BASE}/students/bulk-import/${encodeURIComponent(publicUuid)}`
+        `${BASE}/students/bulk-import/${encodeURIComponent(publicUuid)}`,
     },
     /** {@code GET|POST /v1/students/{publicUuid}/guardians}. */
     GUARDIANS: (studentPublicUuid: string) =>
@@ -113,7 +123,7 @@ export const API = {
       `${BASE}/students/${encodeURIComponent(studentPublicUuid)}/guardians/${encodeURIComponent(guardianPublicUuid)}`,
     /** {@code GET|POST /v1/students/{publicUuid}/enrollments} (BE-4.8). */
     ENROLLMENTS: (studentPublicUuid: string) =>
-      `${BASE}/students/${encodeURIComponent(studentPublicUuid)}/enrollments`
+      `${BASE}/students/${encodeURIComponent(studentPublicUuid)}/enrollments`,
   },
   ACADEMIC: {
     ROOT: `${BASE}/academic`,
@@ -121,18 +131,16 @@ export const API = {
       /** {@code GET|POST /v1/academic/years}. */
       ROOT: `${BASE}/academic/years`,
       /** {@code GET|PUT|DELETE /v1/academic/years/{publicUuid}}. */
-      BY_ID: (publicUuid: string) =>
-        `${BASE}/academic/years/${encodeURIComponent(publicUuid)}`,
+      BY_ID: (publicUuid: string) => `${BASE}/academic/years/${encodeURIComponent(publicUuid)}`,
       /** {@code POST /v1/academic/years/{publicUuid}/activate}. Cierra el ACTIVE previo en la misma tx. */
       ACTIVATE: (publicUuid: string) =>
-        `${BASE}/academic/years/${encodeURIComponent(publicUuid)}/activate`
+        `${BASE}/academic/years/${encodeURIComponent(publicUuid)}/activate`,
     },
     LEVELS: {
       /** {@code GET|POST /v1/academic/levels}. {@code GET} retorna lista plana (no envelope). */
       ROOT: `${BASE}/academic/levels`,
       /** {@code GET|PUT|DELETE /v1/academic/levels/{publicUuid}}. */
-      BY_ID: (publicUuid: string) =>
-        `${BASE}/academic/levels/${encodeURIComponent(publicUuid)}`,
+      BY_ID: (publicUuid: string) => `${BASE}/academic/levels/${encodeURIComponent(publicUuid)}`,
       /** {@code GET|POST /v1/academic/levels/{levelUuid}/grades}. */
       GRADES: (levelUuid: string) =>
         `${BASE}/academic/levels/${encodeURIComponent(levelUuid)}/grades`,
@@ -141,27 +149,25 @@ export const API = {
         `${BASE}/academic/levels/${encodeURIComponent(levelUuid)}/grades/${encodeURIComponent(gradeUuid)}`,
       /** {@code PATCH /v1/academic/levels/{levelUuid}/grades/reorder}. */
       GRADES_REORDER: (levelUuid: string) =>
-        `${BASE}/academic/levels/${encodeURIComponent(levelUuid)}/grades/reorder`
+        `${BASE}/academic/levels/${encodeURIComponent(levelUuid)}/grades/reorder`,
     },
     SECTIONS: {
       /** {@code GET|POST /v1/academic/sections}. {@code GET} acepta filtros {@code ?academicYearId&gradeId&levelId}. */
       ROOT: `${BASE}/academic/sections`,
       /** {@code GET|PUT|DELETE /v1/academic/sections/{publicUuid}}. */
-      BY_ID: (publicUuid: string) =>
-        `${BASE}/academic/sections/${encodeURIComponent(publicUuid)}`,
+      BY_ID: (publicUuid: string) => `${BASE}/academic/sections/${encodeURIComponent(publicUuid)}`,
       /** {@code GET /v1/academic/sections/{publicUuid}/teachers} (BE-4.7). Acepta {@code ?periodId}. */
       TEACHERS: (sectionPublicUuid: string) =>
         `${BASE}/academic/sections/${encodeURIComponent(sectionPublicUuid)}/teachers`,
       /** {@code GET /v1/academic/sections/{publicUuid}/students} (BE-4.8) — roster activo. */
       STUDENTS: (sectionPublicUuid: string) =>
-        `${BASE}/academic/sections/${encodeURIComponent(sectionPublicUuid)}/students`
+        `${BASE}/academic/sections/${encodeURIComponent(sectionPublicUuid)}/students`,
     },
     COURSES: {
       /** {@code GET|POST /v1/academic/courses}. {@code GET} acepta filtros {@code ?levelId&isActive}. */
       ROOT: `${BASE}/academic/courses`,
       /** {@code GET|PUT|DELETE /v1/academic/courses/{publicUuid}}. */
-      BY_ID: (publicUuid: string) =>
-        `${BASE}/academic/courses/${encodeURIComponent(publicUuid)}`,
+      BY_ID: (publicUuid: string) => `${BASE}/academic/courses/${encodeURIComponent(publicUuid)}`,
       /** {@code POST /v1/academic/courses/{publicUuid}/levels} — replace semantics. */
       LEVELS: (publicUuid: string) =>
         `${BASE}/academic/courses/${encodeURIComponent(publicUuid)}/levels`,
@@ -179,12 +185,11 @@ export const API = {
         `${BASE}/academic/courses/${encodeURIComponent(courseUuid)}/competencies/reorder`,
       /** {@code POST /v1/academic/courses/{courseUuid}/competencies/seed-defaults} (BE-5A.2). */
       COMPETENCIES_SEED: (courseUuid: string) =>
-        `${BASE}/academic/courses/${encodeURIComponent(courseUuid)}/competencies/seed-defaults`
+        `${BASE}/academic/courses/${encodeURIComponent(courseUuid)}/competencies/seed-defaults`,
     },
     UNITS: {
       /** {@code GET|PUT|DELETE /v1/academic/units/{publicUuid}} (BE-5A.1). */
-      BY_ID: (publicUuid: string) =>
-        `${BASE}/academic/units/${encodeURIComponent(publicUuid)}`
+      BY_ID: (publicUuid: string) => `${BASE}/academic/units/${encodeURIComponent(publicUuid)}`,
     },
     COMPETENCIES: {
       /** {@code GET|PUT|DELETE /v1/academic/competencies/{publicUuid}} (BE-5A.2). */
@@ -195,12 +200,12 @@ export const API = {
         `${BASE}/academic/competencies/${encodeURIComponent(competencyUuid)}/capacities`,
       /** {@code PATCH /v1/academic/competencies/{competencyUuid}/capacities/reorder} (BE-5A.2). */
       CAPACITIES_REORDER: (competencyUuid: string) =>
-        `${BASE}/academic/competencies/${encodeURIComponent(competencyUuid)}/capacities/reorder`
+        `${BASE}/academic/competencies/${encodeURIComponent(competencyUuid)}/capacities/reorder`,
     },
     CAPACITIES: {
       /** {@code GET|PUT|DELETE /v1/academic/capacities/{publicUuid}} (BE-5A.2). */
       BY_ID: (publicUuid: string) =>
-        `${BASE}/academic/capacities/${encodeURIComponent(publicUuid)}`
+        `${BASE}/academic/capacities/${encodeURIComponent(publicUuid)}`,
     },
     SCHEDULE: {
       /** {@code GET /v1/teachers/{teacherUuid}/schedule?periodId=<uuid>} (BE-5A.3). */
@@ -208,23 +213,21 @@ export const API = {
         `${BASE}/teachers/${encodeURIComponent(teacherUuid)}/schedule`,
       /** {@code GET /v1/academic/sections/{sectionUuid}/schedule?periodId=<uuid>} (BE-5A.3). */
       SECTION_SCHEDULE: (sectionUuid: string) =>
-        `${BASE}/academic/sections/${encodeURIComponent(sectionUuid)}/schedule`
+        `${BASE}/academic/sections/${encodeURIComponent(sectionUuid)}/schedule`,
     },
     TIME_SLOTS: {
       /** {@code GET|POST /v1/teacher-assignments/{assignmentUuid}/time-slots} (BE-5A.3). */
       BY_ASSIGNMENT: (assignmentUuid: string) =>
         `${BASE}/teacher-assignments/${encodeURIComponent(assignmentUuid)}/time-slots`,
       /** {@code GET|PUT|DELETE /v1/time-slots/{publicUuid}} (BE-5A.3). */
-      BY_ID: (publicUuid: string) =>
-        `${BASE}/time-slots/${encodeURIComponent(publicUuid)}`
+      BY_ID: (publicUuid: string) => `${BASE}/time-slots/${encodeURIComponent(publicUuid)}`,
     },
     PERIODS: {
       /** {@code GET|POST /v1/academic/periods}. {@code GET} acepta {@code ?academicYearId&periodType}. */
       ROOT: `${BASE}/academic/periods`,
       /** {@code GET|PUT|DELETE /v1/academic/periods/{publicUuid}}. */
-      BY_ID: (publicUuid: string) =>
-        `${BASE}/academic/periods/${encodeURIComponent(publicUuid)}`
-    }
+      BY_ID: (publicUuid: string) => `${BASE}/academic/periods/${encodeURIComponent(publicUuid)}`,
+    },
   },
   PAYMENTS: {
     ROOT: `${BASE}/payments`,
@@ -236,30 +239,50 @@ export const API = {
     INVOICE_PAYMENTS: (publicUuid: string) =>
       `${BASE}/payments/invoices/${encodeURIComponent(publicUuid)}/payments`,
     INVOICE_CHECKOUT: (publicUuid: string) =>
-      `${BASE}/payments/invoices/${encodeURIComponent(publicUuid)}/checkout`
+      `${BASE}/payments/invoices/${encodeURIComponent(publicUuid)}/checkout`,
+    // Sprint 11 / FE-11.1 — admin power tools (DEBT-10-PAY-1).
+    ADMIN: {
+      // Listing all payments in the tenant with optional filters.
+      PAYMENTS: `${BASE}/admin/payments`,
+      // POST /admin/payments/{uuid}/reconcile — force a PENDING/IN_PROCESS
+      // payment into APPROVED.
+      RECONCILE: (paymentPublicUuid: string) =>
+        `${BASE}/admin/payments/${encodeURIComponent(paymentPublicUuid)}/reconcile`,
+      // POST /admin/payments/{uuid}/refund — APPROVED → REFUNDED.
+      REFUND: (paymentPublicUuid: string) =>
+        `${BASE}/admin/payments/${encodeURIComponent(paymentPublicUuid)}/refund`,
+      // POST /admin/payments/invoices/{uuid}/mark-paid-cash — create a
+      // CASH payment for the invoice and flip it to PAID.
+      MARK_PAID_CASH: (invoicePublicUuid: string) =>
+        `${BASE}/admin/payments/invoices/${encodeURIComponent(invoicePublicUuid)}/mark-paid-cash`,
+    },
   },
   SESSIONS: {
     ROOT: `${BASE}/learning-sessions`,
     /** {@code GET|PUT|DELETE /v1/learning-sessions/{publicUuid}} (BE-5A.4). */
     BY_ID: (publicUuid: string) => `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}`,
     /** {@code POST /v1/learning-sessions/{publicUuid}/start} (BE-5A.4). */
-    START: (publicUuid: string) => `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}/start`,
+    START: (publicUuid: string) =>
+      `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}/start`,
     /** {@code POST /v1/learning-sessions/{publicUuid}/complete} (BE-5A.4). */
-    COMPLETE: (publicUuid: string) => `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}/complete`,
+    COMPLETE: (publicUuid: string) =>
+      `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}/complete`,
     /** {@code POST /v1/learning-sessions/{publicUuid}/cancel} (BE-5A.4). */
-    CANCEL: (publicUuid: string) => `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}/cancel`,
+    CANCEL: (publicUuid: string) =>
+      `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}/cancel`,
     /** {@code GET /v1/teacher-assignments/{assignmentUuid}/sessions} (BE-5A.4). */
-    BY_ASSIGNMENT: (assignmentUuid: string) => `${BASE}/teacher-assignments/${encodeURIComponent(assignmentUuid)}/sessions`,
+    BY_ASSIGNMENT: (assignmentUuid: string) =>
+      `${BASE}/teacher-assignments/${encodeURIComponent(assignmentUuid)}/sessions`,
     /** {@code GET /v1/academic/units/{unitUuid}/sessions} (BE-5A.4). */
-    BY_UNIT: (unitUuid: string) => `${BASE}/academic/units/${encodeURIComponent(unitUuid)}/sessions`
+    BY_UNIT: (unitUuid: string) =>
+      `${BASE}/academic/units/${encodeURIComponent(unitUuid)}/sessions`,
   },
   EVALUATIONS: {
-    /** {@code GET|POST /v1/academic/teacher-assignments/{assignmentUuid}/evaluations} (BE-5B.1). */
+    /** {@code GET|POST /v1/academic/assignments/{assignmentUuid}/evaluations} (BE-5B.1). */
     BY_ASSIGNMENT: (assignmentUuid: string) =>
-      `${BASE}/academic/teacher-assignments/${encodeURIComponent(assignmentUuid)}/evaluations`,
+      `${BASE}/academic/assignments/${encodeURIComponent(assignmentUuid)}/evaluations`,
     /** {@code GET|PUT|DELETE /v1/academic/evaluations/{publicUuid}} (BE-5B.1). */
-    BY_ID: (publicUuid: string) =>
-      `${BASE}/academic/evaluations/${encodeURIComponent(publicUuid)}`,
+    BY_ID: (publicUuid: string) => `${BASE}/academic/evaluations/${encodeURIComponent(publicUuid)}`,
     /** {@code POST /v1/academic/evaluations/{publicUuid}/publish} (BE-5B.1). */
     PUBLISH: (publicUuid: string) =>
       `${BASE}/academic/evaluations/${encodeURIComponent(publicUuid)}/publish`,
@@ -268,7 +291,7 @@ export const API = {
       `${BASE}/academic/evaluations/${encodeURIComponent(publicUuid)}/close`,
     /** {@code POST|GET|DELETE /v1/academic/evaluations/{publicUuid}/rubric} (BE-5B.4). */
     RUBRIC: (publicUuid: string) =>
-      `${BASE}/academic/evaluations/${encodeURIComponent(publicUuid)}/rubric`
+      `${BASE}/academic/evaluations/${encodeURIComponent(publicUuid)}/rubric`,
   },
   GRADE_RECORDS: {
     /** {@code GET|POST /v1/academic/evaluations/{evaluationUuid}/grade-records} (BE-5B.3). */
@@ -279,12 +302,12 @@ export const API = {
       `${BASE}/academic/evaluations/${encodeURIComponent(evaluationUuid)}/grade-records/bulk`,
     /** {@code GET|PUT|DELETE /v1/academic/grade-records/{publicUuid}} (BE-5B.3). */
     BY_ID: (publicUuid: string) =>
-      `${BASE}/academic/grade-records/${encodeURIComponent(publicUuid)}`
+      `${BASE}/academic/grade-records/${encodeURIComponent(publicUuid)}`,
   },
   GRADE_BOOK: {
     /** {@code GET /v1/academic/teacher-assignments/{publicUuid}/gradebook} (BE-5B.4). */
     BY_ASSIGNMENT: (assignmentUuid: string) =>
-      `${BASE}/academic/teacher-assignments/${encodeURIComponent(assignmentUuid)}/gradebook`
+      `${BASE}/academic/teacher-assignments/${encodeURIComponent(assignmentUuid)}/gradebook`,
   },
   RUBRICS: {
     /** {@code GET|POST /v1/academic/rubrics} (BE-5B.2). Acepta {@code ?systemOnly&isActive&q}. */
@@ -292,11 +315,9 @@ export const API = {
     /** {@code GET /v1/academic/rubrics/system} — seed MINEDU on-demand (BE-5B.2). */
     SYSTEM: `${BASE}/academic/rubrics/system`,
     /** {@code GET|PUT|DELETE /v1/academic/rubrics/{publicUuid}} (BE-5B.2). */
-    BY_ID: (publicUuid: string) =>
-      `${BASE}/academic/rubrics/${encodeURIComponent(publicUuid)}`,
+    BY_ID: (publicUuid: string) => `${BASE}/academic/rubrics/${encodeURIComponent(publicUuid)}`,
     /** {@code POST /v1/academic/rubrics/{publicUuid}/fork} (BE-5B.2). */
-    FORK: (publicUuid: string) =>
-      `${BASE}/academic/rubrics/${encodeURIComponent(publicUuid)}/fork`
+    FORK: (publicUuid: string) => `${BASE}/academic/rubrics/${encodeURIComponent(publicUuid)}/fork`,
   },
   AI: {
     ROOT: `${BASE}/ai`,
@@ -309,11 +330,11 @@ export const API = {
     // Sprint 8 / BE-8.4 — usage dashboard (TENANT_ADMIN)
     USAGE_SUMMARY: `${BASE}/ai/usage/summary`,
     USAGE_DAILY: `${BASE}/ai/usage/daily`,
-    USAGE_EXPORT_CSV: `${BASE}/ai/usage/export.csv`
+    USAGE_EXPORT_CSV: `${BASE}/ai/usage/export.csv`,
   },
   REPORTS: {
     ROOT: `${BASE}/reports`,
-    EXPORT: `${BASE}/reports/export`
+    EXPORT: `${BASE}/reports/export`,
   },
   NOTIFICATIONS: {
     ROOT: `${BASE}/notifications`,
@@ -322,7 +343,7 @@ export const API = {
     UNREAD_COUNT: `${BASE}/notifications/unread-count`,
     MARK_READ: (publicUuid: string) =>
       `${BASE}/notifications/${encodeURIComponent(publicUuid)}/read`,
-    MARK_ALL_READ: `${BASE}/notifications/read-all`
+    MARK_ALL_READ: `${BASE}/notifications/read-all`,
   },
   ATTENDANCE: {
     /** {@code POST /v1/attendance/sessions} (BE-6.4). 200 si ya hay ACTIVE, 201 si se acaba de crear. */
@@ -372,7 +393,7 @@ export const API = {
      * Roles: TENANT_ADMIN + TEACHER. Acepta `?q&levelPublicUuid&gradePublicUuid&sectionPublicUuid` + paginación Spring.
      * Retorna alumnos con enrollment ACTIVO únicamente (proyección lean, sin PII).
      */
-    STUDENT_LOOKUP: `${BASE}/attendance/students/lookup`
+    STUDENT_LOOKUP: `${BASE}/attendance/students/lookup`,
   },
   LMS: {
     ROOT: `${BASE}/lms`,
@@ -439,14 +460,11 @@ export const API = {
     SECTION_QUIZZES_CREATE: (sectionPublicUuid: string) =>
       `${BASE}/lms/sections/${encodeURIComponent(sectionPublicUuid)}/quizzes`,
     /** `GET /v1/lms/quizzes/{uuid}` (BE-7b.0) — detalle de quiz. */
-    QUIZ_BY_UUID: (publicUuid: string) =>
-      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}`,
+    QUIZ_BY_UUID: (publicUuid: string) => `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}`,
     /** `PATCH /v1/lms/quizzes/{uuid}` (BE-7b.0) — editar quiz (DRAFT). */
-    QUIZ_PATCH: (publicUuid: string) =>
-      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}`,
+    QUIZ_PATCH: (publicUuid: string) => `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}`,
     /** `DELETE /v1/lms/quizzes/{uuid}` (BE-7b.0) — eliminar quiz. */
-    QUIZ_DELETE: (publicUuid: string) =>
-      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}`,
+    QUIZ_DELETE: (publicUuid: string) => `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}`,
     /** `POST /v1/lms/quizzes/{uuid}/publish` (BE-7b.0) — publicar quiz. */
     QUIZ_PUBLISH: (publicUuid: string) =>
       `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}/publish`,
@@ -481,7 +499,11 @@ export const API = {
     QUIZ_GRADING_QUEUE: (publicUuid: string) =>
       `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}/grading-queue`,
     /** `PATCH /v1/lms/quizzes/{quizUuid}/attempts/{attemptUuid}/answers/{answerUuid}` (BE-7b.2) — override single-answer. */
-    QUIZ_ANSWER_GRADE: (quizPublicUuid: string, attemptPublicUuid: string, answerPublicUuid: string) =>
+    QUIZ_ANSWER_GRADE: (
+      quizPublicUuid: string,
+      attemptPublicUuid: string,
+      answerPublicUuid: string,
+    ) =>
       `${BASE}/lms/quizzes/${encodeURIComponent(quizPublicUuid)}/attempts/${encodeURIComponent(attemptPublicUuid)}/answers/${encodeURIComponent(answerPublicUuid)}`,
 
     // -------------------------------------------------------------------------
@@ -491,6 +513,6 @@ export const API = {
     /** `POST /v1/lms/ai/quiz-questions` (BE-7c.1) — ask the LLM to suggest
      * N questions (MC/TF/SHORT_ANSWER) for the given topic. Synchronous;
      * 1-3s typical latency. Subject to the tenant's daily/monthly quota. */
-    AI_SUGGEST_QUESTIONS: `${BASE}/lms/ai/quiz-questions`
-  }
+    AI_SUGGEST_QUESTIONS: `${BASE}/lms/ai/quiz-questions`,
+  },
 } as const;

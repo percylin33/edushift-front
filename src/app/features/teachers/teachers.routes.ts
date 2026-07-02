@@ -25,9 +25,7 @@ export const TEACHERS_ROUTES: Routes = [
     canActivate: [roleGuard],
     data: { roles: [UserRole.TenantAdmin], title: 'Docentes' },
     loadComponent: () =>
-      import('./pages/teachers-list/teachers-list.component').then(
-        (m) => m.TeachersListComponent
-      )
+      import('./pages/teachers-list/teachers-list.component').then((m) => m.TeachersListComponent),
   },
   {
     path: 'new',
@@ -35,12 +33,10 @@ export const TEACHERS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin],
       breadcrumb: 'Nuevo',
-      title: 'Nuevo docente'
+      title: 'Nuevo docente',
     },
     loadComponent: () =>
-      import('./pages/teacher-form/teacher-form.component').then(
-        (m) => m.TeacherFormComponent
-      )
+      import('./pages/teacher-form/teacher-form.component').then((m) => m.TeacherFormComponent),
   },
   {
     path: ':id',
@@ -48,12 +44,12 @@ export const TEACHERS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin],
       breadcrumb: 'Detalle',
-      title: 'Docente'
+      title: 'Docente',
     },
     loadComponent: () =>
       import('./pages/teacher-detail/teacher-detail.component').then(
-        (m) => m.TeacherDetailComponent
-      )
+        (m) => m.TeacherDetailComponent,
+      ),
   },
   {
     path: ':id/edit',
@@ -61,11 +57,9 @@ export const TEACHERS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin],
       breadcrumb: 'Editar',
-      title: 'Editar docente'
+      title: 'Editar docente',
     },
     loadComponent: () =>
-      import('./pages/teacher-form/teacher-form.component').then(
-        (m) => m.TeacherFormComponent
-      )
-  }
+      import('./pages/teacher-form/teacher-form.component').then((m) => m.TeacherFormComponent),
+  },
 ];

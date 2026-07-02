@@ -6,8 +6,7 @@
  * SECTION}, {@code COURSE}, {@code ROLE}, {@code USER}. The IDs list
  * is opaque — the FE sends the right id type and the BE resolves.</p>
  */
-export type AnnouncementAudience =
-  | 'SCHOOL' | 'GRADE' | 'SECTION' | 'COURSE' | 'ROLE' | 'USER';
+export type AnnouncementAudience = 'SCHOOL' | 'GRADE' | 'SECTION' | 'COURSE' | 'ROLE' | 'USER';
 
 export type AnnouncementStatus = 'DRAFT' | 'SCHEDULED' | 'PUBLISHED' | 'ARCHIVED';
 

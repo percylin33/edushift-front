@@ -5,7 +5,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import {
   AbstractControl,
@@ -13,23 +13,19 @@ import {
   FormGroup,
   ReactiveFormsModule,
   ValidationErrors,
-  Validators
+  Validators,
 } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { ApiError } from '@core/models';
-import {
-  IconComponent,
-  PageHeaderComponent,
-  SpinnerComponent
-} from '@shared/components';
+import { IconComponent, PageHeaderComponent, SpinnerComponent } from '@shared/components';
 import { AcademicStore } from '../../store';
 import {
   AcademicYearDetail,
   CreateAcademicYearRequest,
   UpdateAcademicYearRequest,
-  isYearMutable
+  isYearMutable,
 } from '../../models';
 
 /**
@@ -92,14 +88,10 @@ function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
     RouterLink,
     PageHeaderComponent,
     IconComponent,
-    SpinnerComponent
+    SpinnerComponent,
   ],
   template: `
-    <app-page-header
-      [title]="title()"
-      [subtitle]="subtitle()"
-      eyebrow="Académico · Años"
-    >
+    <app-page-header [title]="title()" [subtitle]="subtitle()" eyebrow="Académico · Años">
       <a [routerLink]="listRoute" class="btn btn-ghost btn-sm">
         <app-icon name="arrow-left" [size]="16" />
         <span class="hidden sm:inline">Volver</span>
@@ -126,8 +118,8 @@ function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
           <header class="card-header">
             <h2 class="card-title">Datos del año</h2>
             <p class="card-description">
-              Identificación visible y rango de fechas. Los periodos (bimestres,
-              trimestres, etc.) se configuran después dentro del año.
+              Identificación visible y rango de fechas. Los periodos (bimestres, trimestres, etc.)
+              se configuran después dentro del año.
             </p>
           </header>
 
@@ -145,20 +137,13 @@ function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
               @if (showError('name'); as msg) {
                 <p class="field-error">{{ msg }}</p>
               } @else {
-                <p class="field-hint">
-                  Debe ser único en el workspace. Máximo 50 caracteres.
-                </p>
+                <p class="field-hint">Debe ser único en el workspace. Máximo 50 caracteres.</p>
               }
             </div>
 
             <div class="field sm:col-span-6">
               <label class="label" for="year-start">Fecha inicio *</label>
-              <input
-                id="year-start"
-                type="date"
-                class="input"
-                formControlName="startDate"
-              />
+              <input id="year-start" type="date" class="input" formControlName="startDate" />
               @if (showError('startDate'); as msg) {
                 <p class="field-error">{{ msg }}</p>
               }
@@ -166,18 +151,11 @@ function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
 
             <div class="field sm:col-span-6">
               <label class="label" for="year-end">Fecha fin *</label>
-              <input
-                id="year-end"
-                type="date"
-                class="input"
-                formControlName="endDate"
-              />
+              <input id="year-end" type="date" class="input" formControlName="endDate" />
               @if (showError('endDate'); as msg) {
                 <p class="field-error">{{ msg }}</p>
               } @else if (form.errors?.['dateRange']) {
-                <p class="field-error">
-                  La fecha fin debe ser posterior a la fecha inicio.
-                </p>
+                <p class="field-error">La fecha fin debe ser posterior a la fecha inicio.</p>
               }
             </div>
           </div>
@@ -201,7 +179,7 @@ function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
         </footer>
       </form>
     }
-  `
+  `,
 })
 export class YearFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -223,15 +201,15 @@ export class YearFormComponent implements OnInit {
   private readonly fieldErrors = signal<Record<string, string>>({});
 
   protected readonly title = computed(() =>
-    this.editing() ? 'Editar año académico' : 'Nuevo año académico'
+    this.editing() ? 'Editar año académico' : 'Nuevo año académico',
   );
   protected readonly subtitle = computed(() =>
     this.editing()
       ? 'Actualiza el rango y el nombre del año. Los años cerrados no son editables.'
-      : 'Crea un año en estado Planificación. Podrás activarlo después desde la lista.'
+      : 'Crea un año en estado Planificación. Podrás activarlo después desde la lista.',
   );
   protected readonly submitLabel = computed(() =>
-    this.editing() ? 'Guardar cambios' : 'Crear año'
+    this.editing() ? 'Guardar cambios' : 'Crear año',
   );
 
   /**
@@ -248,13 +226,13 @@ export class YearFormComponent implements OnInit {
           Validators.required,
           Validators.minLength(4),
           Validators.maxLength(50),
-          Validators.pattern(/^[A-Za-z0-9 \-]+$/)
-        ]
+          Validators.pattern(/^[A-Za-z0-9 -]+$/),
+        ],
       ],
       startDate: [null as string | null, [Validators.required]],
-      endDate: [null as string | null, [Validators.required]]
+      endDate: [null as string | null, [Validators.required]],
     },
-    { validators: [dateRangeValidator] }
+    { validators: [dateRangeValidator] },
   );
 
   async ngOnInit(): Promise<void> {
@@ -304,8 +282,7 @@ export class YearFormComponent implements OnInit {
           await this.router.navigate([ROUTES.ACADEMIC.YEARS.LIST]);
         }
       }
-    }
-    catch (err) {
+    } catch (err) {
       this.applyServerErrors(err);
     }
   }
@@ -340,7 +317,7 @@ export class YearFormComponent implements OnInit {
     this.form.patchValue({
       name: detail.name,
       startDate: this.toDateInput(detail.startDate),
-      endDate: this.toDateInput(detail.endDate)
+      endDate: this.toDateInput(detail.endDate),
     });
   }
 
@@ -349,7 +326,7 @@ export class YearFormComponent implements OnInit {
     return {
       name: (v.name ?? '').trim(),
       startDate: v.startDate as string,
-      endDate: v.endDate as string
+      endDate: v.endDate as string,
     };
   }
 
@@ -364,7 +341,7 @@ export class YearFormComponent implements OnInit {
     return {
       name: (v.name ?? '').trim(),
       startDate: v.startDate as string,
-      endDate: v.endDate as string
+      endDate: v.endDate as string,
     };
   }
 
@@ -398,5 +375,4 @@ export class YearFormComponent implements OnInit {
     }
     this.fieldErrors.set(next);
   }
-
 }

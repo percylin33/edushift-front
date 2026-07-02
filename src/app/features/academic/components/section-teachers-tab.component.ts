@@ -1,11 +1,5 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  inject,
-  input
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { IconComponent, SpinnerComponent } from '@shared/components';
@@ -32,8 +26,8 @@ import { PERIOD_TYPE_LABELS } from '@features/academic/models';
         <div>
           <h3 class="card-title">Docentes asignados</h3>
           <p class="card-description">
-            Listado de docentes con asignación activa en esta sección.
-            Para crear una asignación, ve al detalle del docente.
+            Listado de docentes con asignación activa en esta sección. Para crear una asignación, ve
+            al detalle del docente.
           </p>
         </div>
       </header>
@@ -47,25 +41,15 @@ import { PERIOD_TYPE_LABELS } from '@features/academic/models';
           <div class="alert alert-danger">
             <app-icon name="alert-circle" [size]="18" />
             <p class="flex-1 text-sm">{{ errorMessage() }}</p>
-            <button
-              type="button"
-              class="btn btn-ghost btn-sm"
-              (click)="reload()"
-            >
+            <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">
               Reintentar
             </button>
           </div>
         } @else if (rows().length === 0) {
           <div class="py-10 text-center">
-            <app-icon
-              name="user"
-              [size]="32"
-              class="mx-auto mb-3 text-content-subtle"
-            />
-            <p class="text-sm font-medium text-content">
-              Sin docentes asignados todavía
-            </p>
-            <p class="mt-1 text-xs text-content-muted max-w-md mx-auto">
+            <app-icon name="user" [size]="32" class="mx-auto mb-3 text-content-subtle" />
+            <p class="text-sm font-medium text-content">Sin docentes asignados todavía</p>
+            <p class="mx-auto mt-1 max-w-md text-xs text-content-muted">
               Las asignaciones se crean desde la pestaña
               <em>Asignaciones</em> del docente.
             </p>
@@ -87,7 +71,7 @@ import { PERIOD_TYPE_LABELS } from '@features/academic/models';
                     <td>
                       <a
                         [routerLink]="teacherRoute(a.teacherPublicUuid)"
-                        class="block hover:bg-surface-muted rounded px-2 py-1 -mx-2 -my-1"
+                        class="-mx-2 -my-1 block rounded px-2 py-1 hover:bg-surface-muted"
                       >
                         <p class="font-medium text-content">
                           {{ a.teacherFullName }}
@@ -122,7 +106,7 @@ import { PERIOD_TYPE_LABELS } from '@features/academic/models';
         }
       </div>
     </section>
-  `
+  `,
 })
 export class SectionTeachersTabComponent implements OnInit {
   private readonly store = inject(TeacherAssignmentsStore);
@@ -137,7 +121,10 @@ export class SectionTeachersTabComponent implements OnInit {
     await this.store.loadSectionTeachers(this.sectionPublicUuid());
   }
 
-  protected periodLabel(a: { periodType: keyof typeof PERIOD_TYPE_LABELS; periodOrdinal: number }): string {
+  protected periodLabel(a: {
+    periodType: keyof typeof PERIOD_TYPE_LABELS;
+    periodOrdinal: number;
+  }): string {
     return `${PERIOD_TYPE_LABELS[a.periodType]} ${a.periodOrdinal}`;
   }
 

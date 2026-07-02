@@ -15,7 +15,7 @@ export class LayoutService {
   private readonly storage = inject(StorageService);
 
   private readonly _sidebarCollapsed = signal<boolean>(
-    this.storage.get<boolean>(STORAGE_KEYS.LAYOUT_SIDEBAR_COLLAPSED) ?? false
+    this.storage.get<boolean>(STORAGE_KEYS.LAYOUT_SIDEBAR_COLLAPSED) ?? false,
   );
   private readonly _sidebarOpen = signal<boolean>(false);
 

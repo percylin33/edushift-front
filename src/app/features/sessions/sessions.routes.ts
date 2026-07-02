@@ -4,14 +4,12 @@ import { SessionsListComponent } from './pages';
 export const SESSIONS_ROUTES: Routes = [
   {
     path: '',
-    component: SessionsListComponent
+    component: SessionsListComponent,
   },
   {
     path: 'new',
     loadComponent: () =>
-      import('./pages/sessions-form/sessions-form.component').then(
-        (m) => m.SessionsFormComponent
-      )
+      import('./pages/sessions-form/sessions-form.component').then((m) => m.SessionsFormComponent),
   },
   {
     path: ':id',
@@ -20,16 +18,16 @@ export const SESSIONS_ROUTES: Routes = [
         path: '',
         loadComponent: () =>
           import('./pages/sessions-detail/sessions-detail.component').then(
-            (m) => m.SessionsDetailComponent
-          )
+            (m) => m.SessionsDetailComponent,
+          ),
       },
       {
         path: 'edit',
         loadComponent: () =>
           import('./pages/sessions-form/sessions-form.component').then(
-            (m) => m.SessionsFormComponent
-          )
-      }
-    ]
-  }
+            (m) => m.SessionsFormComponent,
+          ),
+      },
+    ],
+  },
 ];

@@ -5,15 +5,9 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-  FormArray
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormArray } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
@@ -21,7 +15,7 @@ import {
   PageContainerComponent,
   PageHeaderComponent,
   IconComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import { RouterLink } from '@angular/router';
 import { SessionsApiService } from '../../services';
@@ -30,7 +24,7 @@ import {
   CreateLearningSessionRequest,
   UpdateLearningSessionRequest,
   LearningSessionDetail,
-  SessionStatus
+  SessionStatus,
 } from '../../models';
 
 /**
@@ -56,14 +50,18 @@ import {
     PageContainerComponent,
     PageHeaderComponent,
     IconComponent,
-    SpinnerComponent
+    SpinnerComponent,
   ],
   template: `
     <app-page-container size="wide">
       <app-page-header
         eyebrow="Sesiones de Aprendizaje"
         [title]="isEdit() ? 'Editar Sesión' : 'Nueva Sesión'"
-        [subtitle]="isReadOnly() ? 'Esta sesión ya fue completada o cancelada y no puede editarse.' : 'Planifica el detalle pedagógico de la sesión.'"
+        [subtitle]="
+          isReadOnly()
+            ? 'Esta sesión ya fue completada o cancelada y no puede editarse.'
+            : 'Planifica el detalle pedagógico de la sesión.'
+        "
       >
         <a [routerLink]="ROUTES.SESSIONS.LIST" class="btn btn-ghost btn-sm">
           <app-icon name="arrow-left" [size]="16" />
@@ -180,12 +178,13 @@ import {
               <h3 class="card-title">Competencias y Capacidades</h3>
             </header>
             <div class="card-body">
-              <p class="text-sm text-content-muted mb-3">
-                Selecciona las competencias y sus capacidades específicas que se trabajarán en esta sesión.
+              <p class="mb-3 text-sm text-content-muted">
+                Selecciona las competencias y sus capacidades específicas que se trabajarán en esta
+                sesión.
               </p>
-              
+
               @if (!selectedCourseUuid()) {
-                <p class="text-sm text-content-muted italic">Selecciona una asignación primero.</p>
+                <p class="text-sm italic text-content-muted">Selecciona una asignación primero.</p>
               } @else {
                 <div class="space-y-4">
                   @for (comp of competencies(); track comp.publicUuid) {
@@ -201,7 +200,7 @@ import {
                         />
                         <span>{{ comp.code }} — {{ comp.name }}</span>
                       </label>
-                      
+
                       @if (isCompetencySelected(comp.publicUuid) && comp.capacities.length > 0) {
                         <div class="ml-6 mt-2 space-y-1 border-l-2 border-border-subtle pl-3">
                           @for (cap of comp.capacities; track cap.publicUuid) {
@@ -273,7 +272,7 @@ import {
                 @if (!isReadOnly()) {
                   <button
                     type="button"
-                    class="btn btn-ghost btn-sm text-primary-600 mt-2"
+                    class="btn btn-ghost btn-sm mt-2 text-primary-600"
                     (click)="addActivity()"
                   >
                     <app-icon name="plus" [size]="16" />
@@ -309,7 +308,7 @@ import {
                 @if (!isReadOnly()) {
                   <button
                     type="button"
-                    class="btn btn-ghost btn-sm text-primary-600 mt-2"
+                    class="btn btn-ghost btn-sm mt-2 text-primary-600"
                     (click)="addMaterial()"
                   >
                     <app-icon name="plus" [size]="16" />
@@ -343,12 +342,14 @@ import {
   `,
   styles: [
     `
-      :host { display: block; }
+      :host {
+        display: block;
+      }
       .field-error {
         @apply mt-1 text-xs text-red-600;
       }
-    `
-  ]
+    `,
+  ],
 })
 export class SessionsFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -368,7 +369,7 @@ export class SessionsFormComponent implements OnInit {
     objective: ['', Validators.required],
     observations: [''],
     activities: this.fb.array([]),
-    materials: this.fb.array([])
+    materials: this.fb.array([]),
   });
 
   protected readonly loading = signal(false);
@@ -378,7 +379,7 @@ export class SessionsFormComponent implements OnInit {
   protected readonly assignments = signal<any[]>([]);
   protected readonly units = signal<any[]>([]);
   protected readonly competencies = signal<any[]>([]);
-  
+
   protected readonly selectedSession = signal<LearningSessionDetail | null>(null);
   protected readonly selectedCompetencies = signal<Set<string>>(new Set());
   protected readonly selectedCapacities = signal<Set<string>>(new Set());
@@ -405,7 +406,7 @@ export class SessionsFormComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.loadAssignments();
-    
+
     const sessionId = this.route.snapshot.paramMap.get('id');
     if (sessionId) {
       await this.loadSession(sessionId);
@@ -470,7 +471,7 @@ export class SessionsFormComponent implements OnInit {
         title: session.title,
         durationMinutes: session.durationMinutes,
         objective: session.content.objective,
-        observations: session.content.observations
+        observations: session.content.observations,
       });
 
       // Cargar actividades
@@ -496,7 +497,6 @@ export class SessionsFormComponent implements OnInit {
       // Forzar la carga de unidades y competencias de este curso
       await this.loadUnits(session.assignment.course.publicUuid);
       await this.loadCompetencies(session.assignment.course.publicUuid);
-
     } catch (err) {
       this.errorMessage.set('Error al cargar la sesión');
     } finally {
@@ -580,8 +580,8 @@ export class SessionsFormComponent implements OnInit {
         objective: raw.objective.trim(),
         activities: raw.activities.filter((a: string) => a.trim() !== ''),
         materials: raw.materials.filter((m: string) => m.trim() !== ''),
-        observations: raw.observations?.trim() || ''
-      }
+        observations: raw.observations?.trim() || '',
+      },
     };
 
     try {

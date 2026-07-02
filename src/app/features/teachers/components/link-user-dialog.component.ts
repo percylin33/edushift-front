@@ -8,7 +8,7 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -59,19 +59,22 @@ import { TeacherDetail } from '../models';
   imports: [CommonModule, FormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="link-user-title"
       (click)="onBackdropClick($event)"
     >
-      <div class="card w-full max-w-2xl shadow-xl flex flex-col max-h-[80vh]" (click)="$event.stopPropagation()">
+      <div
+        class="card flex max-h-[80vh] w-full max-w-2xl flex-col shadow-xl"
+        (click)="$event.stopPropagation()"
+      >
         <header class="card-header">
           <div>
             <h2 id="link-user-title" class="card-title">Vincular a usuario existente</h2>
             <p class="card-description">
-              Selecciona el usuario con rol <strong>Profesor</strong> al que
-              quieres vincular a {{ teacher().fullName }}.
+              Selecciona el usuario con rol <strong>Profesor</strong> al que quieres vincular a
+              {{ teacher().fullName }}.
             </p>
           </div>
           <button
@@ -95,7 +98,9 @@ import { TeacherDetail } from '../models';
           <div class="field">
             <label class="label" for="link-user-search">Buscar</label>
             <div class="relative">
-              <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-content-subtle">
+              <span
+                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-content-subtle"
+              >
                 <app-icon name="search" [size]="16" />
               </span>
               <input
@@ -109,7 +114,7 @@ import { TeacherDetail } from '../models';
             </div>
           </div>
 
-          <div class="overflow-y-auto -mx-5 px-5">
+          <div class="-mx-5 overflow-y-auto px-5">
             @if (loading()) {
               <div class="flex items-center justify-center py-10">
                 <app-spinner [size]="24" label="Cargando usuarios…" />
@@ -117,8 +122,8 @@ import { TeacherDetail } from '../models';
             } @else if (filtered().length === 0) {
               <p class="py-8 text-center text-sm text-content-muted">
                 @if (search()) {
-                  No hay usuarios que coincidan con
-                  "<strong>{{ search() }}</strong>".
+                  No hay usuarios que coincidan con "<strong>{{ search() }}</strong
+                  >".
                 } @else {
                   No hay usuarios con rol Profesor en este workspace.
                 }
@@ -129,15 +134,15 @@ import { TeacherDetail } from '../models';
                   <li>
                     <button
                       type="button"
-                      class="flex w-full items-center justify-between gap-3 py-2 px-2 hover:bg-surface-muted disabled:opacity-50 rounded-md text-left"
+                      class="flex w-full items-center justify-between gap-3 rounded-md px-2 py-2 text-left hover:bg-surface-muted disabled:opacity-50"
                       [disabled]="linking()"
                       (click)="onSelect(u)"
                     >
                       <div class="min-w-0 flex-1">
-                        <p class="font-medium text-content truncate">
+                        <p class="truncate font-medium text-content">
                           {{ u.fullName }}
                         </p>
-                        <p class="text-xs text-content-muted truncate">{{ u.email }}</p>
+                        <p class="truncate text-xs text-content-muted">{{ u.email }}</p>
                       </div>
                       <app-icon name="chevron-right" [size]="16" />
                     </button>
@@ -151,16 +156,13 @@ import { TeacherDetail } from '../models';
         <footer class="card-footer">
           <p class="flex-1 text-xs text-content-muted">
             ¿No aparece? Asegúrate de que el usuario tenga el rol
-            <strong>Profesor</strong> asignado en
-            <em>Usuarios</em>.
+            <strong>Profesor</strong> asignado en <em>Usuarios</em>.
           </p>
-          <button type="button" class="btn btn-ghost btn-sm" (click)="close()">
-            Cancelar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="close()">Cancelar</button>
         </footer>
       </div>
     </div>
-  `
+  `,
 })
 export class LinkUserDialogComponent implements OnInit {
   private readonly usersApi = inject(UsersApiService);
@@ -182,9 +184,7 @@ export class LinkUserDialogComponent implements OnInit {
     const all = this.users();
     if (!q) return all;
     return all.filter(
-      (u) =>
-        u.fullName.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q)
+      (u) => u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
     );
   });
 
@@ -210,7 +210,7 @@ export class LinkUserDialogComponent implements OnInit {
   protected async onSelect(user: UserRow): Promise<void> {
     if (this.linking()) return;
     const result = await this.store.linkUser(this.teacher().publicUuid, {
-      userPublicUuid: user.publicUuid
+      userPublicUuid: user.publicUuid,
     });
     if (result) this.linked.emit();
   }
@@ -224,17 +224,15 @@ export class LinkUserDialogComponent implements OnInit {
       const page = await firstValueFrom(
         this.usersApi.list(
           { role: UserRole.Teacher },
-          { page: 0, size: 100, sort: 'lastName,ASC' }
-        )
+          { page: 0, size: 100, sort: 'lastName,ASC' },
+        ),
       );
       this.users.set(page.content);
-    }
-    catch {
+    } catch {
       /* Banner del store ya cubre el resto; mantenemos el dialog
        * usable mostrando lista vacía + el banner. */
       this.users.set([]);
-    }
-    finally {
+    } finally {
       this.loading.set(false);
     }
   }

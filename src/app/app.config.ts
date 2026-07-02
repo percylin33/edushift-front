@@ -7,7 +7,7 @@ import {
   withInMemoryScrolling,
   withPreloading,
   withRouterConfig,
-  withViewTransitions
+  withViewTransitions,
 } from '@angular/router';
 
 import { routes } from './app.routes';
@@ -45,9 +45,9 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' }),
       withRouterConfig({ paramsInheritanceStrategy: 'always' }),
       withPreloading(PreloadAllModules),
-      withViewTransitions()
+      withViewTransitions(),
     ),
     { provide: TitleStrategy, useClass: AppTitleStrategy },
-    ...provideCore()
-  ]
+    ...provideCore(),
+  ],
 };

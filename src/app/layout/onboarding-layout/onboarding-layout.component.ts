@@ -25,8 +25,7 @@ import { ThemeToggleComponent } from '../components';
   template: `
     <div class="flex min-h-screen flex-col bg-surface-subtle text-content">
       <header
-        class="sticky top-0 z-10 flex h-16 items-center justify-between gap-3 border-b border-border
-               bg-surface/80 px-4 backdrop-blur supports-backdrop:bg-surface/70 sm:px-6"
+        class="sticky top-0 z-10 flex h-16 items-center justify-between gap-3 border-b border-border bg-surface/80 px-4 backdrop-blur supports-backdrop:bg-surface/70 sm:px-6"
       >
         <div class="flex items-center gap-3">
           <app-tenant-logo variant="mark" size="md" />
@@ -111,7 +110,7 @@ import { ThemeToggleComponent } from '../components';
         © {{ year }} {{ appName }}
       </footer>
     </div>
-  `
+  `,
 })
 export class OnboardingLayoutComponent {
   private readonly tenant = inject(TenantService);

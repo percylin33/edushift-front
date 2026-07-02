@@ -6,7 +6,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -15,13 +15,13 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import {
   EvaluationFormModalComponent,
   EvaluationKindBadgeComponent,
   EvaluationRubricTabComponent,
-  EvaluationStatusBadgeComponent
+  EvaluationStatusBadgeComponent,
 } from '../../components';
 import { EvaluationsStore } from '../../store';
 import {
@@ -31,7 +31,7 @@ import {
   EvaluationStatus,
   isEvaluationDeletable,
   isEvaluationEditable,
-  legalNextStatuses
+  legalNextStatuses,
 } from '../../models';
 
 type TabId = 'overview' | 'rubric' | 'grades';
@@ -45,7 +45,7 @@ interface TabDef {
 const TABS: readonly TabDef[] = [
   { id: 'overview', label: 'Resumen', icon: 'info' },
   { id: 'rubric', label: 'Rúbrica', icon: 'layers' },
-  { id: 'grades', label: 'Calificaciones', icon: 'target' }
+  { id: 'grades', label: 'Calificaciones', icon: 'target' },
 ];
 
 /**
@@ -73,15 +73,11 @@ const TABS: readonly TabDef[] = [
     IconComponent,
     PageContainerComponent,
     PageHeaderComponent,
-    SpinnerComponent
+    SpinnerComponent,
   ],
   template: `
     <app-page-container size="wide">
-      <app-page-header
-        eyebrow="Evaluaciones"
-        [title]="title()"
-        [subtitle]="subtitle()"
-      >
+      <app-page-header eyebrow="Evaluaciones" [title]="title()" [subtitle]="subtitle()">
         <button type="button" class="btn btn-ghost btn-sm" (click)="goBack()">
           <app-icon name="chevron-left" [size]="16" />
           <span>Volver</span>
@@ -125,42 +121,29 @@ const TABS: readonly TabDef[] = [
         <div class="alert alert-danger">
           <app-icon name="alert-circle" [size]="18" />
           <p class="flex-1 text-sm">{{ errorBanner() }}</p>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            (click)="reload()"
-          >
-            Reintentar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">Reintentar</button>
         </div>
       }
 
       @if (!loading() && evaluation(); as e) {
         <!-- Status row -->
-        <div class="flex flex-wrap items-center gap-3 mb-6">
+        <div class="mb-6 flex flex-wrap items-center gap-3">
           <app-evaluation-kind-badge [kind]="e.kind" />
           <app-evaluation-status-badge [status]="e.status" />
           <span class="text-sm text-content-muted">
             {{ scaleLabel(e.scale) }}
           </span>
-          <span class="text-sm text-content-muted">
-            · Peso {{ e.weight | number: '1.0-2' }}
-          </span>
-          <span class="text-sm text-content-muted">
-            · {{ e.gradeCount }} calificada(s)
-          </span>
+          <span class="text-sm text-content-muted"> · Peso {{ e.weight | number: '1.0-2' }} </span>
+          <span class="text-sm text-content-muted"> · {{ e.gradeCount }} calificada(s) </span>
         </div>
 
         <!-- Tabs nav -->
-        <nav
-          class="border-b border-border-subtle mb-6 flex flex-wrap gap-1"
-          role="tablist"
-        >
+        <nav class="mb-6 flex flex-wrap gap-1 border-b border-border-subtle" role="tablist">
           @for (t of tabs; track t.id) {
             <button
               type="button"
               role="tab"
-              class="px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2"
+              class="flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors"
               [class.border-primary-600]="activeTab() === t.id"
               [class.text-primary-700]="activeTab() === t.id"
               [class.border-transparent]="activeTab() !== t.id"
@@ -206,7 +189,7 @@ const TABS: readonly TabDef[] = [
                   @if (e.description) {
                     <div>
                       <dt class="text-xs text-content-muted">Descripción</dt>
-                      <dd class="text-sm whitespace-pre-line">
+                      <dd class="whitespace-pre-line text-sm">
                         {{ e.description }}
                       </dd>
                     </div>
@@ -249,20 +232,16 @@ const TABS: readonly TabDef[] = [
                   }
                   @if (e.unitPublicUuid) {
                     <div>
-                      <dt class="text-xs text-content-muted">
-                        Unidad anclada
-                      </dt>
-                      <dd class="text-xs font-mono break-all">
+                      <dt class="text-xs text-content-muted">Unidad anclada</dt>
+                      <dd class="break-all font-mono text-xs">
                         {{ e.unitPublicUuid }}
                       </dd>
                     </div>
                   }
                   @if (e.learningSessionPublicUuid) {
                     <div>
-                      <dt class="text-xs text-content-muted">
-                        Sesión anclada
-                      </dt>
-                      <dd class="text-xs font-mono break-all">
+                      <dt class="text-xs text-content-muted">Sesión anclada</dt>
+                      <dd class="break-all font-mono text-xs">
                         {{ e.learningSessionPublicUuid }}
                       </dd>
                     </div>
@@ -273,14 +252,14 @@ const TABS: readonly TabDef[] = [
           </section>
 
           @if (canDelete()) {
-            <section class="mt-6 rounded-md border border-danger-200 bg-danger-50 p-4">
+            <section class="border-danger-200 bg-danger-50 mt-6 rounded-md border p-4">
               <div class="flex items-start gap-3">
                 <app-icon name="alert-circle" [size]="20" class="text-danger-600" />
                 <div class="flex-1">
-                  <h4 class="font-medium text-danger-700">Zona peligrosa</h4>
-                  <p class="text-sm text-danger-600 mt-1">
-                    Esta evaluación es un borrador sin calificaciones.
-                    Eliminarla la quita del listado del docente.
+                  <h4 class="text-danger-700 font-medium">Zona peligrosa</h4>
+                  <p class="text-danger-600 mt-1 text-sm">
+                    Esta evaluación es un borrador sin calificaciones. Eliminarla la quita del
+                    listado del docente.
                   </p>
                 </div>
                 <button
@@ -298,17 +277,10 @@ const TABS: readonly TabDef[] = [
           <app-evaluation-rubric-tab [evaluation]="e" />
         } @else if (activeTab() === 'grades') {
           <div class="rounded-md border border-border-subtle p-6 text-center">
-            <app-icon
-              name="target"
-              [size]="32"
-              class="mx-auto mb-3 text-content-muted"
-            />
-            <p class="text-sm font-medium">
-              {{ e.gradeCount }} nota(s) registrada(s)
-            </p>
-            <p class="text-xs text-content-muted mt-1 max-w-md mx-auto">
-              Tabla con bulk CSV inline disponible en la pantalla
-              dedicada de calificaciones.
+            <app-icon name="target" [size]="32" class="mx-auto mb-3 text-content-muted" />
+            <p class="text-sm font-medium">{{ e.gradeCount }} nota(s) registrada(s)</p>
+            <p class="mx-auto mt-1 max-w-md text-xs text-content-muted">
+              Tabla con bulk CSV inline disponible en la pantalla dedicada de calificaciones.
             </p>
             <button
               type="button"
@@ -324,13 +296,9 @@ const TABS: readonly TabDef[] = [
     </app-page-container>
 
     @if (editing(); as e) {
-      <app-evaluation-form-modal
-        [evaluation]="e"
-        (closed)="closeEdit()"
-        (saved)="onEdited()"
-      />
+      <app-evaluation-form-modal [evaluation]="e" (closed)="closeEdit()" (saved)="onEdited()" />
     }
-  `
+  `,
 })
 export class EvaluationDetailComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
@@ -346,12 +314,8 @@ export class EvaluationDetailComponent implements OnInit, OnDestroy {
   protected readonly activeTab = signal<TabId>('overview');
   protected readonly editing = signal<EvaluationDetail | null>(null);
 
-  protected readonly title = computed(
-    () => this.evaluation()?.name ?? 'Evaluación'
-  );
-  protected readonly subtitle = computed(
-    () => this.evaluation()?.assignment.label ?? ''
-  );
+  protected readonly title = computed(() => this.evaluation()?.name ?? 'Evaluación');
+  protected readonly subtitle = computed(() => this.evaluation()?.assignment.label ?? '');
 
   private routeSub?: Subscription;
   private currentUuid: string | null = null;
@@ -406,9 +370,7 @@ export class EvaluationDetailComponent implements OnInit, OnDestroy {
     const fromLabel = e.status;
     const ok = confirm(
       `¿Cambiar la evaluación "${e.name}" a ${target}?` +
-        (target === EvaluationStatus.CLOSED
-          ? '\n\nUna vez cerrada NO se podrá reabrir.'
-          : '')
+        (target === EvaluationStatus.CLOSED ? '\n\nUna vez cerrada NO se podrá reabrir.' : ''),
     );
     if (!ok) return;
 
@@ -425,14 +387,12 @@ export class EvaluationDetailComponent implements OnInit, OnDestroy {
     if (!e) return;
     const ok = confirm(
       `¿Eliminar el borrador "${e.name}"?\n\n` +
-        'Solo se permite eliminar borradores sin calificaciones.'
+        'Solo se permite eliminar borradores sin calificaciones.',
     );
     if (!ok) return;
     const success = await this.store.remove(e.publicUuid);
     if (success) {
-      void this.router.navigate([
-        ROUTES.EVALUATIONS.byAssignment(e.assignment.publicUuid)
-      ]);
+      void this.router.navigate([ROUTES.EVALUATIONS.byAssignment(e.assignment.publicUuid)]);
     }
   }
 
@@ -467,7 +427,7 @@ export class EvaluationDetailComponent implements OnInit, OnDestroy {
     return d.toLocaleDateString('es', {
       day: '2-digit',
       month: 'long',
-      year: 'numeric'
+      year: 'numeric',
     });
   }
 
@@ -477,16 +437,14 @@ export class EvaluationDetailComponent implements OnInit, OnDestroy {
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 
   protected goBack(): void {
     const e = this.evaluation();
     if (e) {
-      void this.router.navigate([
-        ROUTES.EVALUATIONS.byAssignment(e.assignment.publicUuid)
-      ]);
+      void this.router.navigate([ROUTES.EVALUATIONS.byAssignment(e.assignment.publicUuid)]);
     } else {
       history.back();
     }

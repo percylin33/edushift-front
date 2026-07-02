@@ -19,15 +19,31 @@
            disabled:pointer-events-none disabled:opacity-50;
   }
 
-  .btn-primary   { @apply bg-primary-600 text-white hocus:bg-primary-700; }
-  .btn-secondary { @apply bg-surface-muted text-content hocus:bg-border; }
-  .btn-outline   { @apply border border-border bg-transparent text-content hocus:bg-surface-muted; }
-  .btn-ghost     { @apply bg-transparent text-content hocus:bg-surface-muted; }
-  .btn-danger    { @apply bg-danger text-white hover:opacity-90; }
+  .btn-primary {
+    @apply bg-primary-600 text-white hocus:bg-primary-700;
+  }
+  .btn-secondary {
+    @apply bg-surface-muted text-content hocus:bg-border;
+  }
+  .btn-outline {
+    @apply border border-border bg-transparent text-content hocus:bg-surface-muted;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-content hocus:bg-surface-muted;
+  }
+  .btn-danger {
+    @apply bg-danger text-white hover:opacity-90;
+  }
 
-  .btn-sm   { @apply px-3 py-1.5 text-xs; }
-  .btn-lg   { @apply px-5 py-2.5 text-base; }
-  .btn-icon { @apply p-2; }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .btn-lg {
+    @apply px-5 py-2.5 text-base;
+  }
+  .btn-icon {
+    @apply p-2;
+  }
 
   /* ---------- Cards ---------- */
   .card {
@@ -37,13 +53,19 @@
     @apply flex items-center justify-between gap-4
            border-b border-border-subtle px-5 py-4;
   }
-  .card-body  { @apply p-5; }
+  .card-body {
+    @apply p-5;
+  }
   .card-footer {
     @apply flex items-center justify-end gap-2
            border-t border-border-subtle px-5 py-3;
   }
-  .card-title       { @apply text-base font-semibold text-content; }
-  .card-description { @apply text-sm text-content-muted; }
+  .card-title {
+    @apply text-base font-semibold text-content;
+  }
+  .card-description {
+    @apply text-sm text-content-muted;
+  }
 
   /* ---------- Forms (use with `class` strategy of @tailwindcss/forms) ---------- */
   .input,
@@ -56,16 +78,32 @@
            disabled:cursor-not-allowed disabled:opacity-60;
   }
 
-  .checkbox { @apply form-checkbox rounded border-border text-primary-600 focus:ring-primary-500/40; }
-  .radio    { @apply form-radio border-border text-primary-600 focus:ring-primary-500/40; }
-  .switch   { @apply form-checkbox rounded-full border-border text-primary-600 focus:ring-primary-500/40; }
+  .checkbox {
+    @apply form-checkbox rounded border-border text-primary-600 focus:ring-primary-500/40;
+  }
+  .radio {
+    @apply form-radio border-border text-primary-600 focus:ring-primary-500/40;
+  }
+  .switch {
+    @apply form-checkbox rounded-full border-border text-primary-600 focus:ring-primary-500/40;
+  }
 
-  .label  { @apply mb-1 block text-sm font-medium text-content; }
-  .hint   { @apply mt-1 text-xs text-content-subtle; }
-  .error  { @apply mt-1 text-xs text-danger; }
+  .label {
+    @apply mb-1 block text-sm font-medium text-content;
+  }
+  .hint {
+    @apply mt-1 text-xs text-content-subtle;
+  }
+  .error {
+    @apply mt-1 text-xs text-danger;
+  }
 
-  .field     { @apply flex flex-col; }
-  .field-row { @apply flex flex-wrap items-center gap-3; }
+  .field {
+    @apply flex flex-col;
+  }
+  .field-row {
+    @apply flex flex-wrap items-center gap-3;
+  }
 
   /* ---------- Badges / chips ---------- */
   .badge {
@@ -73,13 +111,27 @@
            rounded-full px-2.5 py-0.5
            text-xs font-medium;
   }
-  .badge-neutral { @apply bg-surface-muted text-content-muted; }
-  .badge-primary { @apply bg-primary-500/15 text-primary-700; }
-  .dark .badge-primary { @apply text-primary-300; }
-  .badge-success { @apply bg-success/15 text-success; }
-  .badge-warning { @apply bg-warning/15 text-warning; }
-  .badge-danger  { @apply bg-danger/15  text-danger;  }
-  .badge-info    { @apply bg-info/15    text-info;    }
+  .badge-neutral {
+    @apply bg-surface-muted text-content-muted;
+  }
+  .badge-primary {
+    @apply bg-primary-500/15 text-primary-700;
+  }
+  .dark .badge-primary {
+    @apply text-primary-300;
+  }
+  .badge-success {
+    @apply bg-success/15 text-success;
+  }
+  .badge-warning {
+    @apply bg-warning/15 text-warning;
+  }
+  .badge-danger {
+    @apply bg-danger/15  text-danger;
+  }
+  .badge-info {
+    @apply bg-info/15    text-info;
+  }
 
   /* ---------- Alerts ---------- */
   .alert {
@@ -87,15 +139,29 @@
            rounded-lg border border-border bg-surface-raised
            p-4 text-sm;
   }
-  .alert-success { @apply border-success/30 bg-success/10 text-success; }
-  .alert-warning { @apply border-warning/30 bg-warning/10 text-warning; }
-  .alert-danger  { @apply border-danger/30  bg-danger/10  text-danger;  }
-  .alert-info    { @apply border-info/30    bg-info/10    text-info;    }
+  .alert-success {
+    @apply border-success/30 bg-success/10 text-success;
+  }
+  .alert-warning {
+    @apply border-warning/30 bg-warning/10 text-warning;
+  }
+  .alert-danger {
+    @apply border-danger/30  bg-danger/10  text-danger;
+  }
+  .alert-info {
+    @apply border-info/30    bg-info/10    text-info;
+  }
 
   /* ---------- Layout helpers ---------- */
-  .page          { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
-  .section       { @apply space-y-6 py-6; }
-  .section-title { @apply text-2xl font-semibold tracking-tight text-content; }
+  .page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .section {
+    @apply space-y-6 py-6;
+  }
+  .section-title {
+    @apply text-2xl font-semibold tracking-tight text-content;
+  }
 
   /* ---------- Tables ---------- */
   .table {
@@ -114,9 +180,15 @@
   }
 
   /* ---------- Surfaces ---------- */
-  .surface       { @apply rounded-lg border border-border bg-surface-raised; }
-  .surface-muted { @apply rounded-lg bg-surface-muted; }
-  .divider       { @apply h-px w-full bg-border; }
+  .surface {
+    @apply rounded-lg border border-border bg-surface-raised;
+  }
+  .surface-muted {
+    @apply rounded-lg bg-surface-muted;
+  }
+  .divider {
+    @apply h-px w-full bg-border;
+  }
 
   /* ---------- Skeletons ---------- */
   .skeleton {

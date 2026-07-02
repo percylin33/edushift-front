@@ -1,16 +1,13 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, firstValueFrom } from 'rxjs';
-import {
-  SubmissionApiService,
-  UploadProgress
-} from '../services';
+import { SubmissionApiService, UploadProgress } from '../services';
 import {
   CreateSubmissionRequest,
   GradeSubmissionRequest,
   ReturnSubmissionRequest,
   Submission,
   SubmissionRow,
-  UpdateSubmissionRequest
+  UpdateSubmissionRequest,
 } from '../models';
 
 /**
@@ -81,10 +78,7 @@ export class SubmissionsStore {
   // ===========================================================================
 
   async loadByAssignment(assignmentUuid: string): Promise<void> {
-    if (
-      this._currentAssignmentUuid() === assignmentUuid &&
-      this._rows().length > 0
-    ) {
+    if (this._currentAssignmentUuid() === assignmentUuid && this._rows().length > 0) {
       return;
     }
     this._currentAssignmentUuid.set(assignmentUuid);
@@ -155,7 +149,7 @@ export class SubmissionsStore {
 
   async create(
     assignmentUuid: string,
-    request: CreateSubmissionRequest
+    request: CreateSubmissionRequest,
   ): Promise<Submission | null> {
     this._uploading.set(true);
     this._uploadPercent.set(0);
@@ -177,7 +171,7 @@ export class SubmissionsStore {
 
   async update(
     submissionUuid: string,
-    request: UpdateSubmissionRequest
+    request: UpdateSubmissionRequest,
   ): Promise<Submission | null> {
     this._uploading.set(true);
     this._uploadPercent.set(0);
@@ -201,10 +195,7 @@ export class SubmissionsStore {
   // Grade / Return (TEACHER)
   // ===========================================================================
 
-  async grade(
-    submissionUuid: string,
-    request: GradeSubmissionRequest
-  ): Promise<Submission | null> {
+  async grade(submissionUuid: string, request: GradeSubmissionRequest): Promise<Submission | null> {
     this._error.set(null);
     try {
       const updated = await firstValueFrom(this.api.grade(submissionUuid, request));
@@ -218,7 +209,7 @@ export class SubmissionsStore {
 
   async return(
     submissionUuid: string,
-    request: ReturnSubmissionRequest = {}
+    request: ReturnSubmissionRequest = {},
   ): Promise<Submission | null> {
     this._error.set(null);
     try {
@@ -259,15 +250,13 @@ export class SubmissionsStore {
                 grade: submission.grade,
                 hasAttachment: submission.attachment !== null,
                 submittedAt: submission.submittedAt,
-                version: bump ? submission.version : r.version
+                version: bump ? submission.version : r.version,
               }
-            : r
-        )
+            : r,
+        ),
       );
     }
-    const inStudent = this._studentRows().some(
-      (r) => r.publicUuid === submission.publicUuid
-    );
+    const inStudent = this._studentRows().some((r) => r.publicUuid === submission.publicUuid);
     if (inStudent) {
       this._studentRows.update((rows) =>
         rows.map((r) =>
@@ -277,10 +266,10 @@ export class SubmissionsStore {
                 status: submission.status,
                 grade: submission.grade,
                 hasAttachment: submission.attachment !== null,
-                submittedAt: submission.submittedAt
+                submittedAt: submission.submittedAt,
               }
-            : r
-        )
+            : r,
+        ),
       );
     }
   }
@@ -293,7 +282,7 @@ export class SubmissionsStore {
  */
 function drainUpload<T>(
   stream: Observable<UploadProgress<T>>,
-  onProgress: (percent: number) => void
+  onProgress: (percent: number) => void,
 ): Promise<T> {
   return firstValueFrom(
     new Observable<T>((sub) => {
@@ -306,9 +295,9 @@ function drainUpload<T>(
           }
         },
         error: (err: unknown) => sub.error(err),
-        complete: () => sub.complete()
+        complete: () => sub.complete(),
       });
       return () => inner.unsubscribe();
-    })
+    }),
   );
 }

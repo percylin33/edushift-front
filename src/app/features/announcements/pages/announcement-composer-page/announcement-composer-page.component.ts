@@ -22,33 +22,36 @@ import { AnnouncementAudience } from '../../models/announcement.model';
  * dispatch to all recipients via the outbox.</p>
  */
 @Component({
-  selector: 'edushift-announcement-composer-page',
+  selector: 'app-announcement-composer-page',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-4xl px-4 py-8 sm:py-10">
-      <a routerLink="/announcements" class="text-sm text-slate-500
-                                            hover:text-slate-700">← Volver</a>
-      <h1 class="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
-        Nuevo anuncio
-      </h1>
+      <a routerLink="/announcements" class="text-sm text-slate-500 hover:text-slate-700"
+        >← Volver</a
+      >
+      <h1 class="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">Nuevo anuncio</h1>
 
       <form [formGroup]="form" (ngSubmit)="onPublish()" class="mt-6 space-y-6">
         <!-- Step 1: audience -->
-        <fieldset class="rounded-2xl bg-white dark:bg-slate-900 shadow
-                         ring-1 ring-slate-200 dark:ring-slate-800 p-5">
-          <legend class="px-2 text-sm font-semibold text-slate-700
-                         dark:text-slate-200">1. Audiencia</legend>
-          <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <fieldset
+          class="rounded-2xl bg-white p-5 shadow ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800"
+        >
+          <legend class="px-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            1. Audiencia
+          </legend>
+          <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
             @for (a of audienceOptions; track a.value) {
-              <label class="flex items-center gap-2 rounded-lg border
-                            border-slate-200 dark:border-slate-700 px-3 py-2
-                            cursor-pointer hover:border-emerald-500
-                            has-[:checked]:bg-emerald-50
-                            dark:has-[:checked]:bg-emerald-900/20">
-                <input type="radio" formControlName="audienceType"
-                       [value]="a.value" class="text-emerald-600"/>
+              <label
+                class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 hover:border-emerald-500 has-[:checked]:bg-emerald-50 dark:border-slate-700 dark:has-[:checked]:bg-emerald-900/20"
+              >
+                <input
+                  type="radio"
+                  formControlName="audienceType"
+                  [value]="a.value"
+                  class="text-emerald-600"
+                />
                 <span class="text-sm">{{ a.label }}</span>
               </label>
             }
@@ -58,72 +61,81 @@ import { AnnouncementAudience } from '../../models/announcement.model';
               <label class="text-xs text-slate-500">
                 IDs de audiencia (separados por coma, según el tipo)
               </label>
-              <input type="text" formControlName="audienceIdsCsv"
-                     class="mt-1 w-full rounded-lg border-slate-200
-                            dark:border-slate-700 dark:bg-slate-800
-                            focus:ring-emerald-500"
-                     placeholder="e.g. 1A, 1B"/>
+              <input
+                type="text"
+                formControlName="audienceIdsCsv"
+                class="mt-1 w-full rounded-lg border-slate-200 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800"
+                placeholder="e.g. 1A, 1B"
+              />
             </div>
           }
         </fieldset>
 
         <!-- Step 2: content -->
-        <fieldset class="rounded-2xl bg-white dark:bg-slate-900 shadow
-                         ring-1 ring-slate-200 dark:ring-slate-800 p-5">
-          <legend class="px-2 text-sm font-semibold text-slate-700
-                         dark:text-slate-200">2. Contenido</legend>
+        <fieldset
+          class="rounded-2xl bg-white p-5 shadow ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800"
+        >
+          <legend class="px-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            2. Contenido
+          </legend>
           <div class="mt-3 space-y-3">
             <div>
               <label class="text-xs text-slate-500">Título</label>
-              <input type="text" formControlName="title" maxlength="200"
-                     class="mt-1 w-full rounded-lg border-slate-200
-                            dark:border-slate-700 dark:bg-slate-800
-                            focus:ring-emerald-500"/>
+              <input
+                type="text"
+                formControlName="title"
+                maxlength="200"
+                class="mt-1 w-full rounded-lg border-slate-200 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800"
+              />
             </div>
             <div>
-              <label class="text-xs text-slate-500">Cuerpo (HTML permitido:
-                h1-h3, p, ul, ol, li, strong, em, a href http(s) mailto,
-                br, table, thead, tbody, tr, th, td)</label>
-              <textarea formControlName="bodyHtml" rows="8"
-                        class="mt-1 w-full rounded-lg border-slate-200
-                               dark:border-slate-700 dark:bg-slate-800
-                               focus:ring-emerald-500 font-mono text-sm"></textarea>
+              <label class="text-xs text-slate-500"
+                >Cuerpo (HTML permitido: h1-h3, p, ul, ol, li, strong, em, a href http(s) mailto,
+                br, table, thead, tbody, tr, th, td)</label
+              >
+              <textarea
+                formControlName="bodyHtml"
+                rows="8"
+                class="mt-1 w-full rounded-lg border-slate-200 font-mono text-sm focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800"
+              ></textarea>
             </div>
-            <label class="flex items-center gap-2 text-sm text-slate-700
-                          dark:text-slate-200">
-              <input type="checkbox" formControlName="pinned"
-                     class="text-emerald-600"/>
+            <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+              <input type="checkbox" formControlName="pinned" class="text-emerald-600" />
               Fijar este anuncio (sale primero)
             </label>
           </div>
         </fieldset>
 
         <!-- Step 3: preview + actions -->
-        <fieldset class="rounded-2xl bg-white dark:bg-slate-900 shadow
-                         ring-1 ring-slate-200 dark:ring-slate-800 p-5">
-          <legend class="px-2 text-sm font-semibold text-slate-700
-                         dark:text-slate-200">3. Vista previa</legend>
-          <div class="mt-3 rounded-lg bg-slate-50 dark:bg-slate-800/40 p-4">
+        <fieldset
+          class="rounded-2xl bg-white p-5 shadow ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800"
+        >
+          <legend class="px-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            3. Vista previa
+          </legend>
+          <div class="mt-3 rounded-lg bg-slate-50 p-4 dark:bg-slate-800/40">
             <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
               {{ form.controls.title.value || '(sin título)' }}
             </h2>
-            <div class="mt-2 prose prose-sm dark:prose-invert max-w-none"
-                 [innerHTML]="safeBody()"></div>
+            <div
+              class="prose prose-sm mt-2 max-w-none dark:prose-invert"
+              [innerHTML]="safeBody()"
+            ></div>
           </div>
 
           <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
-            <button type="button" (click)="onSaveDraft()"
-                    class="rounded-lg border border-slate-200 dark:border-slate-700
-                           px-4 py-2 text-sm font-semibold text-slate-700
-                           dark:text-slate-200 hover:bg-slate-50
-                           dark:hover:bg-slate-800">
+            <button
+              type="button"
+              (click)="onSaveDraft()"
+              class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
               Guardar borrador
             </button>
-            <button type="submit"
-                    [disabled]="form.invalid || publishing()"
-                    class="rounded-lg bg-emerald-600 px-4 py-2 text-sm
-                           font-semibold text-white hover:bg-emerald-700
-                           disabled:opacity-50">
+            <button
+              type="submit"
+              [disabled]="form.invalid || publishing()"
+              class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
               {{ publishing() ? 'Publicando…' : 'Publicar ahora' }}
             </button>
           </div>
@@ -133,7 +145,7 @@ import { AnnouncementAudience } from '../../models/announcement.model';
         </fieldset>
       </form>
     </section>
-  `
+  `,
 })
 export class AnnouncementComposerPageComponent {
   private readonly fb = inject(FormBuilder);
@@ -142,12 +154,12 @@ export class AnnouncementComposerPageComponent {
   private readonly sanitizer = inject(DomSanitizer);
 
   readonly audienceOptions: { value: AnnouncementAudience; label: string }[] = [
-    { value: 'SCHOOL',   label: 'Toda la escuela' },
-    { value: 'GRADE',    label: 'Por grado' },
-    { value: 'SECTION',  label: 'Por sección' },
-    { value: 'COURSE',   label: 'Por curso' },
-    { value: 'ROLE',     label: 'Por rol (e.g. TEACHER)' },
-    { value: 'USER',     label: 'Usuarios específicos' }
+    { value: 'SCHOOL', label: 'Toda la escuela' },
+    { value: 'GRADE', label: 'Por grado' },
+    { value: 'SECTION', label: 'Por sección' },
+    { value: 'COURSE', label: 'Por curso' },
+    { value: 'ROLE', label: 'Por rol (e.g. TEACHER)' },
+    { value: 'USER', label: 'Usuarios específicos' },
   ];
 
   readonly form = this.fb.group({
@@ -155,7 +167,7 @@ export class AnnouncementComposerPageComponent {
     audienceIdsCsv: this.fb.nonNullable.control(''),
     title: this.fb.nonNullable.control('', [Validators.required, Validators.maxLength(200)]),
     bodyHtml: this.fb.nonNullable.control('', [Validators.required]),
-    pinned: this.fb.nonNullable.control(false)
+    pinned: this.fb.nonNullable.control(false),
   });
 
   readonly publishing = signal(false);
@@ -168,11 +180,12 @@ export class AnnouncementComposerPageComponent {
    * bug or migration could send raw `<script>` and we don't want
    * it to execute in the composer's preview iframe-less context.
    */
-  readonly safeBody = computed<SafeHtml>(() =>
-    this.sanitizer.sanitize(
-      this.sanitizer.SECURITY_CONTEXT,
-      this.form.controls.bodyHtml.value ?? ''
-    ) ?? ''
+  readonly safeBody = computed<SafeHtml>(
+    () =>
+      this.sanitizer.sanitize(
+        this.sanitizer.SECURITY_CONTEXT,
+        this.form.controls.bodyHtml.value ?? '',
+      ) ?? '',
   );
 
   async onSaveDraft(): Promise<void> {
@@ -210,9 +223,12 @@ export class AnnouncementComposerPageComponent {
       bodyHtml: v.bodyHtml,
       audienceType: v.audienceType,
       audienceIds: v.audienceIdsCsv
-        ? v.audienceIdsCsv.split(',').map(s => s.trim()).filter(Boolean)
+        ? v.audienceIdsCsv
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
         : [],
-      pinned: v.pinned
+      pinned: v.pinned,
     };
   }
 }

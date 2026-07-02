@@ -5,7 +5,7 @@ import {
   EmptyStateComponent,
   IconComponent,
   PageContainerComponent,
-  PageHeaderComponent
+  PageHeaderComponent,
 } from '@shared/components';
 
 /**
@@ -25,28 +25,19 @@ import {
     PageContainerComponent,
     PageHeaderComponent,
     EmptyStateComponent,
-    IconComponent
+    IconComponent,
   ],
   template: `
     <app-page-container>
-      <app-page-header
-        title="Asistencia"
-        subtitle="Control diario, historial y reportes."
-      >
-        <a
-          [routerLink]="scannerRoute"
-          class="btn btn-primary btn-sm"
-        >
+      <app-page-header title="Asistencia" subtitle="Control diario, historial y reportes.">
+        <a [routerLink]="scannerRoute" class="btn btn-primary btn-sm">
           <app-icon name="target" [size]="16" />
           <span class="hidden sm:inline">Abrir scanner</span>
         </a>
       </app-page-header>
 
       <div class="grid gap-3 sm:grid-cols-2">
-        <a
-          [routerLink]="scannerRoute"
-          class="card hover:shadow-md transition"
-        >
+        <a [routerLink]="scannerRoute" class="card transition hover:shadow-md">
           <div class="card-body flex flex-row items-center gap-3">
             <app-icon name="target" [size]="32" class="text-primary" />
             <div class="flex-1">
@@ -58,10 +49,7 @@ import {
             <app-icon name="chevron-right" [size]="20" class="text-content-subtle" />
           </div>
         </a>
-        <a
-          [routerLink]="sessionsRoute"
-          class="card hover:shadow-md transition"
-        >
+        <a [routerLink]="sessionsRoute" class="card transition hover:shadow-md">
           <div class="card-body flex flex-row items-center gap-3">
             <app-icon name="calendar-check" [size]="32" class="text-primary" />
             <div class="flex-1">
@@ -85,7 +73,7 @@ import {
         </div>
       </div>
     </app-page-container>
-  `
+  `,
 })
 export class AttendanceHomeComponent {
   protected readonly scannerRoute = ROUTES.ATTENDANCE.SCANNER;

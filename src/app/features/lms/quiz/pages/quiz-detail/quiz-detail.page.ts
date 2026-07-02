@@ -1,9 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  inject
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
@@ -44,7 +39,7 @@ import { isQuizCloseable, isQuizEditable, isQuizPublishable } from '../../models
     IconComponent,
     HasPermissionDirective,
     QuizLifecycleBadgeComponent,
-    QuestionTypeBadgeComponent
+    QuestionTypeBadgeComponent,
   ],
   template: `
     @if (loadingDetail()) {
@@ -103,10 +98,7 @@ import { isQuizCloseable, isQuizEditable, isQuizPublishable } from '../../models
           </ng-container>
           <ng-container *appHasPermission="permission.LmsQuizSubmit">
             @if (q.status === 'PUBLISHED') {
-              <a
-                [routerLink]="takeRoute(q.publicUuid)"
-                class="btn btn-primary btn-sm"
-              >
+              <a [routerLink]="takeRoute(q.publicUuid)" class="btn btn-primary btn-sm">
                 <app-icon name="play" [size]="14" />
                 Tomar quiz
               </a>
@@ -114,10 +106,7 @@ import { isQuizCloseable, isQuizEditable, isQuizPublishable } from '../../models
           </ng-container>
           <ng-container *appHasPermission="permission.LmsQuizGrade">
             @if (q.status === 'PUBLISHED' || q.status === 'CLOSED') {
-              <a
-                [routerLink]="gradeRoute(q.publicUuid)"
-                class="btn btn-ghost btn-sm"
-              >
+              <a [routerLink]="gradeRoute(q.publicUuid)" class="btn btn-ghost btn-sm">
                 <app-icon name="clipboard-check" [size]="14" />
                 Cola de grading
               </a>
@@ -190,15 +179,11 @@ import { isQuizCloseable, isQuizEditable, isQuizPublishable } from '../../models
           } @else {
             <ol class="space-y-4">
               @for (question of q.questions; track question.publicUuid; let i = $index) {
-                <li class="rounded-lg border border-base-200 p-4">
+                <li class="border-base-200 rounded-lg border p-4">
                   <header class="mb-2 flex items-center gap-2">
-                    <span class="text-sm font-semibold text-content-muted">
-                      {{ i + 1 }}.
-                    </span>
+                    <span class="text-sm font-semibold text-content-muted"> {{ i + 1 }}. </span>
                     <app-question-type-badge [type]="question.type" />
-                    <span class="text-xs text-content-muted">
-                      {{ question.points }} pts
-                    </span>
+                    <span class="text-xs text-content-muted"> {{ question.points }} pts </span>
                   </header>
 
                   <p class="text-sm text-content">{{ question.prompt }}</p>
@@ -232,8 +217,7 @@ import { isQuizCloseable, isQuizEditable, isQuizPublishable } from '../../models
                       </p>
                     } @else {
                       <p class="mt-2 text-sm text-content-muted">
-                        Pregunta de verdadero / falso. Se califica con
-                        retroalimentación al enviar.
+                        Pregunta de verdadero / falso. Se califica con retroalimentación al enviar.
                       </p>
                     }
                   } @else if (question.type === 'SHORT_ANSWER') {
@@ -252,8 +236,8 @@ import { isQuizCloseable, isQuizEditable, isQuizPublishable } from '../../models
                       }
                     } @else {
                       <p class="mt-2 text-sm text-content-muted">
-                        Pregunta de respuesta corta. El docente revisará
-                        manualmente (calificación tras submit).
+                        Pregunta de respuesta corta. El docente revisará manualmente (calificación
+                        tras submit).
                       </p>
                     }
                   }
@@ -276,9 +260,9 @@ import { isQuizCloseable, isQuizEditable, isQuizPublishable } from '../../models
         </button>
       </div>
     }
-  `
+  `,
 })
-export class QuizDetailPage implements OnInit {
+export class QuizDetailPageComponent implements OnInit {
   private readonly store = inject(QuizzesStore);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);

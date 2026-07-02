@@ -6,7 +6,7 @@ import {
   forwardRef,
   inject,
   input,
-  signal
+  signal,
 } from '@angular/core';
 import {
   ControlValueAccessor,
@@ -16,7 +16,7 @@ import {
   FormGroup,
   NG_VALUE_ACCESSOR,
   ReactiveFormsModule,
-  Validators
+  Validators,
 } from '@angular/forms';
 import { IconComponent } from '@shared/components';
 import {
@@ -37,7 +37,7 @@ import {
   isCriterionKeyValid,
   totalCriteriaWeight,
   uniqueCriterionKeys,
-  uniqueLevelCodes
+  uniqueLevelCodes,
 } from '../models';
 
 interface CriteriaLevelsValue {
@@ -73,8 +73,8 @@ interface CriteriaLevelsValue {
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => CriterionEditorComponent),
-      multi: true
-    }
+      multi: true,
+    },
   ],
   template: `
     <div class="grid gap-6">
@@ -84,8 +84,8 @@ interface CriteriaLevelsValue {
           <div>
             <h3 class="card-title">Niveles de logro</h3>
             <p class="card-description">
-              Entre {{ LEVELS_MIN }} y {{ LEVELS_MAX }} niveles. Cada criterio
-              puede tener un descriptor por nivel.
+              Entre {{ LEVELS_MIN }} y {{ LEVELS_MAX }} niveles. Cada criterio puede tener un
+              descriptor por nivel.
             </p>
           </div>
           <button
@@ -101,7 +101,7 @@ interface CriteriaLevelsValue {
 
         <div class="card-body grid gap-3">
           @for (lvl of levels.controls; let i = $index; track lvl) {
-            <div class="grid gap-2 sm:grid-cols-[120px_1fr_80px_auto] items-end">
+            <div class="grid items-end gap-2 sm:grid-cols-[120px_1fr_80px_auto]">
               <div class="field">
                 <label class="label text-xs">Código</label>
                 <input
@@ -159,13 +159,14 @@ interface CriteriaLevelsValue {
           <div>
             <h3 class="card-title">Criterios</h3>
             <p class="card-description">
-              Entre {{ CRITERIA_MIN }} y {{ CRITERIA_MAX }} criterios. La suma de
-              pesos debe ser <strong>{{ WEIGHT_SUM_TARGET }}</strong>.
+              Entre {{ CRITERIA_MIN }} y {{ CRITERIA_MAX }} criterios. La suma de pesos debe ser
+              <strong>{{ WEIGHT_SUM_TARGET }}</strong
+              >.
             </p>
           </div>
           <div class="flex items-center gap-3">
             <span
-              class="text-sm font-mono px-3 py-1 rounded"
+              class="rounded px-3 py-1 font-mono text-sm"
               [class.bg-success-50]="weightSumOk()"
               [class.text-success-700]="weightSumOk()"
               [class.bg-warning-50]="!weightSumOk() && weightSumTotal() > 0"
@@ -189,9 +190,7 @@ interface CriteriaLevelsValue {
 
         <div class="card-body grid gap-4">
           @for (c of criteria.controls; let ci = $index; track c) {
-            <article
-              class="rounded-lg border border-border-subtle p-4 grid gap-3"
-            >
+            <article class="grid gap-3 rounded-lg border border-border-subtle p-4">
               <div class="grid gap-3 sm:grid-cols-[160px_1fr_120px_auto]">
                 <div class="field">
                   <label class="label text-xs">Key (snake_case)</label>
@@ -255,11 +254,10 @@ interface CriteriaLevelsValue {
               </div>
 
               <details class="rounded border border-border-subtle px-3 py-2">
-                <summary class="text-sm cursor-pointer">
+                <summary class="cursor-pointer text-sm">
                   Descriptores por nivel
-                  <span class="text-xs text-content-muted ml-2">
-                    ({{ getDescriptors(ci).length }} de
-                    {{ levels.length }})
+                  <span class="ml-2 text-xs text-content-muted">
+                    ({{ getDescriptors(ci).length }} de {{ levels.length }})
                   </span>
                 </summary>
                 <div class="mt-3 grid gap-2">
@@ -272,7 +270,9 @@ interface CriteriaLevelsValue {
                       <textarea
                         class="input"
                         [value]="getDescriptorText(ci, lvl.get('code')?.value)"
-                        (change)="onDescriptorChange(ci, lvl.get('code')?.value, $any($event.target).value)"
+                        (change)="
+                          onDescriptorChange(ci, lvl.get('code')?.value, $any($event.target).value)
+                        "
                         rows="2"
                         [attr.maxlength]="DESCRIPTOR_TEXT_MAX_LENGTH"
                         [readonly]="readonly()"
@@ -291,7 +291,7 @@ interface CriteriaLevelsValue {
         </div>
       </section>
     </div>
-  `
+  `,
 })
 export class CriterionEditorComponent implements ControlValueAccessor {
   private readonly fb = inject(FormBuilder);
@@ -307,8 +307,7 @@ export class CriterionEditorComponent implements ControlValueAccessor {
   protected readonly CRITERIA_MAX = CRITERIA_MAX;
   protected readonly CRITERION_KEY_MAX_LENGTH = CRITERION_KEY_MAX_LENGTH;
   protected readonly CRITERION_NAME_MAX_LENGTH = CRITERION_NAME_MAX_LENGTH;
-  protected readonly CRITERION_DESCRIPTION_MAX_LENGTH =
-    CRITERION_DESCRIPTION_MAX_LENGTH;
+  protected readonly CRITERION_DESCRIPTION_MAX_LENGTH = CRITERION_DESCRIPTION_MAX_LENGTH;
   protected readonly DESCRIPTOR_TEXT_MAX_LENGTH = DESCRIPTOR_TEXT_MAX_LENGTH;
   protected readonly WEIGHT_SUM_TARGET = WEIGHT_SUM_TARGET;
 
@@ -322,7 +321,7 @@ export class CriterionEditorComponent implements ControlValueAccessor {
 
   protected readonly form: FormGroup = this.fb.group({
     levels: this.fb.array<FormGroup>([]),
-    criteria: this.fb.array<FormGroup>([])
+    criteria: this.fb.array<FormGroup>([]),
   });
 
   get levels(): FormArray<FormGroup> {
@@ -338,13 +337,13 @@ export class CriterionEditorComponent implements ControlValueAccessor {
     void this.formVersion();
     return totalCriteriaWeight(
       this.criteria.controls.map((c) => ({
-        weight: parseFloat(String(c.get('weight')?.value ?? 0))
-      }))
+        weight: parseFloat(String(c.get('weight')?.value ?? 0)),
+      })),
     );
   });
 
   protected readonly weightSumOk = computed(
-    () => Math.abs(this.weightSumTotal() - WEIGHT_SUM_TARGET) < 0.01
+    () => Math.abs(this.weightSumTotal() - WEIGHT_SUM_TARGET) < 0.01,
   );
 
   /** Dummy signal para invalidar computeds al cambiar el form. */
@@ -408,18 +407,15 @@ export class CriterionEditorComponent implements ControlValueAccessor {
     const levels: LevelInput[] = this.levels.controls.map((c) => ({
       code: c.get('code')?.value ?? '',
       name: c.get('name')?.value ?? '',
-      order: numberOrUndefined(c.get('order')?.value)
+      order: numberOrUndefined(c.get('order')?.value),
     }));
-    const criteria: CriterionInput[] = this.criteria.controls.map(
-      (c, ci): CriterionInput => ({
-        key: (c.get('key')?.value ?? '').trim(),
-        name: (c.get('name')?.value ?? '').trim(),
-        description:
-          ((c.get('description')?.value as string) ?? '').trim() || undefined,
-        weight: parseFloat(String(c.get('weight')?.value ?? 0)),
-        descriptors: this.collectDescriptors(ci, levels)
-      })
-    );
+    const criteria: CriterionInput[] = this.criteria.controls.map((c, ci): CriterionInput => ({
+      key: (c.get('key')?.value ?? '').trim(),
+      name: (c.get('name')?.value ?? '').trim(),
+      description: ((c.get('description')?.value as string) ?? '').trim() || undefined,
+      weight: parseFloat(String(c.get('weight')?.value ?? 0)),
+      descriptors: this.collectDescriptors(ci, levels),
+    }));
     return { levels, criteria };
   }
 
@@ -432,16 +428,12 @@ export class CriterionEditorComponent implements ControlValueAccessor {
       return false;
     }
     if (
-      !uniqueCriterionKeys(
-        this.criteria.controls.map((c) => ({ key: c.get('key')?.value ?? '' }))
-      )
+      !uniqueCriterionKeys(this.criteria.controls.map((c) => ({ key: c.get('key')?.value ?? '' })))
     ) {
       return false;
     }
     if (
-      !uniqueLevelCodes(
-        this.levels.controls.map((l) => ({ code: l.get('code')?.value ?? '' }))
-      )
+      !uniqueLevelCodes(this.levels.controls.map((l) => ({ code: l.get('code')?.value ?? '' })))
     ) {
       return false;
     }
@@ -486,8 +478,8 @@ export class CriterionEditorComponent implements ControlValueAccessor {
       this.levels.controls.map((c) => ({
         code: c.get('code')?.value ?? '',
         name: c.get('name')?.value ?? '',
-        order: numberOrUndefined(c.get('order')?.value)
-      }))
+        order: numberOrUndefined(c.get('order')?.value),
+      })),
     );
   }
 
@@ -499,7 +491,7 @@ export class CriterionEditorComponent implements ControlValueAccessor {
   protected onDescriptorChange(
     criterionIndex: number,
     levelCode: string | undefined,
-    text: string
+    text: string,
   ): void {
     if (!levelCode) return;
     this.descriptorsMap.update((m) => {
@@ -530,9 +522,7 @@ export class CriterionEditorComponent implements ControlValueAccessor {
   protected criteriaError(): string | null {
     if (this.criteria.length === 0) return 'Debe haber al menos un criterio.';
     if (
-      !uniqueCriterionKeys(
-        this.criteria.controls.map((c) => ({ key: c.get('key')?.value ?? '' }))
-      )
+      !uniqueCriterionKeys(this.criteria.controls.map((c) => ({ key: c.get('key')?.value ?? '' })))
     ) {
       return 'Las keys de criterios deben ser únicas.';
     }
@@ -547,9 +537,7 @@ export class CriterionEditorComponent implements ControlValueAccessor {
       return `Debe haber al menos ${LEVELS_MIN} niveles.`;
     }
     if (
-      !uniqueLevelCodes(
-        this.levels.controls.map((l) => ({ code: l.get('code')?.value ?? '' }))
-      )
+      !uniqueLevelCodes(this.levels.controls.map((l) => ({ code: l.get('code')?.value ?? '' })))
     ) {
       return 'Los códigos de nivel deben ser únicos.';
     }
@@ -566,15 +554,15 @@ export class CriterionEditorComponent implements ControlValueAccessor {
     return this.fb.group({
       code: new FormControl(lvl.code ?? '', {
         nonNullable: true,
-        validators: [Validators.required, Validators.maxLength(LEVEL_CODE_MAX_LENGTH)]
+        validators: [Validators.required, Validators.maxLength(LEVEL_CODE_MAX_LENGTH)],
       }),
       name: new FormControl(lvl.name ?? '', {
         nonNullable: true,
-        validators: [Validators.required, Validators.maxLength(LEVEL_NAME_MAX_LENGTH)]
+        validators: [Validators.required, Validators.maxLength(LEVEL_NAME_MAX_LENGTH)],
       }),
       order: new FormControl(lvl.order ?? null, {
-        validators: [Validators.min(0)]
-      })
+        validators: [Validators.min(0)],
+      }),
     });
   }
 
@@ -585,21 +573,21 @@ export class CriterionEditorComponent implements ControlValueAccessor {
         validators: [
           Validators.required,
           Validators.maxLength(CRITERION_KEY_MAX_LENGTH),
-          Validators.pattern(CRITERION_KEY_PATTERN)
-        ]
+          Validators.pattern(CRITERION_KEY_PATTERN),
+        ],
       }),
       name: new FormControl(c.name ?? '', {
         nonNullable: true,
-        validators: [Validators.required, Validators.maxLength(CRITERION_NAME_MAX_LENGTH)]
+        validators: [Validators.required, Validators.maxLength(CRITERION_NAME_MAX_LENGTH)],
       }),
       description: new FormControl(c.description ?? '', {
         nonNullable: true,
-        validators: [Validators.maxLength(CRITERION_DESCRIPTION_MAX_LENGTH)]
+        validators: [Validators.maxLength(CRITERION_DESCRIPTION_MAX_LENGTH)],
       }),
       weight: new FormControl(c.weight ?? 0, {
         nonNullable: true,
-        validators: [Validators.required, Validators.min(0), Validators.max(100)]
-      })
+        validators: [Validators.required, Validators.min(0), Validators.max(100)],
+      }),
     });
   }
 
@@ -616,7 +604,7 @@ export class CriterionEditorComponent implements ControlValueAccessor {
       { code: 'AD', name: 'Logro destacado', order: 0 },
       { code: 'A', name: 'Logro esperado', order: 1 },
       { code: 'B', name: 'En proceso', order: 2 },
-      { code: 'C', name: 'En inicio', order: 3 }
+      { code: 'C', name: 'En inicio', order: 3 },
     ];
   }
 
@@ -626,13 +614,11 @@ export class CriterionEditorComponent implements ControlValueAccessor {
 
   private collectDescriptors(
     criterionIndex: number,
-    levels: LevelInput[]
+    levels: LevelInput[],
   ): { level: string; text: string }[] {
     const out: { level: string; text: string }[] = [];
     for (const lvl of levels) {
-      const txt = this.descriptorsMap().get(
-        this.descriptorKey(criterionIndex, lvl.code)
-      );
+      const txt = this.descriptorsMap().get(this.descriptorKey(criterionIndex, lvl.code));
       if (txt) out.push({ level: lvl.code, text: txt });
     }
     return out;

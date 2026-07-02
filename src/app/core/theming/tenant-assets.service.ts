@@ -26,7 +26,7 @@ export class TenantAssetsService {
   private readonly theme = inject(ThemeService);
 
   private readonly logo = computed<TenantLogo | null>(
-    () => this.tenant.tenant()?.branding?.logo ?? null
+    () => this.tenant.tenant()?.branding?.logo ?? null,
   );
 
   readonly fullLogoUrl = computed<string | null>(() => {

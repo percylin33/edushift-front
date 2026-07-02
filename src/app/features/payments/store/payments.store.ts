@@ -14,18 +14,26 @@ export class PaymentsStore {
   readonly error = this._error.asReadonly();
 
   readonly overdueCount = computed(
-    () => this._invoices().filter((i) => i.status === 'overdue').length
+    () => this._invoices().filter((i) => i.status === 'overdue').length,
   );
   readonly totalDue = computed(() =>
     this._invoices()
       .filter((i) => i.status === 'issued' || i.status === 'overdue')
-      .reduce((acc, i) => acc + i.amount, 0)
+      .reduce((acc, i) => acc + i.amount, 0),
   );
 
-  setInvoices(invoices: Invoice[]): void { this._invoices.set(invoices); }
-  setTransactions(transactions: Transaction[]): void { this._transactions.set(transactions); }
-  setLoading(value: boolean): void { this._loading.set(value); }
-  setError(error: string | null): void { this._error.set(error); }
+  setInvoices(invoices: Invoice[]): void {
+    this._invoices.set(invoices);
+  }
+  setTransactions(transactions: Transaction[]): void {
+    this._transactions.set(transactions);
+  }
+  setLoading(value: boolean): void {
+    this._loading.set(value);
+  }
+  setError(error: string | null): void {
+    this._error.set(error);
+  }
 
   reset(): void {
     this._invoices.set([]);

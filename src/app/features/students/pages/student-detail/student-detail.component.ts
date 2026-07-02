@@ -5,7 +5,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
@@ -13,12 +13,12 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import {
   EnrollmentStatusBadgeComponent,
   EnrollmentsSectionComponent,
-  GuardiansSectionComponent
+  GuardiansSectionComponent,
 } from '../../components';
 import { StudentsStore } from '../../store';
 import { StudentDetail } from '../../models';
@@ -51,7 +51,7 @@ import { StudentDetail } from '../../models';
     SpinnerComponent,
     EnrollmentStatusBadgeComponent,
     EnrollmentsSectionComponent,
-    GuardiansSectionComponent
+    GuardiansSectionComponent,
   ],
   template: `
     <app-page-container size="default">
@@ -142,7 +142,7 @@ import { StudentDetail } from '../../models';
               @if (s.userId) {
                 <div>
                   <p class="text-2xs uppercase tracking-wider text-content-subtle">Cuenta</p>
-                  <p class="text-xs font-mono text-content-muted">{{ s.userId }}</p>
+                  <p class="font-mono text-xs text-content-muted">{{ s.userId }}</p>
                 </div>
               }
             </div>
@@ -156,7 +156,7 @@ import { StudentDetail } from '../../models';
             <div class="card-body grid gap-4 sm:grid-cols-3">
               <div>
                 <p class="text-2xs uppercase tracking-wider text-content-subtle">Email</p>
-                <p class="text-sm text-content break-all">{{ s.email ?? '—' }}</p>
+                <p class="break-all text-sm text-content">{{ s.email ?? '—' }}</p>
               </div>
               <div>
                 <p class="text-2xs uppercase tracking-wider text-content-subtle">Teléfono</p>
@@ -199,14 +199,16 @@ import { StudentDetail } from '../../models';
             <app-icon name="alert-circle" [size]="18" />
             <div class="flex-1">
               <p class="font-medium">No pudimos cargar el estudiante.</p>
-              <p class="mt-1 text-xs opacity-80">{{ errorMessage() ?? 'Recurso no encontrado.' }}</p>
+              <p class="mt-1 text-xs opacity-80">
+                {{ errorMessage() ?? 'Recurso no encontrado.' }}
+              </p>
             </div>
             <a [routerLink]="listRoute" class="btn btn-ghost btn-sm">Volver al listado</a>
           </div>
         </div>
       }
     </app-page-container>
-  `
+  `,
 })
 export class StudentDetailComponent implements OnInit {
   private readonly store = inject(StudentsStore);
@@ -245,11 +247,16 @@ export class StudentDetailComponent implements OnInit {
   protected formatGender(gender: StudentDetail['gender']): string {
     if (!gender) return '—';
     switch (gender) {
-      case 'MALE':          return 'Masculino';
-      case 'FEMALE':        return 'Femenino';
-      case 'OTHER':         return 'Otro';
-      case 'NOT_SPECIFIED': return 'Sin especificar';
-      default:              return gender;
+      case 'MALE':
+        return 'Masculino';
+      case 'FEMALE':
+        return 'Femenino';
+      case 'OTHER':
+        return 'Otro';
+      case 'NOT_SPECIFIED':
+        return 'Sin especificar';
+      default:
+        return gender;
     }
   }
 
@@ -258,7 +265,7 @@ export class StudentDetailComponent implements OnInit {
     return date.toLocaleDateString('es', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 
@@ -269,7 +276,7 @@ export class StudentDetailComponent implements OnInit {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 
@@ -292,7 +299,7 @@ export class StudentDetailComponent implements OnInit {
      * flow stabilizes. Promote to {@code app-confirm-dialog} the
      * second another delete flow lands. */
     const ok = window.confirm(
-      `¿Eliminar a ${student.fullName}? Esta acción es reversible (soft delete).`
+      `¿Eliminar a ${student.fullName}? Esta acción es reversible (soft delete).`,
     );
     if (!ok) return;
 

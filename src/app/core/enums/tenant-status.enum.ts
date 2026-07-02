@@ -12,5 +12,5 @@ export enum TenantStatus {
   Pending = 'PENDING',
   Active = 'ACTIVE',
   Suspended = 'SUSPENDED',
-  Inactive = 'INACTIVE'
+  Inactive = 'INACTIVE',
 }

@@ -5,19 +5,15 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import {
-  EmptyStateComponent,
-  IconComponent,
-  SpinnerComponent
-} from '@shared/components';
+import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
 import {
   AcademicYearStatusBadgeComponent,
   PeriodFormModalComponent,
-  PeriodTimelineComponent
+  PeriodTimelineComponent,
 } from '../../components';
 import { TimelinePreviewItem } from '../../components/period-timeline.component';
 import { AcademicStore } from '../../store';
@@ -29,7 +25,7 @@ import {
   PERIOD_TYPE_LABELS,
   PeriodType,
   planBulkPeriods,
-  toLocalDateString
+  toLocalDateString,
 } from '../../models';
 
 /**
@@ -70,15 +66,15 @@ import {
     SpinnerComponent,
     AcademicYearStatusBadgeComponent,
     PeriodTimelineComponent,
-    PeriodFormModalComponent
+    PeriodFormModalComponent,
   ],
   template: `
     <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div class="min-w-0">
         <h2 class="text-lg font-semibold text-content">Periodos</h2>
         <p class="text-sm text-content-muted">
-          Bimestres, trimestres o periodo anual del año académico. Los
-          rangos no pueden solapar entre periodos del mismo tipo.
+          Bimestres, trimestres o periodo anual del año académico. Los rangos no pueden solapar
+          entre periodos del mismo tipo.
         </p>
       </div>
       <div class="flex flex-wrap gap-2 self-start sm:self-auto">
@@ -131,9 +127,7 @@ import {
           >
             <option [ngValue]="null">— Año activo —</option>
             @for (y of years(); track y.publicUuid) {
-              <option [ngValue]="y.publicUuid">
-                {{ y.name }} · {{ statusLabel(y.status) }}
-              </option>
+              <option [ngValue]="y.publicUuid">{{ y.name }} · {{ statusLabel(y.status) }}</option>
             }
           </select>
         </div>
@@ -205,9 +199,7 @@ import {
             <p class="font-medium">No pudimos cargar los periodos.</p>
             <p class="mt-1 text-xs opacity-80">{{ errorMessage() }}</p>
           </div>
-          <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">
-            Reintentar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">Reintentar</button>
         </div>
       } @else if (filteredPeriods().length === 0) {
         <app-empty-state
@@ -245,14 +237,14 @@ import {
                   </td>
                   <td>
                     <p class="font-medium text-content">{{ row.name }}</p>
-                    <p class="sm:hidden text-xs text-content-muted">
+                    <p class="text-xs text-content-muted sm:hidden">
                       {{ formatDate(row.startDate) }} → {{ formatDate(row.endDate) }}
                     </p>
                   </td>
-                  <td class="hidden sm:table-cell text-content-muted">
+                  <td class="hidden text-content-muted sm:table-cell">
                     {{ formatDate(row.startDate) }}
                   </td>
-                  <td class="hidden sm:table-cell text-content-muted">
+                  <td class="hidden text-content-muted sm:table-cell">
                     {{ formatDate(row.endDate) }}
                   </td>
                   <td class="text-right">
@@ -273,7 +265,11 @@ import {
                         [disabled]="saving() || !canDeleteRow(row)"
                         (click)="confirmDelete(row)"
                         [attr.aria-label]="'Eliminar ' + row.name"
-                        [title]="canDeleteRow(row) ? '' : 'Solo se puede borrar el último ordinal del par (year, tipo)'"
+                        [title]="
+                          canDeleteRow(row)
+                            ? ''
+                            : 'Solo se puede borrar el último ordinal del par (year, tipo)'
+                        "
                       >
                         <app-icon name="trash-2" [size]="16" />
                         <span class="hidden sm:inline">Eliminar</span>
@@ -297,7 +293,7 @@ import {
         (saved)="onSaved()"
       />
     }
-  `
+  `,
 })
 export class PeriodsListComponent implements OnInit {
   private readonly store = inject(AcademicStore);
@@ -326,7 +322,7 @@ export class PeriodsListComponent implements OnInit {
     label: string;
   }> = (Object.keys(PERIOD_TYPE_LABELS) as PeriodType[]).map((v) => ({
     value: v,
-    label: PERIOD_TYPE_LABELS[v]
+    label: PERIOD_TYPE_LABELS[v],
   }));
 
   // ---------------------------------------------------------------------------
@@ -346,9 +342,7 @@ export class PeriodsListComponent implements OnInit {
 
   protected readonly canMutate = computed<boolean>(() => this.canCreate());
 
-  protected readonly canBulkGenerate = computed<boolean>(() =>
-    this.canCreate()
-  );
+  protected readonly canBulkGenerate = computed<boolean>(() => this.canCreate());
 
   protected readonly bulkButtonTooltip = computed<string>(() => {
     const y = this.resolvedYear();
@@ -446,14 +440,10 @@ export class PeriodsListComponent implements OnInit {
     if (!this.canMutate()) return false;
     const sameTuple = this.periods().filter(
       (p) =>
-        p.academicYearPublicUuid === row.academicYearPublicUuid &&
-        p.periodType === row.periodType
+        p.academicYearPublicUuid === row.academicYearPublicUuid && p.periodType === row.periodType,
     );
     if (sameTuple.length === 0) return true;
-    const max = sameTuple.reduce(
-      (acc, p) => Math.max(acc, p.ordinal),
-      0
-    );
+    const max = sameTuple.reduce((acc, p) => Math.max(acc, p.ordinal), 0);
     return row.ordinal === max;
   }
 
@@ -461,7 +451,7 @@ export class PeriodsListComponent implements OnInit {
     const ok = confirm(
       `¿Eliminar el periodo "${row.name}"?\n\n` +
         'Solo se puede borrar el último ordinal del par (año, tipo). Si\n' +
-        'querés renumerar, borrá de mayor a menor y recreá los que falten.'
+        'querés renumerar, borrá de mayor a menor y recreá los que falten.',
     );
     if (!ok) return;
     await this.store.deletePeriod(row.publicUuid);
@@ -485,14 +475,11 @@ export class PeriodsListComponent implements OnInit {
     const plan = planBulkPeriods(year.startDate, year.endDate, type);
 
     const existingSameType = this.periods().filter(
-      (p) =>
-        p.academicYearPublicUuid === year.publicUuid &&
-        p.periodType === type
+      (p) => p.academicYearPublicUuid === year.publicUuid && p.periodType === type,
     ).length;
 
     const lines = plan.parts.map(
-      (p) =>
-        `  • ${p.name} → ${this.formatDate(p.startDate)} - ${this.formatDate(p.endDate)}`
+      (p) => `  • ${p.name} → ${this.formatDate(p.startDate)} - ${this.formatDate(p.endDate)}`,
     );
     const header =
       existingSameType > 0
@@ -508,14 +495,14 @@ export class PeriodsListComponent implements OnInit {
       name: p.name,
       startDate: toLocalDateString(p.startDate),
       endDate: toLocalDateString(p.endDate),
-      periodType: type
+      periodType: type,
     }));
 
     const result = await this.store.createPeriodsBulk(year.publicUuid, bulkInput);
     if (!result.success && result.failedAt !== undefined) {
       alert(
         `Se crearon ${result.failedAt - 1} periodo(s) y luego falló.\n` +
-          'Revisa el banner de error y reintenta el resto manualmente.'
+          'Revisa el banner de error y reintenta el resto manualmente.',
       );
     }
   }
@@ -530,9 +517,12 @@ export class PeriodsListComponent implements OnInit {
 
   protected statusLabel(status: AcademicYearStatus): string {
     switch (status) {
-      case AcademicYearStatus.Planning: return 'Planificación';
-      case AcademicYearStatus.Active:   return 'Activo';
-      case AcademicYearStatus.Closed:   return 'Cerrado';
+      case AcademicYearStatus.Planning:
+        return 'Planificación';
+      case AcademicYearStatus.Active:
+        return 'Activo';
+      case AcademicYearStatus.Closed:
+        return 'Cerrado';
     }
   }
 
@@ -540,7 +530,7 @@ export class PeriodsListComponent implements OnInit {
     return d.toLocaleDateString('es', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 
@@ -551,7 +541,7 @@ export class PeriodsListComponent implements OnInit {
   private async applyServerFilters(): Promise<void> {
     await this.store.applyPeriodFilters({
       academicYearPublicUuid: this.yearFilter() ?? undefined,
-      periodType: this.typeFilter() ?? undefined
+      periodType: this.typeFilter() ?? undefined,
     });
   }
 
@@ -565,18 +555,16 @@ export class PeriodsListComponent implements OnInit {
       relativeTo: this.route,
       queryParams: {
         yearId: this.yearFilter() || null,
-        periodType: this.typeFilter() ?? null
+        periodType: this.typeFilter() ?? null,
       },
       queryParamsHandling: 'merge',
-      replaceUrl: true
+      replaceUrl: true,
     });
   }
 
   private parsePeriodType(value: string | null): PeriodType | null {
     if (!value) return null;
-    return (Object.values(PeriodType) as string[]).includes(value)
-      ? (value as PeriodType)
-      : null;
+    return (Object.values(PeriodType) as string[]).includes(value) ? (value as PeriodType) : null;
   }
 
   /**
@@ -589,12 +577,10 @@ export class PeriodsListComponent implements OnInit {
   private fetchDetail(publicUuid: string): AcademicPeriodDetail | null {
     const row = this.periods().find((p) => p.publicUuid === publicUuid);
     if (!row) return null;
-    const year = this.years().find(
-      (y) => y.publicUuid === row.academicYearPublicUuid
-    );
+    const year = this.years().find((y) => y.publicUuid === row.academicYearPublicUuid);
     return {
       ...row,
-      academicYearName: year?.name ?? ''
+      academicYearName: year?.name ?? '',
     };
   }
 }

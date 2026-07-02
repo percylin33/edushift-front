@@ -32,11 +32,17 @@ describe('TasksStore', () => {
       sectionLabel: 'Sección A',
       courseLabel: 'Matemáticas',
       createdAt: new Date('2026-01-01T00:00:00Z'),
-      ...overrides
+      ...overrides,
     };
   }
 
-  function detailOf(overrides: Partial<{ publicUuid: string; lifecycle: TaskLifecycle; submissionsCount: number }> = {}) {
+  function detailOf(
+    overrides: Partial<{
+      publicUuid: string;
+      lifecycle: TaskLifecycle;
+      submissionsCount: number;
+    }> = {},
+  ) {
     return {
       publicUuid: 't-1',
       sectionPublicUuid: 's-1',
@@ -53,7 +59,7 @@ describe('TasksStore', () => {
       createdAt: new Date('2026-01-01T00:00:00Z'),
       updatedAt: null,
       submissionsCount: 0,
-      ...overrides
+      ...overrides,
     };
   }
 
@@ -65,7 +71,7 @@ describe('TasksStore', () => {
       'createTask',
       'updateTask',
       'publishTask',
-      'closeTask'
+      'closeTask',
     ]);
 
     // default: empty listing
@@ -73,10 +79,7 @@ describe('TasksStore', () => {
     mockApi.listByStudent.and.returnValue(asObservable([]));
 
     TestBed.configureTestingModule({
-      providers: [
-        TasksStore,
-        { provide: TaskApiService, useValue: mockApi }
-      ]
+      providers: [TasksStore, { provide: TaskApiService, useValue: mockApi }],
     });
     store = TestBed.inject(TasksStore);
   });
@@ -114,13 +117,15 @@ describe('TasksStore', () => {
 
     expect(mockApi.listBySection).toHaveBeenCalledTimes(2);
     expect(mockApi.listBySection.calls.mostRecent().args[1]).toEqual({
-      lifecycle: TaskLifecycle.Published
+      lifecycle: TaskLifecycle.Published,
     });
   });
 
   it('publishing a task mirrors the lifecycle into the listing row', async () => {
     mockApi.listBySection.and.returnValue(asObservable([rowOf()]));
-    mockApi.publishTask.and.returnValue(asObservable(detailOf({ lifecycle: TaskLifecycle.Published, submissionsCount: 2 })));
+    mockApi.publishTask.and.returnValue(
+      asObservable(detailOf({ lifecycle: TaskLifecycle.Published, submissionsCount: 2 })),
+    );
 
     await store.loadBySection('s-1');
     const updated = await store.publishTask('t-1');
@@ -132,7 +137,9 @@ describe('TasksStore', () => {
   });
 
   it('closing a task mirrors the lifecycle into the listing row', async () => {
-    mockApi.listBySection.and.returnValue(asObservable([rowOf({ lifecycle: TaskLifecycle.Published })]));
+    mockApi.listBySection.and.returnValue(
+      asObservable([rowOf({ lifecycle: TaskLifecycle.Published })]),
+    );
     mockApi.closeTask.and.returnValue(asObservable(detailOf({ lifecycle: TaskLifecycle.Closed })));
 
     await store.loadBySection('s-1');

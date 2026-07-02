@@ -6,7 +6,7 @@ import {
   TaskDetail,
   TaskLifecycle,
   TaskRow,
-  UpdateTaskRequest
+  UpdateTaskRequest,
 } from '../models';
 
 /**
@@ -79,11 +79,9 @@ export class TasksStore {
   readonly saving = this._saving.asReadonly();
   readonly error = this._error.asReadonly();
 
-  readonly isEmpty = computed(
-    () => !this._loading() && this._rows().length === 0
-  );
+  readonly isEmpty = computed(() => !this._loading() && this._rows().length === 0);
   readonly isStudentEmpty = computed(
-    () => !this._loadingStudent() && this._studentRows().length === 0
+    () => !this._loadingStudent() && this._studentRows().length === 0,
   );
 
   // ---------------------------------------------------------------------------
@@ -97,11 +95,10 @@ export class TasksStore {
    */
   async loadBySection(
     sectionUuid: string,
-    filters: { lifecycle?: TaskLifecycle } = {}
+    filters: { lifecycle?: TaskLifecycle } = {},
   ): Promise<void> {
     const sameSection = this._currentSectionUuid() === sectionUuid;
-    const sameFilter =
-      this._filters().lifecycle === (filters.lifecycle ?? undefined);
+    const sameFilter = this._filters().lifecycle === (filters.lifecycle ?? undefined);
     if (sameSection && sameFilter && this._rows().length > 0) return;
 
     this._currentSectionUuid.set(sectionUuid);
@@ -109,9 +106,7 @@ export class TasksStore {
     this._loading.set(true);
     this._error.set(null);
     try {
-      const rows = await firstValueFrom(
-        this.api.listBySection(sectionUuid, filters)
-      );
+      const rows = await firstValueFrom(this.api.listBySection(sectionUuid, filters));
       this._rows.set(rows);
     } catch {
       this._rows.set([]);
@@ -193,10 +188,7 @@ export class TasksStore {
     }
   }
 
-  async updateTask(
-    publicUuid: string,
-    patch: UpdateTaskRequest
-  ): Promise<TaskDetail | null> {
+  async updateTask(publicUuid: string, patch: UpdateTaskRequest): Promise<TaskDetail | null> {
     this._saving.set(true);
     this._error.set(null);
     try {
@@ -221,9 +213,7 @@ export class TasksStore {
       this.refreshRowFromDetail(published);
       return published;
     } catch {
-      this._error.set(
-        'No pudimos publicar la tarea. Verifica que tenga fecha de entrega.'
-      );
+      this._error.set('No pudimos publicar la tarea. Verifica que tenga fecha de entrega.');
       return null;
     } finally {
       this._saving.set(false);
@@ -272,22 +262,20 @@ export class TasksStore {
                 dueAt: detail.dueAt,
                 maxScore: detail.maxScore,
                 lifecycle: detail.lifecycle,
-                submissionsCount: detail.submissionsCount
+                submissionsCount: detail.submissionsCount,
               }
-            : r
-        )
+            : r,
+        ),
       );
     }
-    const inStudent = this._studentRows().some(
-      (r) => r.publicUuid === detail.publicUuid
-    );
+    const inStudent = this._studentRows().some((r) => r.publicUuid === detail.publicUuid);
     if (inStudent) {
       this._studentRows.update((rows) =>
         rows.map((r) =>
           r.publicUuid === detail.publicUuid
             ? { ...r, title: detail.title, dueAt: detail.dueAt, maxScore: detail.maxScore }
-            : r
-        )
+            : r,
+        ),
       );
     }
   }

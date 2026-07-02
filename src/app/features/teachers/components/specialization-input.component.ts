@@ -6,13 +6,9 @@ import {
   ViewChild,
   computed,
   forwardRef,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  ControlValueAccessor,
-  FormsModule,
-  NG_VALUE_ACCESSOR
-} from '@angular/forms';
+import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { IconComponent } from '@shared/components';
 import { SPECIALIZATION_CATALOG } from '../models';
 
@@ -52,15 +48,11 @@ import { SPECIALIZATION_CATALOG } from '../models';
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => SpecializationInputComponent),
-      multi: true
-    }
+      multi: true,
+    },
   ],
   template: `
-    <div
-      class="spec-input"
-      [class.spec-input--disabled]="disabled()"
-      (click)="focusInput()"
-    >
+    <div class="spec-input" [class.spec-input--disabled]="disabled()" (click)="focusInput()">
       @for (chip of selected(); track chip) {
         <span class="spec-chip">
           <span class="spec-chip__label">{{ chip }}</span>
@@ -154,7 +146,9 @@ import { SPECIALIZATION_CATALOG } from '../models';
         display: inline-flex;
         align-items: center;
       }
-      .spec-chip__remove:hover { opacity: 1; }
+      .spec-chip__remove:hover {
+        opacity: 1;
+      }
       .spec-input__field {
         flex: 1;
         min-width: 6rem;
@@ -191,8 +185,8 @@ import { SPECIALIZATION_CATALOG } from '../models';
         background: rgb(var(--color-primary-50-rgb, 239 246 255));
         color: rgb(var(--color-primary-700-rgb, 29 78 216));
       }
-    `
-  ]
+    `,
+  ],
 })
 export class SpecializationInputComponent implements ControlValueAccessor {
   protected readonly placeholder = 'Matemática, Comunicación…';
@@ -318,9 +312,7 @@ export class SpecializationInputComponent implements ControlValueAccessor {
     if (value.length === 0) return;
     if (value.length > 100) return; // espejo del @Size(max=100) del back
 
-    const exists = this.selected().some(
-      (s) => s.toLowerCase() === value.toLowerCase()
-    );
+    const exists = this.selected().some((s) => s.toLowerCase() === value.toLowerCase());
     if (exists) {
       this.query.set('');
       this.activeOption.set(null);

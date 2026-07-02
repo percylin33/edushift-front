@@ -15,12 +15,9 @@ import {
   StudentRow,
   UpdateGuardianLinkRequest,
   UpdateStudentRequest,
-  WithdrawEnrollmentRequest
+  WithdrawEnrollmentRequest,
 } from '../models';
-import {
-  StudentEnrollmentStatus,
-  isTerminalBulkImportStatus
-} from '@core/enums';
+import { StudentEnrollmentStatus, isTerminalBulkImportStatus } from '@core/enums';
 
 interface PaginationState {
   /** Zero-based page index (Spring contract). */
@@ -63,7 +60,7 @@ export class StudentsStore {
     page: 0,
     size: 20,
     totalElements: 0,
-    totalPages: 0
+    totalPages: 0,
   });
   private readonly _loading = signal(false);
 
@@ -120,8 +117,8 @@ export class StudentsStore {
    * hay matrícula histórica de un año anterior re-leída por error;
    * tomamos la primera para no romper el render.
    */
-  readonly activeEnrollment = computed<EnrollmentRow | null>(() =>
-    this._enrollments().find((e) => e.active) ?? null
+  readonly activeEnrollment = computed<EnrollmentRow | null>(
+    () => this._enrollments().find((e) => e.active) ?? null,
   );
 
   readonly error = this._error.asReadonly();
@@ -165,14 +162,12 @@ export class StudentsStore {
         page: result.number,
         size: result.size,
         totalElements: result.totalElements,
-        totalPages: result.totalPages
+        totalPages: result.totalPages,
       });
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._items.set([]);
-    }
-    finally {
+    } finally {
       this._loading.set(false);
     }
   }
@@ -189,13 +184,11 @@ export class StudentsStore {
       const detail = await firstValueFrom(this.api.get(publicUuid));
       this._selected.set(detail);
       return detail;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._selected.set(null);
       return null;
-    }
-    finally {
+    } finally {
       this._loadingDetail.set(false);
     }
   }
@@ -213,12 +206,10 @@ export class StudentsStore {
        * since the list page reissues {@link #loadList} on entry. */
       this._items.update((rows) => [this.toRow(created), ...rows]);
       return created;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
@@ -232,12 +223,10 @@ export class StudentsStore {
       this._selected.set(updated);
       this.upsertRow(updated);
       return updated;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
@@ -253,12 +242,10 @@ export class StudentsStore {
         this._selected.set(null);
       }
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return false;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
@@ -277,8 +264,7 @@ export class StudentsStore {
     this._error.set(null);
     try {
       return await firstValueFrom(this.api.downloadTemplate());
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
     }
@@ -301,12 +287,10 @@ export class StudentsStore {
         this.scheduleBulkPoll(job.publicUuid);
       }
       return job;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._bulkUploading.set(false);
     }
   }
@@ -327,12 +311,10 @@ export class StudentsStore {
     try {
       const guardians = await firstValueFrom(this.api.listGuardians(studentPublicUuid));
       this._guardians.set(guardians);
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._guardians.set([]);
-    }
-    finally {
+    } finally {
       this._loadingGuardians.set(false);
     }
   }
@@ -345,15 +327,13 @@ export class StudentsStore {
    */
   async addGuardian(
     studentPublicUuid: string,
-    request: AddGuardianRequest
+    request: AddGuardianRequest,
   ): Promise<Guardian | null> {
     this._savingGuardian.set(true);
     this._error.set(null);
 
     try {
-      const guardian = await firstValueFrom(
-        this.api.addGuardian(studentPublicUuid, request)
-      );
+      const guardian = await firstValueFrom(this.api.addGuardian(studentPublicUuid, request));
       /* If the new guardian was promoted to primary, demote any
        * existing primary so the local view matches the backend
        * (which handles the swap server-side). The other contact
@@ -361,20 +341,16 @@ export class StudentsStore {
       if (guardian.isPrimaryContact) {
         this._guardians.update((list) =>
           list.map((g) =>
-            g.linkPublicUuid === guardian.linkPublicUuid
-              ? g
-              : { ...g, isPrimaryContact: false }
-          )
+            g.linkPublicUuid === guardian.linkPublicUuid ? g : { ...g, isPrimaryContact: false },
+          ),
         );
       }
       this._guardians.update((list) => [...list, guardian]);
       return guardian;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingGuardian.set(false);
     }
   }
@@ -388,14 +364,14 @@ export class StudentsStore {
   async updateGuardianLink(
     studentPublicUuid: string,
     guardianPublicUuid: string,
-    patch: UpdateGuardianLinkRequest
+    patch: UpdateGuardianLinkRequest,
   ): Promise<Guardian | null> {
     this._savingGuardian.set(true);
     this._error.set(null);
 
     try {
       const updated = await firstValueFrom(
-        this.api.updateGuardianLink(studentPublicUuid, guardianPublicUuid, patch)
+        this.api.updateGuardianLink(studentPublicUuid, guardianPublicUuid, patch),
       );
       this._guardians.update((list) =>
         list.map((g) => {
@@ -404,15 +380,13 @@ export class StudentsStore {
             return { ...g, isPrimaryContact: false };
           }
           return g;
-        })
+        }),
       );
       return updated;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingGuardian.set(false);
     }
   }
@@ -420,25 +394,19 @@ export class StudentsStore {
   async unlinkGuardian(
     studentPublicUuid: string,
     guardianPublicUuid: string,
-    linkPublicUuid: string
+    linkPublicUuid: string,
   ): Promise<boolean> {
     this._savingGuardian.set(true);
     this._error.set(null);
 
     try {
-      await firstValueFrom(
-        this.api.unlinkGuardian(studentPublicUuid, guardianPublicUuid)
-      );
-      this._guardians.update((list) =>
-        list.filter((g) => g.linkPublicUuid !== linkPublicUuid)
-      );
+      await firstValueFrom(this.api.unlinkGuardian(studentPublicUuid, guardianPublicUuid));
+      this._guardians.update((list) => list.filter((g) => g.linkPublicUuid !== linkPublicUuid));
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return false;
-    }
-    finally {
+    } finally {
       this._savingGuardian.set(false);
     }
   }
@@ -460,20 +428,16 @@ export class StudentsStore {
     this._error.set(null);
 
     try {
-      const rows = await firstValueFrom(
-        this.api.listEnrollments(studentPublicUuid)
-      );
+      const rows = await firstValueFrom(this.api.listEnrollments(studentPublicUuid));
       if (this._enrollmentsOwner() === studentPublicUuid) {
         this._enrollments.set(rows);
       }
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       if (this._enrollmentsOwner() === studentPublicUuid) {
         this._enrollments.set([]);
       }
-    }
-    finally {
+    } finally {
       this._loadingEnrollments.set(false);
     }
   }
@@ -485,15 +449,13 @@ export class StudentsStore {
    */
   async enrollStudent(
     studentPublicUuid: string,
-    request: CreateEnrollmentRequest
+    request: CreateEnrollmentRequest,
   ): Promise<EnrollmentDetail | null> {
     this._savingEnrollment.set(true);
     this._error.set(null);
 
     try {
-      const created = await firstValueFrom(
-        this.api.createEnrollment(studentPublicUuid, request)
-      );
+      const created = await firstValueFrom(this.api.createEnrollment(studentPublicUuid, request));
       /* Refrescamos en lugar de prepend manual: el back puede haber
        * cerrado otras rows (ej. status del student que pasa a
        * ENROLLED) y solo el list garantiza el orden correcto. */
@@ -504,12 +466,10 @@ export class StudentsStore {
         await this.loadDetail(studentPublicUuid);
       }
       return created;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingEnrollment.set(false);
     }
   }
@@ -522,14 +482,14 @@ export class StudentsStore {
    */
   async withdrawEnrollment(
     enrollmentPublicUuid: string,
-    request: WithdrawEnrollmentRequest
+    request: WithdrawEnrollmentRequest,
   ): Promise<EnrollmentDetail | null> {
     this._savingEnrollment.set(true);
     this._error.set(null);
 
     try {
       const result = await firstValueFrom(
-        this.api.withdrawEnrollment(enrollmentPublicUuid, request)
+        this.api.withdrawEnrollment(enrollmentPublicUuid, request),
       );
       this._enrollments.update((rows) =>
         rows.map((r) =>
@@ -538,18 +498,16 @@ export class StudentsStore {
                 ...r,
                 status: result.status,
                 active: result.active,
-                withdrawnAt: result.withdrawnAt
+                withdrawnAt: result.withdrawnAt,
               }
-            : r
-        )
+            : r,
+        ),
       );
       return result;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingEnrollment.set(false);
     }
   }
@@ -567,15 +525,12 @@ export class StudentsStore {
     studentPublicUuid: string,
     activeEnrollmentPublicUuid: string,
     transferDate: string,
-    create: CreateEnrollmentRequest
+    create: CreateEnrollmentRequest,
   ): Promise<EnrollmentDetail | null> {
-    const withdrawn = await this.withdrawEnrollment(
-      activeEnrollmentPublicUuid,
-      {
-        status: StudentEnrollmentStatus.Transferred,
-        withdrawnAt: transferDate
-      }
-    );
+    const withdrawn = await this.withdrawEnrollment(activeEnrollmentPublicUuid, {
+      status: StudentEnrollmentStatus.Transferred,
+      withdrawnAt: transferDate,
+    });
     if (!withdrawn) return null;
     return this.enrollStudent(studentPublicUuid, create);
   }
@@ -654,7 +609,7 @@ export class StudentsStore {
       fullName: detail.fullName,
       email: detail.email,
       enrollmentStatus: detail.enrollmentStatus,
-      enrollmentDate: detail.enrollmentDate
+      enrollmentDate: detail.enrollmentDate,
     };
   }
 
@@ -687,8 +642,7 @@ export class StudentsStore {
           void this.loadList();
         }
       }
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this.cancelBulkPolling();
     }

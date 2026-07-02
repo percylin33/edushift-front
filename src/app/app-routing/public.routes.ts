@@ -22,7 +22,7 @@ export const PUBLIC_ROUTES: Routes = [
         path: 'auth',
         canActivate: [guestGuard, featureFlagGuard],
         data: { feature: FeatureKey.Auth, title: 'Acceso' },
-        loadChildren: () => import('@features/auth/auth.routes').then((m) => m.AUTH_ROUTES)
+        loadChildren: () => import('@features/auth/auth.routes').then((m) => m.AUTH_ROUTES),
       },
       /*
        * Invitation accept page lives under the auth shell because it
@@ -39,16 +39,17 @@ export const PUBLIC_ROUTES: Routes = [
         path: 'invitation/:token',
         data: { title: 'Activar cuenta' },
         loadComponent: () =>
-          import('@features/users/pages/invitation-accept/invitation-accept.component')
-            .then((m) => m.InvitationAcceptComponent)
-      }
-    ]
+          import('@features/users/pages/invitation-accept/invitation-accept.component').then(
+            (m) => m.InvitationAcceptComponent,
+          ),
+      },
+    ],
   },
   {
     path: 'onboarding',
     component: OnboardingLayoutComponent,
     data: { title: 'Onboarding' },
     loadChildren: () =>
-      import('@features/onboarding/onboarding.routes').then((m) => m.ONBOARDING_ROUTES)
-  }
+      import('@features/onboarding/onboarding.routes').then((m) => m.ONBOARDING_ROUTES),
+  },
 ];

@@ -1,10 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  inject,
-  signal
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -12,10 +6,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ROUTES } from '@core/constants';
 import { Permission, UserRole } from '@core/enums';
 import { AuthService } from '@core/services';
-import {
-  EmptyStateComponent,
-  IconComponent
-} from '@shared/components';
+import { EmptyStateComponent, IconComponent } from '@shared/components';
 import { HasPermissionDirective } from '@shared/directives';
 import { TasksStore } from '../../store';
 import { TaskLifecycle, ALL_TASK_LIFECYCLES } from '../../models';
@@ -54,7 +45,7 @@ import { TaskLifecycleBadgeComponent } from '../../components';
     IconComponent,
     EmptyStateComponent,
     HasPermissionDirective,
-    TaskLifecycleBadgeComponent
+    TaskLifecycleBadgeComponent,
   ],
   template: `
     <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -139,7 +130,7 @@ import { TaskLifecycleBadgeComponent } from '../../components';
       <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         @for (row of rows(); track row.publicUuid) {
           <article
-            class="card transition-shadow hover:shadow-md focus-within:ring-2 focus-within:ring-primary"
+            class="card transition-shadow focus-within:ring-2 focus-within:ring-primary hover:shadow-md"
           >
             <div class="card-body space-y-3">
               <header class="flex items-start justify-between gap-2">
@@ -176,10 +167,7 @@ import { TaskLifecycleBadgeComponent } from '../../components';
               </dl>
 
               <footer class="flex flex-wrap items-center gap-2 pt-1">
-                <a
-                  [routerLink]="detailRoute(row.publicUuid)"
-                  class="btn btn-ghost btn-sm"
-                >
+                <a [routerLink]="detailRoute(row.publicUuid)" class="btn btn-ghost btn-sm">
                   Ver detalle
                 </a>
                 <a
@@ -195,7 +183,7 @@ import { TaskLifecycleBadgeComponent } from '../../components';
         }
       </div>
     }
-  `
+  `,
 })
 export class TasksListComponent implements OnInit {
   private readonly store = inject(TasksStore);
@@ -264,7 +252,7 @@ export class TasksListComponent implements OnInit {
     if (!this.#sectionUuid) return;
     this.store.clearError();
     void this.store.loadBySection(this.#sectionUuid, {
-      lifecycle: this._lifecycleFilter()
+      lifecycle: this._lifecycleFilter(),
     });
   }
 
@@ -276,5 +264,5 @@ export class TasksListComponent implements OnInit {
 const LIFECYCLE_LABELS: Record<TaskLifecycle, string> = {
   [TaskLifecycle.Draft]: 'Borrador',
   [TaskLifecycle.Published]: 'Publicada',
-  [TaskLifecycle.Closed]: 'Cerrada'
+  [TaskLifecycle.Closed]: 'Cerrada',
 };

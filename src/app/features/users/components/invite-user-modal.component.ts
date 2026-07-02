@@ -5,7 +5,7 @@ import {
   computed,
   inject,
   output,
-  signal
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { UserRole } from '@core/enums';
@@ -39,16 +39,13 @@ import { UserRoleBadgeComponent } from './user-role-badge.component';
   imports: [FormsModule, IconComponent, SpinnerComponent, UserRoleBadgeComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="invite-user-title"
       (click)="onBackdropClick($event)"
     >
-      <div
-        class="card w-full max-w-lg shadow-xl"
-        (click)="$event.stopPropagation()"
-      >
+      <div class="card w-full max-w-lg shadow-xl" (click)="$event.stopPropagation()">
         @if (created(); as inv) {
           <header class="card-header">
             <div>
@@ -106,7 +103,8 @@ import { UserRoleBadgeComponent } from './user-role-badge.component';
                 </button>
               </div>
               <p class="hint">
-                Sprint 9 enviará el correo automáticamente. Por ahora, copia y comparte el enlace manualmente.
+                Sprint 9 enviará el correo automáticamente. Por ahora, copia y comparte el enlace
+                manualmente.
               </p>
             </div>
 
@@ -121,9 +119,7 @@ import { UserRoleBadgeComponent } from './user-role-badge.component';
             <button type="button" class="btn btn-ghost btn-sm" (click)="newAnother()">
               Invitar a otro
             </button>
-            <button type="button" class="btn btn-primary btn-sm" (click)="close()">
-              Listo
-            </button>
+            <button type="button" class="btn btn-primary btn-sm" (click)="close()">Listo</button>
           </footer>
         } @else {
           <header class="card-header">
@@ -222,10 +218,10 @@ import { UserRoleBadgeComponent } from './user-role-badge.component';
               }
             </div>
 
-            <footer class="-mx-5 -mb-5 mt-2 flex items-center justify-end gap-2 border-t border-border-subtle px-5 py-3">
-              <button type="button" class="btn btn-ghost btn-sm" (click)="close()">
-                Cancelar
-              </button>
+            <footer
+              class="-mx-5 -mb-5 mt-2 flex items-center justify-end gap-2 border-t border-border-subtle px-5 py-3"
+            >
+              <button type="button" class="btn btn-ghost btn-sm" (click)="close()">Cancelar</button>
               <button
                 type="submit"
                 class="btn btn-primary btn-sm"
@@ -241,7 +237,7 @@ import { UserRoleBadgeComponent } from './user-role-badge.component';
         }
       </div>
     </div>
-  `
+  `,
 })
 export class InviteUserModalComponent {
   private readonly store = inject(InvitationsStore);
@@ -268,17 +264,18 @@ export class InviteUserModalComponent {
 
   protected readonly roleOptions: ReadonlyArray<{ value: UserRole; label: string }> = [
     { value: UserRole.TenantAdmin, label: 'Administrador' },
-    { value: UserRole.Staff,       label: 'Staff' },
-    { value: UserRole.Teacher,     label: 'Profesor' },
-    { value: UserRole.Student,     label: 'Estudiante' },
-    { value: UserRole.Guardian,    label: 'Tutor' }
+    { value: UserRole.Staff, label: 'Staff' },
+    { value: UserRole.Teacher, label: 'Profesor' },
+    { value: UserRole.Student, label: 'Estudiante' },
+    { value: UserRole.Guardian, label: 'Tutor' },
   ];
 
-  protected readonly canSubmit = computed(() =>
-    this.selectedRoles().length > 0 &&
-    this.email().trim().length > 0 &&
-    this.firstName().trim().length > 0 &&
-    this.lastName().trim().length > 0
+  protected readonly canSubmit = computed(
+    () =>
+      this.selectedRoles().length > 0 &&
+      this.email().trim().length > 0 &&
+      this.firstName().trim().length > 0 &&
+      this.lastName().trim().length > 0,
   );
 
   protected readonly acceptLink = computed(() => {
@@ -288,7 +285,7 @@ export class InviteUserModalComponent {
   });
 
   protected readonly copyHint = computed(() =>
-    this.justCopied() ? 'Copiado al portapapeles' : 'Copiar enlace al portapapeles'
+    this.justCopied() ? 'Copiado al portapapeles' : 'Copiar enlace al portapapeles',
   );
 
   /** ESC closes the dialog from anywhere on the document. */
@@ -335,7 +332,7 @@ export class InviteUserModalComponent {
       email: this.email().trim(),
       firstName: this.firstName().trim(),
       lastName: this.lastName().trim(),
-      roles: this.selectedRoles()
+      roles: this.selectedRoles(),
     });
   }
 
@@ -346,8 +343,7 @@ export class InviteUserModalComponent {
       await navigator.clipboard.writeText(link);
       this.justCopied.set(true);
       setTimeout(() => this.justCopied.set(false), 2000);
-    }
-    catch {
+    } catch {
       /* Clipboard API can fail under HTTP / restrictive permissions —
        * silently fall through; the admin can still select the readonly
        * input manually. */
@@ -360,7 +356,7 @@ export class InviteUserModalComponent {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 

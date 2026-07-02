@@ -6,7 +6,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -17,20 +17,17 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import {
   EVALUATION_SCALE_LABELS,
   EvaluationDetail,
   EvaluationScale,
-  EvaluationStatus
+  EvaluationStatus,
 } from '@features/evaluations/models';
 import { EvaluationsApiService } from '@features/evaluations/services';
 import { EvaluationStatusBadgeComponent } from '@features/evaluations/components/evaluation-status-badge.component';
-import {
-  GradeRecordFormModalComponent,
-  GradeRecordsBulkModalComponent
-} from '../../components';
+import { GradeRecordFormModalComponent, GradeRecordsBulkModalComponent } from '../../components';
 import {
   ALLOWED_LITERALS_BY_SCALE,
   CreateGradeRecordRequest,
@@ -38,7 +35,7 @@ import {
   SCORE_MAX,
   SCORE_MIN,
   areGradesEditable,
-  validateGradeShape
+  validateGradeShape,
 } from '../../models';
 import { GradeRecordsStore } from '../../store';
 
@@ -108,15 +105,11 @@ type InlineEditOutcome =
     IconComponent,
     PageContainerComponent,
     PageHeaderComponent,
-    SpinnerComponent
+    SpinnerComponent,
   ],
   template: `
     <app-page-container size="wide">
-      <app-page-header
-        eyebrow="Calificaciones"
-        [title]="title()"
-        [subtitle]="subtitle()"
-      >
+      <app-page-header eyebrow="Calificaciones" [title]="title()" [subtitle]="subtitle()">
         <button type="button" class="btn btn-ghost btn-sm" (click)="goBack()">
           <app-icon name="chevron-left" [size]="16" />
           <span>Volver</span>
@@ -144,15 +137,13 @@ type InlineEditOutcome =
       </app-page-header>
 
       @if (evaluation(); as e) {
-        <div class="flex flex-wrap items-center gap-3 mb-4 text-sm">
+        <div class="mb-4 flex flex-wrap items-center gap-3 text-sm">
           <app-evaluation-status-badge [status]="e.status" />
           <span class="text-content-muted">
             {{ scaleLabel(e.scale) }}
           </span>
           <span class="text-content-muted">·</span>
-          <span class="text-content-muted">
-            {{ counts().total }} registrada(s)
-          </span>
+          <span class="text-content-muted"> {{ counts().total }} registrada(s) </span>
         </div>
 
         @if (!canEdit()) {
@@ -160,8 +151,8 @@ type InlineEditOutcome =
             <app-icon name="lock" [size]="16" />
             <p class="flex-1 text-sm">
               Esta evaluación está
-              <strong>{{ statusLabel(e.status) }}</strong>: no se pueden
-              registrar, editar ni borrar notas. Para reabrir, contacta al
+              <strong>{{ statusLabel(e.status) }}</strong
+              >: no se pueden registrar, editar ni borrar notas. Para reabrir, contacta al
               administrador.
             </p>
           </div>
@@ -176,11 +167,7 @@ type InlineEditOutcome =
             <strong>{{ b.updated }}</strong> actualizadas ·
             <strong>{{ b.requested }}</strong> enviadas.
           </p>
-          <button
-            type="button"
-            class="btn btn-ghost btn-xs"
-            (click)="dismissBulk()"
-          >
+          <button type="button" class="btn btn-ghost btn-xs" (click)="dismissBulk()">
             Ocultar
           </button>
         </div>
@@ -190,13 +177,7 @@ type InlineEditOutcome =
         <div class="alert alert-danger mb-4">
           <app-icon name="alert-circle" [size]="16" />
           <p class="flex-1 text-sm">{{ errorBanner() }}</p>
-          <button
-            type="button"
-            class="btn btn-ghost btn-xs"
-            (click)="clearError()"
-          >
-            Cerrar
-          </button>
+          <button type="button" class="btn btn-ghost btn-xs" (click)="clearError()">Cerrar</button>
         </div>
       }
 
@@ -212,11 +193,7 @@ type InlineEditOutcome =
               <p class="font-medium">No pudimos cargar las notas.</p>
               <p class="mt-1 text-xs opacity-80">{{ errorBanner() }}</p>
             </div>
-            <button
-              type="button"
-              class="btn btn-ghost btn-sm"
-              (click)="reload()"
-            >
+            <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">
               Reintentar
             </button>
           </div>
@@ -227,11 +204,7 @@ type InlineEditOutcome =
             description="Aún no hay calificaciones para esta evaluación. Registra la primera o usa Bulk CSV para varias a la vez."
           >
             @if (canEdit()) {
-              <button
-                type="button"
-                class="btn btn-primary btn-sm"
-                (click)="openCreate()"
-              >
+              <button type="button" class="btn btn-primary btn-sm" (click)="openCreate()">
                 <app-icon name="plus" [size]="16" />
                 <span>Registrar nota</span>
               </button>
@@ -246,7 +219,7 @@ type InlineEditOutcome =
                   <th class="w-32">{{ valueColumn() }}</th>
                   <th>Comentarios</th>
                   <th class="w-36">Registrado</th>
-                  <th class="text-right w-32">Acciones</th>
+                  <th class="w-32 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -254,13 +227,15 @@ type InlineEditOutcome =
                   <tr [class.opacity-60]="!row.isActive">
                     <td>
                       <p class="font-medium">{{ row.studentFullName }}</p>
-                      <p class="text-xs text-content-muted font-mono">
+                      <p class="font-mono text-xs text-content-muted">
                         {{ shorten(row.studentPublicUuid) }}
                       </p>
                     </td>
 
                     <!-- VALUE CELL -->
-                    @if (isEditing(row.publicUuid, 'score') || isEditing(row.publicUuid, 'literal')) {
+                    @if (
+                      isEditing(row.publicUuid, 'score') || isEditing(row.publicUuid, 'literal')
+                    ) {
                       <td>
                         @if (scale() === scaleScore) {
                           <input
@@ -291,7 +266,7 @@ type InlineEditOutcome =
                           </select>
                         }
                         @if (editState()?.error) {
-                          <p class="text-xs text-danger-700 mt-1">
+                          <p class="text-danger-700 mt-1 text-xs">
                             {{ editState()!.error }}
                           </p>
                         }
@@ -338,7 +313,7 @@ type InlineEditOutcome =
                         (dblclick)="startEditComments(row)"
                         [title]="canEdit() ? 'Doble click para editar' : ''"
                       >
-                        <span class="text-xs text-content-muted line-clamp-2">
+                        <span class="line-clamp-2 text-xs text-content-muted">
                           {{ row.comments || '—' }}
                         </span>
                       </td>
@@ -416,23 +391,29 @@ type InlineEditOutcome =
   `,
   styles: [
     `
-      :host { display: block; }
-      .table { @apply w-full text-sm text-left; }
+      :host {
+        display: block;
+      }
+      .table {
+        @apply w-full text-left text-sm;
+      }
       .table th {
-        @apply px-4 py-3 font-semibold text-content-muted uppercase text-xs tracking-wider border-b border-border-subtle bg-surface-subtle;
+        @apply border-b border-border-subtle bg-surface-subtle px-4 py-3 text-xs font-semibold uppercase tracking-wider text-content-muted;
       }
       .table td {
-        @apply px-4 py-3 border-b border-border-subtle;
+        @apply border-b border-border-subtle px-4 py-3;
       }
-      .table tr:last-child td { border-bottom: none; }
+      .table tr:last-child td {
+        border-bottom: none;
+      }
       .badge {
-        @apply inline-flex items-center px-2 py-0.5 rounded text-xs;
+        @apply inline-flex items-center rounded px-2 py-0.5 text-xs;
       }
       .badge-neutral {
         @apply bg-surface-subtle text-content;
       }
-    `
-  ]
+    `,
+  ],
 })
 export class GradeRecordsPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
@@ -469,13 +450,11 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
   });
 
   protected readonly scale = computed<EvaluationScale>(
-    () => this.evaluation()?.scale ?? EvaluationScale.SCORE_0_20
+    () => this.evaluation()?.scale ?? EvaluationScale.SCORE_0_20,
   );
-  protected readonly allowedLiterals = computed(
-    () => ALLOWED_LITERALS_BY_SCALE[this.scale()]
-  );
+  protected readonly allowedLiterals = computed(() => ALLOWED_LITERALS_BY_SCALE[this.scale()]);
   protected readonly valueColumn = computed(() =>
-    this.scale() === EvaluationScale.SCORE_0_20 ? 'Nota' : 'Literal'
+    this.scale() === EvaluationScale.SCORE_0_20 ? 'Nota' : 'Literal',
   );
 
   private routeSub?: Subscription;
@@ -534,7 +513,7 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
       day: '2-digit',
       month: 'short',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 
@@ -569,10 +548,7 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
   // Inline editing
   // ===========================================================================
 
-  protected isEditing(
-    publicUuid: string,
-    field: InlineEditState['field']
-  ): boolean {
+  protected isEditing(publicUuid: string, field: InlineEditState['field']): boolean {
     const s = this.editState();
     return !!s && s.publicUuid === publicUuid && s.field === field;
   }
@@ -583,12 +559,8 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
     this.editState.set({
       publicUuid: row.publicUuid,
       field: isScore ? 'score' : 'literal',
-      value: isScore
-        ? row.score !== null
-          ? String(row.score)
-          : ''
-        : row.literal ?? '',
-      error: null
+      value: isScore ? (row.score !== null ? String(row.score) : '') : (row.literal ?? ''),
+      error: null,
     });
   }
 
@@ -598,7 +570,7 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
       publicUuid: row.publicUuid,
       field: 'comments',
       value: row.comments ?? '',
-      error: null
+      error: null,
     });
   }
 
@@ -635,10 +607,7 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
    * {@code error} si la validación cliente falla, o {@code unchanged}
    * cuando el valor final iguala al original (evitamos un round-trip).
    */
-  private toPatch(
-    s: InlineEditState,
-    row: GradeRecordRow
-  ): InlineEditOutcome {
+  private toPatch(s: InlineEditState, row: GradeRecordRow): InlineEditOutcome {
     if (s.field === 'score') {
       const trimmed = s.value.trim();
       if (trimmed === '') {
@@ -673,7 +642,7 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
     if (finalValue.length > this.commentsMaxLength) {
       return {
         kind: 'error',
-        message: `Máximo ${this.commentsMaxLength} caracteres.`
+        message: `Máximo ${this.commentsMaxLength} caracteres.`,
       };
     }
     return { kind: 'patch', payload: { comments: finalValue } };
@@ -711,12 +680,12 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
 
   protected async onUpdateFromModal(
     row: GradeRecordRow,
-    payload: CreateGradeRecordRequest
+    payload: CreateGradeRecordRequest,
   ): Promise<void> {
     const result = await this.store.update(row.publicUuid, {
       score: payload.score ?? null,
       literal: payload.literal ?? null,
-      comments: payload.comments ?? null
+      comments: payload.comments ?? null,
     });
     if (result) {
       this.editing.set(null);
@@ -726,7 +695,7 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
   protected async onDelete(row: GradeRecordRow): Promise<void> {
     const ok = confirm(
       `¿Borrar la nota de ${row.studentFullName}?\n\n` +
-        'Soft-delete: queda en BD pero deja de aparecer.'
+        'Soft-delete: queda en BD pero deja de aparecer.',
     );
     if (!ok) return;
     await this.store.remove(row.publicUuid);
@@ -743,10 +712,7 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
 
   protected async onBulk(records: CreateGradeRecordRequest[]): Promise<void> {
     if (!this.currentEvaluationUuid) return;
-    const result = await this.store.bulkUpsert(
-      this.currentEvaluationUuid,
-      records
-    );
+    const result = await this.store.bulkUpsert(this.currentEvaluationUuid, records);
     if (result) {
       this.showBulk.set(false);
     }
@@ -758,9 +724,7 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
 
   private async loadAll(evaluationUuid: string): Promise<void> {
     try {
-      const evaluation = await firstValueFrom(
-        this.evaluationsApi.getEvaluation(evaluationUuid)
-      );
+      const evaluation = await firstValueFrom(this.evaluationsApi.getEvaluation(evaluationUuid));
       this.evaluation.set(evaluation);
     } catch {
       this.evaluation.set(null);

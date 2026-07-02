@@ -16,15 +16,13 @@ import { ROUTES } from '@core/constants';
   template: `
     <a
       [routerLink]="route"
-      class="relative inline-flex h-9 w-9 items-center justify-center rounded-md
-             text-content-muted hover:bg-surface-muted hover:text-content
-             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
+      class="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-content-muted hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
       aria-label="Notificaciones"
       title="Notificaciones"
     >
       <app-icon name="bell" [size]="18" />
     </a>
-  `
+  `,
 })
 export class NotificationsBellComponent {
   readonly route = ROUTES.NOTIFICATIONS.ROOT;

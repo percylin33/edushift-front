@@ -11,18 +11,18 @@ export const ONBOARDING_ROUTES: Routes = [
     path: 'welcome',
     data: { title: 'Bienvenido', breadcrumb: 'Bienvenida' },
     loadComponent: () =>
-      import('./pages/welcome/welcome.component').then((m) => m.OnboardingWelcomeComponent)
+      import('./pages/welcome/welcome.component').then((m) => m.OnboardingWelcomeComponent),
   },
   {
     path: 'school',
     data: { title: 'Institución', breadcrumb: 'Institución' },
     loadComponent: () =>
-      import('./pages/school/school.component').then((m) => m.OnboardingSchoolComponent)
+      import('./pages/school/school.component').then((m) => m.OnboardingSchoolComponent),
   },
   {
     path: 'complete',
     data: { title: '¡Listo!', breadcrumb: 'Listo' },
     loadComponent: () =>
-      import('./pages/complete/complete.component').then((m) => m.OnboardingCompleteComponent)
-  }
+      import('./pages/complete/complete.component').then((m) => m.OnboardingCompleteComponent),
+  },
 ];

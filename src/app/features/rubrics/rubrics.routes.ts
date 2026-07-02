@@ -25,12 +25,10 @@ export const RUBRICS_ROUTES: Routes = [
     canActivate: [roleGuard],
     data: {
       roles: [UserRole.TenantAdmin, UserRole.Teacher],
-      title: 'Rúbricas'
+      title: 'Rúbricas',
     },
     loadComponent: () =>
-      import('./pages/rubrics-list/rubrics-list.component').then(
-        (m) => m.RubricsListComponent
-      )
+      import('./pages/rubrics-list/rubrics-list.component').then((m) => m.RubricsListComponent),
   },
   {
     path: 'new',
@@ -38,12 +36,10 @@ export const RUBRICS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin, UserRole.Teacher],
       breadcrumb: 'Nueva',
-      title: 'Nueva rúbrica'
+      title: 'Nueva rúbrica',
     },
     loadComponent: () =>
-      import('./pages/rubric-form/rubric-form.component').then(
-        (m) => m.RubricFormComponent
-      )
+      import('./pages/rubric-form/rubric-form.component').then((m) => m.RubricFormComponent),
   },
   {
     path: ':publicUuid',
@@ -51,12 +47,10 @@ export const RUBRICS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin, UserRole.Teacher],
       breadcrumb: 'Detalle',
-      title: 'Detalle de rúbrica'
+      title: 'Detalle de rúbrica',
     },
     loadComponent: () =>
-      import('./pages/rubric-detail/rubric-detail.component').then(
-        (m) => m.RubricDetailComponent
-      )
+      import('./pages/rubric-detail/rubric-detail.component').then((m) => m.RubricDetailComponent),
   },
   {
     path: ':publicUuid/edit',
@@ -64,11 +58,9 @@ export const RUBRICS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin, UserRole.Teacher],
       breadcrumb: 'Editar',
-      title: 'Editar rúbrica'
+      title: 'Editar rúbrica',
     },
     loadComponent: () =>
-      import('./pages/rubric-form/rubric-form.component').then(
-        (m) => m.RubricFormComponent
-      )
-  }
+      import('./pages/rubric-form/rubric-form.component').then((m) => m.RubricFormComponent),
+  },
 ];

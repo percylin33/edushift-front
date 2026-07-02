@@ -9,11 +9,7 @@
  * (`students`, `evaluations`, `cells`) — el FE las indexa por
  * `(studentUuid, evalUuid)` para hacer el lookup O(1) en cada celda.</p>
  */
-import {
-  EvaluationKind,
-  EvaluationScale,
-  EvaluationStatus
-} from '../../evaluations/models';
+import { EvaluationKind, EvaluationScale, EvaluationStatus } from '../../evaluations/models';
 
 // ===========================================================================
 // Raw shapes
@@ -118,15 +114,12 @@ export function toGradeBook(raw: GradeBookResponseRaw): GradeBook {
     evaluationPublicUuid: c.evaluationPublicUuid,
     score: parseDecimal(c.score),
     literal: c.literal,
-    recordedAt: c.recordedAt ? new Date(c.recordedAt) : null
+    recordedAt: c.recordedAt ? new Date(c.recordedAt) : null,
   }));
 
   const cellIndex = new Map<string, GradeBookCell>();
   for (const cell of cells) {
-    cellIndex.set(
-      cellKey(cell.studentPublicUuid, cell.evaluationPublicUuid),
-      cell
-    );
+    cellIndex.set(cellKey(cell.studentPublicUuid, cell.evaluationPublicUuid), cell);
   }
 
   return {
@@ -138,7 +131,7 @@ export function toGradeBook(raw: GradeBookResponseRaw): GradeBook {
     students: raw.students.map((s) => ({
       publicUuid: s.publicUuid,
       fullName: s.fullName,
-      weightedAverage: parseDecimal(s.weightedAverage)
+      weightedAverage: parseDecimal(s.weightedAverage),
     })),
     evaluations: raw.evaluations.map((e) => ({
       publicUuid: e.publicUuid,
@@ -147,8 +140,8 @@ export function toGradeBook(raw: GradeBookResponseRaw): GradeBook {
       scale: e.scale,
       status: e.status,
       weight: Number(e.weight) || 0,
-      scheduledDate: new Date(e.scheduledDate)
+      scheduledDate: new Date(e.scheduledDate),
     })),
-    cellIndex
+    cellIndex,
   };
 }

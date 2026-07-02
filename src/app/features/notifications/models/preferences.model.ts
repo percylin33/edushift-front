@@ -9,8 +9,14 @@ export const NOTIFICATION_CHANNELS = ['IN_APP', 'EMAIL'] as const;
 export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 
 export const NOTIFICATION_CATEGORIES = [
-  'ABSENCE', 'GRADE', 'QUIZ', 'TASK', 'AI_FEEDBACK',
-  'ANNOUNCEMENT', 'PAYMENT', 'SYSTEM'
+  'ABSENCE',
+  'GRADE',
+  'QUIZ',
+  'TASK',
+  'AI_FEEDBACK',
+  'ANNOUNCEMENT',
+  'PAYMENT',
+  'SYSTEM',
 ] as const;
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 

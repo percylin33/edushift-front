@@ -7,7 +7,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -23,7 +23,7 @@ import {
   AnswerRow,
   AttemptDetail,
   AttemptStatus,
-  isAttemptInProgress
+  isAttemptInProgress,
 } from '../../models/attempt.model';
 
 const AUTOSAVE_DEBOUNCE_MS = 1500;
@@ -69,7 +69,7 @@ const TICK_INTERVAL_MS = 1000;
     SpinnerComponent,
     EmptyStateComponent,
     AttemptStatusBadgeComponent,
-    QuestionTypeBadgeComponent
+    QuestionTypeBadgeComponent,
   ],
   template: `
     <header class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -146,192 +146,197 @@ const TICK_INTERVAL_MS = 1000;
       @let _errBanner = errorBanner();
       @let _attempt = attempt();
       @if (_errBanner) {
-      <div class="alert alert-danger" role="alert">
-        <app-icon name="alert-circle" [size]="18" />
-        <div class="flex-1">
-          <p class="font-medium">No se pudo iniciar el intento.</p>
-          <p class="text-xs opacity-80">{{ _errBanner }}</p>
+        <div class="alert alert-danger" role="alert">
+          <app-icon name="alert-circle" [size]="18" />
+          <div class="flex-1">
+            <p class="font-medium">No se pudo iniciar el intento.</p>
+            <p class="text-xs opacity-80">{{ _errBanner }}</p>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">
+            <app-icon name="refresh" [size]="14" />
+            Reintentar
+          </button>
         </div>
-        <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">
-          <app-icon name="refresh" [size]="14" />
-          Reintentar
-        </button>
-      </div>
       } @else if (_attempt) {
-      @let a = _attempt;
-      @if (isInProgress(a)) {
-        <form (submit)="$event.preventDefault()">
-          <ol class="space-y-4">
-            @for (q of questions(); track q.publicUuid; let i = $index) {
-              <li class="card">
-                <div class="card-body space-y-3">
-                  <header class="flex items-start justify-between gap-3">
-                    <h2 class="text-base font-medium text-content">
-                      <span class="text-content-muted">{{ i + 1 }}.</span>
-                      {{ q.prompt }}
-                    </h2>
-                    <div class="flex items-center gap-2 text-xs text-content-muted">
-                      <app-question-type-badge [type]="q.type" />
-                      <span class="rounded bg-surface-muted px-1.5 py-0.5">
-                        {{ q.points }} pts
-                      </span>
-                    </div>
-                  </header>
+        @let a = _attempt;
+        @if (isInProgress(a)) {
+          <form (submit)="$event.preventDefault()">
+            <ol class="space-y-4">
+              @for (q of questions(); track q.publicUuid; let i = $index) {
+                <li class="card">
+                  <div class="card-body space-y-3">
+                    <header class="flex items-start justify-between gap-3">
+                      <h2 class="text-base font-medium text-content">
+                        <span class="text-content-muted">{{ i + 1 }}.</span>
+                        {{ q.prompt }}
+                      </h2>
+                      <div class="flex items-center gap-2 text-xs text-content-muted">
+                        <app-question-type-badge [type]="q.type" />
+                        <span class="rounded bg-surface-muted px-1.5 py-0.5">
+                          {{ q.points }} pts
+                        </span>
+                      </div>
+                    </header>
 
-                  @switch (q.type) {
-                    @case ('MC') {
-                      <ul class="space-y-2">
-                        @for (opt of q.options; track opt.publicUuid) {
+                    @switch (q.type) {
+                      @case ('MC') {
+                        <ul class="space-y-2">
+                          @for (opt of q.options; track opt.publicUuid) {
+                            <li>
+                              <label
+                                class="flex cursor-pointer items-start gap-2 rounded-md border border-surface-muted p-2 hover:border-primary-300"
+                              >
+                                <input
+                                  type="radio"
+                                  class="radio mt-0.5"
+                                  [name]="'q-' + q.publicUuid"
+                                  [value]="opt.publicUuid"
+                                  [checked]="isOptionSelected(q.publicUuid, opt.publicUuid)"
+                                  (change)="onOptionChange(q.publicUuid, opt.publicUuid)"
+                                />
+                                <span class="text-sm text-content">{{ opt.label }}</span>
+                              </label>
+                            </li>
+                          }
+                        </ul>
+                      }
+                      @case ('TF') {
+                        <ul class="flex gap-4">
                           <li>
-                            <label
-                              class="flex cursor-pointer items-start gap-2 rounded-md border border-surface-muted p-2 hover:border-primary-300"
-                            >
+                            <label class="flex cursor-pointer items-center gap-2">
                               <input
                                 type="radio"
-                                class="radio mt-0.5"
+                                class="radio"
                                 [name]="'q-' + q.publicUuid"
-                                [value]="opt.publicUuid"
-                                [checked]="isOptionSelected(q.publicUuid, opt.publicUuid)"
-                                (change)="onOptionChange(q.publicUuid, opt.publicUuid)"
+                                [value]="true"
+                                [checked]="isBooleanSelected(q.publicUuid, true)"
+                                (change)="onBooleanChange(q.publicUuid, true)"
                               />
-                              <span class="text-sm text-content">{{ opt.label }}</span>
+                              <span class="text-sm text-content">Verdadero</span>
                             </label>
                           </li>
-                        }
-                      </ul>
-                    }
-                    @case ('TF') {
-                      <ul class="flex gap-4">
-                        <li>
-                          <label class="flex cursor-pointer items-center gap-2">
-                            <input
-                              type="radio"
-                              class="radio"
-                              [name]="'q-' + q.publicUuid"
-                              [value]="true"
-                              [checked]="isBooleanSelected(q.publicUuid, true)"
-                              (change)="onBooleanChange(q.publicUuid, true)"
-                            />
-                            <span class="text-sm text-content">Verdadero</span>
-                          </label>
-                        </li>
-                        <li>
-                          <label class="flex cursor-pointer items-center gap-2">
-                            <input
-                              type="radio"
-                              class="radio"
-                              [name]="'q-' + q.publicUuid"
-                              [value]="false"
-                              [checked]="isBooleanSelected(q.publicUuid, false)"
-                              (change)="onBooleanChange(q.publicUuid, false)"
-                            />
-                            <span class="text-sm text-content">Falso</span>
-                          </label>
-                        </li>
-                      </ul>
-                    }
-                    @case ('SHORT_ANSWER') {
-                      <textarea
-                        rows="4"
-                        class="textarea"
-                        placeholder="Escribe tu respuesta…"
-                        [value]="textValue(q.publicUuid)"
-                        (input)="onTextChange(q.publicUuid, $any($event.target).value)"
-                      ></textarea>
-                    }
-                  }
-                </div>
-              </li>
-            }
-          </ol>
-
-          <footer class="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-            <p class="text-xs text-content-muted">
-              {{ questions().length }} pregunta(s) · total {{ totalPoints() }} pts
-            </p>
-            <div class="flex gap-2">
-              <button
-                type="button"
-                class="btn btn-ghost btn-sm"
-                (click)="flushNow()"
-                [disabled]="!hasPending() || storeSaving()"
-              >
-                <app-icon name="save" [size]="14" />
-                Guardar ahora
-              </button>
-              <button
-                type="button"
-                class="btn btn-primary"
-                (click)="onSubmit()"
-                [disabled]="storeSubmitting()"
-              >
-                @if (storeSubmitting()) {
-                  <app-spinner [size]="14" />
-                } @else {
-                  <app-icon name="send" [size]="14" />
-                }
-                Enviar intento
-              </button>
-            </div>
-          </footer>
-        </form>
-      } @else {
-        <!-- Read-only summary (SUBMITTED / AUTO_GRADED / GRADED / EXPIRED) -->
-        <section class="space-y-3">
-          <app-empty-state
-            icon="check"
-            title="Intento enviado"
-            [description]="submittedDescription(a)"
-          >
-            <a [routerLink]="resultsRoute()" class="btn btn-primary btn-sm">
-              <app-icon name="bar-chart" [size]="14" />
-              Ver resultados
-            </a>
-            <a [routerLink]="quizDetailRoute()" class="btn btn-ghost btn-sm">
-              <app-icon name="arrow-left" [size]="14" />
-              Volver al quiz
-            </a>
-          </app-empty-state>
-
-          @if (canReveal(a)) {
-            <article class="card">
-              <div class="card-body space-y-3">
-                <h2 class="text-base font-medium text-content">Tus respuestas</h2>
-                <ol class="space-y-3">
-                  @for (ans of a.answers; track ans.publicUuid; let i = $index) {
-                    @let q = findQuestion(ans.questionPublicUuid);
-                    <li class="rounded-md border border-surface-muted p-3">
-                      <p class="text-sm font-medium text-content">
-                        <span class="text-content-muted">{{ i + 1 }}.</span>
-                        {{ q?.prompt ?? 'Pregunta' }}
-                      </p>
-                      <p class="mt-1 text-sm text-content-muted">
-                        Tu respuesta: <span class="text-content">{{ formatAnswer(ans, q) }}</span>
-                      </p>
-                      @if (ans.correct !== null) {
-                        <p class="mt-1 text-xs">
-                          <span
-                            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 ring-1 ring-inset"
-                            [class]="ans.correct ? 'text-emerald-700 bg-emerald-50 ring-emerald-200' : 'text-red-700 bg-red-50 ring-red-200'"
-                          >
-                            <app-icon [name]="ans.correct ? 'check' : 'x'" [size]="12" />
-                            {{ ans.correct ? 'Correcta' : 'Incorrecta' }} · {{ ans.pointsAwarded ?? 0 }} pts
-                          </span>
-                        </p>
+                          <li>
+                            <label class="flex cursor-pointer items-center gap-2">
+                              <input
+                                type="radio"
+                                class="radio"
+                                [name]="'q-' + q.publicUuid"
+                                [value]="false"
+                                [checked]="isBooleanSelected(q.publicUuid, false)"
+                                (change)="onBooleanChange(q.publicUuid, false)"
+                              />
+                              <span class="text-sm text-content">Falso</span>
+                            </label>
+                          </li>
+                        </ul>
                       }
-                    </li>
+                      @case ('SHORT_ANSWER') {
+                        <textarea
+                          rows="4"
+                          class="textarea"
+                          placeholder="Escribe tu respuesta…"
+                          [value]="textValue(q.publicUuid)"
+                          (input)="onTextChange(q.publicUuid, $any($event.target).value)"
+                        ></textarea>
+                      }
+                    }
+                  </div>
+                </li>
+              }
+            </ol>
+
+            <footer class="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+              <p class="text-xs text-content-muted">
+                {{ questions().length }} pregunta(s) · total {{ totalPoints() }} pts
+              </p>
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm"
+                  (click)="flushNow()"
+                  [disabled]="!hasPending() || storeSaving()"
+                >
+                  <app-icon name="save" [size]="14" />
+                  Guardar ahora
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  (click)="onSubmit()"
+                  [disabled]="storeSubmitting()"
+                >
+                  @if (storeSubmitting()) {
+                    <app-spinner [size]="14" />
+                  } @else {
+                    <app-icon name="send" [size]="14" />
                   }
-                </ol>
+                  Enviar intento
+                </button>
               </div>
-            </article>
-          }
-        </section>
-      }
+            </footer>
+          </form>
+        } @else {
+          <!-- Read-only summary (SUBMITTED / AUTO_GRADED / GRADED / EXPIRED) -->
+          <section class="space-y-3">
+            <app-empty-state
+              icon="check"
+              title="Intento enviado"
+              [description]="submittedDescription(a)"
+            >
+              <a [routerLink]="resultsRoute()" class="btn btn-primary btn-sm">
+                <app-icon name="bar-chart" [size]="14" />
+                Ver resultados
+              </a>
+              <a [routerLink]="quizDetailRoute()" class="btn btn-ghost btn-sm">
+                <app-icon name="arrow-left" [size]="14" />
+                Volver al quiz
+              </a>
+            </app-empty-state>
+
+            @if (canReveal(a)) {
+              <article class="card">
+                <div class="card-body space-y-3">
+                  <h2 class="text-base font-medium text-content">Tus respuestas</h2>
+                  <ol class="space-y-3">
+                    @for (ans of a.answers; track ans.publicUuid; let i = $index) {
+                      @let q = findQuestion(ans.questionPublicUuid);
+                      <li class="rounded-md border border-surface-muted p-3">
+                        <p class="text-sm font-medium text-content">
+                          <span class="text-content-muted">{{ i + 1 }}.</span>
+                          {{ q?.prompt ?? 'Pregunta' }}
+                        </p>
+                        <p class="mt-1 text-sm text-content-muted">
+                          Tu respuesta: <span class="text-content">{{ formatAnswer(ans, q) }}</span>
+                        </p>
+                        @if (ans.correct !== null) {
+                          <p class="mt-1 text-xs">
+                            <span
+                              class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 ring-1 ring-inset"
+                              [class]="
+                                ans.correct
+                                  ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                                  : 'bg-red-50 text-red-700 ring-red-200'
+                              "
+                            >
+                              <app-icon [name]="ans.correct ? 'check' : 'x'" [size]="12" />
+                              {{ ans.correct ? 'Correcta' : 'Incorrecta' }} ·
+                              {{ ans.pointsAwarded ?? 0 }} pts
+                            </span>
+                          </p>
+                        }
+                      </li>
+                    }
+                  </ol>
+                </div>
+              </article>
+            }
+          </section>
+        }
       }
     }
-  `
+  `,
 })
-export class QuizTakePage implements OnInit, OnDestroy {
+export class QuizTakePageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -339,7 +344,7 @@ export class QuizTakePage implements OnInit, OnDestroy {
   private readonly attempts = inject(AttemptsStore);
 
   protected readonly quizPublicUuid = computed<string>(
-    () => this.route.snapshot.paramMap.get('uuid') ?? ''
+    () => this.route.snapshot.paramMap.get('uuid') ?? '',
   );
 
   // The page owns: which quiz is being taken, plus the active attempt.
@@ -358,11 +363,11 @@ export class QuizTakePage implements OnInit, OnDestroy {
 
   protected readonly quizTitle = computed<string | null>(() => this.quiz()?.title ?? null);
   protected readonly quizDescription = computed<string | null>(
-    () => this.quiz()?.description ?? null
+    () => this.quiz()?.description ?? null,
   );
   protected readonly questions = computed<QuestionRow[]>(() => this.quiz()?.questions ?? []);
   protected readonly totalPoints = computed<number>(() =>
-    this.questions().reduce((acc, q) => acc + (q.points ?? 0), 0)
+    this.questions().reduce((acc, q) => acc + (q.points ?? 0), 0),
   );
 
   // Timer (when the quiz has a time limit). Decrements every TICK_INTERVAL_MS.
@@ -398,7 +403,9 @@ export class QuizTakePage implements OnInit, OnDestroy {
 
   private async bootstrap(): Promise<void> {
     this.loading.set(true);
-    this.errorBanner() && this.attempts.clearError();
+    if (this.errorBanner()) {
+      this.attempts.clearError();
+    }
     try {
       const quiz = await this.quizzes.loadDetail(this.quizPublicUuid());
       this.quiz.set(quiz);
@@ -440,10 +447,7 @@ export class QuizTakePage implements OnInit, OnDestroy {
   private startTimerIfNeededFromAttempt(attempt: AttemptDetail | null): void {
     if (!attempt) return;
     if (attempt.expiresAt !== null) {
-      const remaining = Math.max(
-        Math.floor((attempt.expiresAt.getTime() - Date.now()) / 1000),
-        0
-      );
+      const remaining = Math.max(Math.floor((attempt.expiresAt.getTime() - Date.now()) / 1000), 0);
       this.timerSeconds.set(remaining);
     }
     this.startTick();
@@ -508,7 +512,7 @@ export class QuizTakePage implements OnInit, OnDestroy {
       questionType: 'MC',
       selectedOptionId: optionPublicUuid,
       selectedBoolean: null,
-      textAnswer: null
+      textAnswer: null,
     };
     this.queueAutosave(questionPublicUuid, payload);
   }
@@ -519,7 +523,7 @@ export class QuizTakePage implements OnInit, OnDestroy {
       questionType: 'TF',
       selectedOptionId: null,
       selectedBoolean: value,
-      textAnswer: null
+      textAnswer: null,
     };
     this.queueAutosave(questionPublicUuid, payload);
   }
@@ -530,7 +534,7 @@ export class QuizTakePage implements OnInit, OnDestroy {
       questionType: 'SHORT_ANSWER',
       selectedOptionId: null,
       selectedBoolean: null,
-      textAnswer: text
+      textAnswer: text,
     };
     this.queueAutosave(questionPublicUuid, payload);
   }
@@ -545,10 +549,7 @@ export class QuizTakePage implements OnInit, OnDestroy {
     if (this.autosaveHandle !== null) {
       clearTimeout(this.autosaveHandle);
     }
-    this.autosaveHandle = window.setTimeout(
-      () => void this.flushNow(),
-      AUTOSAVE_DEBOUNCE_MS
-    );
+    this.autosaveHandle = window.setTimeout(() => void this.flushNow(), AUTOSAVE_DEBOUNCE_MS);
   }
 
   protected async flushNow(): Promise<void> {
@@ -570,9 +571,7 @@ export class QuizTakePage implements OnInit, OnDestroy {
     const a = this.attempts.current();
     if (!a) return;
     if (!isAttemptInProgress(a)) return;
-    const ok = window.confirm(
-      '¿Enviar el intento? No podrás modificar las respuestas después.'
-    );
+    const ok = window.confirm('¿Enviar el intento? No podrás modificar las respuestas después.');
     if (!ok) return;
     await this.flushNow();
     const updated = await this.attempts.submitAttempt(a.publicUuid);
@@ -653,7 +652,9 @@ export class QuizTakePage implements OnInit, OnDestroy {
   protected readonly timerLabel = computed<string | null>(() => {
     const s = this.timerSeconds();
     if (s === null) return null;
-    const mm = Math.floor(s / 60).toString().padStart(2, '0');
+    const mm = Math.floor(s / 60)
+      .toString()
+      .padStart(2, '0');
     const ss = (s % 60).toString().padStart(2, '0');
     return `${mm}:${ss}`;
   });

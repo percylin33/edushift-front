@@ -29,13 +29,13 @@ describe('MaterialCardComponent', () => {
       url: type === MaterialType.Link ? 'https://example.com' : null,
       uploadedByTeacherName: 'Profe Pérez',
       sizeBytesDisplay: type === MaterialType.Link ? null : '2.0 KB',
-      createdAt: new Date('2026-06-01T00:00:00Z')
+      createdAt: new Date('2026-06-01T00:00:00Z'),
     };
   }
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MaterialCardComponent]
+      imports: [MaterialCardComponent],
     }).compileComponents();
   });
 

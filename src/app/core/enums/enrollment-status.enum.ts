@@ -9,9 +9,9 @@
  * {@code Withdrawn} close the lifecycle.
  */
 export enum EnrollmentStatus {
-  Pending     = 'PENDING',
-  Enrolled    = 'ENROLLED',
-  Graduated   = 'GRADUATED',
+  Pending = 'PENDING',
+  Enrolled = 'ENROLLED',
+  Graduated = 'GRADUATED',
   Transferred = 'TRANSFERRED',
-  Withdrawn   = 'WITHDRAWN'
+  Withdrawn = 'WITHDRAWN',
 }

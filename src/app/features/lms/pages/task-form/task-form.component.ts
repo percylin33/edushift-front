@@ -5,7 +5,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
@@ -14,16 +14,12 @@ import {
   FormGroup,
   ReactiveFormsModule,
   ValidationErrors,
-  Validators
+  Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { ApiError } from '@core/models';
-import {
-  IconComponent,
-  PageHeaderComponent,
-  SpinnerComponent
-} from '@shared/components';
+import { IconComponent, PageHeaderComponent, SpinnerComponent } from '@shared/components';
 import { TasksStore } from '../../store';
 import { TaskLifecycle, isTaskEditable } from '../../models';
 
@@ -82,14 +78,10 @@ function dueAtInFuture(group: AbstractControl): ValidationErrors | null {
     RouterLink,
     PageHeaderComponent,
     IconComponent,
-    SpinnerComponent
+    SpinnerComponent,
   ],
   template: `
-    <app-page-header
-      [title]="title()"
-      [subtitle]="subtitle()"
-      eyebrow="LMS · Tareas"
-    >
+    <app-page-header [title]="title()" [subtitle]="subtitle()" eyebrow="LMS · Tareas">
       <a [routerLink]="listRoute()" class="btn btn-ghost btn-sm">
         <app-icon name="arrow-left" [size]="16" />
         <span class="hidden sm:inline">Volver</span>
@@ -116,8 +108,8 @@ function dueAtInFuture(group: AbstractControl): ValidationErrors | null {
           <header class="card-header">
             <h2 class="card-title">Datos de la tarea</h2>
             <p class="card-description">
-              Identificación visible y parámetros de calificación. Los alumnos
-              sólo verán la tarea cuando la publiques.
+              Identificación visible y parámetros de calificación. Los alumnos sólo verán la tarea
+              cuando la publiques.
             </p>
           </header>
 
@@ -157,18 +149,11 @@ function dueAtInFuture(group: AbstractControl): ValidationErrors | null {
 
             <div class="field sm:col-span-6">
               <label class="label" for="task-dueAt">Fecha y hora de entrega *</label>
-              <input
-                id="task-dueAt"
-                type="datetime-local"
-                class="input"
-                formControlName="dueAt"
-              />
+              <input id="task-dueAt" type="datetime-local" class="input" formControlName="dueAt" />
               @if (showError('dueAt'); as msg) {
                 <p class="field-error">{{ msg }}</p>
               } @else if (form.errors?.['dueAtPast']) {
-                <p class="field-error">
-                  La fecha de entrega debe ser futura.
-                </p>
+                <p class="field-error">La fecha de entrega debe ser futura.</p>
               }
             </div>
 
@@ -188,7 +173,7 @@ function dueAtInFuture(group: AbstractControl): ValidationErrors | null {
               }
             </div>
 
-            <div class="sm:col-span-12 flex flex-wrap gap-4">
+            <div class="flex flex-wrap gap-4 sm:col-span-12">
               <label class="flex items-center gap-2 text-sm text-content">
                 <input type="checkbox" formControlName="allowResubmissions" />
                 Permitir re-entregas después de calificar
@@ -219,7 +204,7 @@ function dueAtInFuture(group: AbstractControl): ValidationErrors | null {
         </footer>
       </form>
     }
-  `
+  `,
 })
 export class TaskFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -243,16 +228,14 @@ export class TaskFormComponent implements OnInit {
 
   protected readonly editing = signal(false);
 
-  protected readonly title = computed(() =>
-    this.editing() ? 'Editar tarea' : 'Nueva tarea'
-  );
+  protected readonly title = computed(() => (this.editing() ? 'Editar tarea' : 'Nueva tarea'));
   protected readonly subtitle = computed(() =>
     this.editing()
       ? 'Actualiza título, descripción, fecha o puntaje. Los alumnos no verán los cambios hasta que vuelvas a publicar.'
-      : 'Crea la tarea en estado Borrador. Podrás revisarla y publicarla después.'
+      : 'Crea la tarea en estado Borrador. Podrás revisarla y publicarla después.',
   );
   protected readonly submitLabel = computed(() =>
-    this.editing() ? 'Guardar cambios' : 'Crear tarea'
+    this.editing() ? 'Guardar cambios' : 'Crear tarea',
   );
 
   /**
@@ -267,9 +250,9 @@ export class TaskFormComponent implements OnInit {
       dueAt: ['', [Validators.required]],
       maxScore: [20, [Validators.required, Validators.min(0.1), Validators.max(1000)]],
       allowResubmissions: [true],
-      requiresAttachment: [false]
+      requiresAttachment: [false],
     },
-    { validators: [dueAtInFuture] }
+    { validators: [dueAtInFuture] },
   );
 
   async ngOnInit(): Promise<void> {
@@ -386,7 +369,7 @@ export class TaskFormComponent implements OnInit {
       dueAt: this.toDateTimeLocal(detail.dueAt),
       maxScore: detail.maxScore,
       allowResubmissions: detail.allowResubmissions,
-      requiresAttachment: detail.requiresAttachment
+      requiresAttachment: detail.requiresAttachment,
     });
   }
 
@@ -404,7 +387,7 @@ export class TaskFormComponent implements OnInit {
       dueAt: this.toIsoUtc(v.dueAt as string),
       maxScore: Number(v.maxScore),
       allowResubmissions: !!v.allowResubmissions,
-      requiresAttachment: !!v.requiresAttachment
+      requiresAttachment: !!v.requiresAttachment,
     };
   }
 
@@ -416,7 +399,7 @@ export class TaskFormComponent implements OnInit {
       dueAt: this.toIsoUtc(v.dueAt as string),
       maxScore: Number(v.maxScore),
       allowResubmissions: !!v.allowResubmissions,
-      requiresAttachment: !!v.requiresAttachment
+      requiresAttachment: !!v.requiresAttachment,
     };
   }
 

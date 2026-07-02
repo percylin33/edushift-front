@@ -10,7 +10,7 @@ const checkAuth = (returnUrl: string): true | UrlTree => {
   if (auth.isAuthenticated()) return true;
 
   return router.createUrlTree([ROUTES.AUTH.LOGIN], {
-    queryParams: returnUrl ? { returnUrl } : undefined
+    queryParams: returnUrl ? { returnUrl } : undefined,
   });
 };
 

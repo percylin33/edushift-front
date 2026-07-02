@@ -1,11 +1,5 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  inject,
-  signal
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { SpinnerComponent } from '@shared/components';
@@ -42,7 +36,7 @@ import { SubmissionRow } from '../../models';
     RouterLink,
     SpinnerComponent,
     SubmissionListComponent,
-    GradeDialogComponent
+    GradeDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -54,9 +48,7 @@ import { SubmissionRow } from '../../models';
           <a [routerLink]="backToAssignment()" class="hover:underline">Tarea</a>
         </p>
         <h1 class="text-2xl font-semibold text-content">Calificar entregas</h1>
-        <p class="text-sm text-content-muted">
-          Revisa y califica las entregas de los alumnos.
-        </p>
+        <p class="text-sm text-content-muted">Revisa y califica las entregas de los alumnos.</p>
       </div>
     </header>
 
@@ -83,7 +75,7 @@ import { SubmissionRow } from '../../models';
       (return)="onConfirmReturn($event)"
       (cancelled)="onCancelDialog()"
     />
-  `
+  `,
 })
 export class SubmissionGradeComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
@@ -163,9 +155,7 @@ export class SubmissionGradeComponent implements OnInit {
   }
 
   protected listRoute(): string {
-    return this.assignmentUuid
-      ? ROUTES.LMS.assignmentDetail(this.assignmentUuid)
-      : ROUTES.LMS.ROOT;
+    return this.assignmentUuid ? ROUTES.LMS.assignmentDetail(this.assignmentUuid) : ROUTES.LMS.ROOT;
   }
 
   protected backToAssignment(): string {

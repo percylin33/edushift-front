@@ -14,7 +14,7 @@ import {
   ManualGradeAttemptRequest,
   toAttemptDetail,
   toAttemptSummaryRow,
-  toGradingQueueItem
+  toGradingQueueItem,
 } from '../models/attempt.model';
 
 /**
@@ -48,7 +48,7 @@ export class AttemptApiService {
     return this.api
       .post<ApiResponse<AttemptResponseRaw>, Record<string, never>>(
         API.LMS.QUIZ_ATTEMPT_START(quizPublicUuid),
-        {}
+        {},
       )
       .pipe(map((res) => toAttemptDetail(res.data)));
   }
@@ -68,7 +68,7 @@ export class AttemptApiService {
     return this.api
       .patch<ApiResponse<AttemptResponseRaw>, { answers: AnswerInputRaw[] }>(
         API.LMS.QUIZ_ATTEMPT_PATCH(attemptPublicUuid),
-        { answers }
+        { answers },
       )
       .pipe(map((res) => toAttemptDetail(res.data)));
   }
@@ -81,7 +81,7 @@ export class AttemptApiService {
     return this.api
       .post<ApiResponse<AttemptResponseRaw>, Record<string, never>>(
         API.LMS.QUIZ_ATTEMPT_SUBMIT(attemptPublicUuid),
-        {}
+        {},
       )
       .pipe(map((res) => toAttemptDetail(res.data)));
   }
@@ -89,19 +89,19 @@ export class AttemptApiService {
   /** Paginated listing of all attempts for a quiz (TEACHER side). */
   listAttempts(
     quizPublicUuid: string,
-    pageable: { page?: number; size?: number; sort?: string } = {}
+    pageable: { page?: number; size?: number; sort?: string } = {},
   ): Observable<SpringPage<AttemptSummaryRow>> {
     return this.api
       .get<SpringPage<AttemptSummaryRaw>>(API.LMS.QUIZ_ATTEMPTS_LIST(quizPublicUuid), {
         page: pageable.page ?? 0,
         size: pageable.size ?? 20,
-        sort: pageable.sort
+        sort: pageable.sort,
       })
       .pipe(
         map((page) => ({
           ...page,
-          content: (page.content ?? []).map(toAttemptSummaryRow)
-        }))
+          content: (page.content ?? []).map(toAttemptSummaryRow),
+        })),
       );
   }
 
@@ -118,12 +118,12 @@ export class AttemptApiService {
    */
   gradeAttempt(
     attemptPublicUuid: string,
-    request: ManualGradeAttemptRequest
+    request: ManualGradeAttemptRequest,
   ): Observable<AttemptDetail> {
     return this.api
       .post<ApiResponse<AttemptResponseRaw>, ManualGradeAttemptRequest>(
         API.LMS.QUIZ_ATTEMPT_GRADE(attemptPublicUuid),
-        request
+        request,
       )
       .pipe(map((res) => toAttemptDetail(res.data)));
   }
@@ -137,16 +137,16 @@ export class AttemptApiService {
     quizPublicUuid: string,
     attemptPublicUuid: string,
     answerPublicUuid: string,
-    pointsAwarded: number
+    pointsAwarded: number,
   ): Observable<AttemptDetail> {
     return this.api
-      .patch<
-        ApiResponse<AttemptResponseRaw>,
-        { answerPublicUuid: string; pointsAwarded: number }
-      >(API.LMS.QUIZ_ANSWER_GRADE(quizPublicUuid, attemptPublicUuid, answerPublicUuid), {
-        answerPublicUuid,
-        pointsAwarded
-      })
+      .patch<ApiResponse<AttemptResponseRaw>, { answerPublicUuid: string; pointsAwarded: number }>(
+        API.LMS.QUIZ_ANSWER_GRADE(quizPublicUuid, attemptPublicUuid, answerPublicUuid),
+        {
+          answerPublicUuid,
+          pointsAwarded,
+        },
+      )
       .pipe(map((res) => toAttemptDetail(res.data)));
   }
 }

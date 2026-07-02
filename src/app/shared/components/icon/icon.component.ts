@@ -17,7 +17,7 @@ import { ICONS, IconName } from './icons.registry';
   selector: 'app-icon',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { 'aria-hidden': 'true', 'class': 'inline-flex' },
+  host: { 'aria-hidden': 'true', class: 'inline-flex' },
   template: `
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -31,7 +31,7 @@ import { ICONS, IconName } from './icons.registry';
       stroke-linejoin="round"
       [innerHTML]="content()"
     ></svg>
-  `
+  `,
 })
 export class IconComponent {
   private readonly sanitizer = inject(DomSanitizer);
@@ -41,6 +41,6 @@ export class IconComponent {
   readonly strokeWidth = input(1.75);
 
   readonly content = computed<SafeHtml>(() =>
-    this.sanitizer.bypassSecurityTrustHtml(ICONS[this.name()] ?? '')
+    this.sanitizer.bypassSecurityTrustHtml(ICONS[this.name()] ?? ''),
   );
 }

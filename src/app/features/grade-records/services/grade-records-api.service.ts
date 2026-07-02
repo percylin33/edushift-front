@@ -16,7 +16,7 @@ import {
   UpdateGradeRecordRequest,
   toBulkSummary,
   toGradeRecordDetail,
-  toGradeRecordRow
+  toGradeRecordRow,
 } from '../models';
 
 /**
@@ -48,19 +48,15 @@ export class GradeRecordsApiService {
 
   listByEvaluation(
     evaluationPublicUuid: string,
-    filters: GradeRecordFilters = {}
+    filters: GradeRecordFilters = {},
   ): Observable<GradeRecordRow[]> {
     const params: Record<string, string | undefined> = {
       studentPublicUuid: filters.studentPublicUuid,
       sectionPublicUuid: filters.sectionPublicUuid,
-      isActive:
-        filters.isActive === undefined ? undefined : String(filters.isActive)
+      isActive: filters.isActive === undefined ? undefined : String(filters.isActive),
     };
     return this.api
-      .get<GradeRecordListItemRaw[]>(
-        API.GRADE_RECORDS.BY_EVALUATION(evaluationPublicUuid),
-        params
-      )
+      .get<GradeRecordListItemRaw[]>(API.GRADE_RECORDS.BY_EVALUATION(evaluationPublicUuid), params)
       .pipe(map((rows) => rows.map((r) => toGradeRecordRow(r))));
   }
 
@@ -74,12 +70,12 @@ export class GradeRecordsApiService {
    */
   upsertGrade(
     evaluationPublicUuid: string,
-    request: CreateGradeRecordRequest
+    request: CreateGradeRecordRequest,
   ): Observable<GradeRecordDetail> {
     return this.api
       .post<ApiResponse<GradeRecordResponseRaw>, CreateGradeRecordRequest>(
         API.GRADE_RECORDS.BY_EVALUATION(evaluationPublicUuid),
-        sanitizeCreate(request)
+        sanitizeCreate(request),
       )
       .pipe(map((envelope) => toGradeRecordDetail(envelope.data)));
   }
@@ -96,12 +92,12 @@ export class GradeRecordsApiService {
    */
   bulkUpsert(
     evaluationPublicUuid: string,
-    request: BulkGradeRecordRequest
+    request: BulkGradeRecordRequest,
   ): Observable<BulkGradeRecordSummary> {
     return this.api
       .post<ApiResponse<BulkGradeRecordResponseRaw>, BulkGradeRecordRequest>(
         API.GRADE_RECORDS.BULK(evaluationPublicUuid),
-        { records: request.records.map(sanitizeCreate) }
+        { records: request.records.map(sanitizeCreate) },
       )
       .pipe(map((envelope) => toBulkSummary(envelope.data)));
   }
@@ -112,9 +108,7 @@ export class GradeRecordsApiService {
 
   getGrade(publicUuid: string): Observable<GradeRecordDetail> {
     return this.api
-      .get<ApiResponse<GradeRecordResponseRaw>>(
-        API.GRADE_RECORDS.BY_ID(publicUuid)
-      )
+      .get<ApiResponse<GradeRecordResponseRaw>>(API.GRADE_RECORDS.BY_ID(publicUuid))
       .pipe(map((envelope) => toGradeRecordDetail(envelope.data)));
   }
 
@@ -123,14 +117,11 @@ export class GradeRecordsApiService {
    * (evaluation, student) tuple es inmutable. Para cambiar el target hay
    * que DELETE + POST (BE-5B.3).
    */
-  updateGrade(
-    publicUuid: string,
-    patch: UpdateGradeRecordRequest
-  ): Observable<GradeRecordDetail> {
+  updateGrade(publicUuid: string, patch: UpdateGradeRecordRequest): Observable<GradeRecordDetail> {
     return this.api
       .put<ApiResponse<GradeRecordResponseRaw>, UpdateGradeRecordRequest>(
         API.GRADE_RECORDS.BY_ID(publicUuid),
-        sanitizeUpdate(patch)
+        sanitizeUpdate(patch),
       )
       .pipe(map((envelope) => toGradeRecordDetail(envelope.data)));
   }
@@ -154,7 +145,7 @@ function sanitizeCreate(req: CreateGradeRecordRequest): CreateGradeRecordRequest
     studentPublicUuid: req.studentPublicUuid.trim(),
     score: req.score === undefined ? null : req.score,
     literal: req.literal ? req.literal.trim().toUpperCase() : null,
-    comments: req.comments?.trim() ? req.comments.trim() : null
+    comments: req.comments?.trim() ? req.comments.trim() : null,
   };
 }
 
@@ -162,6 +153,6 @@ function sanitizeUpdate(req: UpdateGradeRecordRequest): UpdateGradeRecordRequest
   return {
     score: req.score === undefined ? null : req.score,
     literal: req.literal ? req.literal.trim().toUpperCase() : req.literal,
-    comments: req.comments
+    comments: req.comments,
   };
 }

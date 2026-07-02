@@ -32,22 +32,20 @@ export const ACADEMIC_ROUTES: Routes = [
     data: { roles: [UserRole.TenantAdmin], title: 'Académico' },
     loadComponent: () =>
       import('./pages/academic-shell/academic-shell.component').then(
-        (m) => m.AcademicShellComponent
+        (m) => m.AcademicShellComponent,
       ),
     children: [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: 'years'
+        redirectTo: 'years',
       },
       {
         path: 'years',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin], title: 'Años académicos' },
         loadComponent: () =>
-          import('./pages/years-list/years-list.component').then(
-            (m) => m.YearsListComponent
-          )
+          import('./pages/years-list/years-list.component').then((m) => m.YearsListComponent),
       },
       {
         path: 'years/new',
@@ -55,12 +53,10 @@ export const ACADEMIC_ROUTES: Routes = [
         data: {
           roles: [UserRole.TenantAdmin],
           breadcrumb: 'Nuevo',
-          title: 'Nuevo año académico'
+          title: 'Nuevo año académico',
         },
         loadComponent: () =>
-          import('./pages/year-form/year-form.component').then(
-            (m) => m.YearFormComponent
-          )
+          import('./pages/year-form/year-form.component').then((m) => m.YearFormComponent),
       },
       {
         path: 'years/:id/edit',
@@ -68,21 +64,17 @@ export const ACADEMIC_ROUTES: Routes = [
         data: {
           roles: [UserRole.TenantAdmin],
           breadcrumb: 'Editar',
-          title: 'Editar año académico'
+          title: 'Editar año académico',
         },
         loadComponent: () =>
-          import('./pages/year-form/year-form.component').then(
-            (m) => m.YearFormComponent
-          )
+          import('./pages/year-form/year-form.component').then((m) => m.YearFormComponent),
       },
       {
         path: 'levels',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin], title: 'Niveles y grados' },
         loadComponent: () =>
-          import('./pages/levels-board/levels-board.component').then(
-            (m) => m.LevelsBoardComponent
-          )
+          import('./pages/levels-board/levels-board.component').then((m) => m.LevelsBoardComponent),
       },
       {
         path: 'sections',
@@ -90,8 +82,8 @@ export const ACADEMIC_ROUTES: Routes = [
         data: { roles: [UserRole.TenantAdmin], title: 'Secciones' },
         loadComponent: () =>
           import('./pages/sections-list/sections-list.component').then(
-            (m) => m.SectionsListComponent
-          )
+            (m) => m.SectionsListComponent,
+          ),
       },
       {
         path: 'sections/:id',
@@ -99,21 +91,19 @@ export const ACADEMIC_ROUTES: Routes = [
         data: {
           roles: [UserRole.TenantAdmin],
           breadcrumb: 'Detalle',
-          title: 'Detalle de sección'
+          title: 'Detalle de sección',
         },
         loadComponent: () =>
           import('./pages/section-detail/section-detail.component').then(
-            (m) => m.SectionDetailComponent
-          )
+            (m) => m.SectionDetailComponent,
+          ),
       },
       {
         path: 'courses',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin], title: 'Cursos' },
         loadComponent: () =>
-          import('./pages/courses-list/courses-list.component').then(
-            (m) => m.CoursesListComponent
-          )
+          import('./pages/courses-list/courses-list.component').then((m) => m.CoursesListComponent),
       },
       {
         path: 'courses/:id',
@@ -121,22 +111,20 @@ export const ACADEMIC_ROUTES: Routes = [
         data: {
           roles: [UserRole.TenantAdmin],
           breadcrumb: 'Detalle',
-          title: 'Detalle de curso'
+          title: 'Detalle de curso',
         },
         loadComponent: () =>
           import('./pages/course-detail/course-detail.component').then(
-            (m) => m.CourseDetailComponent
-          )
+            (m) => m.CourseDetailComponent,
+          ),
       },
       {
         path: 'periods',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin], title: 'Periodos' },
         loadComponent: () =>
-          import('./pages/periods-list/periods-list.component').then(
-            (m) => m.PeriodsListComponent
-          )
-      }
-    ]
-  }
+          import('./pages/periods-list/periods-list.component').then((m) => m.PeriodsListComponent),
+      },
+    ],
+  },
 ];

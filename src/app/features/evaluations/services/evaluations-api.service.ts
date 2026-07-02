@@ -3,11 +3,7 @@ import { Observable, map } from 'rxjs';
 import { API } from '@core/constants';
 import { ApiResponse } from '@core/models';
 import { ApiService } from '@core/services';
-import {
-  RubricDetail,
-  RubricResponseRaw,
-  toRubricDetail
-} from '@features/rubrics/models';
+import { RubricDetail, RubricResponseRaw, toRubricDetail } from '@features/rubrics/models';
 import {
   CreateEvaluationRequest,
   EvaluationDetail,
@@ -17,7 +13,7 @@ import {
   EvaluationRow,
   UpdateEvaluationRequest,
   toEvaluationDetail,
-  toEvaluationRow
+  toEvaluationRow,
 } from '../models';
 
 /** Body de `POST /v1/academic/evaluations/{publicUuid}/rubric`. */
@@ -59,20 +55,16 @@ export class EvaluationsApiService {
    */
   listByAssignment(
     assignmentPublicUuid: string,
-    filters: EvaluationFilters = {}
+    filters: EvaluationFilters = {},
   ): Observable<EvaluationRow[]> {
     const params: Record<string, string | undefined> = {
       status: filters.status,
-      isActive:
-        filters.isActive === undefined ? undefined : String(filters.isActive),
+      isActive: filters.isActive === undefined ? undefined : String(filters.isActive),
       from: filters.from,
-      to: filters.to
+      to: filters.to,
     };
     return this.api
-      .get<EvaluationListItemRaw[]>(
-        API.EVALUATIONS.BY_ASSIGNMENT(assignmentPublicUuid),
-        params
-      )
+      .get<EvaluationListItemRaw[]>(API.EVALUATIONS.BY_ASSIGNMENT(assignmentPublicUuid), params)
       .pipe(map((rows) => rows.map((r) => toEvaluationRow(r))));
   }
 
@@ -102,12 +94,12 @@ export class EvaluationsApiService {
    */
   createForAssignment(
     assignmentPublicUuid: string,
-    request: CreateEvaluationRequest
+    request: CreateEvaluationRequest,
   ): Observable<EvaluationDetail> {
     return this.api
       .post<ApiResponse<EvaluationResponseRaw>, CreateEvaluationRequest>(
         API.EVALUATIONS.BY_ASSIGNMENT(assignmentPublicUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => toEvaluationDetail(envelope.data)));
   }
@@ -123,12 +115,12 @@ export class EvaluationsApiService {
    */
   updateEvaluation(
     publicUuid: string,
-    patch: UpdateEvaluationRequest
+    patch: UpdateEvaluationRequest,
   ): Observable<EvaluationDetail> {
     return this.api
       .put<ApiResponse<EvaluationResponseRaw>, UpdateEvaluationRequest>(
         API.EVALUATIONS.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => toEvaluationDetail(envelope.data)));
   }
@@ -174,14 +166,11 @@ export class EvaluationsApiService {
    * upsert: si ya había una rúbrica vinculada, el server soft-deletea la
    * link previa e inserta la nueva en la misma transacción.
    */
-  attachRubric(
-    evaluationPublicUuid: string,
-    rubricPublicUuid: string
-  ): Observable<RubricDetail> {
+  attachRubric(evaluationPublicUuid: string, rubricPublicUuid: string): Observable<RubricDetail> {
     return this.api
       .post<ApiResponse<RubricResponseRaw>, AttachRubricRequest>(
         API.EVALUATIONS.RUBRIC(evaluationPublicUuid),
-        { rubricPublicUuid }
+        { rubricPublicUuid },
       )
       .pipe(map((envelope) => toRubricDetail(envelope.data)));
   }
@@ -193,9 +182,7 @@ export class EvaluationsApiService {
    */
   getAttachedRubric(evaluationPublicUuid: string): Observable<RubricDetail> {
     return this.api
-      .get<ApiResponse<RubricResponseRaw>>(
-        API.EVALUATIONS.RUBRIC(evaluationPublicUuid)
-      )
+      .get<ApiResponse<RubricResponseRaw>>(API.EVALUATIONS.RUBRIC(evaluationPublicUuid))
       .pipe(map((envelope) => toRubricDetail(envelope.data)));
   }
 
@@ -205,8 +192,6 @@ export class EvaluationsApiService {
    * en ese caso).
    */
   detachRubric(evaluationPublicUuid: string): Observable<void> {
-    return this.api.delete<void>(
-      API.EVALUATIONS.RUBRIC(evaluationPublicUuid)
-    );
+    return this.api.delete<void>(API.EVALUATIONS.RUBRIC(evaluationPublicUuid));
   }
 }

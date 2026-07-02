@@ -16,13 +16,28 @@ export const environment: AppEnvironment = {
     enabled: true,
     strategy: 'subdomain',
     headerName: 'X-Tenant-Slug',
-    defaultTenant: 'demo'
+    defaultTenant: 'demo',
   },
   auth: {
     tokenStorageKey: 'edushift.auth.token',
     refreshTokenStorageKey: 'edushift.auth.refreshToken',
     tokenHeaderName: 'Authorization',
-    tokenScheme: 'Bearer'
+    tokenScheme: 'Bearer',
+  },
+  google: {
+    enabled: true,
+    // Dev placeholder. REPLACE with the real OAuth Client ID from
+    // Google Cloud Console → APIs & Services → Credentials.
+    // Authorized JavaScript origins must include this app's origin
+    // (e.g. http://localhost:4200 in dev, https://app.edushift.app in prod).
+    clientId: 'REPLACE_ME_WITH_YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com',
+    scopes: [
+      'openid',
+      'profile',
+      'email',
+      // PR-2 will add https://www.googleapis.com/auth/gmail.send here
+      // and request consent via SocialAuthService additional consents.
+    ],
   },
   features: {
     dashboard: true,
@@ -40,11 +55,12 @@ export const environment: AppEnvironment = {
     reports: true,
     notifications: true,
     settings: true,
-    lms: true
+    lms: true,
+    gmailSend: false,
   },
   logging: {
     level: 'debug',
-    enableRemote: false
+    enableRemote: false,
   },
   attendance: {
     scannerEngine: 'zxing-ngx',
@@ -52,6 +68,6 @@ export const environment: AppEnvironment = {
     feedbackDismissMs: 1200,
     offlineBannerCopy: 'Sin conexión. Vuelve a conectarte para escanear.',
     pwaDisplay: 'standalone',
-    pwaStartUrl: '/attendance/scanner'
-  }
+    pwaStartUrl: '/attendance/scanner',
+  },
 };

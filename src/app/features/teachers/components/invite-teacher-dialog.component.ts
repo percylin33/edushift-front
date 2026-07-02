@@ -7,7 +7,7 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { TeachersStore } from '../store';
@@ -38,7 +38,7 @@ import { TeacherDetail, TeacherInvitationResult } from '../models';
   imports: [CommonModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="invite-teacher-title"
@@ -67,9 +67,7 @@ import { TeacherDetail, TeacherInvitationResult } from '../models';
 
           <div class="card-body grid gap-4">
             <div class="rounded-md border border-border-subtle bg-surface-muted/40 p-3">
-              <p class="text-xs uppercase tracking-wider text-content-subtle">
-                Destinatario
-              </p>
+              <p class="text-xs uppercase tracking-wider text-content-subtle">Destinatario</p>
               <p class="mt-1 text-sm font-medium text-content">
                 {{ teacher().fullName }}
               </p>
@@ -102,8 +100,8 @@ import { TeacherDetail, TeacherInvitationResult } from '../models';
                 </button>
               </div>
               <p class="hint">
-                Sprint 9 enviará el correo automáticamente. Por ahora,
-                copia y comparte el enlace manualmente.
+                Sprint 9 enviará el correo automáticamente. Por ahora, copia y comparte el enlace
+                manualmente.
               </p>
             </div>
 
@@ -118,9 +116,7 @@ import { TeacherDetail, TeacherInvitationResult } from '../models';
           </div>
 
           <footer class="card-footer">
-            <button type="button" class="btn btn-primary btn-sm" (click)="close()">
-              Listo
-            </button>
+            <button type="button" class="btn btn-primary btn-sm" (click)="close()">Listo</button>
           </footer>
         } @else {
           <header class="card-header">
@@ -165,24 +161,20 @@ import { TeacherDetail, TeacherInvitationResult } from '../models';
 
           <div class="card-body grid gap-3">
             <div class="rounded-md border border-border-subtle bg-surface-muted/40 p-3">
-              <p class="text-xs uppercase tracking-wider text-content-subtle">
-                Email destino
-              </p>
+              <p class="text-xs uppercase tracking-wider text-content-subtle">Email destino</p>
               <p class="mt-1 font-mono text-sm text-content">
                 {{ teacher().email ?? 'No configurado' }}
               </p>
             </div>
             <p class="text-xs text-content-muted">
               Al confirmar, se creará una invitación con rol
-              <strong>Profesor</strong> que vincula automáticamente al docente
-              cuando el destinatario acepte.
+              <strong>Profesor</strong> que vincula automáticamente al docente cuando el
+              destinatario acepte.
             </p>
           </div>
 
           <footer class="card-footer">
-            <button type="button" class="btn btn-ghost btn-sm" (click)="close()">
-              Cancelar
-            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="close()">Cancelar</button>
             <button
               type="button"
               class="btn btn-primary btn-sm"
@@ -198,7 +190,7 @@ import { TeacherDetail, TeacherInvitationResult } from '../models';
         }
       </div>
     </div>
-  `
+  `,
 })
 export class InviteTeacherDialogComponent {
   private readonly store = inject(TeachersStore);
@@ -224,7 +216,7 @@ export class InviteTeacherDialogComponent {
   });
 
   protected readonly copyHint = computed(() =>
-    this.justCopied() ? 'Copiado al portapapeles' : 'Copiar enlace al portapapeles'
+    this.justCopied() ? 'Copiado al portapapeles' : 'Copiar enlace al portapapeles',
   );
 
   @HostListener('document:keydown.escape')
@@ -256,8 +248,7 @@ export class InviteTeacherDialogComponent {
       await navigator.clipboard.writeText(link);
       this.justCopied.set(true);
       setTimeout(() => this.justCopied.set(false), 2000);
-    }
-    catch {
+    } catch {
       /* Clipboard API puede fallar bajo HTTP / permisos restrictivos
        * — el admin todavía puede seleccionar y copiar manualmente. */
     }
@@ -269,7 +260,7 @@ export class InviteTeacherDialogComponent {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 }

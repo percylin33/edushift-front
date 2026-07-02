@@ -9,31 +9,29 @@ import { BulkImportStatus } from '@core/enums';
   selector: 'app-bulk-import-status-badge',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <span [class]="badgeClass()">{{ label() }}</span>
-  `
+  template: ` <span [class]="badgeClass()">{{ label() }}</span> `,
 })
 export class BulkImportStatusBadgeComponent {
   readonly status = input.required<BulkImportStatus>();
 
   readonly label = computed(
-    () => BulkImportStatusBadgeComponent.LABELS[this.status()] ?? this.status()
+    () => BulkImportStatusBadgeComponent.LABELS[this.status()] ?? this.status(),
   );
   readonly badgeClass = computed(
-    () => `badge ${BulkImportStatusBadgeComponent.TIER[this.status()] ?? 'badge-neutral'}`
+    () => `badge ${BulkImportStatusBadgeComponent.TIER[this.status()] ?? 'badge-neutral'}`,
   );
 
   private static readonly LABELS: Readonly<Record<BulkImportStatus, string>> = {
-    [BulkImportStatus.Pending]:    'En cola',
+    [BulkImportStatus.Pending]: 'En cola',
     [BulkImportStatus.Processing]: 'Procesando',
-    [BulkImportStatus.Completed]:  'Completado',
-    [BulkImportStatus.Failed]:     'Falló'
+    [BulkImportStatus.Completed]: 'Completado',
+    [BulkImportStatus.Failed]: 'Falló',
   };
 
   private static readonly TIER: Readonly<Record<BulkImportStatus, string>> = {
-    [BulkImportStatus.Pending]:    'badge-info',
+    [BulkImportStatus.Pending]: 'badge-info',
     [BulkImportStatus.Processing]: 'badge-info',
-    [BulkImportStatus.Completed]:  'badge-success',
-    [BulkImportStatus.Failed]:     'badge-danger'
+    [BulkImportStatus.Completed]: 'badge-success',
+    [BulkImportStatus.Failed]: 'badge-danger',
   };
 }

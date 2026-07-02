@@ -8,7 +8,7 @@ describe('AttemptStatusBadgeComponent (FE-7b.2)', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [AttemptStatusBadgeComponent]
+      imports: [AttemptStatusBadgeComponent],
     });
     fixture = TestBed.createComponent(AttemptStatusBadgeComponent);
     component = fixture.componentInstance;

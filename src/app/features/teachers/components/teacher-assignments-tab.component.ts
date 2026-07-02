@@ -6,7 +6,7 @@ import {
   computed,
   inject,
   input,
-  signal
+  signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
@@ -40,7 +40,7 @@ import { CreateAssignmentModalComponent } from './create-assignment-modal.compon
     RouterLink,
     IconComponent,
     SpinnerComponent,
-    CreateAssignmentModalComponent
+    CreateAssignmentModalComponent,
   ],
   template: `
     <section class="card">
@@ -48,9 +48,8 @@ import { CreateAssignmentModalComponent } from './create-assignment-modal.compon
         <div>
           <h3 class="card-title">Asignaciones</h3>
           <p class="card-description">
-            Vincula a {{ teacher().fullName }} con
-            <em>(sección, curso, periodo)</em>. Las asignaciones cerradas
-            quedan en histórico para reportes.
+            Vincula a {{ teacher().fullName }} con <em>(sección, curso, periodo)</em>. Las
+            asignaciones cerradas quedan en histórico para reportes.
           </p>
         </div>
         <div class="flex items-center gap-2">
@@ -95,21 +94,13 @@ import { CreateAssignmentModalComponent } from './create-assignment-modal.compon
           <div class="alert alert-danger">
             <app-icon name="alert-circle" [size]="18" />
             <p class="flex-1 text-sm">{{ errorMessage() }}</p>
-            <button
-              type="button"
-              class="btn btn-ghost btn-sm"
-              (click)="reload()"
-            >
+            <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">
               Reintentar
             </button>
           </div>
         } @else if (rows().length === 0) {
           <div class="py-10 text-center">
-            <app-icon
-              name="layers"
-              [size]="32"
-              class="mx-auto mb-3 text-content-subtle"
-            />
+            <app-icon name="layers" [size]="32" class="mx-auto mb-3 text-content-subtle" />
             <p class="text-sm font-medium text-content">
               @if (showActiveOnly()) {
                 Sin asignaciones activas
@@ -117,7 +108,7 @@ import { CreateAssignmentModalComponent } from './create-assignment-modal.compon
                 Sin asignaciones en el histórico
               }
             </p>
-            <p class="mt-1 text-xs text-content-muted max-w-md mx-auto">
+            <p class="mx-auto mt-1 max-w-md text-xs text-content-muted">
               @if (showActiveOnly()) {
                 Crea una nueva asignación para que {{ teacher().firstName }}
                 aparezca en la planificación de la sección elegida.
@@ -208,7 +199,7 @@ import { CreateAssignmentModalComponent } from './create-assignment-modal.compon
         (created)="onCreated()"
       />
     }
-  `
+  `,
 })
 export class TeacherAssignmentsTabComponent implements OnInit {
   private readonly store = inject(TeacherAssignmentsStore);
@@ -225,18 +216,21 @@ export class TeacherAssignmentsTabComponent implements OnInit {
   protected readonly errorMessage = this.store.error;
 
   protected readonly showActiveOnly = computed<boolean>(
-    () => this.store.filters().active !== false
+    () => this.store.filters().active !== false,
   );
 
   protected readonly showCreate = signal<boolean>(false);
 
   async ngOnInit(): Promise<void> {
     await this.store.loadAssignmentsFor(this.teacher().publicUuid, {
-      active: true
+      active: true,
     });
   }
 
-  protected periodLabel(a: { periodType: keyof typeof PERIOD_TYPE_LABELS; periodOrdinal: number }): string {
+  protected periodLabel(a: {
+    periodType: keyof typeof PERIOD_TYPE_LABELS;
+    periodOrdinal: number;
+  }): string {
     return `${PERIOD_TYPE_LABELS[a.periodType]} ${a.periodOrdinal}`;
   }
 
@@ -247,10 +241,7 @@ export class TeacherAssignmentsTabComponent implements OnInit {
 
   protected async reload(): Promise<void> {
     this.store.clearError();
-    await this.store.loadAssignmentsFor(
-      this.teacher().publicUuid,
-      this.store.filters()
-    );
+    await this.store.loadAssignmentsFor(this.teacher().publicUuid, this.store.filters());
   }
 
   protected openCreate(): void {
@@ -269,12 +260,12 @@ export class TeacherAssignmentsTabComponent implements OnInit {
   protected async onSoftEnd(
     publicUuid: string,
     sectionName: string,
-    courseCode: string
+    courseCode: string,
   ): Promise<void> {
     const ok = confirm(
       `¿Finalizar la asignación de ${courseCode} en ${sectionName}?\n\n` +
         'La row quedará en el histórico (status terminado) y dejará de\n' +
-        'aparecer en la lista de asignaciones activas.'
+        'aparecer en la lista de asignaciones activas.',
     );
     if (!ok) return;
     await this.store.softEnd(publicUuid);

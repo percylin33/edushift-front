@@ -34,7 +34,7 @@ import { IconComponent, IconName } from '@shared/components/icon';
         <ng-content />
       </div>
     </div>
-  `
+  `,
 })
 export class EmptyStateComponent {
   readonly title = input.required<string>();

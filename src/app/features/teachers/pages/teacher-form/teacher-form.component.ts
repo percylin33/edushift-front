@@ -5,14 +5,9 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
@@ -22,7 +17,7 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import { SpecializationInputComponent } from '../../components';
 import { TeachersStore } from '../../store';
@@ -30,7 +25,7 @@ import {
   CreateTeacherRequest,
   EMPLOYMENT_STATUS_LABELS,
   TeacherDetail,
-  UpdateTeacherRequest
+  UpdateTeacherRequest,
 } from '../../models';
 
 /**
@@ -71,14 +66,11 @@ import {
     PageHeaderComponent,
     IconComponent,
     SpinnerComponent,
-    SpecializationInputComponent
+    SpecializationInputComponent,
   ],
   template: `
     <app-page-container size="default">
-      <app-page-header
-        [title]="title()"
-        [subtitle]="subtitle()"
-      >
+      <app-page-header [title]="title()" [subtitle]="subtitle()">
         <a [routerLink]="listRoute" class="btn btn-ghost btn-sm">
           <app-icon name="chevron-left" [size]="16" />
           <span>Volver</span>
@@ -95,9 +87,7 @@ import {
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="card">
         <div class="card-body grid gap-5">
           <fieldset class="grid gap-4 sm:grid-cols-12">
-            <legend class="col-span-12 text-sm font-semibold text-content">
-              Identificación
-            </legend>
+            <legend class="col-span-12 text-sm font-semibold text-content">Identificación</legend>
 
             <div class="field sm:col-span-3">
               <label class="label" for="docType">Tipo de documento *</label>
@@ -164,12 +154,7 @@ import {
 
             <div class="field sm:col-span-4">
               <label class="label" for="birthDate">Fecha de nacimiento</label>
-              <input
-                id="birthDate"
-                type="date"
-                class="input"
-                formControlName="birthDate"
-              />
+              <input id="birthDate" type="date" class="input" formControlName="birthDate" />
             </div>
 
             <div class="field sm:col-span-4">
@@ -184,9 +169,7 @@ import {
           </fieldset>
 
           <fieldset class="grid gap-4 sm:grid-cols-12">
-            <legend class="col-span-12 text-sm font-semibold text-content">
-              Contacto
-            </legend>
+            <legend class="col-span-12 text-sm font-semibold text-content">Contacto</legend>
 
             <div class="field sm:col-span-6">
               <label class="label" for="email">Email</label>
@@ -224,9 +207,7 @@ import {
           </fieldset>
 
           <fieldset class="grid gap-4 sm:grid-cols-12">
-            <legend class="col-span-12 text-sm font-semibold text-content">
-              Datos académicos
-            </legend>
+            <legend class="col-span-12 text-sm font-semibold text-content">Datos académicos</legend>
 
             <div class="field sm:col-span-6">
               <label class="label" for="title">Título profesional</label>
@@ -242,21 +223,12 @@ import {
 
             <div class="field sm:col-span-3">
               <label class="label" for="hireDate">Fecha de contratación</label>
-              <input
-                id="hireDate"
-                type="date"
-                class="input"
-                formControlName="hireDate"
-              />
+              <input id="hireDate" type="date" class="input" formControlName="hireDate" />
             </div>
 
             <div class="field sm:col-span-3">
               <label class="label" for="employmentStatus">Estado laboral</label>
-              <select
-                id="employmentStatus"
-                class="select"
-                formControlName="employmentStatus"
-              >
+              <select id="employmentStatus" class="select" formControlName="employmentStatus">
                 <option [ngValue]="null">Activo (default)</option>
                 @for (opt of statusOptions; track opt.value) {
                   <option [ngValue]="opt.value">{{ opt.label }}</option>
@@ -266,13 +238,10 @@ import {
 
             <div class="field sm:col-span-12">
               <label class="label" for="specializations">Especialidades</label>
-              <app-specialization-input
-                id="specializations"
-                formControlName="specializations"
-              />
+              <app-specialization-input id="specializations" formControlName="specializations" />
               <p class="field-hint">
-                Empieza a tipear y elige del catálogo o presiona Enter para
-                agregar una especialidad libre.
+                Empieza a tipear y elige del catálogo o presiona Enter para agregar una especialidad
+                libre.
               </p>
             </div>
           </fieldset>
@@ -296,7 +265,7 @@ import {
         </footer>
       </form>
     </app-page-container>
-  `
+  `,
 })
 export class TeacherFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -315,16 +284,14 @@ export class TeacherFormComponent implements OnInit {
     return Object.keys(this.fieldErrors()).length > 0 ? null : err;
   });
 
-  protected readonly title = computed(() =>
-    this.editing() ? 'Editar docente' : 'Nuevo docente'
-  );
+  protected readonly title = computed(() => (this.editing() ? 'Editar docente' : 'Nuevo docente'));
   protected readonly subtitle = computed(() =>
     this.editing()
       ? 'Actualiza los datos del docente. Los cambios se aplican al guardar.'
-      : 'Da de alta un docente. Podrás invitarlo al sistema desde el detalle.'
+      : 'Da de alta un docente. Podrás invitarlo al sistema desde el detalle.',
   );
   protected readonly submitLabel = computed(() =>
-    this.editing() ? 'Guardar cambios' : 'Crear docente'
+    this.editing() ? 'Guardar cambios' : 'Crear docente',
   );
 
   private readonly fieldErrors = signal<Record<string, string>>({});
@@ -334,20 +301,20 @@ export class TeacherFormComponent implements OnInit {
     value: DocumentType;
     label: string;
   }> = [
-    { value: DocumentType.Dni,      label: 'DNI' },
-    { value: DocumentType.Ce,       label: 'Carnet de Extranjería' },
+    { value: DocumentType.Dni, label: 'DNI' },
+    { value: DocumentType.Ce, label: 'Carnet de Extranjería' },
     { value: DocumentType.Passport, label: 'Pasaporte' },
-    { value: DocumentType.Other,    label: 'Otro' }
+    { value: DocumentType.Other, label: 'Otro' },
   ];
 
   protected readonly genderOptions: ReadonlyArray<{
     value: Gender;
     label: string;
   }> = [
-    { value: Gender.Female,       label: 'Femenino' },
-    { value: Gender.Male,         label: 'Masculino' },
-    { value: Gender.Other,        label: 'Otro' },
-    { value: Gender.NotSpecified, label: 'Sin especificar' }
+    { value: Gender.Female, label: 'Femenino' },
+    { value: Gender.Male, label: 'Masculino' },
+    { value: Gender.Other, label: 'Otro' },
+    { value: Gender.NotSpecified, label: 'Sin especificar' },
   ];
 
   protected readonly statusOptions: ReadonlyArray<{
@@ -355,29 +322,23 @@ export class TeacherFormComponent implements OnInit {
     label: string;
   }> = (Object.values(EmploymentStatus) as EmploymentStatus[]).map((v) => ({
     value: v,
-    label: EMPLOYMENT_STATUS_LABELS[v]
+    label: EMPLOYMENT_STATUS_LABELS[v],
   }));
 
   protected readonly form: FormGroup = this.fb.group({
     documentType: [DocumentType.Dni, [Validators.required]],
-    documentNumber: [
-      '',
-      [Validators.required, Validators.minLength(1), Validators.maxLength(20)]
-    ],
+    documentNumber: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(20)]],
     firstName: ['', [Validators.required, Validators.maxLength(100)]],
     lastName: ['', [Validators.required, Validators.maxLength(100)]],
     secondLastName: ['', [Validators.maxLength(100)]],
     birthDate: [null as string | null],
     gender: [null as Gender | null],
     email: ['', [Validators.email, Validators.maxLength(254)]],
-    phone: [
-      '',
-      [Validators.maxLength(32), Validators.pattern(/^[+0-9\s\-()]{6,32}$/)]
-    ],
+    phone: ['', [Validators.maxLength(32), Validators.pattern(/^[+0-9\s\-()]{6,32}$/)]],
     title: ['', [Validators.maxLength(50)]],
     specializations: [[] as string[]],
     hireDate: [null as string | null],
-    employmentStatus: [null as EmploymentStatus | null]
+    employmentStatus: [null as EmploymentStatus | null],
   });
 
   async ngOnInit(): Promise<void> {
@@ -426,8 +387,7 @@ export class TeacherFormComponent implements OnInit {
           this.applyServerErrorsFromStore();
         }
       }
-    }
-    catch (err) {
+    } catch (err) {
       this.applyServerErrors(err);
     }
   }
@@ -473,7 +433,7 @@ export class TeacherFormComponent implements OnInit {
       title: detail.title ?? '',
       specializations: [...detail.specializations],
       hireDate: this.toDateInput(detail.hireDate),
-      employmentStatus: detail.employmentStatus
+      employmentStatus: detail.employmentStatus,
     });
   }
 
@@ -492,7 +452,7 @@ export class TeacherFormComponent implements OnInit {
       title: this.optionalString(v.title),
       specializations: v.specializations.length > 0 ? v.specializations : undefined,
       hireDate: this.optionalString(v.hireDate),
-      employmentStatus: this.optionalEnum<EmploymentStatus>(v.employmentStatus)
+      employmentStatus: this.optionalEnum<EmploymentStatus>(v.employmentStatus),
     };
   }
 
@@ -515,7 +475,7 @@ export class TeacherFormComponent implements OnInit {
       title: v.title.trim(),
       specializations: v.specializations,
       hireDate: this.optionalString(v.hireDate),
-      employmentStatus: this.optionalEnum<EmploymentStatus>(v.employmentStatus)
+      employmentStatus: this.optionalEnum<EmploymentStatus>(v.employmentStatus),
     };
   }
 

@@ -6,7 +6,7 @@ import {
   computed,
   inject,
   input,
-  output
+  output,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '@shared/components';
@@ -43,14 +43,14 @@ import { AttendanceRecord, AttendanceRecordStatus, UpdateRecordRequest } from '.
   imports: [CommonModule, FormsModule, IconComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-record-title"
       (click)="onBackdropClick($event)"
     >
       <div
-        class="card w-full max-w-lg shadow-xl flex flex-col max-h-[90vh]"
+        class="card flex max-h-[90vh] w-full max-w-lg flex-col shadow-xl"
         (click)="$event.stopPropagation()"
       >
         <header class="card-header">
@@ -74,21 +74,15 @@ import { AttendanceRecord, AttendanceRecordStatus, UpdateRecordRequest } from '.
         <form class="card-body flex flex-col gap-3 overflow-y-auto" (ngSubmit)="submit()">
           <div>
             <label class="label" for="edit-status">Estado</label>
-            <select
-              id="edit-status"
-              class="select"
-              [(ngModel)]="status"
-              name="status"
-              required
-            >
+            <select id="edit-status" class="select" [(ngModel)]="status" name="status" required>
               @for (opt of statusOptions; track opt.value) {
                 <option [ngValue]="opt.value">{{ opt.label }}</option>
               }
             </select>
             @if (isTeacher() && (status === 'PRESENT' || status === 'LATE')) {
               <p class="hint mt-1 text-xs text-warning">
-                El backend rechazará forzar PRESENTE / TARDANZA sin
-                justificación; documenta el motivo en las notas.
+                El backend rechazará forzar PRESENTE / TARDANZA sin justificación; documenta el
+                motivo en las notas.
               </p>
             }
           </div>
@@ -115,9 +109,7 @@ import { AttendanceRecord, AttendanceRecordStatus, UpdateRecordRequest } from '.
         </form>
 
         <footer class="card-footer justify-end gap-2">
-          <button type="button" class="btn btn-ghost btn-sm" (click)="close()">
-            Cancelar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="close()">Cancelar</button>
           <button
             type="submit"
             class="btn btn-primary btn-sm"
@@ -130,7 +122,7 @@ import { AttendanceRecord, AttendanceRecordStatus, UpdateRecordRequest } from '.
         </footer>
       </div>
     </div>
-  `
+  `,
 })
 export class EditRecordModalComponent {
   readonly record = input.required<AttendanceRecord>();
@@ -144,15 +136,16 @@ export class EditRecordModalComponent {
   protected status: AttendanceRecordStatus = 'PRESENT';
   protected notes = '';
 
-  protected readonly isTeacher = computed(() =>
-    this.auth.hasRole(UserRole.Teacher)
-  );
+  protected readonly isTeacher = computed(() => this.auth.hasRole(UserRole.Teacher));
 
-  protected readonly statusOptions: ReadonlyArray<{ value: AttendanceRecordStatus; label: string }> = [
+  protected readonly statusOptions: ReadonlyArray<{
+    value: AttendanceRecordStatus;
+    label: string;
+  }> = [
     { value: 'PRESENT', label: 'Presente' },
     { value: 'LATE', label: 'Tardanza' },
     { value: 'ABSENT', label: 'Ausente' },
-    { value: 'EXCUSED', label: 'Justificado' }
+    { value: 'EXCUSED', label: 'Justificado' },
   ];
 
   @HostListener('document:keydown.escape')

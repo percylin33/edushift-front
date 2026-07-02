@@ -5,7 +5,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ROUTES } from '@core/constants';
@@ -14,7 +14,7 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import { RubricCardComponent, ForkRubricModalComponent } from '../../components';
 import { RubricsStore } from '../../store';
@@ -37,7 +37,7 @@ import { RubricFilters, RubricRow } from '../../models';
     PageHeaderComponent,
     SpinnerComponent,
     RubricCardComponent,
-    ForkRubricModalComponent
+    ForkRubricModalComponent,
   ],
   template: `
     <app-page-container size="wide">
@@ -55,11 +55,7 @@ import { RubricFilters, RubricRow } from '../../models';
           <app-icon name="download" [size]="16" />
           <span>{{ hasSystemRubrics() ? 'MINEDU cargadas' : 'Cargar MINEDU' }}</span>
         </button>
-        <button
-          type="button"
-          class="btn btn-primary btn-sm"
-          (click)="goToCreate()"
-        >
+        <button type="button" class="btn btn-primary btn-sm" (click)="goToCreate()">
           <app-icon name="plus" [size]="16" />
           <span>Nueva rúbrica</span>
         </button>
@@ -70,17 +66,12 @@ import { RubricFilters, RubricRow } from '../../models';
           <app-icon name="info" [size]="18" />
           <div class="flex-1">
             <p class="font-medium">¿Empezamos con las plantillas MINEDU?</p>
-            <p class="text-sm mt-1 opacity-80">
-              Cargamos automáticamente las 4 rúbricas oficiales (lectura,
-              escritura, matemática, competencias generales) que puedes
-              forkear y adaptar a tu contexto.
+            <p class="mt-1 text-sm opacity-80">
+              Cargamos automáticamente las 4 rúbricas oficiales (lectura, escritura, matemática,
+              competencias generales) que puedes forkear y adaptar a tu contexto.
             </p>
           </div>
-          <button
-            type="button"
-            class="btn btn-primary btn-sm"
-            (click)="loadSystem()"
-          >
+          <button type="button" class="btn btn-primary btn-sm" (click)="loadSystem()">
             <app-icon name="download" [size]="16" />
             <span>Cargar MINEDU</span>
           </button>
@@ -127,11 +118,7 @@ import { RubricFilters, RubricRow } from '../../models';
           </div>
 
           <div class="flex items-end">
-            <button
-              type="button"
-              class="btn btn-ghost btn-sm w-full"
-              (click)="clearFilters()"
-            >
+            <button type="button" class="btn btn-ghost btn-sm w-full" (click)="clearFilters()">
               <app-icon name="x" [size]="14" />
               <span>Limpiar</span>
             </button>
@@ -150,13 +137,7 @@ import { RubricFilters, RubricRow } from '../../models';
             <p class="font-medium">No pudimos cargar las rúbricas.</p>
             <p class="mt-1 text-xs opacity-80">{{ errorBanner() }}</p>
           </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            (click)="reload()"
-          >
-            Reintentar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">Reintentar</button>
         </div>
       } @else if (rows().length === 0) {
         <app-empty-state
@@ -164,11 +145,7 @@ import { RubricFilters, RubricRow } from '../../models';
           title="Aún no hay rúbricas"
           description="Crea tu primera rúbrica desde cero o carga el catálogo MINEDU para tener una base lista para forkear."
         >
-          <button
-            type="button"
-            class="btn btn-primary btn-sm"
-            (click)="goToCreate()"
-          >
+          <button type="button" class="btn btn-primary btn-sm" (click)="goToCreate()">
             <app-icon name="plus" [size]="16" />
             <span>Nueva rúbrica</span>
           </button>
@@ -189,13 +166,9 @@ import { RubricFilters, RubricRow } from '../../models';
     </app-page-container>
 
     @if (forkOrigin(); as origin) {
-      <app-fork-rubric-modal
-        [origin]="origin"
-        (closed)="closeFork()"
-        (forked)="onForked($event)"
-      />
+      <app-fork-rubric-modal [origin]="origin" (closed)="closeFork()" (forked)="onForked($event)" />
     }
-  `
+  `,
 })
 export class RubricsListComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
@@ -231,7 +204,7 @@ export class RubricsListComponent implements OnInit {
   protected async onSystemChange(value: string): Promise<void> {
     const next: RubricFilters = {
       ...this.filters(),
-      systemOnly: value === 'all' ? undefined : value === 'system'
+      systemOnly: value === 'all' ? undefined : value === 'system',
     };
     this.syncUrl(next);
     await this.store.setFilters(next);
@@ -240,7 +213,7 @@ export class RubricsListComponent implements OnInit {
   protected async onActiveChange(value: string): Promise<void> {
     const next: RubricFilters = {
       ...this.filters(),
-      isActive: value === 'inactive' ? false : true
+      isActive: value === 'inactive' ? false : true,
     };
     this.syncUrl(next);
     await this.store.setFilters(next);
@@ -251,7 +224,7 @@ export class RubricsListComponent implements OnInit {
     this.debounceTimer = window.setTimeout(() => {
       const next: RubricFilters = {
         ...this.filters(),
-        q: value?.trim() || undefined
+        q: value?.trim() || undefined,
       };
       this.syncUrl(next);
       void this.store.setFilters(next);
@@ -307,7 +280,7 @@ export class RubricsListComponent implements OnInit {
     const ok = confirm(
       `¿Eliminar la rúbrica "${row.name}"?\n\n` +
         'Si está vinculada a una evaluación, el servidor lo rechazará con\n' +
-        '"RUB_IN_USE". Las inactivas se mantienen para reportes históricos.'
+        '"RUB_IN_USE". Las inactivas se mantienen para reportes históricos.',
     );
     if (!ok) return;
     await this.store.remove(row.publicUuid);
@@ -324,7 +297,7 @@ export class RubricsListComponent implements OnInit {
     return {
       systemOnly: sys === null ? undefined : sys === 'true',
       isActive: active === null ? undefined : active === 'true',
-      q: qp.get('q') ?? undefined
+      q: qp.get('q') ?? undefined,
     };
   }
 
@@ -342,7 +315,7 @@ export class RubricsListComponent implements OnInit {
       relativeTo: this.route,
       queryParams: cleanParams,
       queryParamsHandling: '',
-      replaceUrl: true
+      replaceUrl: true,
     });
   }
 }

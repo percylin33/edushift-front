@@ -3,12 +3,7 @@ import { Observable, map } from 'rxjs';
 import { toAuthSession } from '@core/adapters';
 import { API } from '@core/constants';
 import { UserRole } from '@core/enums';
-import {
-  ApiResponse,
-  AuthResponseRaw,
-  AuthSession,
-  SpringPage
-} from '@core/models';
+import { ApiResponse, AuthResponseRaw, AuthSession, SpringPage } from '@core/models';
 import { ApiService } from '@core/services';
 import {
   AcceptInvitationRequest,
@@ -24,7 +19,7 @@ import {
   UserListFilters,
   UserListItemRaw,
   UserListPagination,
-  UserRow
+  UserRow,
 } from '../models';
 
 /**
@@ -64,7 +59,7 @@ export class UsersApiService {
    */
   list(
     filters: UserListFilters = {},
-    pagination: UserListPagination = {}
+    pagination: UserListPagination = {},
   ): Observable<SpringPage<UserRow>> {
     const params: Record<string, string | number | undefined> = {
       search: filters.search?.trim() || undefined,
@@ -72,7 +67,7 @@ export class UsersApiService {
       role: filters.role,
       page: pagination.page,
       size: pagination.size,
-      sort: pagination.sort
+      sort: pagination.sort,
     };
 
     return this.api
@@ -90,7 +85,7 @@ export class UsersApiService {
     return this.api
       .patch<ApiResponse<UserDetailResponseRaw>, UpdateUserRequest>(
         API.USERS.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toUserDetail(envelope.data)));
   }
@@ -99,7 +94,7 @@ export class UsersApiService {
     return this.api
       .post<ApiResponse<UserDetailResponseRaw>, AssignRolesRequest>(
         API.USERS.ROLES(publicUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toUserDetail(envelope.data)));
   }
@@ -140,7 +135,7 @@ export class UsersApiService {
     return this.api
       .post<ApiResponse<InvitationResponseRaw>, CreateInvitationRequest>(
         API.INVITATIONS.ROOT,
-        request
+        request,
       )
       .pipe(map((envelope) => this.toInvitation(envelope.data)));
   }
@@ -150,13 +145,11 @@ export class UsersApiService {
    * {@code expiresAt ASC} so soon-to-expire ones bubble up; callers
    * can override via {@code pagination.sort}.
    */
-  listInvitations(
-    pagination: UserListPagination = {}
-  ): Observable<SpringPage<Invitation>> {
+  listInvitations(pagination: UserListPagination = {}): Observable<SpringPage<Invitation>> {
     const params: Record<string, string | number | undefined> = {
       page: pagination.page,
       size: pagination.size,
-      sort: pagination.sort
+      sort: pagination.sort,
     };
     return this.api
       .get<SpringPage<InvitationResponseRaw>>(API.INVITATIONS.ROOT, params)
@@ -197,7 +190,7 @@ export class UsersApiService {
   private toUserPage(raw: SpringPage<UserListItemRaw>): SpringPage<UserRow> {
     return {
       ...raw,
-      content: raw.content.map((row) => this.toUserRow(row))
+      content: raw.content.map((row) => this.toUserRow(row)),
     };
   }
 
@@ -211,7 +204,7 @@ export class UsersApiService {
       status: raw.status,
       roles: this.narrowRoles(raw.roles),
       lastLoginAt: this.parseDate(raw.lastLoginAt),
-      createdAt: this.parseDate(raw.createdAt)
+      createdAt: this.parseDate(raw.createdAt),
     };
   }
 
@@ -230,7 +223,7 @@ export class UsersApiService {
       roles: this.narrowRoles(raw.roles),
       lastLoginAt: this.parseDate(raw.lastLoginAt),
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 
@@ -255,7 +248,7 @@ export class UsersApiService {
   private toInvitationPage(raw: SpringPage<InvitationResponseRaw>): SpringPage<Invitation> {
     return {
       ...raw,
-      content: raw.content.map((row) => this.toInvitation(row))
+      content: raw.content.map((row) => this.toInvitation(row)),
     };
   }
 
@@ -273,7 +266,7 @@ export class UsersApiService {
       expiresAt: this.parseDate(raw.expiresAt),
       acceptedAt: this.parseDate(raw.acceptedAt),
       cancelledAt: this.parseDate(raw.cancelledAt),
-      createdAt: this.parseDate(raw.createdAt)
+      createdAt: this.parseDate(raw.createdAt),
     };
   }
 
@@ -284,7 +277,7 @@ export class UsersApiService {
       firstName: raw.firstName,
       lastName: raw.lastName,
       fullName: fullName || raw.email,
-      tenantName: raw.tenantName
+      tenantName: raw.tenantName,
     };
   }
 }

@@ -24,19 +24,15 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
     BreadcrumbsComponent,
     NotificationsBellComponent,
     ThemeToggleComponent,
-    UserMenuComponent
+    UserMenuComponent,
   ],
   template: `
     <header
-      class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border
-             bg-surface/80 px-4 backdrop-blur supports-backdrop:bg-surface/70 sm:px-6"
+      class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-surface/80 px-4 backdrop-blur supports-backdrop:bg-surface/70 sm:px-6"
     >
       <button
         type="button"
-        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-content-muted
-               hover:bg-surface-muted hover:text-content
-               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30
-               md:hidden"
+        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-content-muted hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 md:hidden"
         aria-label="Abrir menú"
         (click)="openSidebar()"
       >
@@ -55,11 +51,7 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
             [size]="16"
             class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-content-subtle"
           />
-          <input
-            type="search"
-            placeholder="Buscar…"
-            class="input h-9 w-64 pl-8 text-sm"
-          />
+          <input type="search" placeholder="Buscar…" class="input h-9 w-64 pl-8 text-sm" />
         </label>
 
         <app-theme-toggle />
@@ -68,7 +60,7 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
         <app-user-menu />
       </div>
     </header>
-  `
+  `,
 })
 export class NavbarComponent {
   private readonly layout = inject(LayoutService);

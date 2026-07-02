@@ -8,23 +8,14 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApiError } from '@core/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { UnitsStore } from '../store';
-import {
-  UNIT_DESCRIPTION_MAX_LENGTH,
-  UNIT_NAME_MAX_LENGTH,
-  UnitDetail
-} from '../models';
+import { UNIT_DESCRIPTION_MAX_LENGTH, UNIT_NAME_MAX_LENGTH, UnitDetail } from '../models';
 
 /**
  * Modal de creación/edición de {@link UnitDetail} dentro de un curso.
@@ -59,7 +50,7 @@ import {
   imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="unit-form-title"
@@ -70,17 +61,11 @@ import {
           <div>
             <h2 id="unit-form-title" class="card-title">{{ title() }}</h2>
             <p class="card-description">
-              Unidad de aprendizaje del curso. Las fechas son guías
-              pedagógicas; las sesiones validan su propio rango contra
-              el periodo del assignment.
+              Unidad de aprendizaje del curso. Las fechas son guías pedagógicas; las sesiones
+              validan su propio rango contra el periodo del assignment.
             </p>
           </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            aria-label="Cerrar"
-            (click)="cancel()"
-          >
+          <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
             <app-icon name="x" [size]="18" />
           </button>
         </header>
@@ -107,9 +92,7 @@ import {
             @if (showError('name'); as msg) {
               <p class="field-error">{{ msg }}</p>
             } @else {
-              <p class="field-hint">
-                Único dentro del curso (case-insensitive).
-              </p>
+              <p class="field-hint">Único dentro del curso (case-insensitive).</p>
             }
           </div>
 
@@ -131,12 +114,7 @@ import {
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="field">
               <label class="label" for="unit-start">Fecha inicio</label>
-              <input
-                id="unit-start"
-                type="date"
-                class="input"
-                formControlName="startDate"
-              />
+              <input id="unit-start" type="date" class="input" formControlName="startDate" />
               @if (showError('startDate'); as msg) {
                 <p class="field-error">{{ msg }}</p>
               }
@@ -144,12 +122,7 @@ import {
 
             <div class="field">
               <label class="label" for="unit-end">Fecha fin</label>
-              <input
-                id="unit-end"
-                type="date"
-                class="input"
-                formControlName="endDate"
-              />
+              <input id="unit-end" type="date" class="input" formControlName="endDate" />
               @if (showError('endDate'); as msg) {
                 <p class="field-error">{{ msg }}</p>
               }
@@ -169,9 +142,7 @@ import {
           </label>
 
           <footer class="flex flex-wrap items-center justify-end gap-2 pt-2">
-            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">
-              Cancelar
-            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">Cancelar</button>
             <button
               type="submit"
               class="btn btn-primary btn-sm"
@@ -189,7 +160,7 @@ import {
         </form>
       </div>
     </div>
-  `
+  `,
 })
 export class UnitFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -207,11 +178,9 @@ export class UnitFormModalComponent implements OnInit {
   protected readonly errorBanner = this.store.error;
 
   protected readonly editing = computed(() => this.unit() !== null);
-  protected readonly title = computed(() =>
-    this.editing() ? 'Editar unidad' : 'Nueva unidad'
-  );
+  protected readonly title = computed(() => (this.editing() ? 'Editar unidad' : 'Nueva unidad'));
   protected readonly submitLabel = computed(() =>
-    this.editing() ? 'Guardar cambios' : 'Crear unidad'
+    this.editing() ? 'Guardar cambios' : 'Crear unidad',
   );
 
   protected readonly nameMaxLength = UNIT_NAME_MAX_LENGTH;
@@ -225,9 +194,9 @@ export class UnitFormModalComponent implements OnInit {
       description: ['', [Validators.maxLength(UNIT_DESCRIPTION_MAX_LENGTH)]],
       startDate: [''],
       endDate: [''],
-      isActive: [true]
+      isActive: [true],
     },
-    { validators: [dateRangeValidator] }
+    { validators: [dateRangeValidator] },
   );
 
   ngOnInit(): void {
@@ -239,7 +208,7 @@ export class UnitFormModalComponent implements OnInit {
         description: u.description ?? '',
         startDate: u.startDate ? toDateInput(u.startDate) : '',
         endDate: u.endDate ? toDateInput(u.endDate) : '',
-        isActive: u.isActive
+        isActive: u.isActive,
       });
     }
   }
@@ -267,7 +236,7 @@ export class UnitFormModalComponent implements OnInit {
       description: (v.description as string)?.trim() || undefined,
       startDate: (v.startDate as string) || undefined,
       endDate: (v.endDate as string) || undefined,
-      isActive: v.isActive as boolean
+      isActive: v.isActive as boolean,
     };
 
     try {
@@ -278,7 +247,7 @@ export class UnitFormModalComponent implements OnInit {
           description: payload.description ?? '',
           startDate: payload.startDate ?? null,
           endDate: payload.endDate ?? null,
-          isActive: payload.isActive
+          isActive: payload.isActive,
         });
         if (updated) this.saved.emit(updated);
       } else {
@@ -287,8 +256,7 @@ export class UnitFormModalComponent implements OnInit {
         const created = await this.store.createUnit(courseUuid, payload);
         if (created) this.saved.emit(created);
       }
-    }
-    catch (err) {
+    } catch (err) {
       this.applyServerErrors(err);
     }
   }

@@ -37,23 +37,23 @@ export class RubricGeneratorService {
     if (!Array.isArray(request.criteria) || request.criteria.length === 0) {
       return throwError(() => ({
         code: 'AI_CRITERIA_REQUIRED',
-        message: 'Añade al menos un criterio para generar la rúbrica.'
+        message: 'Añade al menos un criterio para generar la rúbrica.',
       }));
     }
 
     return this.api
-      .post<ApiResponse<RubricDraft>, RubricGeneratorRequest>(
-        API.AI.GENERATE_RUBRIC,
-        request
-      )
+      .post<ApiResponse<RubricDraft>, RubricGeneratorRequest>(API.AI.GENERATE_RUBRIC, request)
       .pipe(
         map((envelope) => {
           if (!envelope || !envelope.success || !envelope.data) {
-            throw { code: 'AI_EMPTY_RESPONSE', message: 'El asistente devolvió una respuesta vacía.' };
+            throw {
+              code: 'AI_EMPTY_RESPONSE',
+              message: 'El asistente devolvió una respuesta vacía.',
+            };
           }
           return envelope.data;
         }),
-        catchError((err: unknown) => throwError(() => mapHttpError(err)))
+        catchError((err: unknown) => throwError(() => mapHttpError(err))),
       );
   }
 }
@@ -87,8 +87,7 @@ function mapHttpError(err: unknown): { code: string; message: string; httpStatus
   }
   if (err instanceof HttpErrorResponse) {
     const apiErr = err.error as
-      | { error?: { code?: string; message?: string }; message?: string }
-      | undefined;
+      { error?: { code?: string; message?: string }; message?: string } | undefined;
     const code = apiErr?.error?.code ?? apiErr?.message ?? 'AI_UNKNOWN';
     const message = apiErr?.error?.message ?? defaultMessageForStatus(err.status, code);
     return { code, message, httpStatus: err.status };
@@ -98,15 +97,23 @@ function mapHttpError(err: unknown): { code: string; message: string; httpStatus
 
 function defaultMessageForStatus(status: number, code: string): string {
   switch (status) {
-    case 0:   return 'Sin conexión con el servidor. Verifica tu red e inténtalo de nuevo.';
-    case 400: return 'La solicitud es inválida (revisa los criterios y los datos del formulario).';
-    case 401: return 'Tu sesión expiró. Vuelve a iniciar sesión.';
-    case 403: return code === 'AI_DISABLED'
-      ? 'La IA está deshabilitada en este colegio.'
-      : 'No tienes permiso para usar el asistente de IA.';
-    case 429: return 'Has alcanzado la cuota de IA del colegio. Intenta de nuevo más tarde.';
-    case 502: return 'El asistente tuvo un problema al generar la rúbrica. Reintenta.';
-    case 503: return 'El asistente no está disponible en este momento. Reintenta.';
-    default:  return `Error ${status} al generar la rúbrica.`;
+    case 0:
+      return 'Sin conexión con el servidor. Verifica tu red e inténtalo de nuevo.';
+    case 400:
+      return 'La solicitud es inválida (revisa los criterios y los datos del formulario).';
+    case 401:
+      return 'Tu sesión expiró. Vuelve a iniciar sesión.';
+    case 403:
+      return code === 'AI_DISABLED'
+        ? 'La IA está deshabilitada en este colegio.'
+        : 'No tienes permiso para usar el asistente de IA.';
+    case 429:
+      return 'Has alcanzado la cuota de IA del colegio. Intenta de nuevo más tarde.';
+    case 502:
+      return 'El asistente tuvo un problema al generar la rúbrica. Reintenta.';
+    case 503:
+      return 'El asistente no está disponible en este momento. Reintenta.';
+    default:
+      return `Error ${status} al generar la rúbrica.`;
   }
 }

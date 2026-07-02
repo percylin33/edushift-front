@@ -9,7 +9,7 @@ import {
   EvaluationFilters,
   EvaluationRow,
   EvaluationStatus,
-  UpdateEvaluationRequest
+  UpdateEvaluationRequest,
 } from '../models';
 
 /**
@@ -71,9 +71,7 @@ export class EvaluationsStore {
   readonly error = this._error.asReadonly();
 
   readonly hasRows = computed(() => this._rows().length > 0);
-  readonly isEmpty = computed(
-    () => !this._loading() && this._rows().length === 0
-  );
+  readonly isEmpty = computed(() => !this._loading() && this._rows().length === 0);
 
   /**
    * Suma de pesos de evaluations PUBLISHED + CLOSED. Útil para alertar
@@ -83,7 +81,7 @@ export class EvaluationsStore {
   readonly weightTotalLive = computed(() =>
     this._rows()
       .filter((r) => r.status !== EvaluationStatus.DRAFT)
-      .reduce((acc, r) => acc + r.weight, 0)
+      .reduce((acc, r) => acc + r.weight, 0),
   );
 
   // ===========================================================================
@@ -92,7 +90,7 @@ export class EvaluationsStore {
 
   async loadByAssignment(
     assignmentPublicUuid: string,
-    filters: EvaluationFilters = {}
+    filters: EvaluationFilters = {},
   ): Promise<void> {
     this._currentAssignmentUuid.set(assignmentPublicUuid);
     this._filters.set({ ...filters });
@@ -115,13 +113,13 @@ export class EvaluationsStore {
 
   async create(
     assignmentPublicUuid: string,
-    request: CreateEvaluationRequest
+    request: CreateEvaluationRequest,
   ): Promise<EvaluationDetail | null> {
     this._saving.set(true);
     this._error.set(null);
     try {
       const created = await firstValueFrom(
-        this.api.createForAssignment(assignmentPublicUuid, request)
+        this.api.createForAssignment(assignmentPublicUuid, request),
       );
       if (this._currentAssignmentUuid() === assignmentPublicUuid) {
         this._rows.update((rows) => [this.toRow(created), ...rows]);
@@ -157,14 +155,12 @@ export class EvaluationsStore {
 
   async update(
     publicUuid: string,
-    patch: UpdateEvaluationRequest
+    patch: UpdateEvaluationRequest,
   ): Promise<EvaluationDetail | null> {
     this._saving.set(true);
     this._error.set(null);
     try {
-      const updated = await firstValueFrom(
-        this.api.updateEvaluation(publicUuid, patch)
-      );
+      const updated = await firstValueFrom(this.api.updateEvaluation(publicUuid, patch));
       this.replaceInRows(updated);
       this._selected.set(updated);
       return updated;
@@ -178,13 +174,13 @@ export class EvaluationsStore {
 
   async publish(publicUuid: string): Promise<EvaluationDetail | null> {
     return this.lifecycleHop(publicUuid, () =>
-      firstValueFrom(this.api.publishEvaluation(publicUuid))
+      firstValueFrom(this.api.publishEvaluation(publicUuid)),
     );
   }
 
   async close(publicUuid: string): Promise<EvaluationDetail | null> {
     return this.lifecycleHop(publicUuid, () =>
-      firstValueFrom(this.api.closeEvaluation(publicUuid))
+      firstValueFrom(this.api.closeEvaluation(publicUuid)),
     );
   }
 
@@ -218,9 +214,7 @@ export class EvaluationsStore {
     this._loadingRubric.set(true);
     this._error.set(null);
     try {
-      const rubric = await firstValueFrom(
-        this.api.getAttachedRubric(evaluationPublicUuid)
-      );
+      const rubric = await firstValueFrom(this.api.getAttachedRubric(evaluationPublicUuid));
       this._attachedRubric.set(rubric);
     } catch (err) {
       // El 404 EVAL_RUBRIC_NOT_SET no es un error real, sólo significa
@@ -238,13 +232,13 @@ export class EvaluationsStore {
 
   async attachRubric(
     evaluationPublicUuid: string,
-    rubricPublicUuid: string
+    rubricPublicUuid: string,
   ): Promise<RubricDetail | null> {
     this._saving.set(true);
     this._error.set(null);
     try {
       const rubric = await firstValueFrom(
-        this.api.attachRubric(evaluationPublicUuid, rubricPublicUuid)
+        this.api.attachRubric(evaluationPublicUuid, rubricPublicUuid),
       );
       this._attachedRubric.set(rubric);
       return rubric;
@@ -302,9 +296,7 @@ export class EvaluationsStore {
     this._loading.set(true);
     this._error.set(null);
     try {
-      const rows = await firstValueFrom(
-        this.api.listByAssignment(assignmentUuid, this._filters())
-      );
+      const rows = await firstValueFrom(this.api.listByAssignment(assignmentUuid, this._filters()));
       this._rows.set(rows);
     } catch (err) {
       this._error.set(this.toErrorMessage(err));
@@ -316,7 +308,7 @@ export class EvaluationsStore {
 
   private async lifecycleHop(
     publicUuid: string,
-    op: () => Promise<EvaluationDetail>
+    op: () => Promise<EvaluationDetail>,
   ): Promise<EvaluationDetail | null> {
     this._saving.set(true);
     this._error.set(null);
@@ -337,7 +329,7 @@ export class EvaluationsStore {
 
   private replaceInRows(detail: EvaluationDetail): void {
     this._rows.update((rows) =>
-      rows.map((r) => (r.publicUuid === detail.publicUuid ? this.toRow(detail) : r))
+      rows.map((r) => (r.publicUuid === detail.publicUuid ? this.toRow(detail) : r)),
     );
   }
 
@@ -354,7 +346,7 @@ export class EvaluationsStore {
       gradeCount: detail.gradeCount,
       isActive: detail.isActive,
       createdAt: detail.createdAt,
-      updatedAt: detail.updatedAt
+      updatedAt: detail.updatedAt,
     };
   }
 

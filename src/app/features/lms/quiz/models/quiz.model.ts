@@ -10,9 +10,9 @@
  * {@code dueAt} and {@code maxAttempts} may be patched.
  */
 export enum QuizStatus {
-  Draft     = 'DRAFT',
+  Draft = 'DRAFT',
   Published = 'PUBLISHED',
-  Closed    = 'CLOSED'
+  Closed = 'CLOSED',
 }
 
 /**
@@ -29,8 +29,8 @@ export enum QuizStatus {
  */
 export enum QuestionType {
   MultipleChoice = 'MC',
-  TrueFalse      = 'TF',
-  ShortAnswer    = 'SHORT_ANSWER'
+  TrueFalse = 'TF',
+  ShortAnswer = 'SHORT_ANSWER',
 }
 
 /* --------------------------------------------------------------------------
@@ -247,7 +247,7 @@ export function toOptionRow(raw: OptionResponseRaw): OptionRow {
     label: raw.label,
     isCorrect: raw.isCorrect ?? null,
     explanation: raw.explanation ?? null,
-    position: raw.position
+    position: raw.position,
   };
 }
 
@@ -261,7 +261,7 @@ export function toQuestionRow(raw: QuestionResponseRaw): QuestionRow {
     correctText: raw.correctText ?? null,
     expectedKeywords: raw.expectedKeywords ?? null,
     correctBoolean: raw.correctBoolean ?? null,
-    options: (raw.options ?? []).map(toOptionRow)
+    options: (raw.options ?? []).map(toOptionRow),
   };
 }
 
@@ -277,7 +277,7 @@ export function toQuizRow(raw: QuizSummaryRaw): QuizRow {
     ownerPublicUuid: raw.ownerPublicUuid,
     questionCount: raw.questionCount,
     totalPoints: raw.totalPoints,
-    createdAt: new Date(raw.createdAt)
+    createdAt: new Date(raw.createdAt),
   };
 }
 
@@ -300,7 +300,7 @@ export function toQuizDetail(raw: QuizResponseRaw): QuizDetail {
     revealCorrectness: raw.revealCorrectness,
     questions: (raw.questions ?? []).map(toQuestionRow),
     createdAt: new Date(raw.createdAt),
-    updatedAt: raw.updatedAt ? new Date(raw.updatedAt) : null
+    updatedAt: raw.updatedAt ? new Date(raw.updatedAt) : null,
   };
 }
 
@@ -327,12 +327,12 @@ export function isQuizCloseable(detail: Pick<QuizDetail, 'status'>): boolean {
 export const ALL_QUIZ_STATUSES: readonly QuizStatus[] = [
   QuizStatus.Draft,
   QuizStatus.Published,
-  QuizStatus.Closed
+  QuizStatus.Closed,
 ] as const;
 
 /** Display labels for the question types (used by the wizard). */
 export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   [QuestionType.MultipleChoice]: 'Opción múltiple',
-  [QuestionType.TrueFalse]:      'Verdadero / Falso',
-  [QuestionType.ShortAnswer]:    'Respuesta corta'
+  [QuestionType.TrueFalse]: 'Verdadero / Falso',
+  [QuestionType.ShortAnswer]: 'Respuesta corta',
 };

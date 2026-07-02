@@ -10,7 +10,7 @@ import {
   GradingQueueItem,
   ManualGradeAttemptRequest,
   isAttemptFinal,
-  isAttemptInProgress
+  isAttemptInProgress,
 } from '../models/attempt.model';
 
 /**
@@ -162,7 +162,7 @@ export class AttemptsStore {
   setPendingAnswer(
     questionPublicUuid: string,
     questionType: 'MC' | 'TF' | 'SHORT_ANSWER',
-    value: AnswerInputRaw | null
+    value: AnswerInputRaw | null,
   ): void {
     this._questionTypes.update((m) => ({ ...m, [questionPublicUuid]: questionType }));
     this._pendingAnswers.update((m) => {
@@ -252,7 +252,7 @@ export class AttemptsStore {
 
   async loadSummaries(
     quizPublicUuid: string,
-    pageable: { page?: number; size?: number; sort?: string } = {}
+    pageable: { page?: number; size?: number; sort?: string } = {},
   ): Promise<void> {
     this._loadingSummaries.set(true);
     this._error.set(null);
@@ -261,7 +261,7 @@ export class AttemptsStore {
       // we actually pass to the service (no implicit `sort: undefined`).
       const opts: { page?: number; size?: number; sort?: string } = {
         page: pageable.page ?? 0,
-        size: pageable.size ?? 20
+        size: pageable.size ?? 20,
       };
       if (pageable.sort !== undefined) {
         opts.sort = pageable.sort;
@@ -293,7 +293,7 @@ export class AttemptsStore {
 
   async gradeAttempt(
     attemptPublicUuid: string,
-    request: ManualGradeAttemptRequest
+    request: ManualGradeAttemptRequest,
   ): Promise<AttemptDetail | null> {
     this._saving.set(true);
     this._error.set(null);
@@ -313,13 +313,18 @@ export class AttemptsStore {
     quizPublicUuid: string,
     attemptPublicUuid: string,
     answerPublicUuid: string,
-    pointsAwarded: number
+    pointsAwarded: number,
   ): Promise<AttemptDetail | null> {
     this._saving.set(true);
     this._error.set(null);
     try {
       const updated = await firstValueFrom(
-        this.api.overrideAnswerGrade(quizPublicUuid, attemptPublicUuid, answerPublicUuid, pointsAwarded)
+        this.api.overrideAnswerGrade(
+          quizPublicUuid,
+          attemptPublicUuid,
+          answerPublicUuid,
+          pointsAwarded,
+        ),
       );
       this._current.set(updated);
       return updated;
@@ -344,7 +349,7 @@ export class AttemptsStore {
    * seed; the page should override with its own question type knowledge.
    */
   private extractQuestionTypes(
-    attempt: AttemptDetail
+    attempt: AttemptDetail,
   ): Record<string, 'MC' | 'TF' | 'SHORT_ANSWER'> {
     const out: Record<string, 'MC' | 'TF' | 'SHORT_ANSWER'> = {};
     for (const ans of attempt.answers) {

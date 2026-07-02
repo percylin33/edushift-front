@@ -1,11 +1,5 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  EventEmitter,
-  Input,
-  Output
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { IconComponent } from '@shared/components';
 import { Submission, SubmissionStatus } from '../../models';
 
@@ -55,9 +49,7 @@ import { Submission, SubmissionStatus } from '../../models';
         <div class="card-body grid gap-3 text-sm">
           @if (submission.textContent) {
             <div>
-              <p class="text-xs font-medium uppercase tracking-wide text-content-muted">
-                Texto
-              </p>
+              <p class="text-xs font-medium uppercase tracking-wide text-content-muted">Texto</p>
               <p class="whitespace-pre-line text-content">
                 {{ submission.textContent }}
               </p>
@@ -66,9 +58,7 @@ import { Submission, SubmissionStatus } from '../../models';
 
           @if (submission.attachment; as att) {
             <div>
-              <p class="text-xs font-medium uppercase tracking-wide text-content-muted">
-                Adjunto
-              </p>
+              <p class="text-xs font-medium uppercase tracking-wide text-content-muted">Adjunto</p>
               <a
                 [href]="att.downloadUrl"
                 target="_blank"
@@ -77,9 +67,7 @@ import { Submission, SubmissionStatus } from '../../models';
               >
                 <app-icon name="paperclip" [size]="14" />
                 <span>{{ att.filename }}</span>
-                <span class="text-xs text-content-muted">
-                  ({{ formatSize(att.sizeBytes) }})
-                </span>
+                <span class="text-xs text-content-muted"> ({{ formatSize(att.sizeBytes) }}) </span>
               </a>
             </div>
           }
@@ -102,9 +90,7 @@ import { Submission, SubmissionStatus } from '../../models';
             <div class="rounded-md border border-orange-200 bg-orange-50 p-3">
               <div class="flex items-center gap-2">
                 <app-icon name="message-square" [size]="16" />
-                <p class="text-sm font-medium text-orange-900">
-                  Feedback del docente
-                </p>
+                <p class="text-sm font-medium text-orange-900">Feedback del docente</p>
               </div>
               <p class="mt-2 text-sm text-orange-900">
                 {{ submission.feedback }}
@@ -126,16 +112,14 @@ import { Submission, SubmissionStatus } from '../../models';
       <section class="card">
         <div class="card-body text-center">
           <app-icon name="file-text" [size]="32" />
-          <h2 class="mt-2 text-base font-semibold text-content">
-            Aún no has entregado
-          </h2>
+          <h2 class="mt-2 text-base font-semibold text-content">Aún no has entregado</h2>
           <p class="mt-1 text-sm text-content-muted">
             Usa el formulario de abajo para registrar tu entrega.
           </p>
         </div>
       </section>
     }
-  `
+  `,
 })
 export class MySubmissionsCardComponent {
   @Input() submission: Submission | null = null;
@@ -166,7 +150,7 @@ const STATUS_LABEL: Record<SubmissionStatus, string> = {
   [SubmissionStatus.Submitted]: 'Entregada',
   [SubmissionStatus.Late]: 'Tarde',
   [SubmissionStatus.Graded]: 'Calificada',
-  [SubmissionStatus.Returned]: 'Devuelta'
+  [SubmissionStatus.Returned]: 'Devuelta',
 };
 
 const STATUS_CLASS: Record<SubmissionStatus, string> = {
@@ -174,5 +158,5 @@ const STATUS_CLASS: Record<SubmissionStatus, string> = {
   [SubmissionStatus.Submitted]: 'border-sky-300 bg-sky-50 text-sky-700',
   [SubmissionStatus.Late]: 'border-amber-300 bg-amber-50 text-amber-700',
   [SubmissionStatus.Graded]: 'border-emerald-300 bg-emerald-50 text-emerald-700',
-  [SubmissionStatus.Returned]: 'border-orange-300 bg-orange-50 text-orange-700'
+  [SubmissionStatus.Returned]: 'border-orange-300 bg-orange-50 text-orange-700',
 };

@@ -23,7 +23,7 @@ import { TaskLifecycle } from '../../models';
       <span class="h-1.5 w-1.5 rounded-full" [class]="dotClass()"></span>
       {{ label() }}
     </span>
-  `
+  `,
 })
 export class TaskLifecycleBadgeComponent {
   @Input({ required: true }) set lifecycle(value: TaskLifecycle) {
@@ -37,26 +37,24 @@ export class TaskLifecycleBadgeComponent {
   readonly colorClass = computed(() => LIFECYCLE_COLOR[this.#lifecycle()]);
   readonly dotClass = computed(() => LIFECYCLE_DOT[this.#lifecycle()]);
   readonly sizeClass = computed(() =>
-    this.size === 'sm'
-      ? 'px-2 py-0.5 text-xs'
-      : 'px-2.5 py-1 text-sm'
+    this.size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm',
   );
 }
 
 const LIFECYCLE_LABEL: Record<TaskLifecycle, string> = {
   [TaskLifecycle.Draft]: 'Borrador',
   [TaskLifecycle.Published]: 'Publicada',
-  [TaskLifecycle.Closed]: 'Cerrada'
+  [TaskLifecycle.Closed]: 'Cerrada',
 };
 
 const LIFECYCLE_COLOR: Record<TaskLifecycle, string> = {
   [TaskLifecycle.Draft]: 'border-slate-300 bg-slate-100 text-slate-700',
   [TaskLifecycle.Published]: 'border-emerald-300 bg-emerald-50 text-emerald-700',
-  [TaskLifecycle.Closed]: 'border-rose-300 bg-rose-50 text-rose-700'
+  [TaskLifecycle.Closed]: 'border-rose-300 bg-rose-50 text-rose-700',
 };
 
 const LIFECYCLE_DOT: Record<TaskLifecycle, string> = {
   [TaskLifecycle.Draft]: 'bg-slate-500',
   [TaskLifecycle.Published]: 'bg-emerald-500',
-  [TaskLifecycle.Closed]: 'bg-rose-500'
+  [TaskLifecycle.Closed]: 'bg-rose-500',
 };

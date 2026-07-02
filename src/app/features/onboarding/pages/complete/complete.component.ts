@@ -1,10 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  computed,
-  inject
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
@@ -57,20 +51,19 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
         </div>
         <h1 class="text-2xl font-semibold tracking-tight">¡Listo!</h1>
         <p class="mt-2 text-sm text-content-muted">
-          <strong class="text-content">{{ tenantName() }}</strong> está
-          activa. Ya puedes empezar a usar EduShift.
+          <strong class="text-content">{{ tenantName() }}</strong> está activa. Ya puedes empezar a
+          usar EduShift.
         </p>
       } @else {
         <div
-          class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-500/15 text-primary-600
-                 dark:text-primary-300"
+          class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-500/15 text-primary-600 dark:text-primary-300"
         >
           <app-icon name="sparkles" [size]="28" />
         </div>
         <h1 class="text-2xl font-semibold tracking-tight">Casi listo</h1>
         <p class="mt-2 text-sm text-content-muted">
-          Activaremos <strong class="text-content">{{ tenantName() }}</strong> y
-          te llevaremos al dashboard.
+          Activaremos <strong class="text-content">{{ tenantName() }}</strong> y te llevaremos al
+          dashboard.
         </p>
       }
     </div>
@@ -85,7 +78,7 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
       </div>
     }
 
-    <div class="card-footer mt-8 -mx-5 -mb-5 px-5">
+    <div class="card-footer -mx-5 -mb-5 mt-8 px-5">
       <button
         type="button"
         class="btn btn-primary ml-auto"
@@ -100,7 +93,7 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
         }
       </button>
     </div>
-  `
+  `,
 })
 export class OnboardingCompleteComponent implements OnInit {
   private readonly tenantApi = inject(TenantApiService);
@@ -148,7 +141,7 @@ export class OnboardingCompleteComponent implements OnInit {
            * TenantService.setTenant. */
           if (tenant.status !== TenantStatus.Active) {
             this.store.setError(
-              'La institución no quedó activa. Contacta a soporte si el problema persiste.'
+              'La institución no quedó activa. Contacta a soporte si el problema persiste.',
             );
             return;
           }
@@ -156,7 +149,7 @@ export class OnboardingCompleteComponent implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.store.setError(this.toMessage(err));
-        }
+        },
       });
   }
 
@@ -187,10 +180,7 @@ export class OnboardingCompleteComponent implements OnInit {
 
   private firstApiError(err: HttpErrorResponse): ApiError | null {
     const body = err.error as
-      | (ApiResponse<unknown> & { errors?: ApiError[] })
-      | ApiError
-      | null
-      | undefined;
+      (ApiResponse<unknown> & { errors?: ApiError[] }) | ApiError | null | undefined;
     if (body && typeof body === 'object') {
       if ('errors' in body && Array.isArray(body.errors) && body.errors.length > 0) {
         return body.errors[0];

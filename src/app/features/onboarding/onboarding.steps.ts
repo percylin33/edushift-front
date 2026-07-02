@@ -6,7 +6,7 @@ import { OnboardingStep } from '@layout/models';
  * the active step in the visual stepper.
  */
 export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
-  { id: 'welcome',  label: 'Bienvenida',  description: 'Empieza aquí' },
-  { id: 'school',   label: 'Institución', description: 'Branding del tenant' },
-  { id: 'complete', label: 'Listo',       description: 'Confirmación' }
+  { id: 'welcome', label: 'Bienvenida', description: 'Empieza aquí' },
+  { id: 'school', label: 'Institución', description: 'Branding del tenant' },
+  { id: 'complete', label: 'Listo', description: 'Confirmación' },
 ];

@@ -7,7 +7,7 @@ import {
   GradeRecordDetail,
   GradeRecordFilters,
   GradeRecordRow,
-  UpdateGradeRecordRequest
+  UpdateGradeRecordRequest,
 } from '../models';
 
 /**
@@ -60,16 +60,14 @@ export class GradeRecordsStore {
   readonly error = this._error.asReadonly();
 
   readonly hasRows = computed(() => this._rows().length > 0);
-  readonly isEmpty = computed(
-    () => !this._loading() && this._rows().length === 0
-  );
+  readonly isEmpty = computed(() => !this._loading() && this._rows().length === 0);
 
   /** Conteo rápido para el header de la tabla. */
   readonly counts = computed(() => {
     const rows = this._rows();
     return {
       total: rows.length,
-      active: rows.filter((r) => r.isActive).length
+      active: rows.filter((r) => r.isActive).length,
     };
   });
 
@@ -79,7 +77,7 @@ export class GradeRecordsStore {
 
   async loadByEvaluation(
     evaluationPublicUuid: string,
-    filters: GradeRecordFilters = {}
+    filters: GradeRecordFilters = {},
   ): Promise<void> {
     this._currentEvaluationUuid.set(evaluationPublicUuid);
     this._filters.set({ ...filters });
@@ -102,14 +100,12 @@ export class GradeRecordsStore {
 
   async upsert(
     evaluationPublicUuid: string,
-    request: CreateGradeRecordRequest
+    request: CreateGradeRecordRequest,
   ): Promise<GradeRecordDetail | null> {
     this._saving.set(true);
     this._error.set(null);
     try {
-      const detail = await firstValueFrom(
-        this.api.upsertGrade(evaluationPublicUuid, request)
-      );
+      const detail = await firstValueFrom(this.api.upsertGrade(evaluationPublicUuid, request));
       this.upsertRow(detail);
       return detail;
     } catch (err) {
@@ -126,7 +122,7 @@ export class GradeRecordsStore {
 
   async update(
     publicUuid: string,
-    patch: UpdateGradeRecordRequest
+    patch: UpdateGradeRecordRequest,
   ): Promise<GradeRecordDetail | null> {
     this.markRowBusy(publicUuid, true);
     this._error.set(null);
@@ -148,13 +144,13 @@ export class GradeRecordsStore {
 
   async bulkUpsert(
     evaluationPublicUuid: string,
-    rows: CreateGradeRecordRequest[]
+    rows: CreateGradeRecordRequest[],
   ): Promise<BulkGradeRecordSummary | null> {
     this._saving.set(true);
     this._error.set(null);
     try {
       const summary = await firstValueFrom(
-        this.api.bulkUpsert(evaluationPublicUuid, { records: rows })
+        this.api.bulkUpsert(evaluationPublicUuid, { records: rows }),
       );
       summary.records.forEach((r) => this.upsertRow(r));
       this._lastBulk.set(summary);
@@ -180,9 +176,7 @@ export class GradeRecordsStore {
     this._error.set(null);
     try {
       await firstValueFrom(this.api.deleteGrade(publicUuid));
-      this._rows.update((rows) =>
-        rows.filter((r) => r.publicUuid !== publicUuid)
-      );
+      this._rows.update((rows) => rows.filter((r) => r.publicUuid !== publicUuid));
       return true;
     } catch (err) {
       this._error.set(this.toErrorMessage(err));
@@ -219,9 +213,7 @@ export class GradeRecordsStore {
     this._loading.set(true);
     this._error.set(null);
     try {
-      const rows = await firstValueFrom(
-        this.api.listByEvaluation(uuid, this._filters())
-      );
+      const rows = await firstValueFrom(this.api.listByEvaluation(uuid, this._filters()));
       this._rows.set(rows);
     } catch (err) {
       this._error.set(this.toErrorMessage(err));
@@ -244,7 +236,7 @@ export class GradeRecordsStore {
       recordedAt: detail.recordedAt,
       isActive: detail.isActive,
       createdAt: detail.createdAt,
-      updatedAt: detail.updatedAt
+      updatedAt: detail.updatedAt,
     };
     this._rows.update((rows) => {
       const idx = rows.findIndex((r) => r.publicUuid === row.publicUuid);

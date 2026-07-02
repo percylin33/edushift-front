@@ -8,9 +8,9 @@
  * more nuanced belongs in a future free-text "notes" column.
  */
 export enum RelationshipType {
-  Father      = 'FATHER',
-  Mother      = 'MOTHER',
+  Father = 'FATHER',
+  Mother = 'MOTHER',
   Grandparent = 'GRANDPARENT',
-  Guardian    = 'GUARDIAN',
-  Other       = 'OTHER'
+  Guardian = 'GUARDIAN',
+  Other = 'OTHER',
 }

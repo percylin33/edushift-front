@@ -5,6 +5,15 @@ import { AuthSession, User, UserSummary } from '@core/models';
 import { StorageService } from './storage.service';
 
 /**
+ * Storage key for the short-lived {@code mfaToken} returned by
+ * {@code /auth/login} when the user has MFA enabled. Persisted across
+ * page reloads so a hard refresh on the challenge page does not
+ * require the user to log in again.
+ */
+const MFA_TOKEN_STORAGE_KEY = 'edushift.mfaToken';
+const MFA_TOKEN_EXPIRES_AT_KEY = 'edushift.mfaTokenExpiresAt';
+
+/**
  * Auth state holder. No business logic — login/logout/refresh HTTP work
  * lives in {@code AuthApiService} (feature/auth). This service is the
  * single source of truth that guards, interceptors and shell components
@@ -36,14 +45,29 @@ export class AuthService {
   private readonly storage = inject(StorageService);
 
   private readonly _user = signal<User | null>(this.storage.get<User>(STORAGE_KEYS.CURRENT_USER));
-  private readonly _accessToken = signal<string | null>(this.storage.get<string>(STORAGE_KEYS.AUTH_TOKEN));
-  private readonly _refreshToken = signal<string | null>(this.storage.get<string>(STORAGE_KEYS.REFRESH_TOKEN));
+  private readonly _accessToken = signal<string | null>(
+    this.storage.get<string>(STORAGE_KEYS.AUTH_TOKEN),
+  );
+  private readonly _refreshToken = signal<string | null>(
+    this.storage.get<string>(STORAGE_KEYS.REFRESH_TOKEN),
+  );
   private readonly _expiresAt = signal<Date | null>(this.readExpiresAt());
+
+  // MFA challenge token (Sprint 17 / BE-17.2). Short-lived JWT
+  // (default TTL 5 min) that proves the password check happened. Set
+  // by the login flow when the user has MFA enabled; cleared on
+  // successful challenge or on hard reload after expiration.
+  private readonly _mfaToken = signal<string | null>(
+    this.storage.get<string>(MFA_TOKEN_STORAGE_KEY),
+  );
+  private readonly _mfaTokenExpiresAt = signal<Date | null>(this.readMfaTokenExpiresAt());
 
   readonly user = this._user.asReadonly();
   readonly accessToken = this._accessToken.asReadonly();
   readonly refreshToken = this._refreshToken.asReadonly();
   readonly expiresAt = this._expiresAt.asReadonly();
+  readonly mfaToken = this._mfaToken.asReadonly();
+  readonly mfaTokenExpiresAt = this._mfaTokenExpiresAt.asReadonly();
 
   readonly isAuthenticated = computed(() => !!this._accessToken() && !!this._user());
   readonly roles = computed<UserRole[]>(() => this._user()?.roles ?? []);
@@ -110,10 +134,43 @@ export class AuthService {
     this._accessToken.set(null);
     this._refreshToken.set(null);
     this._expiresAt.set(null);
+    this.clearMfaToken();
     this.storage.remove(STORAGE_KEYS.CURRENT_USER);
     this.storage.remove(STORAGE_KEYS.AUTH_TOKEN);
     this.storage.remove(STORAGE_KEYS.REFRESH_TOKEN);
     this.storage.remove(STORAGE_KEYS.AUTH_EXPIRES_AT);
+  }
+
+  /**
+   * Stash the short-lived MFA challenge token. The login flow calls
+   * this right after {@code POST /auth/login} returns an
+   * {@code MfaRequired} response, then navigates to
+   * {@code /auth/mfa-challenge}. The challenge page reads the
+   * token back via {@link mfaToken} and clears it on success
+   * (via {@code clearMfaToken} inside {@code setSession}) or on
+   * failure (via {@code clearMfaToken} inside the 401 handler).
+   *
+   * <p>Persisted to {@code localStorage} (default backend of
+   * {@link StorageService}) so a hard refresh on the challenge page
+   * doesn't force the user to log in again. The TTL is short (5 min)
+   * so the risk of a stale token surviving past expiration is
+   * minimal; the BE rejects expired tokens with
+   * {@code MFA_TOKEN_INVALID} either way.
+   */
+  setMfaToken(token: string, expiresInSec: number): void {
+    const expiresAt = new Date(Date.now() + expiresInSec * 1000);
+    this._mfaToken.set(token);
+    this._mfaTokenExpiresAt.set(expiresAt);
+    this.storage.set(MFA_TOKEN_STORAGE_KEY, token);
+    this.storage.set(MFA_TOKEN_EXPIRES_AT_KEY, expiresAt.toISOString());
+  }
+
+  /** Clear the MFA challenge token (success, cancel, or 401). */
+  clearMfaToken(): void {
+    this._mfaToken.set(null);
+    this._mfaTokenExpiresAt.set(null);
+    this.storage.remove(MFA_TOKEN_STORAGE_KEY);
+    this.storage.remove(MFA_TOKEN_EXPIRES_AT_KEY);
   }
 
   hasRole(...roles: UserRole[]): boolean {
@@ -137,6 +194,13 @@ export class AuthService {
 
   private readExpiresAt(): Date | null {
     const iso = this.storage.get<string>(STORAGE_KEYS.AUTH_EXPIRES_AT);
+    if (!iso) return null;
+    const parsed = new Date(iso);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  private readMfaTokenExpiresAt(): Date | null {
+    const iso = this.storage.get<string>(MFA_TOKEN_EXPIRES_AT_KEY);
     if (!iso) return null;
     const parsed = new Date(iso);
     return Number.isNaN(parsed.getTime()) ? null : parsed;

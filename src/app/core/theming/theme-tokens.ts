@@ -36,7 +36,7 @@ export const THEME_TOKENS = {
   radius: '--radius-base',
 
   /** Sans font stack. Tenant-provided value is prepended to the default. */
-  fontSans: '--font-sans'
+  fontSans: '--font-sans',
 } as const;
 
 /** Convenience: every variable name written by the tenant theme as a flat list. */
@@ -44,5 +44,5 @@ export const ALL_TENANT_VARS: readonly string[] = [
   ...THEME_TOKENS.primaryPalette,
   ...THEME_TOKENS.accentPalette,
   THEME_TOKENS.radius,
-  THEME_TOKENS.fontSans
+  THEME_TOKENS.fontSans,
 ];

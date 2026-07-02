@@ -231,7 +231,7 @@ export const SPECIALIZATION_CATALOG: ReadonlyArray<string> = [
   'Tutoría',
   'Computación',
   'Música',
-  'Filosofía'
+  'Filosofía',
 ];
 
 /**
@@ -244,7 +244,7 @@ export const SPECIALIZATION_CATALOG: ReadonlyArray<string> = [
 export function computeTeacherFullName(
   firstName: string,
   lastName: string,
-  secondLastName?: string | null
+  secondLastName?: string | null,
 ): string {
   return [firstName, lastName, secondLastName ?? '']
     .map((s) => (s ?? '').trim())
@@ -254,9 +254,9 @@ export function computeTeacherFullName(
 
 /** Etiquetas en español para cada {@link EmploymentStatus}. */
 export const EMPLOYMENT_STATUS_LABELS: Readonly<Record<EmploymentStatus, string>> = {
-  [EmploymentStatus.Active]:    'Activo',
-  [EmploymentStatus.OnLeave]:   'En licencia',
-  [EmploymentStatus.Resigned]:  'Renunció',
-  [EmploymentStatus.Retired]:   'Jubilado',
-  [EmploymentStatus.Suspended]: 'Suspendido'
+  [EmploymentStatus.Active]: 'Activo',
+  [EmploymentStatus.OnLeave]: 'En licencia',
+  [EmploymentStatus.Resigned]: 'Renunció',
+  [EmploymentStatus.Retired]: 'Jubilado',
+  [EmploymentStatus.Suspended]: 'Suspendido',
 };

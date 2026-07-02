@@ -26,7 +26,7 @@ export enum AiAssistantStatus {
   Idle = 'IDLE',
   Loading = 'LOADING',
   Success = 'SUCCESS',
-  Error = 'ERROR'
+  Error = 'ERROR',
 }
 
 /** A single MC/TF/SHORT_ANSWER option returned by the LLM. */
@@ -70,7 +70,7 @@ export function emptyAiState(): AiAssistantState {
     status: AiAssistantStatus.Idle,
     topic: '',
     suggestions: [],
-    error: null
+    error: null,
   };
 }
 

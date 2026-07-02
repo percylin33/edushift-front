@@ -9,14 +9,9 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApiError } from '@core/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
@@ -33,7 +28,7 @@ import {
   isDateRangeValid,
   isWithinYear,
   parseLocalDate,
-  toLocalDateString
+  toLocalDateString,
 } from '../models';
 import { PeriodTimelineComponent, TimelinePreviewItem } from './period-timeline.component';
 
@@ -70,35 +65,29 @@ import { PeriodTimelineComponent, TimelinePreviewItem } from './period-timeline.
     ReactiveFormsModule,
     IconComponent,
     SpinnerComponent,
-    PeriodTimelineComponent
+    PeriodTimelineComponent,
   ],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="period-form-title"
       (click)="onBackdropClick($event)"
     >
       <div
-        class="card w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl"
+        class="card max-h-[90vh] w-full max-w-2xl overflow-y-auto shadow-xl"
         (click)="$event.stopPropagation()"
       >
         <header class="card-header flex items-start justify-between gap-3">
           <div>
             <h2 id="period-form-title" class="card-title">{{ title() }}</h2>
             <p class="card-description">
-              Cada periodo (Bimestre / Trimestre / Anual) debe caber dentro
-              del rango del año académico y no solapar con sus pares del
-              mismo tipo.
+              Cada periodo (Bimestre / Trimestre / Anual) debe caber dentro del rango del año
+              académico y no solapar con sus pares del mismo tipo.
             </p>
           </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            aria-label="Cerrar"
-            (click)="cancel()"
-          >
+          <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
             <app-icon name="x" [size]="18" />
           </button>
         </header>
@@ -115,8 +104,8 @@ import { PeriodTimelineComponent, TimelinePreviewItem } from './period-timeline.
             <div class="alert alert-warning">
               <app-icon name="alert-circle" [size]="18" />
               <p class="flex-1 text-sm">
-                El año seleccionado está <strong>cerrado</strong>. No se pueden
-                crear ni modificar periodos.
+                El año seleccionado está <strong>cerrado</strong>. No se pueden crear ni modificar
+                periodos.
               </p>
             </div>
           }
@@ -124,11 +113,7 @@ import { PeriodTimelineComponent, TimelinePreviewItem } from './period-timeline.
           <div class="grid gap-4 sm:grid-cols-12">
             <div class="field sm:col-span-12">
               <label class="label" for="period-year">Año académico *</label>
-              <select
-                id="period-year"
-                class="select"
-                formControlName="academicYearPublicUuid"
-              >
+              <select id="period-year" class="select" formControlName="academicYearPublicUuid">
                 <option [ngValue]="null" disabled>Selecciona un año…</option>
                 @for (y of years(); track y.publicUuid) {
                   <option [ngValue]="y.publicUuid">
@@ -137,9 +122,7 @@ import { PeriodTimelineComponent, TimelinePreviewItem } from './period-timeline.
                 }
               </select>
               @if (editing()) {
-                <p class="field-hint">
-                  El año no se puede modificar después de crear el periodo.
-                </p>
+                <p class="field-hint">El año no se puede modificar después de crear el periodo.</p>
               }
             </div>
 
@@ -177,7 +160,7 @@ import { PeriodTimelineComponent, TimelinePreviewItem } from './period-timeline.
 
             <div class="field sm:col-span-5">
               <label class="label" for="period-name">
-                Nombre <span class="text-content-muted text-xs">(opcional)</span>
+                Nombre <span class="text-xs text-content-muted">(opcional)</span>
               </label>
               <input
                 id="period-name"
@@ -223,7 +206,8 @@ import { PeriodTimelineComponent, TimelinePreviewItem } from './period-timeline.
               <p class="mb-2 text-xs font-medium text-content-muted">
                 Vista previa
                 @if (overlappingNames().length > 0) {
-                  · <span class="text-danger-600 font-semibold">
+                  ·
+                  <span class="text-danger-600 font-semibold">
                     Solapa con: {{ overlappingNames().join(', ') }}
                   </span>
                 } @else if (validationMessage()) {
@@ -240,9 +224,7 @@ import { PeriodTimelineComponent, TimelinePreviewItem } from './period-timeline.
           }
 
           <footer class="flex flex-wrap items-center justify-end gap-2 pt-2">
-            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">
-              Cancelar
-            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">Cancelar</button>
             <button
               type="submit"
               class="btn btn-primary btn-sm"
@@ -261,7 +243,7 @@ import { PeriodTimelineComponent, TimelinePreviewItem } from './period-timeline.
         </form>
       </div>
     </div>
-  `
+  `,
 })
 export class PeriodFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -280,11 +262,9 @@ export class PeriodFormModalComponent implements OnInit {
   protected readonly errorBanner = this.store.error;
 
   protected readonly editing = computed(() => this.period() !== null);
-  protected readonly title = computed(() =>
-    this.editing() ? 'Editar periodo' : 'Nuevo periodo'
-  );
+  protected readonly title = computed(() => (this.editing() ? 'Editar periodo' : 'Nuevo periodo'));
   protected readonly submitLabel = computed(() =>
-    this.editing() ? 'Guardar cambios' : 'Crear periodo'
+    this.editing() ? 'Guardar cambios' : 'Crear periodo',
   );
 
   protected readonly periodTypeOptions: ReadonlyArray<{
@@ -292,7 +272,7 @@ export class PeriodFormModalComponent implements OnInit {
     label: string;
   }> = (Object.keys(PERIOD_TYPE_LABELS) as PeriodType[]).map((v) => ({
     value: v,
-    label: PERIOD_TYPE_LABELS[v]
+    label: PERIOD_TYPE_LABELS[v],
   }));
 
   private readonly fieldErrors = signal<Record<string, string>>({});
@@ -303,7 +283,7 @@ export class PeriodFormModalComponent implements OnInit {
     ordinal: [1, [Validators.required, Validators.min(1)]],
     name: ['', [Validators.maxLength(60)]],
     startDate: ['', [Validators.required]],
-    endDate: ['', [Validators.required]]
+    endDate: ['', [Validators.required]],
   });
 
   /** Signal con todos los valueChanges del form (sirve a los computed). */
@@ -338,9 +318,7 @@ export class PeriodFormModalComponent implements OnInit {
     if (!yearId) return [];
     const editingId = this.period()?.publicUuid;
     return this.periods().filter(
-      (p) =>
-        p.academicYearPublicUuid === yearId &&
-        (!editingId || p.publicUuid !== editingId)
+      (p) => p.academicYearPublicUuid === yearId && (!editingId || p.publicUuid !== editingId),
     );
   });
 
@@ -364,12 +342,12 @@ export class PeriodFormModalComponent implements OnInit {
       v.periodType,
       start,
       end,
-      this.period()?.publicUuid
+      this.period()?.publicUuid,
     );
   });
 
   protected readonly overlappingNames = computed<string[]>(() =>
-    this.overlappingPeriods().map((p) => p.name)
+    this.overlappingPeriods().map((p) => p.name),
   );
 
   /** Mensaje de validación local (sin contar overlap, que tiene su propio chip). */
@@ -393,13 +371,7 @@ export class PeriodFormModalComponent implements OnInit {
     const v = this.formValue();
     const start = parseDateOrNull(v.startDate);
     const end = parseDateOrNull(v.endDate);
-    if (
-      !v.periodType ||
-      !v.ordinal ||
-      !start ||
-      !end ||
-      !isDateRangeValid(start, end)
-    ) {
+    if (!v.periodType || !v.ordinal || !start || !end || !isDateRangeValid(start, end)) {
       return [];
     }
     const conflict = this.overlappingPeriods().length > 0;
@@ -411,8 +383,8 @@ export class PeriodFormModalComponent implements OnInit {
         name: (v.name && v.name.trim()) || defaultPeriodName(v.ordinal, v.periodType),
         startDate: start,
         endDate: end,
-        conflict
-      }
+        conflict,
+      },
     ];
   });
 
@@ -459,7 +431,7 @@ export class PeriodFormModalComponent implements OnInit {
         ordinal: p.ordinal,
         name: p.name,
         startDate: toLocalDateString(p.startDate),
-        endDate: toLocalDateString(p.endDate)
+        endDate: toLocalDateString(p.endDate),
       });
       /* En edit, year/type/ordinal son inmutables (mismo trade-off
        * que sections — el BE rechaza renumerar; conviene
@@ -474,17 +446,14 @@ export class PeriodFormModalComponent implements OnInit {
   }
 
   private hydrateDefaults(): void {
-    const yearUuid =
-      this.defaultYearUuid() ?? this.store.currentActive()?.publicUuid ?? null;
+    const yearUuid = this.defaultYearUuid() ?? this.store.currentActive()?.publicUuid ?? null;
     const periodType = this.defaultPeriodType() ?? PeriodType.Bimestre;
 
     this.form.patchValue({
       academicYearPublicUuid: yearUuid,
       periodType,
-      ordinal: yearUuid
-        ? this.store.suggestPeriodOrdinal(yearUuid, periodType)
-        : 1,
-      name: ''
+      ordinal: yearUuid ? this.store.suggestPeriodOrdinal(yearUuid, periodType) : 1,
+      name: '',
     });
 
     /* Rango por defecto: cubre todo el año si está vacío, o queda
@@ -550,12 +519,11 @@ export class PeriodFormModalComponent implements OnInit {
           ordinal: v.ordinal as number,
           name: trimmedName || undefined,
           startDate: toLocalDateString(start),
-          endDate: toLocalDateString(end)
+          endDate: toLocalDateString(end),
         });
         if (created) this.saved.emit(created);
       }
-    }
-    catch (err) {
+    } catch (err) {
       this.applyServerErrors(err);
     }
   }
@@ -566,9 +534,12 @@ export class PeriodFormModalComponent implements OnInit {
 
   protected statusLabel(status: AcademicYearStatus): string {
     switch (status) {
-      case AcademicYearStatus.Planning: return 'Planificación';
-      case AcademicYearStatus.Active:   return 'Activo';
-      case AcademicYearStatus.Closed:   return 'Cerrado';
+      case AcademicYearStatus.Planning:
+        return 'Planificación';
+      case AcademicYearStatus.Active:
+        return 'Activo';
+      case AcademicYearStatus.Closed:
+        return 'Cerrado';
     }
   }
 
@@ -631,8 +602,7 @@ function parseDateOrNull(s: string | null | undefined): Date | null {
   if (!s) return null;
   try {
     return parseLocalDate(s);
-  }
-  catch {
+  } catch {
     return null;
   }
 }

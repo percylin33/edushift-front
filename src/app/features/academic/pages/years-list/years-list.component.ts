@@ -1,25 +1,11 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  inject,
-  signal
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import {
-  EmptyStateComponent,
-  IconComponent,
-  SpinnerComponent
-} from '@shared/components';
+import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
 import { AcademicYearStatusBadgeComponent } from '../../components';
 import { AcademicStore } from '../../store';
-import {
-  AcademicYearRow,
-  AcademicYearStatus,
-  isYearMutable
-} from '../../models';
+import { AcademicYearRow, AcademicYearStatus, isYearMutable } from '../../models';
 
 /**
  * `/academic/years` — listado y operaciones del sub-módulo
@@ -51,7 +37,7 @@ import {
     EmptyStateComponent,
     IconComponent,
     SpinnerComponent,
-    AcademicYearStatusBadgeComponent
+    AcademicYearStatusBadgeComponent,
   ],
   template: `
     <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -84,7 +70,7 @@ import {
             }
           </select>
         </div>
-        <div class="sm:col-span-8 flex items-end">
+        <div class="flex items-end sm:col-span-8">
           @if (currentActive(); as active) {
             <p class="text-xs text-content-muted">
               Año activo:
@@ -92,7 +78,7 @@ import {
               · {{ formatDate(active.startDate) }} — {{ formatDate(active.endDate) }}
             </p>
           } @else if (!loading()) {
-            <p class="text-xs text-content-muted italic">
+            <p class="text-xs italic text-content-muted">
               Aún no hay un año activo. Activa uno desde la tabla para empezar a operar.
             </p>
           }
@@ -147,14 +133,14 @@ import {
                     >
                       {{ year.name }}
                     </a>
-                    <p class="md:hidden text-xs text-content-muted">
+                    <p class="text-xs text-content-muted md:hidden">
                       {{ formatDate(year.startDate) }} → {{ formatDate(year.endDate) }}
                     </p>
                   </td>
-                  <td class="hidden md:table-cell text-content-muted">
+                  <td class="hidden text-content-muted md:table-cell">
                     {{ formatDate(year.startDate) }}
                   </td>
-                  <td class="hidden md:table-cell text-content-muted">
+                  <td class="hidden text-content-muted md:table-cell">
                     {{ formatDate(year.endDate) }}
                   </td>
                   <td>
@@ -205,7 +191,7 @@ import {
         </div>
       }
     </section>
-  `
+  `,
 })
 export class YearsListComponent implements OnInit {
   private readonly store = inject(AcademicStore);
@@ -227,8 +213,8 @@ export class YearsListComponent implements OnInit {
     label: string;
   }> = [
     { value: AcademicYearStatus.Planning, label: 'Planificación' },
-    { value: AcademicYearStatus.Active,   label: 'Activo' },
-    { value: AcademicYearStatus.Closed,   label: 'Cerrado' }
+    { value: AcademicYearStatus.Active, label: 'Activo' },
+    { value: AcademicYearStatus.Closed, label: 'Cerrado' },
   ];
 
   ngOnInit(): void {
@@ -281,7 +267,7 @@ export class YearsListComponent implements OnInit {
     const current = this.currentActive();
     if (current && current.publicUuid !== year.publicUuid) {
       const ok = confirm(
-        `Activar "${year.name}" cerrará automáticamente el año activo "${current.name}".\n\n¿Continuar?`
+        `Activar "${year.name}" cerrará automáticamente el año activo "${current.name}".\n\n¿Continuar?`,
       );
       if (!ok) return;
     }
@@ -290,7 +276,7 @@ export class YearsListComponent implements OnInit {
 
   protected async confirmDelete(year: AcademicYearRow): Promise<void> {
     const ok = confirm(
-      `¿Eliminar el año "${year.name}"?\n\nEsta operación es reversible solo desde el backend.`
+      `¿Eliminar el año "${year.name}"?\n\nEsta operación es reversible solo desde el backend.`,
     );
     if (!ok) return;
     await this.store.deleteYear(year.publicUuid);
@@ -309,7 +295,7 @@ export class YearsListComponent implements OnInit {
     return date.toLocaleDateString('es', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 }

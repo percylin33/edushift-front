@@ -4,7 +4,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -16,18 +16,11 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import { AcademicApiService } from '@features/academic/services';
-import {
-  AcademicYearRow,
-  AcademicYearStatus,
-  SectionRow
-} from '@features/academic/models';
-import {
-  BulkImportModalComponent,
-  EnrollmentStatusBadgeComponent
-} from '../../components';
+import { AcademicYearRow, AcademicYearStatus, SectionRow } from '@features/academic/models';
+import { BulkImportModalComponent, EnrollmentStatusBadgeComponent } from '../../components';
 import { StudentsStore } from '../../store';
 import { StudentListFilters } from '../../models';
 
@@ -67,7 +60,7 @@ import { StudentListFilters } from '../../models';
     IconComponent,
     SpinnerComponent,
     EnrollmentStatusBadgeComponent,
-    BulkImportModalComponent
+    BulkImportModalComponent,
   ],
   template: `
     <app-page-container size="wide">
@@ -91,7 +84,9 @@ import { StudentListFilters } from '../../models';
           <div class="sm:col-span-6">
             <label class="label" for="students-search">Buscar</label>
             <div class="relative">
-              <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-content-subtle">
+              <span
+                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-content-subtle"
+              >
                 <app-icon name="search" [size]="16" />
               </span>
               <input
@@ -131,15 +126,11 @@ import { StudentListFilters } from '../../models';
             >
               <option [ngValue]="null">Todas</option>
               @for (s of sections(); track s.publicUuid) {
-                <option [ngValue]="s.publicUuid">
-                  {{ s.gradeName }} · {{ s.name }}
-                </option>
+                <option [ngValue]="s.publicUuid">{{ s.gradeName }} · {{ s.name }}</option>
               }
             </select>
             @if (!loadingSections() && !activeYear()) {
-              <p class="hint mt-1 text-xs text-content-muted">
-                Sin año activo
-              </p>
+              <p class="hint mt-1 text-xs text-content-muted">Sin año activo</p>
             }
           </div>
         </div>
@@ -164,7 +155,8 @@ import { StudentListFilters } from '../../models';
           <app-empty-state
             icon="graduation-cap"
             title="Aún no hay estudiantes"
-            description="Crea el primero o cárgalos en lote desde un .xlsx.">
+            description="Crea el primero o cárgalos en lote desde un .xlsx."
+          >
             <a [routerLink]="newRoute" class="btn btn-primary btn-sm">Nuevo estudiante</a>
             <button type="button" class="btn btn-ghost btn-sm" (click)="openBulkModal()">
               Importar .xlsx
@@ -193,21 +185,21 @@ import { StudentListFilters } from '../../models';
                       >
                         {{ student.fullName }}
                       </a>
-                      <p class="md:hidden text-xs text-content-muted">
+                      <p class="text-xs text-content-muted md:hidden">
                         {{ student.documentType }} · {{ student.documentNumber }}
                       </p>
                     </td>
-                    <td class="hidden md:table-cell text-content-muted">
+                    <td class="hidden text-content-muted md:table-cell">
                       <span class="font-mono text-xs">{{ student.documentType }}</span>
                       <span class="ml-2">{{ student.documentNumber }}</span>
                     </td>
-                    <td class="hidden lg:table-cell text-content-muted">
+                    <td class="hidden text-content-muted lg:table-cell">
                       {{ student.email ?? '—' }}
                     </td>
                     <td>
                       <app-enrollment-status-badge [status]="student.enrollmentStatus" />
                     </td>
-                    <td class="hidden lg:table-cell text-content-muted">
+                    <td class="hidden text-content-muted lg:table-cell">
                       {{ formatDate(student.enrollmentDate) }}
                     </td>
                     <td class="text-right">
@@ -245,7 +237,9 @@ import { StudentListFilters } from '../../models';
               Página
               <span class="font-medium text-content">{{ pagination().page + 1 }}</span>
               de
-              <span class="font-medium text-content">{{ Math.max(pagination().totalPages, 1) }}</span>
+              <span class="font-medium text-content">{{
+                Math.max(pagination().totalPages, 1)
+              }}</span>
               · {{ pagination().totalElements }} estudiantes
             </p>
             <div class="flex items-center gap-2">
@@ -276,7 +270,7 @@ import { StudentListFilters } from '../../models';
         <app-bulk-import-modal (closed)="closeBulkModal()" />
       }
     </app-page-container>
-  `
+  `,
 })
 export class StudentsListComponent implements OnInit {
   private readonly store = inject(StudentsStore);
@@ -314,11 +308,11 @@ export class StudentsListComponent implements OnInit {
     value: EnrollmentStatus;
     label: string;
   }> = [
-    { value: EnrollmentStatus.Pending,     label: 'Pendiente' },
-    { value: EnrollmentStatus.Enrolled,    label: 'Matriculado' },
-    { value: EnrollmentStatus.Graduated,   label: 'Egresado' },
+    { value: EnrollmentStatus.Pending, label: 'Pendiente' },
+    { value: EnrollmentStatus.Enrolled, label: 'Matriculado' },
+    { value: EnrollmentStatus.Graduated, label: 'Egresado' },
     { value: EnrollmentStatus.Transferred, label: 'Trasladado' },
-    { value: EnrollmentStatus.Withdrawn,   label: 'Retirado' }
+    { value: EnrollmentStatus.Withdrawn, label: 'Retirado' },
   ];
 
   /** Debounce timer for the text search. Cancelled on every keystroke. */
@@ -414,17 +408,15 @@ export class StudentsListComponent implements OnInit {
     return date.toLocaleDateString('es', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 
-  private async applyFilters(
-    options: { skipUrlSync?: boolean } = {}
-  ): Promise<void> {
+  private async applyFilters(options: { skipUrlSync?: boolean } = {}): Promise<void> {
     const filters: StudentListFilters = {
       search: this.search().trim() || undefined,
       enrollmentStatus: this.enrollmentStatus() ?? undefined,
-      currentSectionId: this.currentSectionId() ?? undefined
+      currentSectionId: this.currentSectionId() ?? undefined,
     };
     if (!options.skipUrlSync) {
       void this.syncUrl(filters);
@@ -444,10 +436,10 @@ export class StudentsListComponent implements OnInit {
       queryParams: {
         search: filters.search ?? null,
         status: filters.enrollmentStatus ?? null,
-        currentSectionId: filters.currentSectionId ?? null
+        currentSectionId: filters.currentSectionId ?? null,
       },
       queryParamsHandling: 'merge',
-      replaceUrl: true
+      replaceUrl: true,
     });
   }
 
@@ -461,8 +453,7 @@ export class StudentsListComponent implements OnInit {
     this.loadingSections.set(true);
     try {
       const years = await firstValueFrom(this.academicApi.listYears());
-      const active =
-        years.find((y) => y.status === AcademicYearStatus.Active) ?? null;
+      const active = years.find((y) => y.status === AcademicYearStatus.Active) ?? null;
       this.activeYear.set(active);
       if (!active) {
         this.sections.set([]);
@@ -470,16 +461,14 @@ export class StudentsListComponent implements OnInit {
       }
       const sections = await firstValueFrom(
         this.academicApi.listSections({
-          academicYearPublicUuid: active.publicUuid
-        })
+          academicYearPublicUuid: active.publicUuid,
+        }),
       );
       this.sections.set(sections);
-    }
-    catch {
+    } catch {
       this.activeYear.set(null);
       this.sections.set([]);
-    }
-    finally {
+    } finally {
       this.loadingSections.set(false);
     }
   }

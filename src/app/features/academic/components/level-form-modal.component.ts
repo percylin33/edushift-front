@@ -8,14 +8,9 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApiError } from '@core/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
@@ -53,7 +48,7 @@ import { AcademicLevel } from '../models';
   imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="level-form-title"
@@ -67,12 +62,7 @@ import { AcademicLevel } from '../models';
               Define un nivel educativo del workspace (ej. INICIAL, PRIMARIA, IGCSE).
             </p>
           </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            aria-label="Cerrar"
-            (click)="cancel()"
-          >
+          <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
             <app-icon name="x" [size]="18" />
           </button>
         </header>
@@ -100,7 +90,8 @@ import { AcademicLevel } from '../models';
               <p class="field-error">{{ msg }}</p>
             } @else {
               <p class="field-hint">
-                Solo letras, dígitos y guion bajo. Empieza con letra. El backend lo normaliza a mayúsculas.
+                Solo letras, dígitos y guion bajo. Empieza con letra. El backend lo normaliza a
+                mayúsculas.
               </p>
             }
           </div>
@@ -140,9 +131,7 @@ import { AcademicLevel } from '../models';
           </div>
 
           <footer class="flex flex-wrap items-center justify-end gap-2 pt-2">
-            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">
-              Cancelar
-            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">Cancelar</button>
             <button
               type="submit"
               class="btn btn-primary btn-sm"
@@ -160,7 +149,7 @@ import { AcademicLevel } from '../models';
         </form>
       </div>
     </div>
-  `
+  `,
 })
 export class LevelFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -174,11 +163,9 @@ export class LevelFormModalComponent implements OnInit {
   protected readonly errorBanner = this.store.error;
 
   protected readonly editing = computed(() => this.level() !== null);
-  protected readonly title = computed(() =>
-    this.editing() ? 'Editar nivel' : 'Nuevo nivel'
-  );
+  protected readonly title = computed(() => (this.editing() ? 'Editar nivel' : 'Nuevo nivel'));
   protected readonly submitLabel = computed(() =>
-    this.editing() ? 'Guardar cambios' : 'Crear nivel'
+    this.editing() ? 'Guardar cambios' : 'Crear nivel',
   );
 
   private readonly fieldErrors = signal<Record<string, string>>({});
@@ -190,11 +177,11 @@ export class LevelFormModalComponent implements OnInit {
         Validators.required,
         Validators.minLength(1),
         Validators.maxLength(40),
-        Validators.pattern(/^[A-Za-z][A-Za-z0-9_]*$/)
-      ]
+        Validators.pattern(/^[A-Za-z][A-Za-z0-9_]*$/),
+      ],
     ],
     name: ['', [Validators.required, Validators.maxLength(100)]],
-    ordinal: [1, [Validators.required, Validators.min(1)]]
+    ordinal: [1, [Validators.required, Validators.min(1)]],
   });
 
   ngOnInit(): void {
@@ -204,7 +191,7 @@ export class LevelFormModalComponent implements OnInit {
       this.form.patchValue({
         code: lvl.code,
         name: lvl.name,
-        ordinal: lvl.ordinal
+        ordinal: lvl.ordinal,
       });
     }
   }
@@ -234,7 +221,7 @@ export class LevelFormModalComponent implements OnInit {
         const updated = await this.store.updateLevel(lvl.publicUuid, {
           code: v.code?.trim(),
           name: v.name?.trim(),
-          ordinal: v.ordinal
+          ordinal: v.ordinal,
         });
         if (updated) {
           this.saved.emit(updated);
@@ -243,14 +230,13 @@ export class LevelFormModalComponent implements OnInit {
         const created = await this.store.createLevel({
           code: (v.code ?? '').trim(),
           name: (v.name ?? '').trim(),
-          ordinal: v.ordinal as number
+          ordinal: v.ordinal as number,
         });
         if (created) {
           this.saved.emit(created);
         }
       }
-    }
-    catch (err) {
+    } catch (err) {
       this.applyServerErrors(err);
     }
   }

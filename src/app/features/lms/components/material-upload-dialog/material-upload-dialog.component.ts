@@ -12,14 +12,9 @@ import {
   SimpleChanges,
   ViewChild,
   inject,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FocusTrap } from '@shared/a11y';
 import { IconComponent } from '@shared/components';
 import {
@@ -30,7 +25,7 @@ import {
   MaterialType,
   inferMaterialTypeFromMime,
   isFileMaterial,
-  materialTypeLabel
+  materialTypeLabel,
 } from '../../models';
 
 /**
@@ -68,26 +63,16 @@ import {
         aria-labelledby="material-upload-title"
         (click)="onBackdrop($event)"
       >
-        <div
-          #dialog
-          class="card w-full max-w-md"
-          (click)="$event.stopPropagation()"
-        >
+        <div #dialog class="card w-full max-w-md" (click)="$event.stopPropagation()">
           <header class="card-header">
-            <h2 id="material-upload-title" class="card-title">
-              Subir material
-            </h2>
+            <h2 id="material-upload-title" class="card-title">Subir material</h2>
             <p class="card-description">
               Sube un archivo o un enlace externo. Máximo
               {{ maxSizeLabel }} por archivo.
             </p>
           </header>
 
-          <form
-            [formGroup]="form"
-            (ngSubmit)="onSubmit()"
-            class="card-body grid gap-4"
-          >
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" class="card-body grid gap-4">
             <div class="field">
               <label class="label" for="material-title">Título *</label>
               <input
@@ -133,9 +118,7 @@ import {
                 @if (showError('url'); as msg) {
                   <p class="field-error">{{ msg }}</p>
                 } @else {
-                  <p class="field-hint">
-                    Enlace externo (Khan Academy, YouTube, blog, …).
-                  </p>
+                  <p class="field-hint">Enlace externo (Khan Academy, YouTube, blog, …).</p>
                 }
               </div>
             } @else {
@@ -150,11 +133,7 @@ import {
                 @if (selectedFile(); as file) {
                   <p class="field-hint">
                     {{ file.name }} · {{ formatSize(file.size) }}
-                    <button
-                      type="button"
-                      class="ml-2 underline"
-                      (click)="clearFile()"
-                    >
+                    <button type="button" class="ml-2 underline" (click)="clearFile()">
                       Quitar
                     </button>
                   </p>
@@ -176,11 +155,7 @@ import {
                   <span>Subiendo…</span>
                   <span>{{ uploadPercent }}%</span>
                 </div>
-                <progress
-                  class="progress"
-                  [value]="uploadPercent"
-                  max="100"
-                ></progress>
+                <progress class="progress" [value]="uploadPercent" max="100"></progress>
               </div>
             }
 
@@ -206,7 +181,7 @@ import {
         </div>
       </div>
     }
-  `
+  `,
 })
 export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestroy {
   @Input() open = false;
@@ -214,8 +189,8 @@ export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestr
   @Input() uploadPercent = 0;
   @Input() errorMessage: string | null = null;
 
-  @Output() readonly submit = new EventEmitter<CreateMaterialRequest>();
-  @Output() readonly cancelled = new EventEmitter<void>();
+  @Output() readonly submitted = new EventEmitter<CreateMaterialRequest>();
+  @Output() readonly dialogClosed = new EventEmitter<void>();
 
   @ViewChild('dialog') private dialogRef?: ElementRef<HTMLElement>;
 
@@ -228,7 +203,7 @@ export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestr
     MaterialType.Image,
     MaterialType.Doc,
     MaterialType.Link,
-    MaterialType.Other
+    MaterialType.Other,
   ];
 
   protected readonly selectedFile = signal<File | null>(null);
@@ -237,7 +212,7 @@ export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestr
   protected readonly form: FormGroup = this.fb.group({
     title: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(200)]],
     type: [MaterialType.Pdf as MaterialType, [Validators.required]],
-    url: ['', [Validators.pattern(/^https?:\/\//)]]
+    url: ['', [Validators.pattern(/^https?:\/\//)]],
   });
 
   private previouslyFocused: HTMLElement | null = null;
@@ -264,7 +239,7 @@ export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestr
         this.form.reset({
           title: '',
           type: MaterialType.Pdf,
-          url: ''
+          url: '',
         });
         this.selectedFile.set(null);
         this.fileError.set(null);
@@ -288,7 +263,9 @@ export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestr
     this.selectedFile.set(null);
     this.fileError.set(null);
     if (this.isLinkSelected()) {
-      this.form.get('url')!.setValidators([Validators.required, Validators.pattern(/^https?:\/\//)]);
+      this.form
+        .get('url')!
+        .setValidators([Validators.required, Validators.pattern(/^https?:\/\//)]);
     } else {
       this.form.get('url')!.setValidators([Validators.pattern(/^https?:\/\//)]);
     }
@@ -335,7 +312,7 @@ export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestr
   }
 
   protected onCancel(): void {
-    this.cancelled.emit();
+    this.dialogClosed.emit();
   }
 
   protected onSubmit(): void {
@@ -352,9 +329,9 @@ export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestr
       title: (v.title ?? '').toString().trim(),
       type,
       file: isFileMaterial(type) ? this.selectedFile() : null,
-      url: type === MaterialType.Link ? (v.url ?? '').toString().trim() : null
+      url: type === MaterialType.Link ? (v.url ?? '').toString().trim() : null,
     };
-    this.submit.emit(request);
+    this.submitted.emit(request);
   }
 
   protected showError(controlName: string): string | null {

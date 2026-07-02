@@ -46,7 +46,7 @@ export const ALLOWED_LITERALS_BY_SCALE: Record<EvaluationScale, readonly string[
   [EvaluationScale.SCORE_0_20]: [],
   [EvaluationScale.LITERAL_AD]: ['AD', 'A'],
   [EvaluationScale.LITERAL_NA]: ['NA', 'A'],
-  [EvaluationScale.LITERAL_A_B_C_D]: ['A', 'B', 'C', 'D']
+  [EvaluationScale.LITERAL_A_B_C_D]: ['A', 'B', 'C', 'D'],
 };
 
 // ===========================================================================
@@ -189,11 +189,7 @@ export function toGradeRecordRow(raw: GradeRecordListItemRaw): GradeRecordRow {
   return {
     publicUuid: raw.publicUuid,
     studentPublicUuid: raw.studentPublicUuid,
-    studentFullName: fmtName(
-      raw.studentFirstName,
-      raw.studentLastName,
-      raw.studentSecondLastName
-    ),
+    studentFullName: fmtName(raw.studentFirstName, raw.studentLastName, raw.studentSecondLastName),
     studentFirstName: raw.studentFirstName,
     studentLastName: raw.studentLastName,
     score: parseDecimal(raw.score),
@@ -202,20 +198,18 @@ export function toGradeRecordRow(raw: GradeRecordListItemRaw): GradeRecordRow {
     recordedAt: raw.recordedAt ? new Date(raw.recordedAt) : null,
     isActive: raw.isActive,
     createdAt: new Date(raw.createdAt),
-    updatedAt: new Date(raw.updatedAt)
+    updatedAt: new Date(raw.updatedAt),
   };
 }
 
-export function toGradeRecordDetail(
-  raw: GradeRecordResponseRaw
-): GradeRecordDetail {
+export function toGradeRecordDetail(raw: GradeRecordResponseRaw): GradeRecordDetail {
   return {
     publicUuid: raw.publicUuid,
     studentPublicUuid: raw.student.publicUuid,
     studentFullName: fmtName(
       raw.student.firstName,
       raw.student.lastName,
-      raw.student.secondLastName
+      raw.student.secondLastName,
     ),
     studentFirstName: raw.student.firstName,
     studentLastName: raw.student.lastName,
@@ -227,18 +221,16 @@ export function toGradeRecordDetail(
     createdAt: new Date(raw.createdAt),
     updatedAt: new Date(raw.updatedAt),
     evaluation: raw.evaluation,
-    recordedByUserId: raw.recordedByUserId
+    recordedByUserId: raw.recordedByUserId,
   };
 }
 
-export function toBulkSummary(
-  raw: BulkGradeRecordResponseRaw
-): BulkGradeRecordSummary {
+export function toBulkSummary(raw: BulkGradeRecordResponseRaw): BulkGradeRecordSummary {
   return {
     requested: raw.requested,
     created: raw.created,
     updated: raw.updated,
-    records: raw.records.map(toGradeRecordDetail)
+    records: raw.records.map(toGradeRecordDetail),
   };
 }
 
@@ -253,7 +245,7 @@ export function toBulkSummary(
  */
 export function validateGradeShape(
   scale: EvaluationScale,
-  payload: { score?: number | null; literal?: string | null }
+  payload: { score?: number | null; literal?: string | null },
 ): string | null {
   const hasScore = payload.score !== null && payload.score !== undefined;
   const hasLiteral = !!payload.literal && payload.literal.trim().length > 0;

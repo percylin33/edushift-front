@@ -27,7 +27,7 @@ const SHADE_LIGHTNESS: Record<Shade, number> = {
   700: 0.34,
   800: 0.27,
   900: 0.2,
-  950: 0.12
+  950: 0.12,
 };
 
 /** Parse `#rgb`, `#rrggbb`, or `rgb(r, g, b)` into an `[r, g, b]` triplet (0-255). */
@@ -40,12 +40,15 @@ export function parseColor(input: string): RgbTriplet | null {
     const hex = hexMatch[1];
     const expanded =
       hex.length === 3
-        ? hex.split('').map((c) => c + c).join('')
+        ? hex
+            .split('')
+            .map((c) => c + c)
+            .join('')
         : hex;
     return [
       parseInt(expanded.slice(0, 2), 16),
       parseInt(expanded.slice(2, 4), 16),
-      parseInt(expanded.slice(4, 6), 16)
+      parseInt(expanded.slice(4, 6), 16),
     ];
   }
 
@@ -69,9 +72,14 @@ export function rgbToHsl([r, g, b]: RgbTriplet): [number, number, number] {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     switch (max) {
-      case rn: h = (gn - bn) / d + (gn < bn ? 6 : 0); break;
-      case gn: h = (bn - rn) / d + 2; break;
-      default: h = (rn - gn) / d + 4;
+      case rn:
+        h = (gn - bn) / d + (gn < bn ? 6 : 0);
+        break;
+      case gn:
+        h = (bn - rn) / d + 2;
+        break;
+      default:
+        h = (rn - gn) / d + 4;
     }
     h *= 60;
   }
@@ -82,13 +90,28 @@ export function hslToRgb(h: number, s: number, l: number): RgbTriplet {
   const c = (1 - Math.abs(2 * l - 1)) * s;
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
   const m = l - c / 2;
-  let rp = 0, gp = 0, bp = 0;
-  if (h < 60)        { rp = c; gp = x; }
-  else if (h < 120)  { rp = x; gp = c; }
-  else if (h < 180)  { gp = c; bp = x; }
-  else if (h < 240)  { gp = x; bp = c; }
-  else if (h < 300)  { rp = x; bp = c; }
-  else               { rp = c; bp = x; }
+  let rp = 0,
+    gp = 0,
+    bp = 0;
+  if (h < 60) {
+    rp = c;
+    gp = x;
+  } else if (h < 120) {
+    rp = x;
+    gp = c;
+  } else if (h < 180) {
+    gp = c;
+    bp = x;
+  } else if (h < 240) {
+    gp = x;
+    bp = c;
+  } else if (h < 300) {
+    rp = x;
+    bp = c;
+  } else {
+    rp = c;
+    bp = x;
+  }
   return [Math.round((rp + m) * 255), Math.round((gp + m) * 255), Math.round((bp + m) * 255)];
 }
 

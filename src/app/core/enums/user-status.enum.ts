@@ -11,5 +11,5 @@ export enum UserStatus {
   Locked = 'LOCKED',
   Suspended = 'SUSPENDED',
   Inactive = 'INACTIVE',
-  PendingVerification = 'PENDING_VERIFICATION'
+  PendingVerification = 'PENDING_VERIFICATION',
 }

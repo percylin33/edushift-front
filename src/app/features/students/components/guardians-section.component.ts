@@ -7,13 +7,9 @@ import {
   effect,
   inject,
   input,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  EmptyStateComponent,
-  IconComponent,
-  SpinnerComponent
-} from '@shared/components';
+import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
 import { StudentsStore } from '../store/students.store';
 import { Guardian } from '../models';
 import { AddGuardianModalComponent } from './add-guardian-modal.component';
@@ -49,7 +45,7 @@ import { RelationshipBadgeComponent } from './relationship-badge.component';
     SpinnerComponent,
     RelationshipBadgeComponent,
     AddGuardianModalComponent,
-    EditGuardianLinkModalComponent
+    EditGuardianLinkModalComponent,
   ],
   template: `
     <section class="card lg:col-span-3">
@@ -57,8 +53,8 @@ import { RelationshipBadgeComponent } from './relationship-badge.component';
         <div>
           <h2 class="card-title">Tutores</h2>
           <p class="card-description">
-            Apoderados vinculados al estudiante. El contacto principal recibe
-            las comunicaciones críticas.
+            Apoderados vinculados al estudiante. El contacto principal recibe las comunicaciones
+            críticas.
           </p>
         </div>
         <button type="button" class="btn btn-primary btn-sm" (click)="openAddModal()">
@@ -85,7 +81,8 @@ import { RelationshipBadgeComponent } from './relationship-badge.component';
           <app-empty-state
             icon="users"
             title="Aún no hay tutores"
-            description="Vincula a un padre, madre o apoderado legal para gestionar comunicaciones y permisos.">
+            description="Vincula a un padre, madre o apoderado legal para gestionar comunicaciones y permisos."
+          >
             <button type="button" class="btn btn-primary btn-sm" (click)="openAddModal()">
               Vincular tutor
             </button>
@@ -175,7 +172,7 @@ import { RelationshipBadgeComponent } from './relationship-badge.component';
         (closed)="closeEditModal()"
       />
     }
-  `
+  `,
 })
 export class GuardiansSectionComponent implements OnInit {
   private readonly store = inject(StudentsStore);
@@ -206,9 +203,10 @@ export class GuardiansSectionComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    /* {@link effect} above already covers the initial load; the
-     * hook is a no-op kept for parity with other section components
-     * that wire init-only logic. */
+    // intentionally no-op: effect() in the constructor already
+    // covers the initial load; this hook is kept for parity with
+    // other section components that wire init-only logic.
+    void this.guardians;
   }
 
   /**
@@ -234,7 +232,7 @@ export class GuardiansSectionComponent implements OnInit {
     FATHER: 1,
     GRANDPARENT: 2,
     GUARDIAN: 3,
-    OTHER: 4
+    OTHER: 4,
   };
 
   protected openAddModal(): void {
@@ -266,14 +264,14 @@ export class GuardiansSectionComponent implements OnInit {
      * still enforces the LAST_PRIMARY_CONTACT guardrail, so the
      * worst case is an inline error banner. */
     const ok = window.confirm(
-      `¿Quitar a ${guardian.fullName} como tutor? Se mantendrá el registro del tutor por si está vinculado a un hermano.`
+      `¿Quitar a ${guardian.fullName} como tutor? Se mantendrá el registro del tutor por si está vinculado a un hermano.`,
     );
     if (!ok) return;
 
     await this.store.unlinkGuardian(
       this.studentPublicUuid(),
       guardian.guardianPublicUuid,
-      guardian.linkPublicUuid
+      guardian.linkPublicUuid,
     );
   }
 }

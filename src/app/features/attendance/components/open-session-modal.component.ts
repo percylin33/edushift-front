@@ -7,7 +7,7 @@ import {
   computed,
   inject,
   output,
-  signal
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -37,22 +37,22 @@ import { AttendanceSessionSlot, CreateSessionRequest } from '../models';
   imports: [CommonModule, FormsModule, IconComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="open-session-title"
       (click)="onBackdropClick($event)"
     >
       <div
-        class="card w-full max-w-lg shadow-xl flex flex-col max-h-[90vh]"
+        class="card flex max-h-[90vh] w-full max-w-lg flex-col shadow-xl"
         (click)="$event.stopPropagation()"
       >
         <header class="card-header">
           <div>
             <h2 id="open-session-title" class="card-title">Abrir sesión de asistencia</h2>
             <p class="card-description">
-              El backend la hace idempotente: si ya hay una ACTIVA
-              para (sección, día, slot), la trae en lugar de fallar.
+              El backend la hace idempotente: si ya hay una ACTIVA para (sección, día, slot), la
+              trae en lugar de fallar.
             </p>
           </div>
           <button
@@ -65,10 +65,7 @@ import { AttendanceSessionSlot, CreateSessionRequest } from '../models';
           </button>
         </header>
 
-        <form
-          class="card-body flex flex-col gap-3 overflow-y-auto"
-          (ngSubmit)="submit()"
-        >
+        <form class="card-body flex flex-col gap-3 overflow-y-auto" (ngSubmit)="submit()">
           <div>
             <label class="label" for="open-section">Sección</label>
             <select
@@ -81,15 +78,12 @@ import { AttendanceSessionSlot, CreateSessionRequest } from '../models';
             >
               <option [ngValue]="null" disabled>Selecciona una sección…</option>
               @for (s of sections(); track s.publicUuid) {
-                <option [ngValue]="s.publicUuid">
-                  {{ s.gradeName }} · {{ s.name }}
-                </option>
+                <option [ngValue]="s.publicUuid">{{ s.gradeName }} · {{ s.name }}</option>
               }
             </select>
             @if (!loadingSections() && !activeYear()) {
               <p class="hint mt-1 text-xs text-warning">
-                No hay año académico activo. Crea uno en Académico antes
-                de abrir sesiones.
+                No hay año académico activo. Crea uno en Académico antes de abrir sesiones.
               </p>
             }
           </div>
@@ -109,13 +103,7 @@ import { AttendanceSessionSlot, CreateSessionRequest } from '../models';
             </div>
             <div>
               <label class="label" for="open-slot">Slot</label>
-              <select
-                id="open-slot"
-                class="select"
-                [(ngModel)]="slot"
-                name="slot"
-                required
-              >
+              <select id="open-slot" class="select" [(ngModel)]="slot" name="slot" required>
                 @for (opt of slotOptions; track opt.value) {
                   <option [ngValue]="opt.value">{{ opt.label }}</option>
                 }
@@ -138,9 +126,7 @@ import { AttendanceSessionSlot, CreateSessionRequest } from '../models';
         </form>
 
         <footer class="card-footer justify-end gap-2">
-          <button type="button" class="btn btn-ghost btn-sm" (click)="close()">
-            Cancelar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="close()">Cancelar</button>
           <button
             type="submit"
             class="btn btn-primary btn-sm"
@@ -153,7 +139,7 @@ import { AttendanceSessionSlot, CreateSessionRequest } from '../models';
         </footer>
       </div>
     </div>
-  `
+  `,
 })
 export class OpenSessionModalComponent implements OnInit {
   /** Fires with the validated request on submit. */
@@ -177,11 +163,11 @@ export class OpenSessionModalComponent implements OnInit {
   protected readonly slotOptions: ReadonlyArray<{ value: AttendanceSessionSlot; label: string }> = [
     { value: 'MORNING', label: 'Mañana' },
     { value: 'AFTERNOON', label: 'Tarde' },
-    { value: 'EVENING', label: 'Noche' }
+    { value: 'EVENING', label: 'Noche' },
   ];
 
   protected readonly canSubmit = computed(
-    () => Boolean(this.sectionPublicUuid) && Boolean(this.occurredOn)
+    () => Boolean(this.sectionPublicUuid) && Boolean(this.occurredOn),
   );
 
   async ngOnInit(): Promise<void> {
@@ -207,7 +193,7 @@ export class OpenSessionModalComponent implements OnInit {
     this.submitRequest.emit({
       sectionPublicUuid: this.sectionPublicUuid,
       slot: this.slot,
-      occurredOn: this.occurredOn
+      occurredOn: this.occurredOn,
     });
   }
 
@@ -219,7 +205,7 @@ export class OpenSessionModalComponent implements OnInit {
       this.activeYear.set(active);
       if (!active) return;
       const sections = await firstValueFrom(
-        this.academicApi.listSections({ academicYearPublicUuid: active.publicUuid })
+        this.academicApi.listSections({ academicYearPublicUuid: active.publicUuid }),
       );
       this.sections.set(sections);
     } catch {

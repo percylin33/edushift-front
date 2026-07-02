@@ -8,14 +8,9 @@ import {
   effect,
   inject,
   input,
-  output
+  output,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RelationshipType } from '@core/enums';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { StudentsStore } from '../store/students.store';
@@ -41,24 +36,16 @@ import { Guardian, UpdateGuardianLinkRequest } from '../models';
   selector: 'app-edit-guardian-link-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    IconComponent,
-    SpinnerComponent
-  ],
+  imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-guardian-title"
       (click)="onBackdropClick($event)"
     >
-      <div
-        class="card w-full max-w-md shadow-xl"
-        (click)="$event.stopPropagation()"
-      >
+      <div class="card w-full max-w-md shadow-xl" (click)="$event.stopPropagation()">
         <header class="card-header">
           <div>
             <h2 id="edit-guardian-title" class="card-title">Editar vínculo</h2>
@@ -104,13 +91,11 @@ import { Guardian, UpdateGuardianLinkRequest } from '../models';
             <span>Puede recoger al estudiante</span>
           </label>
 
-          <footer class="flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-4">
+          <footer
+            class="flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-4"
+          >
             <button type="button" class="btn btn-ghost btn-sm" (click)="close()">Cancelar</button>
-            <button
-              type="submit"
-              class="btn btn-primary btn-sm"
-              [disabled]="!canSubmit()"
-            >
+            <button type="submit" class="btn btn-primary btn-sm" [disabled]="!canSubmit()">
               @if (saving()) {
                 <app-spinner [size]="14" label="Guardando" />
                 <span>Guardando…</span>
@@ -123,7 +108,7 @@ import { Guardian, UpdateGuardianLinkRequest } from '../models';
         </form>
       </div>
     </div>
-  `
+  `,
 })
 export class EditGuardianLinkModalComponent {
   private readonly fb = inject(FormBuilder);
@@ -140,17 +125,17 @@ export class EditGuardianLinkModalComponent {
     value: RelationshipType;
     label: string;
   }> = [
-    { value: RelationshipType.Mother,      label: 'Madre' },
-    { value: RelationshipType.Father,      label: 'Padre' },
+    { value: RelationshipType.Mother, label: 'Madre' },
+    { value: RelationshipType.Father, label: 'Padre' },
     { value: RelationshipType.Grandparent, label: 'Abuelo/a' },
-    { value: RelationshipType.Guardian,    label: 'Tutor legal' },
-    { value: RelationshipType.Other,       label: 'Otro' }
+    { value: RelationshipType.Guardian, label: 'Tutor legal' },
+    { value: RelationshipType.Other, label: 'Otro' },
   ];
 
   protected readonly form: FormGroup = this.fb.group({
     relationship: [RelationshipType.Mother, [Validators.required]],
     isPrimaryContact: [false],
-    canPickupStudent: [false]
+    canPickupStudent: [false],
   });
 
   /**
@@ -168,9 +153,9 @@ export class EditGuardianLinkModalComponent {
         {
           relationship: g.relationship,
           isPrimaryContact: g.isPrimaryContact,
-          canPickupStudent: g.canPickupStudent
+          canPickupStudent: g.canPickupStudent,
         },
-        { emitEvent: false }
+        { emitEvent: false },
       );
     });
   }
@@ -221,13 +206,12 @@ export class EditGuardianLinkModalComponent {
       const updated = await this.store.updateGuardianLink(
         this.studentPublicUuid(),
         original.guardianPublicUuid,
-        patch
+        patch,
       );
       if (updated) {
         this.closed.emit();
       }
-    }
-    catch (err) {
+    } catch (err) {
       /* Errors land on the store's banner; nothing additional to
        * surface here. The catch keeps the modal open so the admin
        * can see the alert and try again. */

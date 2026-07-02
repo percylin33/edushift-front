@@ -14,31 +14,31 @@ import { RelationshipType } from '@core/enums';
   selector: 'app-relationship-badge',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<span [class]="badgeClass()">{{ label() }}</span>`
+  template: `<span [class]="badgeClass()">{{ label() }}</span>`,
 })
 export class RelationshipBadgeComponent {
   readonly relationship = input.required<RelationshipType>();
 
   readonly label = computed(
-    () => RelationshipBadgeComponent.LABELS[this.relationship()] ?? this.relationship()
+    () => RelationshipBadgeComponent.LABELS[this.relationship()] ?? this.relationship(),
   );
   readonly badgeClass = computed(
-    () => `badge ${RelationshipBadgeComponent.TIER[this.relationship()] ?? 'badge-neutral'}`
+    () => `badge ${RelationshipBadgeComponent.TIER[this.relationship()] ?? 'badge-neutral'}`,
   );
 
   private static readonly LABELS: Readonly<Record<RelationshipType, string>> = {
-    [RelationshipType.Father]:      'Padre',
-    [RelationshipType.Mother]:      'Madre',
+    [RelationshipType.Father]: 'Padre',
+    [RelationshipType.Mother]: 'Madre',
     [RelationshipType.Grandparent]: 'Abuelo/a',
-    [RelationshipType.Guardian]:    'Tutor legal',
-    [RelationshipType.Other]:       'Otro'
+    [RelationshipType.Guardian]: 'Tutor legal',
+    [RelationshipType.Other]: 'Otro',
   };
 
   private static readonly TIER: Readonly<Record<RelationshipType, string>> = {
-    [RelationshipType.Father]:      'badge-primary',
-    [RelationshipType.Mother]:      'badge-primary',
+    [RelationshipType.Father]: 'badge-primary',
+    [RelationshipType.Mother]: 'badge-primary',
     [RelationshipType.Grandparent]: 'badge-info',
-    [RelationshipType.Guardian]:    'badge-info',
-    [RelationshipType.Other]:       'badge-neutral'
+    [RelationshipType.Guardian]: 'badge-info',
+    [RelationshipType.Other]: 'badge-neutral',
   };
 }

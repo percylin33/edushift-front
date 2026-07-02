@@ -23,12 +23,12 @@ export type PageContainerSize = 'narrow' | 'default' | 'wide' | 'full';
   selector: 'app-page-container',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { 'class': 'block w-full' },
+  host: { class: 'block w-full' },
   template: `
     <div [class]="containerClass()">
       <ng-content />
     </div>
-  `
+  `,
 })
 export class PageContainerComponent {
   readonly size = input<PageContainerSize>('default');
@@ -36,10 +36,14 @@ export class PageContainerComponent {
   readonly containerClass = computed(() => {
     const base = 'mx-auto w-full px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8';
     switch (this.size()) {
-      case 'narrow': return `${base} max-w-2xl`;
-      case 'wide':   return `${base} max-w-screen-2xl`;
-      case 'full':   return `${base.replace('mx-auto ', '')} max-w-none`;
-      default:       return `${base} max-w-7xl`;
+      case 'narrow':
+        return `${base} max-w-2xl`;
+      case 'wide':
+        return `${base} max-w-screen-2xl`;
+      case 'full':
+        return `${base.replace('mx-auto ', '')} max-w-none`;
+      default:
+        return `${base} max-w-7xl`;
     }
   });
 }

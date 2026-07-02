@@ -12,7 +12,7 @@ import {
   TaskSummaryRaw,
   UpdateTaskRequest,
   toTaskDetail,
-  toTaskRow
+  toTaskRow,
 } from '../models';
 
 /**
@@ -54,16 +54,13 @@ export class TaskApiService {
    */
   listBySection(
     sectionPublicUuid: string,
-    filters: { lifecycle?: TaskLifecycle; dueBefore?: string } = {}
+    filters: { lifecycle?: TaskLifecycle; dueBefore?: string } = {},
   ): Observable<TaskRow[]> {
     return this.api
-      .get<SpringPage<TaskSummaryRaw>>(
-        API.LMS.ASSIGNMENTS_BY_SECTION(sectionPublicUuid),
-        {
-          lifecycle: filters.lifecycle,
-          dueBefore: filters.dueBefore
-        }
-      )
+      .get<SpringPage<TaskSummaryRaw>>(API.LMS.ASSIGNMENTS_BY_SECTION(sectionPublicUuid), {
+        lifecycle: filters.lifecycle,
+        dueBefore: filters.dueBefore,
+      })
       .pipe(map((page) => page.content.map(toTaskRow)));
   }
 
@@ -73,9 +70,7 @@ export class TaskApiService {
    */
   listByStudent(studentPublicUuid: string): Observable<TaskRow[]> {
     return this.api
-      .get<SpringPage<TaskSummaryRaw>>(
-        API.LMS.ASSIGNMENTS_BY_STUDENT(studentPublicUuid)
-      )
+      .get<SpringPage<TaskSummaryRaw>>(API.LMS.ASSIGNMENTS_BY_STUDENT(studentPublicUuid))
       .pipe(map((page) => page.content.map(toTaskRow)));
   }
 
@@ -93,10 +88,7 @@ export class TaskApiService {
    */
   createTask(request: CreateTaskRequest): Observable<TaskDetail> {
     return this.api
-      .post<ApiResponse<TaskResponseRaw>, CreateTaskRequest>(
-        API.LMS.ASSIGNMENTS_ROOT,
-        request
-      )
+      .post<ApiResponse<TaskResponseRaw>, CreateTaskRequest>(API.LMS.ASSIGNMENTS_ROOT, request)
       .pipe(map((envelope) => toTaskDetail(envelope.data)));
   }
 
@@ -106,14 +98,11 @@ export class TaskApiService {
    * {@code dueAt}. Esos códigos se mapean en el store a errores
    * inline en el form.
    */
-  updateTask(
-    publicUuid: string,
-    patch: UpdateTaskRequest
-  ): Observable<TaskDetail> {
+  updateTask(publicUuid: string, patch: UpdateTaskRequest): Observable<TaskDetail> {
     return this.api
       .patch<ApiResponse<TaskResponseRaw>, UpdateTaskRequest>(
         API.LMS.ASSIGNMENT_PATCH(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => toTaskDetail(envelope.data)));
   }
@@ -125,9 +114,7 @@ export class TaskApiService {
    */
   publishTask(publicUuid: string): Observable<TaskDetail> {
     return this.api
-      .post<ApiResponse<TaskResponseRaw>>(
-        API.LMS.ASSIGNMENT_PUBLISH(publicUuid)
-      )
+      .post<ApiResponse<TaskResponseRaw>>(API.LMS.ASSIGNMENT_PUBLISH(publicUuid))
       .pipe(map((envelope) => toTaskDetail(envelope.data)));
   }
 
@@ -137,9 +124,7 @@ export class TaskApiService {
    */
   closeTask(publicUuid: string): Observable<TaskDetail> {
     return this.api
-      .post<ApiResponse<TaskResponseRaw>>(
-        API.LMS.ASSIGNMENT_CLOSE(publicUuid)
-      )
+      .post<ApiResponse<TaskResponseRaw>>(API.LMS.ASSIGNMENT_CLOSE(publicUuid))
       .pipe(map((envelope) => toTaskDetail(envelope.data)));
   }
 }

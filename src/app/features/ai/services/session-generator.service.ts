@@ -39,44 +39,41 @@ export class SessionGeneratorService {
     if (topic.length < 3) {
       return throwError(() => ({
         code: 'AI_TOPIC_REQUIRED',
-        message: 'Indica un tema de al menos 3 caracteres.'
+        message: 'Indica un tema de al menos 3 caracteres.',
       }));
     }
     if (!request.courseName) {
       return throwError(() => ({
         code: 'AI_COURSE_REQUIRED',
-        message: 'Selecciona un curso.'
+        message: 'Selecciona un curso.',
       }));
     }
     if (!request.gradeName) {
       return throwError(() => ({
         code: 'AI_GRADE_REQUIRED',
-        message: 'Selecciona un grado.'
+        message: 'Selecciona un grado.',
       }));
     }
     if (request.durationMinutes < 15 || request.durationMinutes > 240) {
       return throwError(() => ({
         code: 'AI_DURATION_OUT_OF_RANGE',
-        message: 'La duración debe estar entre 15 y 240 minutos.'
+        message: 'La duración debe estar entre 15 y 240 minutos.',
       }));
     }
 
     return this.api
-      .post<ApiResponse<SessionDraft>, SessionGeneratorRequest>(
-        API.AI.GENERATE_SESSION,
-        request
-      )
+      .post<ApiResponse<SessionDraft>, SessionGeneratorRequest>(API.AI.GENERATE_SESSION, request)
       .pipe(
         map((envelope) => {
           if (!envelope || !envelope.success || !envelope.data) {
             throw {
               code: 'AI_EMPTY_RESPONSE',
-              message: 'El asistente devolvió una respuesta vacía.'
+              message: 'El asistente devolvió una respuesta vacía.',
             };
           }
           return envelope.data;
         }),
-        catchError((err: unknown) => throwError(() => mapHttpError(err)))
+        catchError((err: unknown) => throwError(() => mapHttpError(err))),
       );
   }
 }
@@ -114,8 +111,7 @@ function mapHttpError(err: unknown): { code: string; message: string; httpStatus
   }
   if (err instanceof HttpErrorResponse) {
     const apiErr = err.error as
-      | { error?: { code?: string; message?: string }; message?: string }
-      | undefined;
+      { error?: { code?: string; message?: string }; message?: string } | undefined;
     const code = apiErr?.error?.code ?? apiErr?.message ?? 'AI_UNKNOWN';
     const message = apiErr?.error?.message ?? defaultMessageForStatus(err.status, code);
     return { code, message, httpStatus: err.status };
@@ -125,15 +121,23 @@ function mapHttpError(err: unknown): { code: string; message: string; httpStatus
 
 function defaultMessageForStatus(status: number, code: string): string {
   switch (status) {
-    case 0:   return 'Sin conexión con el servidor. Verifica tu red e inténtalo de nuevo.';
-    case 400: return 'La solicitud es inválida (revisa el tema y los datos del formulario).';
-    case 401: return 'Tu sesión expiró. Vuelve a iniciar sesión.';
-    case 403: return code === 'AI_DISABLED'
-      ? 'La IA está deshabilitada en este colegio.'
-      : 'No tienes permiso para usar el asistente de IA.';
-    case 429: return 'Has alcanzado la cuota de IA del colegio. Intenta de nuevo más tarde.';
-    case 502: return 'El asistente tuvo un problema al generar la sesión. Reintenta.';
-    case 503: return 'El asistente no está disponible en este momento. Reintenta.';
-    default:  return `Error ${status} al generar la sesión.`;
+    case 0:
+      return 'Sin conexión con el servidor. Verifica tu red e inténtalo de nuevo.';
+    case 400:
+      return 'La solicitud es inválida (revisa el tema y los datos del formulario).';
+    case 401:
+      return 'Tu sesión expiró. Vuelve a iniciar sesión.';
+    case 403:
+      return code === 'AI_DISABLED'
+        ? 'La IA está deshabilitada en este colegio.'
+        : 'No tienes permiso para usar el asistente de IA.';
+    case 429:
+      return 'Has alcanzado la cuota de IA del colegio. Intenta de nuevo más tarde.';
+    case 502:
+      return 'El asistente tuvo un problema al generar la sesión. Reintenta.';
+    case 503:
+      return 'El asistente no está disponible en este momento. Reintenta.';
+    default:
+      return `Error ${status} al generar la sesión.`;
   }
 }

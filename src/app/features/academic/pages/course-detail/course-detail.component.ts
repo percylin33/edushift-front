@@ -5,7 +5,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
@@ -13,12 +13,12 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import {
   CourseFormModalComponent,
   CourseUnitsTabComponent,
-  CourseCompetenciesTabComponent
+  CourseCompetenciesTabComponent,
 } from '../../components';
 import { AcademicStore } from '../../store';
 
@@ -53,7 +53,7 @@ type CourseTab = 'info' | 'units' | 'competencies';
     SpinnerComponent,
     CourseFormModalComponent,
     CourseUnitsTabComponent,
-    CourseCompetenciesTabComponent
+    CourseCompetenciesTabComponent,
   ],
   template: `
     <app-page-container>
@@ -100,7 +100,6 @@ type CourseTab = 'info' | 'units' | 'competencies';
               >
                 <app-icon [name]="t.icon" [size]="16" />
                 <span>{{ t.label }}</span>
-
               </button>
             }
           </div>
@@ -132,7 +131,7 @@ type CourseTab = 'info' | 'units' | 'competencies';
                 @if (c.description) {
                   <div class="sm:col-span-2">
                     <p class="text-xs uppercase text-content-muted">Descripción</p>
-                    <p class="mt-1 text-sm whitespace-pre-line">{{ c.description }}</p>
+                    <p class="mt-1 whitespace-pre-line text-sm">{{ c.description }}</p>
                   </div>
                 }
                 <div>
@@ -188,23 +187,17 @@ type CourseTab = 'info' | 'units' | 'competencies';
               <p class="mt-1 text-xs opacity-80">{{ errorMessage() }}</p>
             }
           </div>
-          <a [routerLink]="listRoute" class="btn btn-ghost btn-sm">
-            Volver al listado
-          </a>
+          <a [routerLink]="listRoute" class="btn btn-ghost btn-sm"> Volver al listado </a>
         </div>
       }
     </app-page-container>
 
     @if (showEdit()) {
       @if (course(); as c) {
-        <app-course-form-modal
-          [course]="c"
-          (closed)="closeEdit()"
-          (saved)="onSaved()"
-        />
+        <app-course-form-modal [course]="c" (closed)="closeEdit()" (saved)="onSaved()" />
       }
     }
-  `
+  `,
 })
 export class CourseDetailComponent implements OnInit {
   private readonly store = inject(AcademicStore);
@@ -226,9 +219,9 @@ export class CourseDetailComponent implements OnInit {
     label: string;
     icon: 'info' | 'book-open' | 'target';
   }> = [
-    { id: 'info',         label: 'Info',         icon: 'info' },
-    { id: 'units',        label: 'Unidades',     icon: 'book-open' },
-    { id: 'competencies', label: 'Competencias', icon: 'target' }
+    { id: 'info', label: 'Info', icon: 'info' },
+    { id: 'units', label: 'Unidades', icon: 'book-open' },
+    { id: 'competencies', label: 'Competencias', icon: 'target' },
   ];
 
   /** Slug humano para alerts/log. */
@@ -258,7 +251,7 @@ export class CourseDetailComponent implements OnInit {
       relativeTo: this.route,
       queryParams: { tab },
       queryParamsHandling: 'merge',
-      replaceUrl: true
+      replaceUrl: true,
     });
   }
 
@@ -282,7 +275,7 @@ export class CourseDetailComponent implements OnInit {
     const ok = confirm(
       `¿Eliminar el curso "${c.code} — ${c.name}"?\n\n` +
         'Si el curso tiene asignaciones de docentes, considera ' +
-        'desactivarlo en su lugar.'
+        'desactivarlo en su lugar.',
     );
     if (!ok) return;
     const success = await this.store.deleteCourse(c.publicUuid);
@@ -298,7 +291,7 @@ export class CourseDetailComponent implements OnInit {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 }

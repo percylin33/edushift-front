@@ -6,7 +6,7 @@ import {
   computed,
   inject,
   input,
-  signal
+  signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
@@ -18,17 +18,17 @@ import { EnrollStudentModalComponent } from './enroll-student-modal.component';
 import { WithdrawEnrollmentModalComponent } from './withdraw-enrollment-modal.component';
 
 const STATUS_LABELS: Readonly<Record<StudentEnrollmentStatus, string>> = {
-  [StudentEnrollmentStatus.Active]:      'Activa',
-  [StudentEnrollmentStatus.Withdrawn]:   'Retirado',
+  [StudentEnrollmentStatus.Active]: 'Activa',
+  [StudentEnrollmentStatus.Withdrawn]: 'Retirado',
   [StudentEnrollmentStatus.Transferred]: 'Trasladado',
-  [StudentEnrollmentStatus.Graduated]:   'Graduado'
+  [StudentEnrollmentStatus.Graduated]: 'Graduado',
 };
 
 const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
-  [StudentEnrollmentStatus.Active]:      'badge badge-success',
-  [StudentEnrollmentStatus.Withdrawn]:   'badge badge-danger',
+  [StudentEnrollmentStatus.Active]: 'badge badge-success',
+  [StudentEnrollmentStatus.Withdrawn]: 'badge badge-danger',
   [StudentEnrollmentStatus.Transferred]: 'badge badge-secondary',
-  [StudentEnrollmentStatus.Graduated]:   'badge badge-primary'
+  [StudentEnrollmentStatus.Graduated]: 'badge badge-primary',
 };
 
 /**
@@ -62,7 +62,7 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
     IconComponent,
     SpinnerComponent,
     EnrollStudentModalComponent,
-    WithdrawEnrollmentModalComponent
+    WithdrawEnrollmentModalComponent,
   ],
   template: `
     <section class="card lg:col-span-3">
@@ -70,8 +70,8 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
         <div>
           <h2 class="card-title">Matrícula y sección</h2>
           <p class="card-description">
-            Sección activa de {{ student().firstName }} y trazabilidad de
-            cambios entre años académicos.
+            Sección activa de {{ student().firstName }} y trazabilidad de cambios entre años
+            académicos.
           </p>
         </div>
         <div class="flex items-center gap-2">
@@ -117,23 +117,17 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
           <div class="alert alert-danger">
             <app-icon name="alert-circle" [size]="18" />
             <p class="flex-1 text-sm">{{ errorMessage() }}</p>
-            <button
-              type="button"
-              class="btn btn-ghost btn-sm"
-              (click)="reload()"
-            >
+            <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">
               Reintentar
             </button>
           </div>
         } @else {
           @if (active(); as a) {
             <div
-              class="rounded-lg border border-border-subtle bg-surface-muted px-4 py-3 grid gap-3 sm:grid-cols-3"
+              class="grid gap-3 rounded-lg border border-border-subtle bg-surface-muted px-4 py-3 sm:grid-cols-3"
             >
               <div>
-                <p class="text-2xs uppercase tracking-wider text-content-subtle">
-                  Sección actual
-                </p>
+                <p class="text-2xs uppercase tracking-wider text-content-subtle">Sección actual</p>
                 <a
                   [routerLink]="sectionRoute(a.sectionPublicUuid)"
                   class="mt-1 inline-flex items-center gap-1 text-sm font-medium text-content hover:underline"
@@ -143,46 +137,31 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
                 </a>
               </div>
               <div>
-                <p class="text-2xs uppercase tracking-wider text-content-subtle">
-                  Año académico
-                </p>
+                <p class="text-2xs uppercase tracking-wider text-content-subtle">Año académico</p>
                 <p class="mt-1 text-sm text-content">
                   {{ a.academicYearName }}
                 </p>
               </div>
               <div>
-                <p class="text-2xs uppercase tracking-wider text-content-subtle">
-                  Matriculado el
-                </p>
+                <p class="text-2xs uppercase tracking-wider text-content-subtle">Matriculado el</p>
                 <p class="mt-1 text-sm text-content">
                   {{ a.enrolledAt ? (a.enrolledAt | date: 'mediumDate') : '—' }}
                 </p>
               </div>
             </div>
           } @else {
-            <div
-              class="rounded-lg border border-dashed border-border-subtle px-4 py-6 text-center"
-            >
-              <app-icon
-                name="info"
-                [size]="20"
-                class="mx-auto mb-2 text-content-subtle"
-              />
-              <p class="text-sm font-medium text-content">
-                Sin matrícula activa
-              </p>
+            <div class="rounded-lg border border-dashed border-border-subtle px-4 py-6 text-center">
+              <app-icon name="info" [size]="20" class="mx-auto mb-2 text-content-subtle" />
+              <p class="text-sm font-medium text-content">Sin matrícula activa</p>
               <p class="mt-1 text-xs text-content-muted">
-                Asigna una sección para que aparezca en el roster del año
-                activo.
+                Asigna una sección para que aparezca en el roster del año activo.
               </p>
             </div>
           }
 
           @if (rows().length > 0) {
             <div>
-              <h3 class="text-sm font-semibold text-content mb-2">
-                Historial de matrículas
-              </h3>
+              <h3 class="mb-2 text-sm font-semibold text-content">Historial de matrículas</h3>
               <div class="overflow-x-auto">
                 <table class="table">
                   <thead>
@@ -200,7 +179,7 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
                         <td>
                           <a
                             [routerLink]="sectionRoute(e.sectionPublicUuid)"
-                            class="hover:underline font-medium"
+                            class="font-medium hover:underline"
                           >
                             {{ e.sectionName }}
                           </a>
@@ -259,7 +238,7 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
         (withdrew)="onWithdrew()"
       />
     }
-  `
+  `,
 })
 export class EnrollmentsSectionComponent implements OnInit {
   private readonly store = inject(StudentsStore);
@@ -272,7 +251,7 @@ export class EnrollmentsSectionComponent implements OnInit {
   protected readonly saving = this.store.savingEnrollment;
   protected readonly errorMessage = this.store.error;
 
-  protected readonly showEnroll   = signal<boolean>(false);
+  protected readonly showEnroll = signal<boolean>(false);
   protected readonly showTransfer = signal<boolean>(false);
   protected readonly withdrawTarget = signal<EnrollmentRow | null>(null);
 

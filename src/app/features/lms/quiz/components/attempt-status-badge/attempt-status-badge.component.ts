@@ -1,5 +1,10 @@
 import { ChangeDetectionStrategy, Component, Input, computed, signal } from '@angular/core';
-import { AttemptStatus, ATTEMPT_STATUS_COLOR, ATTEMPT_STATUS_DOT, ATTEMPT_STATUS_LABEL } from '../../models/attempt.model';
+import {
+  AttemptStatus,
+  ATTEMPT_STATUS_COLOR,
+  ATTEMPT_STATUS_DOT,
+  ATTEMPT_STATUS_LABEL,
+} from '../../models/attempt.model';
 
 const LIFECYCLE_LABEL: Record<AttemptStatus, string> = ATTEMPT_STATUS_LABEL;
 const LIFECYCLE_COLOR: Record<AttemptStatus, string> = ATTEMPT_STATUS_COLOR;
@@ -28,7 +33,7 @@ const LIFECYCLE_DOT: Record<AttemptStatus, string> = ATTEMPT_STATUS_DOT;
       <span aria-hidden="true" class="h-1.5 w-1.5 rounded-full" [class]="dot()"></span>
       {{ label() }}
     </span>
-  `
+  `,
 })
 export class AttemptStatusBadgeComponent {
   private readonly _status = signal<AttemptStatus>(AttemptStatus.InProgress);

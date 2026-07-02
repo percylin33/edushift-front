@@ -1,19 +1,10 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  inject,
-  signal
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { Permission } from '@core/enums';
 import { AuthService } from '@core/services';
-import {
-  EmptyStateComponent,
-  IconComponent
-} from '@shared/components';
+import { EmptyStateComponent, IconComponent } from '@shared/components';
 import { HasPermissionDirective } from '@shared/directives';
 import { MaterialsStore } from '../../store';
 import { MaterialRow } from '../../models';
@@ -45,7 +36,7 @@ import { MaterialUploadDialogComponent } from '../../components';
     EmptyStateComponent,
     HasPermissionDirective,
     MaterialCardComponent,
-    MaterialUploadDialogComponent
+    MaterialUploadDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -55,9 +46,7 @@ import { MaterialUploadDialogComponent } from '../../components';
           <a [routerLink]="listRoute()" class="hover:underline">LMS</a>
         </p>
         <h1 class="text-2xl font-semibold text-content">Materiales</h1>
-        <p class="text-sm text-content-muted">
-          Recursos compartidos con la sección.
-        </p>
+        <p class="text-sm text-content-muted">Recursos compartidos con la sección.</p>
       </div>
 
       <button
@@ -113,10 +102,7 @@ import { MaterialUploadDialogComponent } from '../../components';
     } @else {
       <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         @for (row of rows(); track row.publicUuid) {
-          <app-material-card
-            [material]="row"
-            (delete)="onDelete($event)"
-          />
+          <app-material-card [material]="row" (delete)="onDelete($event)" />
         }
       </div>
     }
@@ -125,10 +111,10 @@ import { MaterialUploadDialogComponent } from '../../components';
       [open]="dialogOpen()"
       [uploading]="uploading()"
       [uploadPercent]="uploadPercent()"
-      (submit)="onUpload($event)"
-      (cancelled)="onCancelDialog()"
+      (submitted)="onUpload($event)"
+      (dialogClosed)="onCancelDialog()"
     />
-  `
+  `,
 })
 export class MaterialsListComponent implements OnInit {
   private readonly store = inject(MaterialsStore);
@@ -182,7 +168,9 @@ export class MaterialsListComponent implements OnInit {
   }
 
   protected async onDelete(row: MaterialRow): Promise<void> {
-    const ok = window.confirm(`¿Eliminar el material "${row.title}"? Esta acción no se puede deshacer.`);
+    const ok = window.confirm(
+      `¿Eliminar el material "${row.title}"? Esta acción no se puede deshacer.`,
+    );
     if (!ok) return;
     await this.store.remove(row.publicUuid);
   }

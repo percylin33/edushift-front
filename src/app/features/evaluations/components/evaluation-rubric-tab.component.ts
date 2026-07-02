@@ -1,19 +1,8 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  input,
-  signal
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import {
-  EmptyStateComponent,
-  IconComponent,
-  SpinnerComponent
-} from '@shared/components';
+import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
 import { RubricSystemBadgeComponent } from '@features/rubrics/components/rubric-system-badge.component';
 import { RubricDetail } from '@features/rubrics/models';
 import { EvaluationsStore } from '../store';
@@ -46,7 +35,7 @@ import { RubricAttachModalComponent } from './rubric-attach-modal.component';
     IconComponent,
     RubricAttachModalComponent,
     RubricSystemBadgeComponent,
-    SpinnerComponent
+    SpinnerComponent,
   ],
   template: `
     @if (loading()) {
@@ -57,9 +46,7 @@ import { RubricAttachModalComponent } from './rubric-attach-modal.component';
       <div class="alert alert-danger">
         <app-icon name="alert-circle" [size]="18" />
         <p class="flex-1 text-sm">{{ errorBanner() }}</p>
-        <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">
-          Reintentar
-        </button>
+        <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">Reintentar</button>
       </div>
     } @else if (!rubric()) {
       <app-empty-state
@@ -76,11 +63,7 @@ import { RubricAttachModalComponent } from './rubric-attach-modal.component';
           <app-icon name="plus" [size]="16" />
           <span>Vincular rúbrica</span>
         </button>
-        <button
-          type="button"
-          class="btn btn-ghost btn-sm"
-          (click)="goToRubrics()"
-        >
+        <button type="button" class="btn btn-ghost btn-sm" (click)="goToRubrics()">
           <app-icon name="layers" [size]="16" />
           <span>Ver catálogo</span>
         </button>
@@ -99,13 +82,13 @@ import { RubricAttachModalComponent } from './rubric-attach-modal.component';
               />
             </div>
             @if (r.description) {
-              <p class="text-sm text-content-muted mt-1 max-w-2xl">
+              <p class="mt-1 max-w-2xl text-sm text-content-muted">
                 {{ r.description }}
               </p>
             }
-            <p class="text-xs text-content-muted mt-2">
-              {{ r.criteria.length }} criterios · {{ r.levels.length }} niveles
-              · pesos suman {{ totalWeight() | number: '1.0-2' }}
+            <p class="mt-2 text-xs text-content-muted">
+              {{ r.criteria.length }} criterios · {{ r.levels.length }} niveles · pesos suman
+              {{ totalWeight() | number: '1.0-2' }}
             </p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
@@ -151,7 +134,7 @@ import { RubricAttachModalComponent } from './rubric-attach-modal.component';
                   <th class="min-w-[140px]">
                     <span class="font-mono text-xs">{{ lvl.code }}</span>
                     <br />
-                    <span class="text-xs text-content-muted normal-case">
+                    <span class="text-xs normal-case text-content-muted">
                       {{ lvl.name }}
                     </span>
                   </th>
@@ -164,7 +147,7 @@ import { RubricAttachModalComponent } from './rubric-attach-modal.component';
                   <td>
                     <p class="font-medium">{{ c.name }}</p>
                     @if (c.description) {
-                      <p class="text-xs text-content-muted mt-1">
+                      <p class="mt-1 text-xs text-content-muted">
                         {{ c.description }}
                       </p>
                     }
@@ -197,21 +180,23 @@ import { RubricAttachModalComponent } from './rubric-attach-modal.component';
   `,
   styles: [
     `
-      :host { display: block; }
+      :host {
+        display: block;
+      }
       .table {
-        @apply w-full text-sm text-left;
+        @apply w-full text-left text-sm;
       }
       .table th {
-        @apply px-3 py-2 font-semibold text-content-muted uppercase text-xs tracking-wider border-b border-border-subtle bg-surface-subtle;
+        @apply border-b border-border-subtle bg-surface-subtle px-3 py-2 text-xs font-semibold uppercase tracking-wider text-content-muted;
       }
       .table td {
-        @apply px-3 py-2 border-b border-border-subtle;
+        @apply border-b border-border-subtle px-3 py-2;
       }
       .table tr:last-child td {
         border-bottom: none;
       }
-    `
-  ]
+    `,
+  ],
 })
 export class EvaluationRubricTabComponent {
   private readonly store = inject(EvaluationsStore);
@@ -228,12 +213,12 @@ export class EvaluationRubricTabComponent {
   protected readonly replaceMode = signal<boolean>(false);
 
   protected readonly totalWeight = computed(() =>
-    (this.rubric()?.criteria ?? []).reduce((acc, c) => acc + c.weight, 0)
+    (this.rubric()?.criteria ?? []).reduce((acc, c) => acc + c.weight, 0),
   );
 
   protected getDescriptor(
     descriptors: { level: string; text: string }[],
-    levelCode: string
+    levelCode: string,
   ): string {
     return descriptors.find((d) => d.level === levelCode)?.text ?? '';
   }
@@ -263,10 +248,7 @@ export class EvaluationRubricTabComponent {
   }
 
   protected async onSelectRubric(rubricPublicUuid: string): Promise<void> {
-    const result = await this.store.attachRubric(
-      this.evaluation().publicUuid,
-      rubricPublicUuid
-    );
+    const result = await this.store.attachRubric(this.evaluation().publicUuid, rubricPublicUuid);
     if (result) {
       this.showAttach.set(false);
     }
@@ -278,7 +260,7 @@ export class EvaluationRubricTabComponent {
     const ok = confirm(
       `¿Desvincular la rúbrica "${r.name}"?\n\n` +
         'No se borrará nada de la rúbrica original. Solo se quita el ' +
-        'enlace con esta evaluación.'
+        'enlace con esta evaluación.',
     );
     if (!ok) return;
     await this.store.detachRubric(this.evaluation().publicUuid);

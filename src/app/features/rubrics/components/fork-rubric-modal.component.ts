@@ -5,14 +5,9 @@ import {
   HostListener,
   inject,
   input,
-  output
+  output,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { RubricsStore } from '../store';
 import { RUBRIC_NAME_MAX_LENGTH, RubricRow } from '../models';
@@ -34,7 +29,7 @@ import { RUBRIC_NAME_MAX_LENGTH, RubricRow } from '../models';
   imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="fork-rubric-title"
@@ -46,16 +41,11 @@ import { RUBRIC_NAME_MAX_LENGTH, RubricRow } from '../models';
             <h2 id="fork-rubric-title" class="card-title">Forkear rúbrica</h2>
             <p class="card-description">
               Crea un clon editable de
-              <strong>{{ origin().name }}</strong>. Después podrás
-              modificar criterios, niveles y descriptores.
+              <strong>{{ origin().name }}</strong
+              >. Después podrás modificar criterios, niveles y descriptores.
             </p>
           </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            aria-label="Cerrar"
-            (click)="cancel()"
-          >
+          <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
             <app-icon name="x" [size]="18" />
           </button>
         </header>
@@ -83,16 +73,12 @@ import { RUBRIC_NAME_MAX_LENGTH, RubricRow } from '../models';
             @if (showError('name'); as msg) {
               <p class="field-error">{{ msg }}</p>
             } @else {
-              <p class="field-hint">
-                Único dentro del tenant (case-insensitive).
-              </p>
+              <p class="field-hint">Único dentro del tenant (case-insensitive).</p>
             }
           </div>
 
           <footer class="flex items-center justify-end gap-2 pt-2">
-            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">
-              Cancelar
-            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">Cancelar</button>
             <button
               type="submit"
               class="btn btn-primary btn-sm"
@@ -110,7 +96,7 @@ import { RUBRIC_NAME_MAX_LENGTH, RubricRow } from '../models';
         </form>
       </div>
     </div>
-  `
+  `,
 })
 export class ForkRubricModalComponent {
   private readonly fb = inject(FormBuilder);
@@ -127,7 +113,7 @@ export class ForkRubricModalComponent {
   protected readonly nameMaxLength = RUBRIC_NAME_MAX_LENGTH;
 
   protected readonly form: FormGroup = this.fb.group({
-    name: ['', [Validators.maxLength(RUBRIC_NAME_MAX_LENGTH)]]
+    name: ['', [Validators.maxLength(RUBRIC_NAME_MAX_LENGTH)]],
   });
 
   protected defaultName(): string {
@@ -149,10 +135,7 @@ export class ForkRubricModalComponent {
       return;
     }
     const name = ((this.form.get('name')?.value as string) ?? '').trim();
-    const result = await this.store.fork(
-      this.origin().publicUuid,
-      name ? { name } : undefined
-    );
+    const result = await this.store.fork(this.origin().publicUuid, name ? { name } : undefined);
     if (result) this.forked.emit(result.publicUuid);
   }
 

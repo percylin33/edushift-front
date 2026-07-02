@@ -4,7 +4,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -92,7 +92,9 @@ import { InvitationPreflight } from '../../models';
           <div class="field">
             <label class="label" for="invitation-password">Contraseña</label>
             <div class="relative">
-              <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-content-subtle">
+              <span
+                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-content-subtle"
+              >
                 <app-icon name="lock" [size]="16" />
               </span>
               <input
@@ -154,7 +156,8 @@ import { InvitationPreflight } from '../../models';
 
         <p class="text-center text-xs text-content-muted">
           Al activar aceptas los términos del workspace
-          <span class="font-medium text-content">{{ p.tenantName }}</span>.
+          <span class="font-medium text-content">{{ p.tenantName }}</span
+          >.
         </p>
       } @else if (loading()) {
         <div class="flex items-center justify-center py-12">
@@ -173,13 +176,11 @@ import { InvitationPreflight } from '../../models';
             </h1>
             <p class="text-sm text-content-muted">{{ blockerMessage() }}</p>
           </header>
-          <a [routerLink]="loginRoute" class="btn btn-outline btn-sm">
-            Ir al inicio de sesión
-          </a>
+          <a [routerLink]="loginRoute" class="btn btn-outline btn-sm"> Ir al inicio de sesión </a>
         </div>
       }
     </div>
-  `
+  `,
 })
 export class InvitationAcceptComponent implements OnInit {
   private readonly api = inject(UsersApiService);
@@ -210,16 +211,14 @@ export class InvitationAcceptComponent implements OnInit {
   protected readonly blockerTitle = signal('Enlace inválido');
   /** Sub-message shown next to the title when preflight failed. */
   protected readonly blockerMessage = signal(
-    'No pudimos validar tu invitación. Pídele al administrador un enlace nuevo.'
+    'No pudimos validar tu invitación. Pídele al administrador un enlace nuevo.',
   );
 
   private readonly _passwordVisible = signal(false);
   protected readonly passwordVisible = this._passwordVisible.asReadonly();
 
   protected readonly passwordsMismatch = computed(() => {
-    return (
-      this.passwordConfirm().length > 0 && this.password() !== this.passwordConfirm()
-    );
+    return this.passwordConfirm().length > 0 && this.password() !== this.passwordConfirm();
   });
 
   protected readonly canSubmit = computed(() => {
@@ -244,12 +243,10 @@ export class InvitationAcceptComponent implements OnInit {
     try {
       const preview = await firstValueFrom(this.api.previewInvitation(token));
       this.preflight.set(preview);
-    }
-    catch (err) {
+    } catch (err) {
       this.applyPreflightError(err);
       this.preflight.set(null);
-    }
-    finally {
+    } finally {
       this.loading.set(false);
     }
   }
@@ -266,7 +263,7 @@ export class InvitationAcceptComponent implements OnInit {
 
     try {
       const session = await firstValueFrom(
-        this.api.acceptInvitation({ token: this.token, password: this.password() })
+        this.api.acceptInvitation({ token: this.token, password: this.password() }),
       );
       this.authService.setSession(session);
       /* `accept` returns a lean {@code UserSummary} (mirrors `/auth/login`).
@@ -285,11 +282,9 @@ export class InvitationAcceptComponent implements OnInit {
        * (the backend stamps it from the invitation row); navigate
        * straight to the authenticated landing page. */
       await this.router.navigate([ROUTES.DASHBOARD.ROOT]);
-    }
-    catch (err) {
+    } catch (err) {
       this.errorMessage.set(this.toErrorMessage(err));
-    }
-    finally {
+    } finally {
       this.saving.set(false);
     }
   }
@@ -309,7 +304,7 @@ export class InvitationAcceptComponent implements OnInit {
       if (err.status === 404) {
         this.blockerTitle.set('Enlace no encontrado');
         this.blockerMessage.set(
-          'El enlace que abriste ya no existe. Pídele al administrador uno nuevo.'
+          'El enlace que abriste ya no existe. Pídele al administrador uno nuevo.',
         );
         return;
       }
@@ -323,7 +318,7 @@ export class InvitationAcceptComponent implements OnInit {
 
     this.blockerTitle.set('Enlace inválido');
     this.blockerMessage.set(
-      'No pudimos validar tu invitación. Pídele al administrador un enlace nuevo.'
+      'No pudimos validar tu invitación. Pídele al administrador un enlace nuevo.',
     );
   }
 

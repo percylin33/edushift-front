@@ -28,9 +28,7 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="mb-6 text-center">
-      <h1 class="text-2xl font-semibold tracking-tight">
-        ¡Bienvenido{{ greetingSuffix() }}!
-      </h1>
+      <h1 class="text-2xl font-semibold tracking-tight">¡Bienvenido{{ greetingSuffix() }}!</h1>
       <p class="mt-2 text-sm text-content-muted">
         Te guiaremos por la configuración inicial en pocos pasos.
       </p>
@@ -39,19 +37,17 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
     <div class="space-y-4 text-sm text-content-muted">
       <p>
         Esta cuenta funcionará como el espacio central de
-        <strong class="text-content">{{ tenantName() }}</strong>. En el
-        siguiente paso configuraremos el branding (logo, color principal y
-        nombre que verán los usuarios) y luego activaremos tu institución.
+        <strong class="text-content">{{ tenantName() }}</strong
+        >. En el siguiente paso configuraremos el branding (logo, color principal y nombre que verán
+        los usuarios) y luego activaremos tu institución.
       </p>
       <p>El proceso toma menos de 3 minutos.</p>
     </div>
 
-    <div class="card-footer mt-8 -mx-5 -mb-5 px-5">
-      <button type="button" class="btn btn-primary ml-auto" (click)="next()">
-        Empezar
-      </button>
+    <div class="card-footer -mx-5 -mb-5 mt-8 px-5">
+      <button type="button" class="btn btn-primary ml-auto" (click)="next()">Empezar</button>
     </div>
-  `
+  `,
 })
 export class OnboardingWelcomeComponent implements OnInit {
   private readonly onboarding = inject(OnboardingService);

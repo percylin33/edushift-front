@@ -5,15 +5,10 @@ import {
   computed,
   effect,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
 
@@ -136,20 +131,11 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
         }
       </div>
 
-      <div class="card-footer mt-2 -mx-5 -mb-5 px-5 sm:col-span-2">
-        <button
-          type="button"
-          class="btn btn-ghost"
-          [disabled]="loading()"
-          (click)="back()"
-        >
+      <div class="card-footer -mx-5 -mb-5 mt-2 px-5 sm:col-span-2">
+        <button type="button" class="btn btn-ghost" [disabled]="loading()" (click)="back()">
           Atrás
         </button>
-        <button
-          type="submit"
-          class="btn btn-primary"
-          [disabled]="loading() || form.invalid"
-        >
+        <button type="submit" class="btn btn-primary" [disabled]="loading() || form.invalid">
           @if (loading()) {
             <app-spinner [size]="16" label="Guardando…" />
             <span>Guardando…</span>
@@ -160,7 +146,7 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
         </button>
       </div>
     </form>
-  `
+  `,
 })
 export class OnboardingSchoolComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -183,9 +169,9 @@ export class OnboardingSchoolComponent implements OnInit {
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]],
     primaryColor: [
       '',
-      [Validators.required, Validators.pattern(/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/)]
+      [Validators.required, Validators.pattern(/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/)],
     ],
-    logoUrl: ['', [Validators.maxLength(2048), Validators.pattern(/^(https?:\/\/.+)?$/)]]
+    logoUrl: ['', [Validators.maxLength(2048), Validators.pattern(/^(https?:\/\/.+)?$/)]],
   });
 
   /**
@@ -211,9 +197,9 @@ export class OnboardingSchoolComponent implements OnInit {
         {
           name: tenant.name,
           primaryColor: tenant.branding?.primaryColor ?? '#0F62FE',
-          logoUrl: tenant.branding?.logo?.light ?? ''
+          logoUrl: tenant.branding?.logo?.light ?? '',
         },
-        { emitEvent: false }
+        { emitEvent: false },
       );
       this._hydrated.set(true);
     });
@@ -263,14 +249,14 @@ export class OnboardingSchoolComponent implements OnInit {
      * want to write. An empty logo URL becomes "undefined", not "null",
      * so the backend keeps the existing value (see UpdateTenantRequest). */
     const branding: UpdateTenantRequest['branding'] = {
-      primaryColor: raw.primaryColor.trim()
+      primaryColor: raw.primaryColor.trim(),
     };
     const logo = (raw.logoUrl ?? '').trim();
     if (logo) branding.logoUrl = logo;
 
     const payload: UpdateTenantRequest = {
       name: raw.name.trim(),
-      branding
+      branding,
     };
 
     this.store.setLoading(true);
@@ -287,7 +273,7 @@ export class OnboardingSchoolComponent implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.store.setError(this.toMessage(err));
-        }
+        },
       });
   }
 
@@ -307,10 +293,7 @@ export class OnboardingSchoolComponent implements OnInit {
 
   private firstApiError(err: HttpErrorResponse): ApiError | null {
     const body = err.error as
-      | (ApiResponse<unknown> & { errors?: ApiError[] })
-      | ApiError
-      | null
-      | undefined;
+      (ApiResponse<unknown> & { errors?: ApiError[] }) | ApiError | null | undefined;
     if (body && typeof body === 'object') {
       if ('errors' in body && Array.isArray(body.errors) && body.errors.length > 0) {
         return body.errors[0];

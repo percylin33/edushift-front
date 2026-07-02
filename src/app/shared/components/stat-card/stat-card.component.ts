@@ -20,15 +20,11 @@ export type StatTrend = 'up' | 'down' | 'flat';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [IconComponent],
   template: `
-    <article
-      class="card transition-shadow hover:shadow-soft"
-      [attr.aria-label]="label()"
-    >
+    <article class="card transition-shadow hover:shadow-soft" [attr.aria-label]="label()">
       <div class="card-body flex items-start gap-4">
         @if (icon(); as i) {
           <span
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg
-                   bg-primary-500/10 text-primary-700 dark:text-primary-300"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-500/10 text-primary-700 dark:text-primary-300"
           >
             <app-icon [name]="i" [size]="20" />
           </span>
@@ -51,7 +47,7 @@ export type StatTrend = 'up' | 'down' | 'flat';
         </div>
       </div>
     </article>
-  `
+  `,
 })
 export class StatCardComponent {
   readonly label = input.required<string>();
@@ -62,9 +58,12 @@ export class StatCardComponent {
 
   readonly deltaClass = computed(() => {
     switch (this.trend()) {
-      case 'up': return 'text-success';
-      case 'down': return 'text-danger';
-      default: return 'text-content-subtle';
+      case 'up':
+        return 'text-success';
+      case 'down':
+        return 'text-danger';
+      default:
+        return 'text-content-subtle';
     }
   });
 }

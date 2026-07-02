@@ -6,7 +6,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -18,7 +18,7 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import { AttendanceApiService } from '@features/attendance/services';
 import { AttendanceQrInfo } from '@features/attendance/models';
@@ -61,7 +61,7 @@ import { StudentDetail } from '../../models';
     PageHeaderComponent,
     IconComponent,
     SpinnerComponent,
-    EmptyStateComponent
+    EmptyStateComponent,
   ],
   template: `
     <app-page-container>
@@ -86,9 +86,7 @@ import { StudentDetail } from '../../models';
             <p class="font-medium">No pudimos cargar la credencial.</p>
             <p class="mt-1 text-xs opacity-80">{{ loadError() }}</p>
           </div>
-          <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">
-            Reintentar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">Reintentar</button>
         </div>
       } @else {
         <div class="grid gap-4 lg:grid-cols-[1fr_320px]">
@@ -100,15 +98,15 @@ import { StudentDetail } from '../../models';
                   <img
                     [src]="src"
                     alt="QR de asistencia del alumno"
-                    class="w-64 h-64 object-contain bg-white rounded border border-border-subtle"
+                    class="h-64 w-64 rounded border border-border-subtle bg-white object-contain"
                     data-testid="student-qr-preview"
                   />
-                  <p class="text-sm text-content-muted text-center max-w-xs">
+                  <p class="max-w-xs text-center text-sm text-content-muted">
                     {{ student()?.fullName }} · {{ tenantName() }}
                   </p>
                   <p class="text-xs text-content-subtle">
-                    Imprime y plastifica esta credencial. Si se pierde,
-                    rotala desde aquí — el QR anterior queda invalidado.
+                    Imprime y plastifica esta credencial. Si se pierde, rotala desde aquí — el QR
+                    anterior queda invalidado.
                   </p>
                 </div>
               } @else if (hasActiveQr()) {
@@ -137,7 +135,7 @@ import { StudentDetail } from '../../models';
               <div class="card-body">
                 <h3 class="card-title text-base">Acciones</h3>
 
-                <div class="flex flex-col gap-2 mt-3">
+                <div class="mt-3 flex flex-col gap-2">
                   <button
                     type="button"
                     class="btn btn-primary"
@@ -186,9 +184,7 @@ import { StudentDetail } from '../../models';
                 </div>
 
                 @if (busy()) {
-                  <p class="text-xs text-content-muted mt-3">
-                    Generando credencial…
-                  </p>
+                  <p class="mt-3 text-xs text-content-muted">Generando credencial…</p>
                 }
               </div>
             </div>
@@ -197,18 +193,14 @@ import { StudentDetail } from '../../models';
               <div class="card">
                 <div class="card-body">
                   <h3 class="card-title text-base">Estado</h3>
-                  <dl class="text-sm space-y-1 mt-2">
-                    <div class="flex justify-between">
-                      <dt class="text-content-muted">Versión</dt>
-                      <dd class="font-medium">v{{ qrInfo()!.version }}</dd>
-                    </div>
+                  <dl class="mt-2 space-y-1 text-sm">
                     <div class="flex justify-between">
                       <dt class="text-content-muted">Emitida</dt>
                       <dd class="font-medium">{{ formatDate(qrInfo()!.issuedAt) }}</dd>
                     </div>
-                    @if (qrInfo()!.lastRotatedAt; as last) {
+                    @if (qrInfo()!.previousRevokedAt; as last) {
                       <div class="flex justify-between">
-                        <dt class="text-content-muted">Última rotación</dt>
+                        <dt class="text-content-muted">Rotada</dt>
                         <dd class="font-medium">{{ formatDate(last) }}</dd>
                       </div>
                     }
@@ -220,7 +212,7 @@ import { StudentDetail } from '../../models';
         </div>
       }
     </app-page-container>
-  `
+  `,
 })
 export class StudentQrPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
@@ -242,13 +234,9 @@ export class StudentQrPageComponent implements OnInit, OnDestroy {
   protected readonly loadError = signal<string | null>(null);
 
   protected readonly tenantName = computed(() => this.tenant.tenant()?.name ?? '');
-  protected readonly canRotate = computed(() =>
-    this.auth.hasRole(UserRole.TenantAdmin)
-  );
-  protected readonly hasActiveQr = computed(() => this.qrInfo()?.active === true);
-  protected readonly busy = computed(
-    () => this.issuingFormat() !== null || this.rotating()
-  );
+  protected readonly canRotate = computed(() => this.auth.hasRole(UserRole.TenantAdmin));
+  protected readonly hasActiveQr = computed(() => this.qrInfo() !== null);
+  protected readonly busy = computed(() => this.issuingFormat() !== null || this.rotating());
 
   async ngOnInit(): Promise<void> {
     const id = this.route.snapshot.paramMap.get('id');
@@ -280,26 +268,16 @@ export class StudentQrPageComponent implements OnInit, OnDestroy {
     if (this.busy()) return;
     this.issuingFormat.set(format);
     try {
-      const blob = await firstValueFrom(
-        this.attendanceApi.downloadQr(this.publicUuid(), format)
-      );
+      const blob = await firstValueFrom(this.attendanceApi.downloadQr(this.publicUuid(), format));
       this.refreshPreview(blob);
       this.triggerBrowserDownload(blob, format);
       /* The mint mutated the active row — reload metadata so issuedAt
        * reflects the new emission. */
-      const info = await firstValueFrom(
-        this.attendanceApi.getQrInfo(this.publicUuid())
-      );
+      const info = await firstValueFrom(this.attendanceApi.getQrInfo(this.publicUuid()));
       this.qrInfo.set(info);
-      this.notifications.success(
-        `Credencial ${format.toUpperCase()} lista`,
-        'QR generado'
-      );
+      this.notifications.success(`Credencial ${format.toUpperCase()} lista`, 'QR generado');
     } catch (err) {
-      this.notifications.error(
-        'No se pudo generar la credencial. Intenta de nuevo.',
-        'Error'
-      );
+      this.notifications.error('No se pudo generar la credencial. Intenta de nuevo.', 'Error');
       console.error('[student-qr] issueAndDownload failed', err);
     } finally {
       this.issuingFormat.set(null);
@@ -313,29 +291,22 @@ export class StudentQrPageComponent implements OnInit, OnDestroy {
    */
   protected async rotate(): Promise<void> {
     if (this.busy() || !this.canRotate()) return;
-    const confirmed = window.confirm(
-      'Esto invalida el QR actual. ¿Confirmar?'
-    );
+    const confirmed = window.confirm('Esto invalida el QR actual. ¿Confirmar?');
     if (!confirmed) return;
 
     this.rotating.set(true);
     try {
-      const info = await firstValueFrom(
-        this.attendanceApi.rotateQr(this.publicUuid())
-      );
+      const info = await firstValueFrom(this.attendanceApi.rotateQr(this.publicUuid()));
       this.qrInfo.set(info);
       /* Drop any stale preview so the next "Reimprimir" download
        * regenerates the visual against the new token. */
       this.disposePreview();
       this.notifications.success(
         'La credencial fue rotada. Reimprime para entregarla al alumno.',
-        'QR rotado'
+        'QR rotado',
       );
     } catch (err) {
-      this.notifications.error(
-        'No se pudo rotar la credencial. Intenta de nuevo.',
-        'Error'
-      );
+      this.notifications.error('No se pudo rotar la credencial. Intenta de nuevo.', 'Error');
       console.error('[student-qr] rotate failed', err);
     } finally {
       this.rotating.set(false);
@@ -348,7 +319,7 @@ export class StudentQrPageComponent implements OnInit, OnDestroy {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 
@@ -362,7 +333,7 @@ export class StudentQrPageComponent implements OnInit, OnDestroy {
     try {
       const [student, info] = await Promise.all([
         firstValueFrom(this.studentsApi.get(publicUuid)),
-        firstValueFrom(this.attendanceApi.getQrInfo(publicUuid))
+        firstValueFrom(this.attendanceApi.getQrInfo(publicUuid)),
       ]);
       this.student.set(student);
       this.qrInfo.set(info);
@@ -371,7 +342,7 @@ export class StudentQrPageComponent implements OnInit, OnDestroy {
       this.loadError.set(
         status === 404
           ? 'No encontramos al alumno en este tenant.'
-          : 'Ocurrió un error al cargar los datos del alumno.'
+          : 'Ocurrió un error al cargar los datos del alumno.',
       );
       console.error('[student-qr] load failed', err);
     } finally {

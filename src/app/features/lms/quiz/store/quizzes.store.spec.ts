@@ -2,12 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { QuizzesStore } from './quizzes.store';
 import { QuizApiService } from '../services/quiz-api.service';
-import {
-  QuestionType,
-  QuizDetail,
-  QuizRow,
-  QuizStatus
-} from '../models/quiz.model';
+import { QuestionType, QuizDetail, QuizRow, QuizStatus } from '../models/quiz.model';
 
 /**
  * Spec del `QuizzesStore` (FE-7b.1).
@@ -40,7 +35,7 @@ describe('QuizzesStore', () => {
       questionCount: 5,
       totalPoints: 50,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
-      ...overrides
+      ...overrides,
     };
   }
 
@@ -64,20 +59,24 @@ describe('QuizzesStore', () => {
       questions: [],
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt: null,
-      ...overrides
+      ...overrides,
     };
   }
 
   beforeEach(() => {
     apiSpy = jasmine.createSpyObj<QuizApiService>('QuizApiService', [
-      'listBySection', 'getQuiz', 'createQuiz', 'updateQuiz',
-      'publishQuiz', 'closeQuiz', 'deleteQuiz', 'addQuestion', 'addOption'
+      'listBySection',
+      'getQuiz',
+      'createQuiz',
+      'updateQuiz',
+      'publishQuiz',
+      'closeQuiz',
+      'deleteQuiz',
+      'addQuestion',
+      'addOption',
     ]);
     TestBed.configureTestingModule({
-      providers: [
-        QuizzesStore,
-        { provide: QuizApiService, useValue: apiSpy }
-      ]
+      providers: [QuizzesStore, { provide: QuizApiService, useValue: apiSpy }],
     });
     store = TestBed.inject(QuizzesStore);
   });
@@ -97,9 +96,7 @@ describe('QuizzesStore', () => {
     apiSpy.listBySection.and.returnValue(of([]));
     store.setStatusFilter(QuizStatus.Published);
     await Promise.resolve();
-    expect(apiSpy.listBySection).toHaveBeenCalledOnceWith(
-      's-1', { status: QuizStatus.Published }
-    );
+    expect(apiSpy.listBySection).toHaveBeenCalledOnceWith('s-1', { status: QuizStatus.Published });
   });
 
   it('loadDetail popula selected', async () => {
@@ -121,10 +118,14 @@ describe('QuizzesStore', () => {
   it('publishQuiz muta selected y refleja cambio en rows', async () => {
     apiSpy.listBySection.and.returnValue(of([rowOf({ publicUuid: 'q-1' })]));
     await store.loadBySection('s-1');
-    apiSpy.publishQuiz.and.returnValue(of(detailOf({
-      status: QuizStatus.Published,
-      publishedAt: new Date('2026-06-06T00:00:00.000Z')
-    })));
+    apiSpy.publishQuiz.and.returnValue(
+      of(
+        detailOf({
+          status: QuizStatus.Published,
+          publishedAt: new Date('2026-06-06T00:00:00.000Z'),
+        }),
+      ),
+    );
     const updated = await store.publishQuiz('q-1');
     expect(updated?.status).toBe(QuizStatus.Published);
     expect(store.selected()?.status).toBe(QuizStatus.Published);
@@ -150,7 +151,7 @@ describe('QuizzesStore', () => {
       correctText: null,
       expectedKeywords: null,
       correctBoolean: null,
-      options: []
+      options: [],
     };
     apiSpy.addQuestion.and.returnValue(of(qRow));
     apiSpy.getQuiz.and.returnValue(of(detailOf({ questionCount: 1, totalPoints: 5 })));
@@ -158,7 +159,10 @@ describe('QuizzesStore', () => {
       type: QuestionType.MultipleChoice,
       prompt: 'P',
       points: 5,
-      options: [{ label: 'A', isCorrect: true }, { label: 'B', isCorrect: false }]
+      options: [
+        { label: 'A', isCorrect: true },
+        { label: 'B', isCorrect: false },
+      ],
     });
     expect(result?.publicUuid).toBe('qq-1');
     expect(apiSpy.getQuiz).toHaveBeenCalled();

@@ -1,11 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import {
-  IconComponent,
-  PageContainerComponent,
-  PageHeaderComponent
-} from '@shared/components';
+import { IconComponent, PageContainerComponent, PageHeaderComponent } from '@shared/components';
 import type { IconName } from '@shared/components/icon';
 
 /**
@@ -38,7 +34,7 @@ import type { IconName } from '@shared/components/icon';
     RouterLinkActive,
     PageContainerComponent,
     PageHeaderComponent,
-    IconComponent
+    IconComponent,
   ],
   template: `
     <app-page-container size="wide">
@@ -47,10 +43,7 @@ import type { IconName } from '@shared/components/icon';
         subtitle="Configura el calendario lectivo, los niveles, secciones, cursos y periodos del workspace."
       />
 
-      <nav
-        class="card mb-4 overflow-hidden"
-        aria-label="Sub-módulos académicos"
-      >
+      <nav class="card mb-4 overflow-hidden" aria-label="Sub-módulos académicos">
         <ul class="flex flex-wrap items-center gap-1 border-b border-border-subtle px-2 py-2">
           @for (tab of tabs; track tab.id) {
             <li>
@@ -82,7 +75,7 @@ import type { IconName } from '@shared/components/icon';
 
       <router-outlet />
     </app-page-container>
-  `
+  `,
 })
 export class AcademicShellComponent {
   protected readonly tabs: ReadonlyArray<{
@@ -96,31 +89,31 @@ export class AcademicShellComponent {
       id: 'years',
       label: 'Años',
       icon: 'calendar',
-      route: ROUTES.ACADEMIC.YEARS.LIST
+      route: ROUTES.ACADEMIC.YEARS.LIST,
     },
     {
       id: 'levels',
       label: 'Niveles',
       icon: 'layers',
-      route: ROUTES.ACADEMIC.LEVELS.LIST
+      route: ROUTES.ACADEMIC.LEVELS.LIST,
     },
     {
       id: 'sections',
       label: 'Secciones',
       icon: 'columns',
-      route: ROUTES.ACADEMIC.SECTIONS.LIST
+      route: ROUTES.ACADEMIC.SECTIONS.LIST,
     },
     {
       id: 'courses',
       label: 'Cursos',
       icon: 'book-open',
-      route: ROUTES.ACADEMIC.COURSES.LIST
+      route: ROUTES.ACADEMIC.COURSES.LIST,
     },
     {
       id: 'periods',
       label: 'Periodos',
       icon: 'clock',
-      route: ROUTES.ACADEMIC.PERIODS.LIST
-    }
+      route: ROUTES.ACADEMIC.PERIODS.LIST,
+    },
   ];
 }

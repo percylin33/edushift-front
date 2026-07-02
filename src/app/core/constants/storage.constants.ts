@@ -14,7 +14,7 @@ export const STORAGE_KEYS = {
   LAYOUT_SIDEBAR_COLLAPSED: 'edushift.layout.sidebarCollapsed',
   /* Cached favicon URL written by `TenantThemeService` and read by the
    * anti-FOUC inline script in `index.html` on the next page load. */
-  TENANT_FAVICON: 'edushift.tenant.favicon'
+  TENANT_FAVICON: 'edushift.tenant.favicon',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

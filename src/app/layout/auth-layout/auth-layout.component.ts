@@ -23,8 +23,8 @@ import { ThemeToggleComponent } from '../components';
       <aside
         class="relative hidden flex-col justify-between overflow-hidden p-10 text-white lg:flex"
       >
-        <div class="absolute inset-0 bg-gradient-brand"></div>
-        <div class="absolute inset-0 bg-grid opacity-10 mix-blend-overlay"></div>
+        <div class="bg-gradient-brand absolute inset-0"></div>
+        <div class="bg-grid absolute inset-0 opacity-10 mix-blend-overlay"></div>
 
         <div class="relative z-10 flex items-center gap-3">
           <app-tenant-logo variant="mark" size="lg" />
@@ -35,7 +35,7 @@ import { ThemeToggleComponent } from '../components';
         </div>
 
         <div class="relative z-10 max-w-md space-y-6">
-          <h1 class="text-3xl font-semibold tracking-tight text-balance">
+          <h1 class="text-balance text-3xl font-semibold tracking-tight">
             Gestiona tu institución desde un solo lugar.
           </h1>
           <p class="text-white/80">
@@ -78,7 +78,7 @@ import { ThemeToggleComponent } from '../components';
         </div>
       </section>
     </div>
-  `
+  `,
 })
 export class AuthLayoutComponent {
   private readonly tenant = inject(TenantService);

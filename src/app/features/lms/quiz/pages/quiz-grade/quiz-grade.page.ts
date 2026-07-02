@@ -5,9 +5,15 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
-import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
@@ -17,7 +23,7 @@ import {
   AttemptStatus,
   GradingQueueItem,
   ManualGradeAttemptRequest,
-  ManualGradeEntry
+  ManualGradeEntry,
 } from '../../models/attempt.model';
 
 /**
@@ -61,7 +67,7 @@ import {
     RouterLink,
     IconComponent,
     SpinnerComponent,
-    EmptyStateComponent
+    EmptyStateComponent,
   ],
   template: `
     <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -107,106 +113,108 @@ import {
           </a>
         </app-empty-state>
       } @else {
-      <form [formGroup]="form" (submit)="$event.preventDefault()">
-        <!-- Group queue items by attemptPublicUuid for bulk submission. -->
-        @for (group of groups(); track group.attemptPublicUuid) {
-          <article class="card mb-4">
-            <div class="card-body space-y-3">
-              <header class="flex flex-wrap items-center gap-2 text-sm">
-                <span class="text-content-muted">Intento</span>
-                <span class="font-mono text-xs">{{ group.attemptPublicUuid.slice(0, 8) }}</span>
-                <span class="text-content-muted">·</span>
-                <span class="text-content-muted">Estudiante</span>
-                <span class="font-mono text-xs">{{ group.studentUserId.slice(0, 8) }}</span>
-                <span class="text-content-muted">·</span>
-                <span class="text-content-muted">{{ group.items.length }} respuesta(s)</span>
-              </header>
+        <form [formGroup]="form" (submit)="$event.preventDefault()">
+          <!-- Group queue items by attemptPublicUuid for bulk submission. -->
+          @for (group of groups(); track group.attemptPublicUuid) {
+            <article class="card mb-4">
+              <div class="card-body space-y-3">
+                <header class="flex flex-wrap items-center gap-2 text-sm">
+                  <span class="text-content-muted">Intento</span>
+                  <span class="font-mono text-xs">{{ group.attemptPublicUuid.slice(0, 8) }}</span>
+                  <span class="text-content-muted">·</span>
+                  <span class="text-content-muted">Estudiante</span>
+                  <span class="font-mono text-xs">{{ group.studentUserId.slice(0, 8) }}</span>
+                  <span class="text-content-muted">·</span>
+                  <span class="text-content-muted">{{ group.items.length }} respuesta(s)</span>
+                </header>
 
-              <ol class="space-y-3">
-                @for (item of group.items; track item.answerPublicUuid) {
-                  <li class="rounded-md border border-surface-muted p-3">
-                    <header class="flex flex-wrap items-center gap-2 text-xs text-content-muted">
-                      <span class="rounded bg-surface-muted px-1.5 py-0.5">
-                        {{ item.questionPoints }} pts máx.
-                      </span>
-                      <span class="font-mono">{{ item.answerPublicUuid.slice(0, 8) }}</span>
-                    </header>
-                    <p class="mt-1 text-sm font-medium text-content">
-                      {{ item.questionPrompt }}
-                    </p>
-                    <p class="mt-1 rounded-md bg-surface-muted/50 p-2 text-sm text-content-muted">
-                      {{ item.textAnswer || '(sin respuesta)' }}
-                    </p>
-                    <div class="mt-2 flex items-center gap-2">
-                      <label
-                        class="text-xs text-content-muted"
-                        [attr.for]="'grade-' + item.answerPublicUuid"
-                      >
-                        Puntos:
-                      </label>
-                      <input
-                        [id]="'grade-' + item.answerPublicUuid"
-                        type="number"
-                        min="0"
-                        [max]="item.questionPoints"
-                        step="1"
-                        class="input w-24"
-                        [formControlName]="gradeControlKey(item.answerPublicUuid, item.questionPoints)"
-                      />
-                      <span class="text-xs text-content-muted">/ {{ item.questionPoints }}</span>
-                    </div>
-                  </li>
-                }
-              </ol>
-
-              <div>
-                <label
-                  class="text-xs text-content-muted"
-                  [attr.for]="'fb-' + group.attemptPublicUuid"
-                >
-                  Feedback (opcional, se aplica al intentar al enviar)
-                </label>
-                <textarea
-                  [id]="'fb-' + group.attemptPublicUuid"
-                  rows="2"
-                  maxlength="2000"
-                  class="textarea"
-                  placeholder="Comentario para el estudiante…"
-                  [formControlName]="feedbackControlKey(group.attemptPublicUuid)"
-                ></textarea>
-              </div>
-
-              <div class="flex justify-end">
-                <button
-                  type="button"
-                  class="btn btn-primary btn-sm"
-                  (click)="submitGroup(group)"
-                  [disabled]="!groupIsValid(group) || storeSaving()"
-                >
-                  @if (storeSaving()) {
-                    <app-spinner [size]="14" />
-                  } @else {
-                    <app-icon name="check" [size]="14" />
+                <ol class="space-y-3">
+                  @for (item of group.items; track item.answerPublicUuid) {
+                    <li class="rounded-md border border-surface-muted p-3">
+                      <header class="flex flex-wrap items-center gap-2 text-xs text-content-muted">
+                        <span class="rounded bg-surface-muted px-1.5 py-0.5">
+                          {{ item.questionPoints }} pts máx.
+                        </span>
+                        <span class="font-mono">{{ item.answerPublicUuid.slice(0, 8) }}</span>
+                      </header>
+                      <p class="mt-1 text-sm font-medium text-content">
+                        {{ item.questionPrompt }}
+                      </p>
+                      <p class="mt-1 rounded-md bg-surface-muted/50 p-2 text-sm text-content-muted">
+                        {{ item.textAnswer || '(sin respuesta)' }}
+                      </p>
+                      <div class="mt-2 flex items-center gap-2">
+                        <label
+                          class="text-xs text-content-muted"
+                          [attr.for]="'grade-' + item.answerPublicUuid"
+                        >
+                          Puntos:
+                        </label>
+                        <input
+                          [id]="'grade-' + item.answerPublicUuid"
+                          type="number"
+                          min="0"
+                          [max]="item.questionPoints"
+                          step="1"
+                          class="input w-24"
+                          [formControlName]="
+                            gradeControlKey(item.answerPublicUuid, item.questionPoints)
+                          "
+                        />
+                        <span class="text-xs text-content-muted">/ {{ item.questionPoints }}</span>
+                      </div>
+                    </li>
                   }
-                  Calificar intento
-                </button>
+                </ol>
+
+                <div>
+                  <label
+                    class="text-xs text-content-muted"
+                    [attr.for]="'fb-' + group.attemptPublicUuid"
+                  >
+                    Feedback (opcional, se aplica al intentar al enviar)
+                  </label>
+                  <textarea
+                    [id]="'fb-' + group.attemptPublicUuid"
+                    rows="2"
+                    maxlength="2000"
+                    class="textarea"
+                    placeholder="Comentario para el estudiante…"
+                    [formControlName]="feedbackControlKey(group.attemptPublicUuid)"
+                  ></textarea>
+                </div>
+
+                <div class="flex justify-end">
+                  <button
+                    type="button"
+                    class="btn btn-primary btn-sm"
+                    (click)="submitGroup(group)"
+                    [disabled]="!groupIsValid(group) || storeSaving()"
+                  >
+                    @if (storeSaving()) {
+                      <app-spinner [size]="14" />
+                    } @else {
+                      <app-icon name="check" [size]="14" />
+                    }
+                    Calificar intento
+                  </button>
+                </div>
               </div>
-            </div>
-          </article>
-        }
-      </form>
+            </article>
+          }
+        </form>
+      }
     }
-    }
-  `
+  `,
 })
-export class QuizGradePage implements OnInit {
+export class QuizGradePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly attempts = inject(AttemptsStore);
 
   protected readonly quizPublicUuid = computed<string>(
-    () => this.route.snapshot.paramMap.get('uuid') ?? ''
+    () => this.route.snapshot.paramMap.get('uuid') ?? '',
   );
 
   // Store signals aliased.
@@ -227,7 +235,7 @@ export class QuizGradePage implements OnInit {
         byAttempt.set(item.attemptPublicUuid, {
           attemptPublicUuid: item.attemptPublicUuid,
           studentUserId: item.studentUserId,
-          items: [item]
+          items: [item],
         });
       }
     }
@@ -261,7 +269,7 @@ export class QuizGradePage implements OnInit {
           Validators.required,
           Validators.min(0),
           Validators.max(item.questionPoints),
-          Validators.pattern(/^\d+$/)
+          Validators.pattern(/^\d+$/),
         ]);
       }
       stringControls[this.feedbackControlKey(group.attemptPublicUuid)] =
@@ -301,18 +309,18 @@ export class QuizGradePage implements OnInit {
     const grades: { answerPublicUuid: string; pointsAwarded: number }[] = [];
     for (const item of group.items) {
       const c = this.form.get(
-        this.gradeControlKey(item.answerPublicUuid, item.questionPoints)
+        this.gradeControlKey(item.answerPublicUuid, item.questionPoints),
       ) as FormControl<number | null>;
       const value = c.value;
       if (value === null) continue;
       grades.push({ answerPublicUuid: item.answerPublicUuid, pointsAwarded: value });
     }
     const feedback =
-      (this.form.get(this.feedbackControlKey(group.attemptPublicUuid)) as FormControl<string>)?.value ??
-      null;
+      (this.form.get(this.feedbackControlKey(group.attemptPublicUuid)) as FormControl<string>)
+        ?.value ?? null;
     const request: ManualGradeAttemptRequest = {
       grades,
-      feedback: feedback && feedback.length > 0 ? feedback : null
+      feedback: feedback && feedback.length > 0 ? feedback : null,
     };
     const updated = await this.attempts.gradeAttempt(group.attemptPublicUuid, request);
     if (updated) {

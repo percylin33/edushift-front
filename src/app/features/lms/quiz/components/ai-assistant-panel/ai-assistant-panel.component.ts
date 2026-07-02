@@ -5,7 +5,7 @@ import {
   EventEmitter,
   Output,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -15,7 +15,7 @@ import {
   AiAssistantStatus,
   CreateAiQuestionRequest,
   QuestionSuggestion,
-  emptyAiState
+  emptyAiState,
 } from '../../models/ai-assistant.model';
 import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
 
@@ -42,7 +42,13 @@ import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/co
   selector: 'app-ai-assistant-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent, EmptyStateComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    IconComponent,
+    SpinnerComponent,
+    EmptyStateComponent,
+  ],
   template: `
     <section class="card" data-testid="ai-assistant-panel">
       <header class="card-body flex flex-col gap-3 border-b border-surface-muted pb-4">
@@ -52,9 +58,8 @@ import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/co
           <span class="badge badge-neutral badge-sm">Stub</span>
         </div>
         <p class="text-xs text-content-muted">
-          Sugiere preguntas para tu quiz a partir de un tema. Esta vista es un stub
-          mientras el backend <code class="font-mono">LmsAiService</code> está en
-          desarrollo.
+          Sugiere preguntas para tu quiz a partir de un tema. Esta vista es un stub mientras el
+          backend <code class="font-mono">LmsAiService</code> está en desarrollo.
         </p>
 
         <label class="form-label" for="ai-topic">Tema</label>
@@ -138,11 +143,11 @@ import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/co
                   <ul class="mt-2 space-y-1 text-sm">
                     @for (opt of s.options; track opt.label) {
                       <li class="flex items-center gap-2">
-                        <app-icon
-                          [name]="opt.isCorrect ? 'check' : 'x'"
-                          [size]="12"
-                        />
-                        <span [class.text-emerald-700]="opt.isCorrect" [class.text-content-muted]="!opt.isCorrect">
+                        <app-icon [name]="opt.isCorrect ? 'check' : 'x'" [size]="12" />
+                        <span
+                          [class.text-emerald-700]="opt.isCorrect"
+                          [class.text-content-muted]="!opt.isCorrect"
+                        >
                           {{ opt.label }}
                         </span>
                       </li>
@@ -171,7 +176,7 @@ import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/co
         }
       </div>
     </section>
-  `
+  `,
 })
 export class AiAssistantPanelComponent {
   protected readonly service = inject(AiAssistantService);
@@ -180,11 +185,11 @@ export class AiAssistantPanelComponent {
 
   protected readonly topicControl = new FormControl<string>('', {
     nonNullable: true,
-    validators: [Validators.required, Validators.minLength(2)]
+    validators: [Validators.required, Validators.minLength(2)],
   });
   protected readonly countControl = new FormControl<number>(3, {
     nonNullable: true,
-    validators: [Validators.required, Validators.min(1), Validators.max(5)]
+    validators: [Validators.required, Validators.min(1), Validators.max(5)],
   });
 
   protected readonly state = signal<AiAssistantState>(emptyAiState());
@@ -197,20 +202,20 @@ export class AiAssistantPanelComponent {
       this.state.set({
         ...emptyAiState(),
         status: AiAssistantStatus.Error,
-        error: 'Indica un tema de al menos 2 caracteres.'
+        error: 'Indica un tema de al menos 2 caracteres.',
       });
       return;
     }
     this.state.set({ ...this.state(), status: AiAssistantStatus.Loading, error: null });
     try {
       const suggestions = await firstValueFrom(
-        this.service.suggest({ topic, count: this.countControl.value })
+        this.service.suggest({ topic, count: this.countControl.value }),
       );
       this.state.set({
         status: AiAssistantStatus.Success,
         topic,
         suggestions,
-        error: null
+        error: null,
       });
     } catch (err) {
       const e = err as { message?: string };
@@ -218,7 +223,7 @@ export class AiAssistantPanelComponent {
         status: AiAssistantStatus.Error,
         topic,
         suggestions: [],
-        error: e?.message ?? 'Error desconocido.'
+        error: e?.message ?? 'Error desconocido.',
       });
     }
   }
@@ -230,14 +235,14 @@ export class AiAssistantPanelComponent {
   onEditPrompt(id: string, newPrompt: string): void {
     this.state.update((s) => ({
       ...s,
-      suggestions: s.suggestions.map((it) => (it.id === id ? { ...it, prompt: newPrompt } : it))
+      suggestions: s.suggestions.map((it) => (it.id === id ? { ...it, prompt: newPrompt } : it)),
     }));
   }
 
   onDiscard(id: string): void {
     this.state.update((s) => ({
       ...s,
-      suggestions: s.suggestions.filter((it) => it.id !== id)
+      suggestions: s.suggestions.filter((it) => it.id !== id),
     }));
   }
 
@@ -247,7 +252,7 @@ export class AiAssistantPanelComponent {
       type: suggestion.questionType,
       points: suggestion.points,
       options: suggestion.options,
-      aiRationale: suggestion.rationale
+      aiRationale: suggestion.rationale,
     });
     this.onDiscard(suggestion.id);
   }

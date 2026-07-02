@@ -44,3 +44,14 @@ Thumbs.db
 # Local build/test logs
 ng-*.log
 tsc-*.log
+
+# Playwright (Sprint 12 / FE-12.1)
+e2e/.auth/
+e2e/test-results/
+playwright-report/
+test-results/
+
+# Local environment overrides with real secrets (Firebase prod, OAuth, …)
+# Commit the `environment.*.ts` placeholders; put real keys in these:
+src/environments/environment.local.ts
+src/environments/*.local.ts

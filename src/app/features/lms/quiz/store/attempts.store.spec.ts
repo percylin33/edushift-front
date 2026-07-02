@@ -30,7 +30,7 @@ describe('AttemptsStore (FE-7b.2)', () => {
     revealCorrectness: false,
     answers: [],
     createdAt: '2026-06-12T10:00:00Z',
-    updatedAt: '2026-06-12T10:00:00Z'
+    updatedAt: '2026-06-12T10:00:00Z',
   };
 
   const toDetail = (raw: AttemptResponseRaw): AttemptDetail => {
@@ -56,7 +56,7 @@ describe('AttemptsStore (FE-7b.2)', () => {
       revealCorrectness: false,
       answers: [],
       createdAt: null,
-      updatedAt: null
+      updatedAt: null,
     };
   };
 
@@ -69,14 +69,14 @@ describe('AttemptsStore (FE-7b.2)', () => {
       'listAttempts',
       'getGradingQueue',
       'gradeAttempt',
-      'overrideAnswerGrade'
+      'overrideAnswerGrade',
     ]);
     TestBed.configureTestingModule({
       providers: [
         { provide: AttemptApiService, useValue: api },
         { provide: ApiService, useValue: {} },
-        AttemptsStore
-      ]
+        AttemptsStore,
+      ],
     });
     store = TestBed.inject(AttemptsStore);
   });
@@ -109,7 +109,7 @@ describe('AttemptsStore (FE-7b.2)', () => {
       questionType: 'MC',
       selectedOptionId: 'o-1',
       selectedBoolean: null,
-      textAnswer: null
+      textAnswer: null,
     });
     expect(store.hasPending()).toBeTrue();
     expect(store.pendingAnswers()['q-1'].selectedOptionId).toBe('o-1');
@@ -121,7 +121,7 @@ describe('AttemptsStore (FE-7b.2)', () => {
       questionType: 'MC',
       selectedOptionId: 'o-1',
       selectedBoolean: null,
-      textAnswer: null
+      textAnswer: null,
     });
     store.setPendingAnswer('q-1', 'MC', null);
     expect(store.hasPending()).toBeFalse();
@@ -135,11 +135,9 @@ describe('AttemptsStore (FE-7b.2)', () => {
       questionType: 'MC',
       selectedOptionId: 'o-1',
       selectedBoolean: null,
-      textAnswer: null
+      textAnswer: null,
     });
-    api.saveAnswers.and.returnValue(
-      of(toDetail({ ...baseRaw, answers: [] }))
-    );
+    api.saveAnswers.and.returnValue(of(toDetail({ ...baseRaw, answers: [] })));
     const result = await store.flushPendingAnswers('att-1');
     expect(result).toBeTruthy();
     expect(api.saveAnswers).toHaveBeenCalledOnceWith('att-1', [
@@ -148,8 +146,8 @@ describe('AttemptsStore (FE-7b.2)', () => {
         questionType: 'MC',
         selectedOptionId: 'o-1',
         selectedBoolean: null,
-        textAnswer: null
-      }
+        textAnswer: null,
+      },
     ]);
     expect(store.lastSavedAt()).toBeInstanceOf(Date);
   });
@@ -170,7 +168,7 @@ describe('AttemptsStore (FE-7b.2)', () => {
       questionType: 'MC',
       selectedOptionId: 'o-1',
       selectedBoolean: null,
-      textAnswer: null
+      textAnswer: null,
     });
     api.saveAnswers.and.returnValue(throwError(() => ({ error: { message: 'save-fail' } })));
     const result = await store.flushPendingAnswers('att-1');
@@ -186,9 +184,11 @@ describe('AttemptsStore (FE-7b.2)', () => {
       questionType: 'MC',
       selectedOptionId: 'o-1',
       selectedBoolean: null,
-      textAnswer: null
+      textAnswer: null,
     });
-    api.submitAttempt.and.returnValue(of(toDetail({ ...baseRaw, status: AttemptStatus.Submitted })));
+    api.submitAttempt.and.returnValue(
+      of(toDetail({ ...baseRaw, status: AttemptStatus.Submitted })),
+    );
     const result = await store.submitAttempt('att-1');
     expect(result?.status).toBe(AttemptStatus.Submitted);
     expect(store.hasPending()).toBeFalse();
@@ -214,8 +214,8 @@ describe('AttemptsStore (FE-7b.2)', () => {
         first: true,
         last: true,
         numberOfElements: 0,
-        empty: true
-      })
+        empty: true,
+      }),
     );
     await store.loadSummaries('quiz-1');
     expect(api.listAttempts).toHaveBeenCalledOnceWith('quiz-1', { page: 0, size: 20 });
@@ -232,13 +232,15 @@ describe('AttemptsStore (FE-7b.2)', () => {
   it('gradeAttempt sends the request and updates current on success', async () => {
     api.gradeAttempt.and.returnValue(of(toDetail({ ...baseRaw, status: AttemptStatus.Graded })));
     const result = await store.gradeAttempt('att-1', {
-      grades: [{ answerPublicUuid: 'a-1', pointsAwarded: 5 }]
+      grades: [{ answerPublicUuid: 'a-1', pointsAwarded: 5 }],
     });
     expect(result?.status).toBe(AttemptStatus.Graded);
   });
 
   it('overrideAnswerGrade sends the single-answer PATCH', async () => {
-    api.overrideAnswerGrade.and.returnValue(of(toDetail({ ...baseRaw, status: AttemptStatus.Graded })));
+    api.overrideAnswerGrade.and.returnValue(
+      of(toDetail({ ...baseRaw, status: AttemptStatus.Graded })),
+    );
     const result = await store.overrideAnswerGrade('quiz-1', 'att-1', 'a-1', 3);
     expect(result?.status).toBe(AttemptStatus.Graded);
     expect(api.overrideAnswerGrade).toHaveBeenCalledOnceWith('quiz-1', 'att-1', 'a-1', 3);

@@ -11,29 +11,29 @@ import { InvitationStatus } from '@core/enums';
   selector: 'app-invitation-status-badge',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<span [class]="badgeClass()">{{ label() }}</span>`
+  template: `<span [class]="badgeClass()">{{ label() }}</span>`,
 })
 export class InvitationStatusBadgeComponent {
   readonly status = input.required<InvitationStatus>();
 
   readonly label = computed(
-    () => InvitationStatusBadgeComponent.LABELS[this.status()] ?? this.status()
+    () => InvitationStatusBadgeComponent.LABELS[this.status()] ?? this.status(),
   );
   readonly badgeClass = computed(
-    () => `badge ${InvitationStatusBadgeComponent.TIER[this.status()] ?? 'badge-neutral'}`
+    () => `badge ${InvitationStatusBadgeComponent.TIER[this.status()] ?? 'badge-neutral'}`,
   );
 
   private static readonly LABELS: Readonly<Record<InvitationStatus, string>> = {
-    [InvitationStatus.Pending]:   'Pendiente',
-    [InvitationStatus.Accepted]:  'Aceptada',
+    [InvitationStatus.Pending]: 'Pendiente',
+    [InvitationStatus.Accepted]: 'Aceptada',
     [InvitationStatus.Cancelled]: 'Cancelada',
-    [InvitationStatus.Expired]:   'Expirada'
+    [InvitationStatus.Expired]: 'Expirada',
   };
 
   private static readonly TIER: Readonly<Record<InvitationStatus, string>> = {
-    [InvitationStatus.Pending]:   'badge-info',
-    [InvitationStatus.Accepted]:  'badge-success',
+    [InvitationStatus.Pending]: 'badge-info',
+    [InvitationStatus.Accepted]: 'badge-success',
     [InvitationStatus.Cancelled]: 'badge-neutral',
-    [InvitationStatus.Expired]:   'badge-warning'
+    [InvitationStatus.Expired]: 'badge-warning',
   };
 }

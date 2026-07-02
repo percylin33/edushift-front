@@ -1,11 +1,5 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  inject,
-  signal
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ROUTES } from '@core/constants';
@@ -42,7 +36,7 @@ import { Submission, canResubmit } from '../../models';
     RouterLink,
     SpinnerComponent,
     MySubmissionsCardComponent,
-    SubmissionFormComponent
+    SubmissionFormComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -97,7 +91,7 @@ import { Submission, canResubmit } from '../../models';
         }
       </div>
     }
-  `
+  `,
 })
 export class SubmissionSubmitComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);

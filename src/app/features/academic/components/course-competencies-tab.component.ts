@@ -8,22 +8,17 @@ import {
   effect,
   inject,
   input,
-  signal
+  signal,
 } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import {
-  EmptyStateComponent,
-  IconComponent,
-  SpinnerComponent
-} from '@shared/components';
+import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
 import { CompetenciesStore } from '../store';
-import {
-  CapacityDetail,
-  CompetencyDetail,
-  CompetencyRow
-} from '../models';
+import { CapacityDetail, CompetencyDetail, CompetencyRow } from '../models';
 import { AcademicApiService } from '../services';
-import { CompetencyCapacityFormModalComponent, FormMode } from './competency-capacity-form-modal.component';
+import {
+  CompetencyCapacityFormModalComponent,
+  FormMode,
+} from './competency-capacity-form-modal.component';
 
 /**
  * Sub-tab "Competencias" dentro de {@code course-detail}.
@@ -50,15 +45,14 @@ import { CompetencyCapacityFormModalComponent, FormMode } from './competency-cap
     EmptyStateComponent,
     IconComponent,
     SpinnerComponent,
-    CompetencyCapacityFormModalComponent
+    CompetencyCapacityFormModalComponent,
   ],
   template: `
     <header class="mb-3 flex flex-wrap items-end justify-between gap-3">
       <div>
         <h3 class="text-base font-semibold text-content">Competencias y Capacidades</h3>
         <p class="text-sm text-content-muted">
-          Define el aggregate pedagógico principal del curso y sus desgloses
-          granulares evaluables.
+          Define el aggregate pedagógico principal del curso y sus desgloses granulares evaluables.
         </p>
       </div>
       <div class="flex gap-2">
@@ -95,9 +89,7 @@ import { CompetencyCapacityFormModalComponent, FormMode } from './competency-cap
             <p class="font-medium">No pudimos cargar las competencias.</p>
             <p class="mt-1 text-xs opacity-80">{{ errorMessage() }}</p>
           </div>
-          <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">
-            Reintentar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">Reintentar</button>
         </div>
       } @else if (isEmpty()) {
         <app-empty-state
@@ -106,18 +98,10 @@ import { CompetencyCapacityFormModalComponent, FormMode } from './competency-cap
           description="Crea la primera o usa el Seed MINEDU para cargar el catálogo predeterminado."
         >
           <div class="flex gap-2">
-            <button
-              type="button"
-              class="btn btn-outline btn-sm"
-              (click)="onSeed()"
-            >
+            <button type="button" class="btn btn-outline btn-sm" (click)="onSeed()">
               Seed MINEDU
             </button>
-            <button
-              type="button"
-              class="btn btn-primary btn-sm"
-              (click)="openCompetencyCreate()"
-            >
+            <button type="button" class="btn btn-primary btn-sm" (click)="openCompetencyCreate()">
               Nueva Competencia
             </button>
           </div>
@@ -127,7 +111,7 @@ import { CompetencyCapacityFormModalComponent, FormMode } from './competency-cap
           @for (comp of competencies(); track comp.publicUuid) {
             <details class="group" [open]="expandedCompetencies().has(comp.publicUuid)">
               <summary
-                class="flex cursor-pointer items-center gap-3 px-5 py-3 hover:bg-surface-subtle list-none"
+                class="flex cursor-pointer list-none items-center gap-3 px-5 py-3 hover:bg-surface-subtle"
                 (click)="toggleCompetency(comp.publicUuid)"
               >
                 <app-icon
@@ -137,21 +121,17 @@ import { CompetencyCapacityFormModalComponent, FormMode } from './competency-cap
                 />
                 <div class="min-w-0 flex-1">
                   <p class="font-medium text-content">
-                    <span class="text-content-muted text-xs mr-2">
-                      {{ comp.displayOrder }}.
-                    </span>
+                    <span class="mr-2 text-xs text-content-muted"> {{ comp.displayOrder }}. </span>
                     {{ comp.name }}
                     @if (!comp.isActive) {
-                      <span class="badge badge-neutral text-[10px] ml-2">
-                        Inactiva
-                      </span>
+                      <span class="badge badge-neutral ml-2 text-[10px]"> Inactiva </span>
                     }
                   </p>
                   <p class="mt-0.5 text-xs text-content-muted">
                     Código: {{ comp.code }} · {{ comp.capacityCount }} capacidades
                   </p>
                 </div>
-                <div class="flex items-center gap-1 shrink-0" (click)="$event.stopPropagation()">
+                <div class="flex shrink-0 items-center gap-1" (click)="$event.stopPropagation()">
                   <button
                     type="button"
                     class="btn btn-ghost btn-sm"
@@ -175,30 +155,28 @@ import { CompetencyCapacityFormModalComponent, FormMode } from './competency-cap
 
               <div class="bg-surface-subtle px-5 pb-4 pt-2">
                 @if (comp.capacities.length === 0) {
-                  <p class="text-sm text-content-muted italic py-2">
+                  <p class="py-2 text-sm italic text-content-muted">
                     No hay capacidades registradas para esta competencia.
                   </p>
                 } @else {
                   <ul class="space-y-2">
                     @for (cap of comp.capacities; track cap.publicUuid) {
-                      <li class="flex items-center gap-3 rounded border border-border-subtle bg-surface px-3 py-2">
+                      <li
+                        class="flex items-center gap-3 rounded border border-border-subtle bg-surface px-3 py-2"
+                      >
                         <div class="min-w-0 flex-1">
                           <p class="text-sm font-medium text-content">
-                            <span class="text-content-muted text-xs mr-2">
+                            <span class="mr-2 text-xs text-content-muted">
                               {{ cap.displayOrder }}.
                             </span>
                             {{ cap.name }}
                             @if (!cap.isActive) {
-                              <span class="badge badge-neutral text-[10px] ml-2">
-                                Inactiva
-                              </span>
+                              <span class="badge badge-neutral ml-2 text-[10px]"> Inactiva </span>
                             }
                           </p>
-                          <p class="mt-0.5 text-xs text-content-muted">
-                            Código: {{ cap.code }}
-                          </p>
+                          <p class="mt-0.5 text-xs text-content-muted">Código: {{ cap.code }}</p>
                         </div>
-                        <div class="flex items-center gap-1 shrink-0">
+                        <div class="flex shrink-0 items-center gap-1">
                           <button
                             type="button"
                             class="btn btn-ghost btn-sm"
@@ -253,15 +231,17 @@ import { CompetencyCapacityFormModalComponent, FormMode } from './competency-cap
   `,
   styles: [
     `
-      :host { display: block; }
+      :host {
+        display: block;
+      }
       details > summary::-webkit-details-marker {
         display: none;
       }
       details > summary {
         list-style: none;
       }
-    `
-  ]
+    `,
+  ],
 })
 export class CourseCompetenciesTabComponent implements OnChanges {
   private readonly store = inject(CompetenciesStore);
@@ -348,7 +328,7 @@ export class CourseCompetenciesTabComponent implements OnChanges {
     const ok = confirm(
       `¿Eliminar la competencia "${comp.name}"?\n\n` +
         'Esta operación es reversible solo desde el backend. ' +
-        'Si tiene sesiones asociadas, el backend devolverá COMPETENCY_IN_USE_BY_SESSIONS.'
+        'Si tiene sesiones asociadas, el backend devolverá COMPETENCY_IN_USE_BY_SESSIONS.',
     );
     if (!ok) return;
     await this.store.deleteCompetency(comp.publicUuid);
@@ -369,7 +349,7 @@ export class CourseCompetenciesTabComponent implements OnChanges {
         ...comp,
         course: { publicUuid: '', code: '', name: '' },
         capacities: comp.capacities || [],
-        description: undefined
+        description: undefined,
       });
     }
     this.modalOpen.set(true);
@@ -388,10 +368,13 @@ export class CourseCompetenciesTabComponent implements OnChanges {
     }
   }
 
-  protected async confirmDeleteCapacity(competencyUuid: string, capacityUuid: string): Promise<void> {
+  protected async confirmDeleteCapacity(
+    competencyUuid: string,
+    capacityUuid: string,
+  ): Promise<void> {
     const ok = confirm(
       '¿Eliminar esta capacidad?\n\n' +
-        'Si tiene sesiones asociadas, el backend devolverá CAPACITY_IN_USE_BY_SESSIONS.'
+        'Si tiene sesiones asociadas, el backend devolverá CAPACITY_IN_USE_BY_SESSIONS.',
     );
     if (!ok) return;
     await this.store.deleteCapacity(capacityUuid, competencyUuid);

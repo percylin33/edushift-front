@@ -1,12 +1,5 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  inject,
-  input,
-  signal
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
@@ -34,9 +27,8 @@ import { SectionStudentRosterItem } from '@features/students/models';
         <div>
           <h3 class="card-title">Roster activo</h3>
           <p class="card-description">
-            Estudiantes con matrícula <strong>activa</strong> en esta sección.
-            Para matricular o cambiar de sección, ve al detalle del
-            estudiante.
+            Estudiantes con matrícula <strong>activa</strong> en esta sección. Para matricular o
+            cambiar de sección, ve al detalle del estudiante.
           </p>
         </div>
         <span class="badge badge-secondary">
@@ -54,27 +46,17 @@ import { SectionStudentRosterItem } from '@features/students/models';
           <div class="alert alert-danger">
             <app-icon name="alert-circle" [size]="18" />
             <p class="flex-1 text-sm">{{ errorMessage() }}</p>
-            <button
-              type="button"
-              class="btn btn-ghost btn-sm"
-              (click)="reload()"
-            >
+            <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">
               Reintentar
             </button>
           </div>
         } @else if (rows().length === 0) {
           <div class="py-10 text-center">
-            <app-icon
-              name="users"
-              [size]="32"
-              class="mx-auto mb-3 text-content-subtle"
-            />
-            <p class="text-sm font-medium text-content">
-              Sin estudiantes matriculados todavía
-            </p>
-            <p class="mt-1 text-xs text-content-muted max-w-md mx-auto">
-              Las matrículas se crean desde la lista de estudiantes o
-              al editar el detalle de un estudiante.
+            <app-icon name="users" [size]="32" class="mx-auto mb-3 text-content-subtle" />
+            <p class="text-sm font-medium text-content">Sin estudiantes matriculados todavía</p>
+            <p class="mx-auto mt-1 max-w-md text-xs text-content-muted">
+              Las matrículas se crean desde la lista de estudiantes o al editar el detalle de un
+              estudiante.
             </p>
           </div>
         } @else {
@@ -94,7 +76,7 @@ import { SectionStudentRosterItem } from '@features/students/models';
                     <td>
                       <a
                         [routerLink]="studentRoute(s.studentPublicUuid)"
-                        class="block hover:bg-surface-muted rounded px-2 py-1 -mx-2 -my-1 font-medium text-content"
+                        class="-mx-2 -my-1 block rounded px-2 py-1 font-medium text-content hover:bg-surface-muted"
                       >
                         {{ s.studentFullName }}
                       </a>
@@ -122,7 +104,7 @@ import { SectionStudentRosterItem } from '@features/students/models';
         }
       </div>
     </section>
-  `
+  `,
 })
 export class SectionRosterTabComponent implements OnInit {
   private readonly studentsApi = inject(StudentsApiService);
@@ -150,15 +132,13 @@ export class SectionRosterTabComponent implements OnInit {
     this.loading.set(true);
     try {
       const list = await firstValueFrom(
-        this.studentsApi.listSectionRoster(this.sectionPublicUuid())
+        this.studentsApi.listSectionRoster(this.sectionPublicUuid()),
       );
       this.rows.set(list);
-    }
-    catch (err: unknown) {
+    } catch (err: unknown) {
       this.errorMessage.set(this.extractMessage(err));
       this.rows.set([]);
-    }
-    finally {
+    } finally {
       this.loading.set(false);
     }
   }
@@ -170,8 +150,7 @@ export class SectionRosterTabComponent implements OnInit {
         message?: unknown;
         error?: { message?: unknown };
       };
-      if (typeof anyErr.error?.message === 'string')
-        return anyErr.error.message;
+      if (typeof anyErr.error?.message === 'string') return anyErr.error.message;
       if (typeof anyErr.message === 'string') return anyErr.message;
     }
     return 'No pudimos cargar el roster.';

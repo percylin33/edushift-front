@@ -12,7 +12,7 @@ export {
   tenantInterceptor,
   loadingInterceptor,
   tokenRefreshInterceptor,
-  errorInterceptor
+  errorInterceptor,
 };
 
 /**
@@ -67,5 +67,5 @@ export const HTTP_INTERCEPTORS_CHAIN: HttpInterceptorFn[] = [
   authInterceptor,
   loadingInterceptor,
   errorInterceptor,
-  tokenRefreshInterceptor
+  tokenRefreshInterceptor,
 ];

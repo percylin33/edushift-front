@@ -21,7 +21,7 @@ import {
   CreateSessionRequest,
   ManualCheckInRequest,
   StudentLookupFilters,
-  UpdateRecordRequest
+  UpdateRecordRequest,
 } from '../models';
 
 /**
@@ -72,7 +72,7 @@ export class AttendanceApiService {
     return this.api
       .post<ApiResponse<AttendanceSessionResponseRaw>, CreateSessionRequest>(
         API.ATTENDANCE.SESSIONS_ROOT,
-        request
+        request,
       )
       .pipe(map((envelope) => this.toSession(envelope.data)));
   }
@@ -80,7 +80,7 @@ export class AttendanceApiService {
   closeSession(sessionPublicUuid: string): Observable<AttendanceSession> {
     return this.api
       .patch<ApiResponse<AttendanceSessionResponseRaw>>(
-        API.ATTENDANCE.CLOSE_SESSION(sessionPublicUuid)
+        API.ATTENDANCE.CLOSE_SESSION(sessionPublicUuid),
       )
       .pipe(map((envelope) => this.toSession(envelope.data)));
   }
@@ -95,7 +95,7 @@ export class AttendanceApiService {
    */
   listSessions(
     filters: AttendanceListFilters = {},
-    page: AttendanceListPage = {}
+    page: AttendanceListPage = {},
   ): Observable<AttendanceListResult<AttendanceSessionListItem>> {
     const params: Record<string, string | undefined> = {
       sectionPublicUuid: filters.sectionPublicUuid,
@@ -105,7 +105,7 @@ export class AttendanceApiService {
       status: filters.status,
       page: page.page !== undefined ? String(page.page) : '0',
       size: page.size !== undefined ? String(page.size) : '20',
-      sort: page.sort ?? 'occurredOn,DESC'
+      sort: page.sort ?? 'occurredOn,DESC',
     };
     return this.api
       .get<
@@ -123,8 +123,8 @@ export class AttendanceApiService {
           totalElements: envelope.data.totalElements,
           totalPages: envelope.data.totalPages,
           page: envelope.data.number,
-          size: envelope.data.size
-        }))
+          size: envelope.data.size,
+        })),
       );
   }
 
@@ -135,18 +135,18 @@ export class AttendanceApiService {
    */
   checkIn(
     sessionPublicUuid: string,
-    request: CheckInRequest
+    request: CheckInRequest,
   ): Observable<{ record: AttendanceRecord; wasIdempotent: boolean }> {
     return this.api
       .post<ApiResponse<AttendanceRecordResponseRaw> & { wasIdempotent?: boolean }, CheckInRequest>(
         API.ATTENDANCE.CHECK_IN(sessionPublicUuid),
-        request
+        request,
       )
       .pipe(
         map((envelope) => ({
           record: this.toRecord(envelope.data),
-          wasIdempotent: Boolean((envelope as { wasIdempotent?: boolean }).wasIdempotent)
-        }))
+          wasIdempotent: Boolean((envelope as { wasIdempotent?: boolean }).wasIdempotent),
+        })),
       );
   }
 
@@ -158,9 +158,7 @@ export class AttendanceApiService {
    * {@link #manualCheckIn}. Surfaces `wasIdempotent=true` on repeat
    * scans of the same student in the resolved session.
    */
-  scanCheckIn(
-    qrToken: string
-  ): Observable<{ record: AttendanceRecord; wasIdempotent: boolean }> {
+  scanCheckIn(qrToken: string): Observable<{ record: AttendanceRecord; wasIdempotent: boolean }> {
     return this.api
       .post<
         ApiResponse<AttendanceRecordResponseRaw> & { wasIdempotent?: boolean },
@@ -169,8 +167,8 @@ export class AttendanceApiService {
       .pipe(
         map((envelope) => ({
           record: this.toRecord(envelope.data),
-          wasIdempotent: Boolean((envelope as { wasIdempotent?: boolean }).wasIdempotent)
-        }))
+          wasIdempotent: Boolean((envelope as { wasIdempotent?: boolean }).wasIdempotent),
+        })),
       );
   }
 
@@ -184,18 +182,18 @@ export class AttendanceApiService {
    * as {@link #checkIn}).</p>
    */
   manualCheckIn(
-    request: ManualCheckInRequest
+    request: ManualCheckInRequest,
   ): Observable<{ record: AttendanceRecord; wasIdempotent: boolean }> {
     return this.api
-      .post<ApiResponse<AttendanceRecordResponseRaw> & { wasIdempotent?: boolean }, ManualCheckInRequest>(
-        API.ATTENDANCE.MANUAL_CHECK_IN,
-        request
-      )
+      .post<
+        ApiResponse<AttendanceRecordResponseRaw> & { wasIdempotent?: boolean },
+        ManualCheckInRequest
+      >(API.ATTENDANCE.MANUAL_CHECK_IN, request)
       .pipe(
         map((envelope) => ({
           record: this.toRecord(envelope.data),
-          wasIdempotent: Boolean((envelope as { wasIdempotent?: boolean }).wasIdempotent)
-        }))
+          wasIdempotent: Boolean((envelope as { wasIdempotent?: boolean }).wasIdempotent),
+        })),
       );
   }
 
@@ -209,7 +207,7 @@ export class AttendanceApiService {
    */
   lookupStudents(
     filters: StudentLookupFilters = {},
-    page: AttendanceListPage = {}
+    page: AttendanceListPage = {},
   ): Observable<AttendanceListResult<AttendanceStudentLookupItem>> {
     const params: Record<string, string | undefined> = {
       q: filters.q,
@@ -217,7 +215,7 @@ export class AttendanceApiService {
       gradePublicUuid: filters.gradePublicUuid,
       sectionPublicUuid: filters.sectionPublicUuid,
       page: page.page !== undefined ? String(page.page) : '0',
-      size: page.size !== undefined ? String(page.size) : '20'
+      size: page.size !== undefined ? String(page.size) : '20',
     };
     return this.api
       .get<ApiResponse<AttendanceStudentLookupPage>>(API.ATTENDANCE.STUDENT_LOOKUP, params)
@@ -227,8 +225,8 @@ export class AttendanceApiService {
           totalElements: envelope.data.totalElements,
           totalPages: envelope.data.totalPages,
           page: envelope.data.number,
-          size: envelope.data.size
-        }))
+          size: envelope.data.size,
+        })),
       );
   }
 
@@ -247,14 +245,11 @@ export class AttendanceApiService {
    * Manual edit by TENANT_ADMIN. Endpoint is restricted server-side
    * to that role; the UI mirrors the same gate via {@code roleGuard}.
    */
-  updateRecord(
-    recordPublicUuid: string,
-    patch: UpdateRecordRequest
-  ): Observable<AttendanceRecord> {
+  updateRecord(recordPublicUuid: string, patch: UpdateRecordRequest): Observable<AttendanceRecord> {
     return this.api
       .put<ApiResponse<AttendanceRecordResponseRaw>, UpdateRecordRequest>(
         API.ATTENDANCE.RECORD_BY_ID(recordPublicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toRecord(envelope.data)));
   }
@@ -268,32 +263,39 @@ export class AttendanceApiService {
    * format via the `format` argument, which is sent as the
    * `Accept` header. Defaults to `png`.
    */
-  downloadQr(
-    studentPublicUuid: string,
-    format: 'png' | 'svg' = 'png'
-  ): Observable<Blob> {
+  downloadQr(studentPublicUuid: string, format: 'png' | 'svg' = 'png'): Observable<Blob> {
     const headers = new HttpHeaders({
-      Accept: format === 'svg' ? 'image/svg+xml' : 'image/png'
+      Accept: format === 'svg' ? 'image/svg+xml' : 'image/png',
     });
     return this.http.get(API.ATTENDANCE.STUDENT_QR(studentPublicUuid), {
       headers,
-      responseType: 'blob'
+      responseType: 'blob',
     });
   }
 
-  getQrInfo(studentPublicUuid: string): Observable<AttendanceQrInfo> {
+  getQrInfo(studentPublicUuid: string): Observable<AttendanceQrInfo | null> {
     return this.api
       .get<ApiResponse<AttendanceQrInfoResponseRaw>>(
-        API.ATTENDANCE.STUDENT_QR_INFO(studentPublicUuid)
+        API.ATTENDANCE.STUDENT_QR_INFO(studentPublicUuid),
       )
-      .pipe(map((envelope) => this.toQrInfo(envelope.data)));
+      .pipe(
+        map((envelope) => {
+          // El backend puede responder `data: null` (omitido por @JsonInclude
+          // NON_NULL) cuando el alumno aún no tiene QR activo. No romper la
+          // página: dejamos que el componente pinte el empty state.
+          if (!envelope || envelope.data == null) {
+            return null;
+          }
+          return this.toQrInfo(envelope.data);
+        }),
+      );
   }
 
   rotateQr(studentPublicUuid: string): Observable<AttendanceQrInfo> {
     return this.api
       .post<ApiResponse<AttendanceQrInfoResponseRaw>>(
         API.ATTENDANCE.STUDENT_QR_ROTATE(studentPublicUuid),
-        {}
+        {},
       )
       .pipe(map((envelope) => this.toQrInfo(envelope.data)));
   }
@@ -315,7 +317,7 @@ export class AttendanceApiService {
       status: raw.status,
       notes: raw.notes ?? undefined,
       createdAt: this.parseDate(raw.createdAt) ?? new Date(),
-      updatedAt: this.parseDate(raw.updatedAt) ?? new Date()
+      updatedAt: this.parseDate(raw.updatedAt) ?? new Date(),
     };
   }
 
@@ -340,7 +342,7 @@ export class AttendanceApiService {
       absentCount: raw.absentCount ?? undefined,
       excusedCount: raw.excusedCount ?? undefined,
       createdAt: this.parseDate(raw.createdAt) ?? new Date(),
-      updatedAt: this.parseDate(raw.updatedAt) ?? new Date()
+      updatedAt: this.parseDate(raw.updatedAt) ?? new Date(),
     };
   }
 
@@ -358,20 +360,16 @@ export class AttendanceApiService {
       editedAt: this.parseDate(raw.editedAt),
       notes: raw.notes ?? undefined,
       createdAt: this.parseDate(raw.createdAt) ?? new Date(),
-      updatedAt: this.parseDate(raw.updatedAt) ?? new Date()
+      updatedAt: this.parseDate(raw.updatedAt) ?? new Date(),
     };
   }
 
   private toQrInfo(raw: AttendanceQrInfoResponseRaw): AttendanceQrInfo {
     return {
-      publicUuid: raw.publicUuid,
       studentPublicUuid: raw.studentPublicUuid,
-      version: raw.version,
       issuedAt: this.parseDate(raw.issuedAt) ?? new Date(),
-      revokedAt: this.parseDate(raw.revokedAt),
-      revokedReason: raw.revokedReason ?? undefined,
-      lastRotatedAt: this.parseDate(raw.lastRotatedAt),
-      active: raw.active
+      previousRevokedAt: this.parseDate(raw.previousRevokedAt),
+      previousRevokedReason: raw.previousRevokedReason ?? undefined,
     };
   }
 

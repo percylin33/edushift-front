@@ -12,23 +12,17 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (isSystem()) {
-      <span class="badge badge-primary" title="Rúbrica oficial MINEDU — no editable">
-        MINEDU
-      </span>
+      <span class="badge badge-primary" title="Rúbrica oficial MINEDU — no editable"> MINEDU </span>
     } @else if (isFork()) {
-      <span class="badge badge-info" title="Forkeada de otra rúbrica">
-        Fork
-      </span>
+      <span class="badge badge-info" title="Forkeada de otra rúbrica"> Fork </span>
     } @else {
       <span class="badge badge-secondary">Personalizada</span>
     }
-  `
+  `,
 })
 export class RubricSystemBadgeComponent {
   readonly isSystem = input.required<boolean>();
   readonly parentPublicUuid = input<string | undefined>(undefined);
 
-  protected readonly isFork = computed(
-    () => !this.isSystem() && !!this.parentPublicUuid()
-  );
+  protected readonly isFork = computed(() => !this.isSystem() && !!this.parentPublicUuid());
 }

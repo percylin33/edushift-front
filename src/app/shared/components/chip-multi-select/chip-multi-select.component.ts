@@ -10,13 +10,9 @@ import {
   forwardRef,
   inject,
   input,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  ControlValueAccessor,
-  FormsModule,
-  NG_VALUE_ACCESSOR
-} from '@angular/forms';
+import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { IconComponent } from '../icon/icon.component';
 
 /**
@@ -76,8 +72,8 @@ export interface ChipOption {
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => ChipMultiSelectComponent),
-      multi: true
-    }
+      multi: true,
+    },
   ],
   template: `
     <div
@@ -88,7 +84,7 @@ export interface ChipOption {
       [attr.aria-disabled]="disabled() ? 'true' : null"
     >
       <div
-        class="chip-mselect__input flex flex-wrap items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1.5 cursor-text focus-within:ring-2 focus-within:ring-primary-500/40 focus-within:border-primary-500"
+        class="chip-mselect__input flex cursor-text flex-wrap items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1.5 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/40"
         [class.opacity-60]="disabled()"
         [class.pointer-events-none]="disabled()"
         (click)="focusInput()"
@@ -111,7 +107,7 @@ export interface ChipOption {
         <input
           #searchInput
           type="text"
-          class="flex-1 min-w-[6rem] border-0 bg-transparent p-0 text-sm placeholder:text-content-subtle focus:outline-none focus:ring-0"
+          class="min-w-[6rem] flex-1 border-0 bg-transparent p-0 text-sm placeholder:text-content-subtle focus:outline-none focus:ring-0"
           [placeholder]="placeholderText()"
           [ngModel]="query()"
           (ngModelChange)="onQueryChange($event)"
@@ -126,7 +122,7 @@ export interface ChipOption {
           role="listbox"
           aria-multiselectable="true"
           [attr.aria-activedescendant]="activeItemId()"
-          class="chip-mselect__panel mt-1 max-h-60 overflow-y-auto rounded-md border border-border bg-surface-elevated shadow-lg"
+          class="chip-mselect__panel bg-surface-elevated mt-1 max-h-60 overflow-y-auto rounded-md border border-border shadow-lg"
         >
           @if (filteredOptions().length === 0) {
             <p class="px-3 py-2 text-xs italic text-content-muted">
@@ -143,15 +139,15 @@ export interface ChipOption {
                   [class.bg-primary-50]="i === highlightIndex()"
                   [class.opacity-50]="opt.disabled"
                   [class.cursor-not-allowed]="opt.disabled"
-                  class="flex items-center justify-between gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-surface-subtle"
+                  class="flex cursor-pointer items-center justify-between gap-2 px-3 py-1.5 text-sm hover:bg-surface-subtle"
                   (mousedown)="$event.preventDefault()"
                   (click)="toggle(opt, $event)"
                   (mouseenter)="highlightIndex.set(i)"
                 >
                   <div class="min-w-0">
-                    <p class="font-medium text-content truncate">{{ opt.label }}</p>
+                    <p class="truncate font-medium text-content">{{ opt.label }}</p>
                     @if (opt.subtitle) {
-                      <p class="text-xs text-content-muted truncate">{{ opt.subtitle }}</p>
+                      <p class="truncate text-xs text-content-muted">{{ opt.subtitle }}</p>
                     }
                   </div>
                   @if (isSelected(opt.id)) {
@@ -177,8 +173,8 @@ export interface ChipOption {
         left: 0;
         right: 0;
       }
-    `
-  ]
+    `,
+  ],
 })
 export class ChipMultiSelectComponent implements ControlValueAccessor {
   private readonly host = inject(ElementRef<HTMLElement>);
@@ -214,14 +210,12 @@ export class ChipMultiSelectComponent implements ControlValueAccessor {
     const q = this.query().trim().toLowerCase();
     if (!q) return opts;
     return opts.filter(
-      (o) =>
-        o.label.toLowerCase().includes(q) ||
-        (o.subtitle?.toLowerCase().includes(q) ?? false)
+      (o) => o.label.toLowerCase().includes(q) || (o.subtitle?.toLowerCase().includes(q) ?? false),
     );
   });
 
   protected readonly placeholderText = computed(() =>
-    this.selectedOptions().length === 0 ? this.placeholder() : ''
+    this.selectedOptions().length === 0 ? this.placeholder() : '',
   );
 
   protected readonly emptyMessage = computed(() => {
@@ -322,9 +316,7 @@ export class ChipMultiSelectComponent implements ControlValueAccessor {
         this.open.set(true);
         const len = this.filteredOptions().length;
         if (len === 0) return;
-        this.highlightIndex.set(
-          (this.highlightIndex() - 1 + len) % len
-        );
+        this.highlightIndex.set((this.highlightIndex() - 1 + len) % len);
         return;
       }
       case 'Enter':

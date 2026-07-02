@@ -8,7 +8,7 @@ import {
   QuizRow,
   QuizStatus,
   QuestionRow,
-  UpdateQuizRequest
+  UpdateQuizRequest,
 } from '../models/quiz.model';
 
 /**
@@ -68,9 +68,7 @@ export class QuizzesStore {
   readonly saving = this._saving.asReadonly();
   readonly error = this._error.asReadonly();
 
-  readonly isEmpty = computed(
-    () => !this._loading() && this._rows().length === 0
-  );
+  readonly isEmpty = computed(() => !this._loading() && this._rows().length === 0);
 
   // ---------------------------------------------------------------------------
   // List by section
@@ -81,13 +79,9 @@ export class QuizzesStore {
    * filtros coinciden, no vuelve a fetchear. Si difieren, reemplaza
    * en sitio.
    */
-  async loadBySection(
-    sectionUuid: string,
-    filters: { status?: QuizStatus } = {}
-  ): Promise<void> {
+  async loadBySection(sectionUuid: string, filters: { status?: QuizStatus } = {}): Promise<void> {
     const sameSection = this._currentSectionUuid() === sectionUuid;
-    const sameFilter =
-      this._filters().status === (filters.status ?? undefined);
+    const sameFilter = this._filters().status === (filters.status ?? undefined);
     if (sameSection && sameFilter && this._rows().length > 0) return;
 
     this._currentSectionUuid.set(sectionUuid);
@@ -95,9 +89,7 @@ export class QuizzesStore {
     this._loading.set(true);
     this._error.set(null);
     try {
-      const rows = await firstValueFrom(
-        this.api.listBySection(sectionUuid, filters)
-      );
+      const rows = await firstValueFrom(this.api.listBySection(sectionUuid, filters));
       this._rows.set(rows);
     } catch {
       this._rows.set([]);
@@ -143,14 +135,12 @@ export class QuizzesStore {
 
   async createQuiz(
     sectionPublicUuid: string,
-    request: CreateQuizRequest
+    request: CreateQuizRequest,
   ): Promise<QuizDetail | null> {
     this._saving.set(true);
     this._error.set(null);
     try {
-      const created = await firstValueFrom(
-        this.api.createQuiz(sectionPublicUuid, request)
-      );
+      const created = await firstValueFrom(this.api.createQuiz(sectionPublicUuid, request));
       this._selected.set(created);
       this.refreshRowFromDetail(created);
       return created;
@@ -162,16 +152,11 @@ export class QuizzesStore {
     }
   }
 
-  async updateQuiz(
-    publicUuid: string,
-    patch: UpdateQuizRequest
-  ): Promise<QuizDetail | null> {
+  async updateQuiz(publicUuid: string, patch: UpdateQuizRequest): Promise<QuizDetail | null> {
     this._saving.set(true);
     this._error.set(null);
     try {
-      const updated = await firstValueFrom(
-        this.api.updateQuiz(publicUuid, patch)
-      );
+      const updated = await firstValueFrom(this.api.updateQuiz(publicUuid, patch));
       this._selected.set(updated);
       this.refreshRowFromDetail(updated);
       return updated;
@@ -192,9 +177,7 @@ export class QuizzesStore {
       this.refreshRowFromDetail(published);
       return published;
     } catch {
-      this._error.set(
-        'No pudimos publicar el quiz. Verifica que tenga al menos una pregunta.'
-      );
+      this._error.set('No pudimos publicar el quiz. Verifica que tenga al menos una pregunta.');
       return null;
     } finally {
       this._saving.set(false);
@@ -222,9 +205,7 @@ export class QuizzesStore {
     this._error.set(null);
     try {
       await firstValueFrom(this.api.deleteQuiz(publicUuid));
-      this._rows.update((rows) =>
-        rows.filter((r) => r.publicUuid !== publicUuid)
-      );
+      this._rows.update((rows) => rows.filter((r) => r.publicUuid !== publicUuid));
       if (this._selected()?.publicUuid === publicUuid) {
         this._selected.set(null);
       }
@@ -243,19 +224,19 @@ export class QuizzesStore {
    */
   async addQuestion(
     quizPublicUuid: string,
-    request: CreateQuestionRequest
+    request: CreateQuestionRequest,
   ): Promise<QuestionRow | null> {
     this._saving.set(true);
     this._error.set(null);
     try {
-      const question = await firstValueFrom(
-        this.api.addQuestion(quizPublicUuid, request)
-      );
+      const question = await firstValueFrom(this.api.addQuestion(quizPublicUuid, request));
       // Refetch detail to update the full question list with positions.
       await this.loadDetail(quizPublicUuid);
       return question;
     } catch {
-      this._error.set('No pudimos añadir la pregunta. Revisa el shape (MC: 2-6 options, 1 isCorrect; TF: correctBoolean; SA: expectedKeywords).');
+      this._error.set(
+        'No pudimos añadir la pregunta. Revisa el shape (MC: 2-6 options, 1 isCorrect; TF: correctBoolean; SA: expectedKeywords).',
+      );
       return null;
     } finally {
       this._saving.set(false);
@@ -289,10 +270,10 @@ export class QuizzesStore {
               maxAttempts: detail.maxAttempts,
               maxScore: detail.maxScore,
               questionCount: detail.questionCount,
-              totalPoints: detail.totalPoints
+              totalPoints: detail.totalPoints,
             }
-          : r
-      )
+          : r,
+      ),
     );
   }
 }

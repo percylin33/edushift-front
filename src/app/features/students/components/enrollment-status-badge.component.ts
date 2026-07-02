@@ -20,33 +20,31 @@ import { EnrollmentStatus } from '@core/enums';
   selector: 'app-enrollment-status-badge',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <span [class]="badgeClass()">{{ label() }}</span>
-  `
+  template: ` <span [class]="badgeClass()">{{ label() }}</span> `,
 })
 export class EnrollmentStatusBadgeComponent {
   readonly status = input.required<EnrollmentStatus>();
 
   readonly label = computed(
-    () => EnrollmentStatusBadgeComponent.LABELS[this.status()] ?? this.status()
+    () => EnrollmentStatusBadgeComponent.LABELS[this.status()] ?? this.status(),
   );
   readonly badgeClass = computed(
-    () => `badge ${EnrollmentStatusBadgeComponent.TIER[this.status()] ?? 'badge-neutral'}`
+    () => `badge ${EnrollmentStatusBadgeComponent.TIER[this.status()] ?? 'badge-neutral'}`,
   );
 
   private static readonly LABELS: Readonly<Record<EnrollmentStatus, string>> = {
-    [EnrollmentStatus.Pending]:     'Pendiente',
-    [EnrollmentStatus.Enrolled]:    'Matriculado',
-    [EnrollmentStatus.Graduated]:   'Egresado',
+    [EnrollmentStatus.Pending]: 'Pendiente',
+    [EnrollmentStatus.Enrolled]: 'Matriculado',
+    [EnrollmentStatus.Graduated]: 'Egresado',
     [EnrollmentStatus.Transferred]: 'Trasladado',
-    [EnrollmentStatus.Withdrawn]:   'Retirado'
+    [EnrollmentStatus.Withdrawn]: 'Retirado',
   };
 
   private static readonly TIER: Readonly<Record<EnrollmentStatus, string>> = {
-    [EnrollmentStatus.Pending]:     'badge-info',
-    [EnrollmentStatus.Enrolled]:    'badge-success',
-    [EnrollmentStatus.Graduated]:   'badge-neutral',
+    [EnrollmentStatus.Pending]: 'badge-info',
+    [EnrollmentStatus.Enrolled]: 'badge-success',
+    [EnrollmentStatus.Graduated]: 'badge-neutral',
     [EnrollmentStatus.Transferred]: 'badge-warning',
-    [EnrollmentStatus.Withdrawn]:   'badge-neutral'
+    [EnrollmentStatus.Withdrawn]: 'badge-neutral',
   };
 }

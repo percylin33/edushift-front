@@ -35,7 +35,7 @@ export class OnboardingService {
 
   markCompleted(id: string, completed = true): void {
     this._steps.update((list) =>
-      list.map((step) => (step.id === id ? { ...step, completed } : step))
+      list.map((step) => (step.id === id ? { ...step, completed } : step)),
     );
   }
 

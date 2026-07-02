@@ -1,52 +1,54 @@
 <!doctype html>
 <html lang="es">
-<head>
-  <meta charset="utf-8">
-  <title>EduShift</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#4f46e5">
-  <meta name="color-scheme" content="light dark">
-  <!-- The `id` lets `TenantThemeService` swap the favicon at runtime. -->
-  <link rel="icon" id="app-favicon" type="image/x-icon" href="favicon.ico">
-  <!-- PWA manifest (FE-6.1). `start_url` points at the scanner so the
+  <head>
+    <meta charset="utf-8" />
+    <title>EduShift</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- The `id` lets `TenantThemeService` swap the favicon at runtime. -->
+    <link rel="icon" id="app-favicon" type="image/x-icon" href="favicon.ico" />
+    <!-- PWA manifest (FE-6.1). `start_url` points at the scanner so the
        shortcut launched from the home screen opens the most-used screen
        for the docente persona. -->
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="icons/icon-192.svg">
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/icon-192.svg" />
 
-  <script>
-    /* Anti-FOUC: set the dark class, tenant slug AND favicon before Angular
+    <script>
+      /* Anti-FOUC: set the dark class, tenant slug AND favicon before Angular
        boots so the very first paint matches the user's preference. Mirrors
        `ThemeService` + `TenantThemeService` logic. */
-    (function () {
-      try {
-        var stored = JSON.parse(localStorage.getItem('edushift.app.theme'));
-        var theme = stored || 'system';
-        var prefersDark = window.matchMedia &&
-          window.matchMedia('(prefers-color-scheme: dark)').matches;
-        var isDark = theme === 'dark' || (theme === 'system' && prefersDark);
-        if (isDark) document.documentElement.classList.add('dark');
+      (function () {
+        try {
+          var stored = JSON.parse(localStorage.getItem('edushift.app.theme'));
+          var theme = stored || 'system';
+          var prefersDark =
+            window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+          if (isDark) document.documentElement.classList.add('dark');
 
-        var tenant = JSON.parse(localStorage.getItem('edushift.tenant.current'));
-        if (typeof tenant === 'string' && tenant) {
-          document.documentElement.setAttribute('data-tenant', tenant);
-        }
+          var tenant = JSON.parse(localStorage.getItem('edushift.tenant.current'));
+          if (typeof tenant === 'string' && tenant) {
+            document.documentElement.setAttribute('data-tenant', tenant);
+          }
 
-        /* Cached favicon (set by `TenantThemeService` on the previous load)
+          /* Cached favicon (set by `TenantThemeService` on the previous load)
            lets the browser tab carry tenant identity from frame 1, before
            Angular bootstraps and re-applies the same value. The key here
            MUST match `STORAGE_KEYS.TENANT_FAVICON` in storage.constants.ts. */
-        var cachedFavicon = localStorage.getItem('edushift.tenant.favicon');
-        if (cachedFavicon) {
-          var link = document.getElementById('app-favicon');
-          if (link) link.href = cachedFavicon;
+          var cachedFavicon = localStorage.getItem('edushift.tenant.favicon');
+          if (cachedFavicon) {
+            var link = document.getElementById('app-favicon');
+            if (link) link.href = cachedFavicon;
+          }
+        } catch (_) {
+          /* ignore — defaults will be applied by Angular */
         }
-      } catch (_) { /* ignore — defaults will be applied by Angular */ }
-    })();
-  </script>
-</head>
-<body class="bg-surface-subtle text-content">
-  <app-root></app-root>
-</body>
+      })();
+    </script>
+  </head>
+  <body class="bg-surface-subtle text-content">
+    <app-root></app-root>
+  </body>
 </html>

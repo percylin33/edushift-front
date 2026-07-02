@@ -7,7 +7,7 @@ import {
   OnChanges,
   Output,
   SimpleChanges,
-  signal
+  signal,
 } from '@angular/core';
 import { IconComponent } from '@shared/components';
 import { Permission } from '@core/enums';
@@ -55,9 +55,7 @@ import { SubmissionRow, SubmissionStatus } from '../../models';
       <div class="card">
         <div class="card-body text-center">
           <app-icon name="users" [size]="32" />
-          <h2 class="mt-2 text-base font-semibold text-content">
-            Aún no hay entregas
-          </h2>
+          <h2 class="mt-2 text-base font-semibold text-content">Aún no hay entregas</h2>
           <p class="mt-1 text-sm text-content-muted">
             Las entregas aparecerán aquí en cuanto los alumnos empiecen a enviar.
           </p>
@@ -66,12 +64,14 @@ import { SubmissionRow, SubmissionStatus } from '../../models';
     } @else {
       <div class="card overflow-hidden">
         <table class="w-full text-sm">
-          <thead class="bg-surface-muted text-left text-xs uppercase tracking-wide text-content-muted">
+          <thead
+            class="bg-surface-muted text-left text-xs uppercase tracking-wide text-content-muted"
+          >
             <tr>
               <th class="px-4 py-2">Alumno</th>
               <th class="px-4 py-2">Estado</th>
-              <th class="px-4 py-2 hidden sm:table-cell">Versión</th>
-              <th class="px-4 py-2 hidden md:table-cell">Entregado</th>
+              <th class="hidden px-4 py-2 sm:table-cell">Versión</th>
+              <th class="hidden px-4 py-2 md:table-cell">Entregado</th>
               <th class="px-4 py-2">Calificación</th>
               <th class="px-4 py-2 text-right">Acciones</th>
             </tr>
@@ -92,7 +92,9 @@ import { SubmissionRow, SubmissionStatus } from '../../models';
                           class="h-full w-full object-cover"
                         />
                       } @else {
-                        <div class="flex h-full w-full items-center justify-center text-sm font-medium text-content-muted">
+                        <div
+                          class="flex h-full w-full items-center justify-center text-sm font-medium text-content-muted"
+                        >
                           {{ initials(row.studentFullName) }}
                         </div>
                       }
@@ -118,10 +120,10 @@ import { SubmissionRow, SubmissionStatus } from '../../models';
                     {{ statusLabel(row.status) }}
                   </span>
                 </td>
-                <td class="px-4 py-3 hidden sm:table-cell text-content-muted">
+                <td class="hidden px-4 py-3 text-content-muted sm:table-cell">
                   v{{ row.version }}
                 </td>
-                <td class="px-4 py-3 hidden md:table-cell text-content-muted">
+                <td class="hidden px-4 py-3 text-content-muted md:table-cell">
                   {{ row.submittedAt | date: 'short' }}
                 </td>
                 <td class="px-4 py-3">
@@ -161,7 +163,7 @@ import { SubmissionRow, SubmissionStatus } from '../../models';
         </table>
       </div>
     }
-  `
+  `,
 })
 export class SubmissionListComponent implements OnChanges {
   @Input() rows: SubmissionRow[] = [];
@@ -179,9 +181,11 @@ export class SubmissionListComponent implements OnChanges {
   }
 
   protected canGrade(status: SubmissionStatus): boolean {
-    return status === SubmissionStatus.Submitted
-      || status === SubmissionStatus.Late
-      || status === SubmissionStatus.Returned;
+    return (
+      status === SubmissionStatus.Submitted ||
+      status === SubmissionStatus.Late ||
+      status === SubmissionStatus.Returned
+    );
   }
 
   protected canReturn(status: SubmissionStatus): boolean {
@@ -218,7 +222,7 @@ const STATUS_LABEL: Record<SubmissionStatus, string> = {
   [SubmissionStatus.Submitted]: 'Entregada',
   [SubmissionStatus.Late]: 'Tarde',
   [SubmissionStatus.Graded]: 'Calificada',
-  [SubmissionStatus.Returned]: 'Devuelta'
+  [SubmissionStatus.Returned]: 'Devuelta',
 };
 
 const STATUS_CLASS: Record<SubmissionStatus, string> = {
@@ -226,5 +230,5 @@ const STATUS_CLASS: Record<SubmissionStatus, string> = {
   [SubmissionStatus.Submitted]: 'border-sky-300 bg-sky-50 text-sky-700',
   [SubmissionStatus.Late]: 'border-amber-300 bg-amber-50 text-amber-700',
   [SubmissionStatus.Graded]: 'border-emerald-300 bg-emerald-50 text-emerald-700',
-  [SubmissionStatus.Returned]: 'border-orange-300 bg-orange-50 text-orange-700'
+  [SubmissionStatus.Returned]: 'border-orange-300 bg-orange-50 text-orange-700',
 };

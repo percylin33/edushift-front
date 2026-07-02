@@ -8,7 +8,7 @@ import {
   AfterViewChecked,
   inject,
   signal,
-  computed
+  computed,
 } from '@angular/core';
 import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -35,13 +35,23 @@ import { firstValueFrom } from 'rxjs';
   selector: 'app-chat-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule,
-    EmptyStateComponent, IconComponent, SpinnerComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterModule,
+    EmptyStateComponent,
+    IconComponent,
+    SpinnerComponent,
+  ],
   template: `
     <div class="flex h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-900">
       <!-- Sidebar -->
-      <aside class="flex w-72 flex-col border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-        <div class="flex items-center justify-between border-b border-slate-200 p-3 dark:border-slate-700">
+      <aside
+        class="flex w-72 flex-col border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"
+      >
+        <div
+          class="flex items-center justify-between border-b border-slate-200 p-3 dark:border-slate-700"
+        >
           <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Conversaciones</h2>
           <button
             type="button"
@@ -61,8 +71,7 @@ import { firstValueFrom } from 'rxjs';
                 (click)="selectSession(s)"
                 [class.bg-indigo-50]="currentSessionId() === s.publicUuid"
                 [class.dark:bg-indigo-900]="currentSessionId() === s.publicUuid"
-                class="flex w-full flex-col items-start gap-0.5 border-b border-slate-100 px-3 py-2 text-left text-sm
-                       text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"
+                class="flex w-full flex-col items-start gap-0.5 border-b border-slate-100 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"
               >
                 <span class="line-clamp-1 font-medium">{{ s.title || 'Nueva conversacion' }}</span>
                 <span class="text-[10px] text-slate-500 dark:text-slate-400">
@@ -84,54 +93,64 @@ import { firstValueFrom } from 'rxjs';
           <div #scroll class="flex-1 overflow-y-auto p-6">
             @for (m of messages(); track m.publicUuid) {
               <div class="mb-4 flex" [class.justify-end]="m.role === 'USER'">
-                <div [class.bg-indigo-600]="m.role === 'USER'"
-                     [class.text-white]="m.role === 'USER'"
-                     [class.bg-white]="m.role !== 'USER'"
-                     [class.dark:bg-slate-800]="m.role !== 'USER'"
-                     [class.text-slate-800]="m.role !== 'USER'"
-                     [class.dark:text-slate-200]="m.role !== 'USER'"
-                     class="max-w-2xl whitespace-pre-wrap rounded-2xl border border-slate-200 px-4 py-2 text-sm shadow-sm
-                            dark:border-slate-700">
+                <div
+                  [class.bg-indigo-600]="m.role === 'USER'"
+                  [class.text-white]="m.role === 'USER'"
+                  [class.bg-white]="m.role !== 'USER'"
+                  [class.dark:bg-slate-800]="m.role !== 'USER'"
+                  [class.text-slate-800]="m.role !== 'USER'"
+                  [class.dark:text-slate-200]="m.role !== 'USER'"
+                  class="max-w-2xl whitespace-pre-wrap rounded-2xl border border-slate-200 px-4 py-2 text-sm shadow-sm dark:border-slate-700"
+                >
                   {{ m.content }}
                 </div>
               </div>
             }
             @if (streamingMessage(); as s) {
               <div class="mb-4 flex">
-                <div class="max-w-2xl whitespace-pre-wrap rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm
-                            text-slate-800 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                <div
+                  class="max-w-2xl whitespace-pre-wrap rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-800 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                >
                   {{ s }}
-                  @if (streaming()) { <span class="ml-1 inline-block h-2 w-2 animate-pulse rounded-full bg-indigo-500"></span> }
+                  @if (streaming()) {
+                    <span
+                      class="ml-1 inline-block h-2 w-2 animate-pulse rounded-full bg-indigo-500"
+                    ></span>
+                  }
                 </div>
               </div>
             }
           </div>
 
           <!-- Input -->
-          <form (ngSubmit)="send()" class="border-t border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800">
+          <form
+            (ngSubmit)="send()"
+            class="border-t border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800"
+          >
             <div class="flex items-end gap-2">
               <textarea
                 [formControl]="textControl"
                 (keydown.enter)="onEnter($event)"
                 rows="2"
                 placeholder="Escribe tu mensaje…"
-                class="flex-1 resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                       focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500
-                       dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                class="flex-1 resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
               ></textarea>
               @if (streaming()) {
                 <button
                   type="button"
                   (click)="cancel()"
                   class="rounded-lg bg-rose-600 px-3 py-2 text-xs font-medium text-white hover:bg-rose-700"
-                >Cancelar</button>
+                >
+                  Cancelar
+                </button>
               } @else {
                 <button
                   type="submit"
                   [disabled]="textControl.invalid || textControl.value.trim().length === 0"
-                  class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-700
-                         disabled:cursor-not-allowed disabled:opacity-50"
-                >Enviar</button>
+                  class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Enviar
+                </button>
               }
             </div>
             @if (error(); as e) {
@@ -148,7 +167,7 @@ import { firstValueFrom } from 'rxjs';
         }
       </main>
     </div>
-  `
+  `,
 })
 export class ChatPageComponent implements OnInit, AfterViewChecked {
   private readonly chat = inject(ChatService);
@@ -161,7 +180,10 @@ export class ChatPageComponent implements OnInit, AfterViewChecked {
   readonly error = signal<string | null>(null);
   readonly currentSessionId = signal<string | null>(null);
 
-  readonly textControl = new FormControl<string>('', { nonNullable: true, validators: [Validators.required, Validators.minLength(1)] });
+  readonly textControl = new FormControl<string>('', {
+    nonNullable: true,
+    validators: [Validators.required, Validators.minLength(1)],
+  });
 
   @ViewChild('scroll') private scrollRef?: ElementRef<HTMLDivElement>;
   private cancelCurrent?: () => void;
@@ -226,7 +248,7 @@ export class ChatPageComponent implements OnInit, AfterViewChecked {
       role: 'USER',
       content: text,
       status: 'COMPLETED',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
     this.messages.update((arr) => [...arr, userMsg]);
     this.streamingMessage.set('');
@@ -251,7 +273,7 @@ export class ChatPageComponent implements OnInit, AfterViewChecked {
               role: 'ASSISTANT',
               content: text,
               status: chunk.cancelled ? 'CANCELLED' : 'COMPLETED',
-              createdAt: new Date().toISOString()
+              createdAt: new Date().toISOString(),
             };
             this.messages.update((arr) => [...arr, done]);
           }
@@ -268,7 +290,7 @@ export class ChatPageComponent implements OnInit, AfterViewChecked {
       },
       complete: () => {
         this.streaming.set(false);
-      }
+      },
     });
   }
 

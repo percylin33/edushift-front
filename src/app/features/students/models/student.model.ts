@@ -1,9 +1,4 @@
-import {
-  BulkImportStatus,
-  DocumentType,
-  EnrollmentStatus,
-  Gender
-} from '@core/enums';
+import { BulkImportStatus, DocumentType, EnrollmentStatus, Gender } from '@core/enums';
 
 // =============================================================================
 // Raw wire shapes — mirror the backend records 1:1

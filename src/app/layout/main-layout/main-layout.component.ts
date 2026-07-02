@@ -31,6 +31,6 @@ import { NavbarComponent, SidebarComponent } from '../components';
         </main>
       </div>
     </div>
-  `
+  `,
 })
 export class MainLayoutComponent {}

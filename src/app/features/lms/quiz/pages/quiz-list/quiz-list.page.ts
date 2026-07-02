@@ -1,26 +1,13 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  inject,
-  signal
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { Permission } from '@core/enums';
-import {
-  EmptyStateComponent,
-  IconComponent
-} from '@shared/components';
+import { EmptyStateComponent, IconComponent } from '@shared/components';
 import { HasPermissionDirective } from '@shared/directives';
 import { QuizzesStore } from '../../store/quizzes.store';
-import {
-  ALL_QUIZ_STATUSES,
-  QuizRow,
-  QuizStatus
-} from '../../models/quiz.model';
+import { ALL_QUIZ_STATUSES, QuizRow, QuizStatus } from '../../models/quiz.model';
 import { QuizLifecycleBadgeComponent } from '../../components/quiz-lifecycle-badge/quiz-lifecycle-badge.component';
 
 /**
@@ -54,7 +41,7 @@ import { QuizLifecycleBadgeComponent } from '../../components/quiz-lifecycle-bad
     IconComponent,
     EmptyStateComponent,
     HasPermissionDirective,
-    QuizLifecycleBadgeComponent
+    QuizLifecycleBadgeComponent,
   ],
   template: `
     <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -139,7 +126,7 @@ import { QuizLifecycleBadgeComponent } from '../../components/quiz-lifecycle-bad
       <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         @for (row of rows(); track row.publicUuid) {
           <article
-            class="card transition-shadow hover:shadow-md focus-within:ring-2 focus-within:ring-primary"
+            class="card transition-shadow focus-within:ring-2 focus-within:ring-primary hover:shadow-md"
           >
             <div class="card-body space-y-3">
               <header class="flex items-start justify-between gap-2">
@@ -180,18 +167,12 @@ import { QuizLifecycleBadgeComponent } from '../../components/quiz-lifecycle-bad
               </dl>
 
               <footer class="flex flex-wrap items-center gap-2 pt-1">
-                <a
-                  [routerLink]="detailRoute(row.publicUuid)"
-                  class="btn btn-ghost btn-sm"
-                >
+                <a [routerLink]="detailRoute(row.publicUuid)" class="btn btn-ghost btn-sm">
                   Ver detalle
                 </a>
                 <ng-container *appHasPermission="permission.LmsQuizCreate">
                   @if (row.status === 'DRAFT') {
-                    <a
-                      [routerLink]="editRoute(row.publicUuid)"
-                      class="btn btn-ghost btn-sm"
-                    >
+                    <a [routerLink]="editRoute(row.publicUuid)" class="btn btn-ghost btn-sm">
                       Editar
                     </a>
                     <button
@@ -220,9 +201,9 @@ import { QuizLifecycleBadgeComponent } from '../../components/quiz-lifecycle-bad
         }
       </div>
     }
-  `
+  `,
 })
-export class QuizListPage implements OnInit {
+export class QuizListPageComponent implements OnInit {
   private readonly store = inject(QuizzesStore);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -286,7 +267,7 @@ export class QuizListPage implements OnInit {
     if (!this.#sectionUuid) return;
     this.store.clearError();
     void this.store.loadBySection(this.#sectionUuid, {
-      status: this._statusFilter()
+      status: this._statusFilter(),
     });
   }
 
@@ -303,5 +284,5 @@ export class QuizListPage implements OnInit {
 const STATUS_LABELS: Record<QuizStatus, string> = {
   [QuizStatus.Draft]: 'Borrador',
   [QuizStatus.Published]: 'Publicado',
-  [QuizStatus.Closed]: 'Cerrado'
+  [QuizStatus.Closed]: 'Cerrado',
 };

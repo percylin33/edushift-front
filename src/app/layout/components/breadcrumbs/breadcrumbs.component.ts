@@ -21,7 +21,7 @@ import { BreadcrumbService } from '../../services';
             @if (crumb.url) {
               <a
                 [routerLink]="crumb.url"
-                class="hover:text-content focus-visible:outline-none focus-visible:underline"
+                class="hover:text-content focus-visible:underline focus-visible:outline-none"
               >
                 {{ crumb.label }}
               </a>
@@ -35,7 +35,7 @@ import { BreadcrumbService } from '../../services';
         }
       </ol>
     </nav>
-  `
+  `,
 })
 export class BreadcrumbsComponent {
   private readonly breadcrumbs = inject(BreadcrumbService);

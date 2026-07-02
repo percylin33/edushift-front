@@ -14,16 +14,22 @@ export class NotificationsStore {
   readonly error = this._error.asReadonly();
   readonly unreadCount = computed(() => this._items().filter((n) => !n.readAt).length);
 
-  setItems(items: NotificationItem[]): void { this._items.set(items); }
+  setItems(items: NotificationItem[]): void {
+    this._items.set(items);
+  }
   setPreferences(preferences: NotificationPreferences | null): void {
     this._preferences.set(preferences);
   }
-  setLoading(value: boolean): void { this._loading.set(value); }
-  setError(error: string | null): void { this._error.set(error); }
+  setLoading(value: boolean): void {
+    this._loading.set(value);
+  }
+  setError(error: string | null): void {
+    this._error.set(error);
+  }
 
   markRead(id: string): void {
     this._items.update((list) =>
-      list.map((n) => (n.id === id && !n.readAt ? { ...n, readAt: new Date().toISOString() } : n))
+      list.map((n) => (n.id === id && !n.readAt ? { ...n, readAt: new Date().toISOString() } : n)),
     );
   }
   markAllRead(): void {

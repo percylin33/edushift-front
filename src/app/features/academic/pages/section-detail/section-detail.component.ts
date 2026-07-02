@@ -5,7 +5,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
@@ -13,14 +13,14 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import {
   AcademicYearStatusBadgeComponent,
   SectionFormModalComponent,
   SectionRosterTabComponent,
   SectionTeachersTabComponent,
-  SectionScheduleTabComponent
+  SectionScheduleTabComponent,
 } from '../../components';
 import { AcademicStore } from '../../store';
 import { isSectionMutable } from '../../models';
@@ -59,7 +59,7 @@ type SectionTab = 'info' | 'roster' | 'teachers' | 'schedule';
     SectionFormModalComponent,
     SectionRosterTabComponent,
     SectionTeachersTabComponent,
-    SectionScheduleTabComponent
+    SectionScheduleTabComponent,
   ],
   template: `
     <app-page-container>
@@ -67,9 +67,7 @@ type SectionTab = 'info' | 'roster' | 'teachers' | 'schedule';
         <app-page-header
           eyebrow="Académico · Secciones"
           [title]="sec.gradeName + ' — ' + sec.name"
-          [subtitle]="
-            'Año académico ' + sec.academicYearName + ' · Nivel ' + sec.levelName
-          "
+          [subtitle]="'Año académico ' + sec.academicYearName + ' · Nivel ' + sec.levelName"
         >
           <a [routerLink]="listRoute" class="btn btn-ghost btn-sm">
             <app-icon name="arrow-left" [size]="16" />
@@ -127,7 +125,7 @@ type SectionTab = 'info' | 'roster' | 'teachers' | 'schedule';
                   <p class="text-xs uppercase text-content-muted">Nivel</p>
                   <p class="mt-1 font-medium">
                     {{ sec.levelName }}
-                    <span class="text-content-muted text-sm">({{ sec.levelCode }})</span>
+                    <span class="text-sm text-content-muted">({{ sec.levelCode }})</span>
                   </p>
                 </div>
                 <div>
@@ -191,14 +189,10 @@ type SectionTab = 'info' | 'roster' | 'teachers' | 'schedule';
 
     @if (showEdit()) {
       @if (section(); as sec) {
-        <app-section-form-modal
-          [section]="sec"
-          (closed)="closeEdit()"
-          (saved)="onSaved()"
-        />
+        <app-section-form-modal [section]="sec" (closed)="closeEdit()" (saved)="onSaved()" />
       }
     }
-  `
+  `,
 })
 export class SectionDetailComponent implements OnInit {
   private readonly store = inject(AcademicStore);
@@ -225,10 +219,10 @@ export class SectionDetailComponent implements OnInit {
     label: string;
     icon: 'info' | 'users' | 'user' | 'calendar';
   }> = [
-    { id: 'info',     label: 'Info',     icon: 'info' },
-    { id: 'roster',   label: 'Roster',   icon: 'users' },
+    { id: 'info', label: 'Info', icon: 'info' },
+    { id: 'roster', label: 'Roster', icon: 'users' },
     { id: 'teachers', label: 'Docentes', icon: 'user' },
-    { id: 'schedule', label: 'Horario',  icon: 'calendar' }
+    { id: 'schedule', label: 'Horario', icon: 'calendar' },
   ];
 
   async ngOnInit(): Promise<void> {
@@ -252,7 +246,7 @@ export class SectionDetailComponent implements OnInit {
       relativeTo: this.route,
       queryParams: { tab },
       queryParamsHandling: 'merge',
-      replaceUrl: true
+      replaceUrl: true,
     });
   }
 
@@ -275,7 +269,7 @@ export class SectionDetailComponent implements OnInit {
     if (!sec) return;
     const ok = confirm(
       `¿Eliminar la sección "${sec.gradeName} ${sec.name}" del año "${sec.academicYearName}"?\n\n` +
-        'Esta operación es reversible solo desde el backend.'
+        'Esta operación es reversible solo desde el backend.',
     );
     if (!ok) return;
     const success = await this.store.deleteSection(sec.publicUuid);
@@ -291,7 +285,7 @@ export class SectionDetailComponent implements OnInit {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 }

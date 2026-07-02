@@ -48,7 +48,7 @@ export const LMS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Student, UserRole.Guardian],
       title: 'LMS',
-      breadcrumb: 'LMS'
+      breadcrumb: 'LMS',
     },
     loadComponent: () =>
       import('./pages/lms-shell/lms-shell.component').then((m) => m.LmsShellComponent),
@@ -59,18 +59,14 @@ export const LMS_ROUTES: Routes = [
         canMatch: [permissionGuard],
         data: { permissions: Permission.LmsTaskRead, title: 'Tareas de la sección' },
         loadComponent: () =>
-          import('./pages/tasks-list/tasks-list.component').then(
-            (m) => m.TasksListComponent
-          )
+          import('./pages/tasks-list/tasks-list.component').then((m) => m.TasksListComponent),
       },
       {
         path: 'students/:studentUuid/assignments',
         canMatch: [permissionGuard],
         data: { permissions: Permission.LmsTaskRead, title: 'Mis tareas' },
         loadComponent: () =>
-          import('./pages/tasks-list/tasks-list.component').then(
-            (m) => m.TasksListComponent
-          )
+          import('./pages/tasks-list/tasks-list.component').then((m) => m.TasksListComponent),
       },
       {
         path: 'assignments/new',
@@ -78,21 +74,17 @@ export const LMS_ROUTES: Routes = [
         data: {
           permissions: Permission.LmsTaskCreate,
           title: 'Nueva tarea',
-          breadcrumb: 'Nueva'
+          breadcrumb: 'Nueva',
         },
         loadComponent: () =>
-          import('./pages/task-form/task-form.component').then(
-            (m) => m.TaskFormComponent
-          )
+          import('./pages/task-form/task-form.component').then((m) => m.TaskFormComponent),
       },
       {
         path: 'assignments/:uuid',
         canMatch: [permissionGuard],
         data: { permissions: Permission.LmsTaskRead, title: 'Detalle de tarea' },
         loadComponent: () =>
-          import('./pages/task-detail/task-detail.component').then(
-            (m) => m.TaskDetailComponent
-          )
+          import('./pages/task-detail/task-detail.component').then((m) => m.TaskDetailComponent),
       },
       {
         path: 'assignments/:uuid/edit',
@@ -100,12 +92,10 @@ export const LMS_ROUTES: Routes = [
         data: {
           permissions: Permission.LmsTaskCreate,
           title: 'Editar tarea',
-          breadcrumb: 'Editar'
+          breadcrumb: 'Editar',
         },
         loadComponent: () =>
-          import('./pages/task-form/task-form.component').then(
-            (m) => m.TaskFormComponent
-          )
+          import('./pages/task-form/task-form.component').then((m) => m.TaskFormComponent),
       },
       {
         path: 'assignments/:uuid/grade',
@@ -113,8 +103,8 @@ export const LMS_ROUTES: Routes = [
         data: { permissions: Permission.LmsTaskGrade, title: 'Calificar entregas' },
         loadComponent: () =>
           import('./pages/submission-grade/submission-grade.component').then(
-            (m) => m.SubmissionGradeComponent
-          )
+            (m) => m.SubmissionGradeComponent,
+          ),
       },
       {
         path: 'assignments/:uuid/submit',
@@ -122,8 +112,8 @@ export const LMS_ROUTES: Routes = [
         data: { permissions: Permission.LmsTaskSubmit, title: 'Entregar tarea' },
         loadComponent: () =>
           import('./pages/submission-submit/submission-submit.component').then(
-            (m) => m.SubmissionSubmitComponent
-          )
+            (m) => m.SubmissionSubmitComponent,
+          ),
       },
       {
         path: 'sections/:sectionUuid/materials',
@@ -131,8 +121,8 @@ export const LMS_ROUTES: Routes = [
         data: { permissions: Permission.LmsMaterialRead, title: 'Materiales' },
         loadComponent: () =>
           import('./pages/materials-list/materials-list.component').then(
-            (m) => m.MaterialsListComponent
-          )
+            (m) => m.MaterialsListComponent,
+          ),
       },
       // -------------------------------------------------------------------------
       // Quiz routes (Sprint 7b). FE-7b.0 entregó los placeholders + RBAC;
@@ -145,9 +135,7 @@ export const LMS_ROUTES: Routes = [
         canMatch: [permissionGuard],
         data: { permissions: Permission.LmsQuizRead, title: 'Quizzes de la sección' },
         loadComponent: () =>
-          import('./quiz/pages/quiz-list/quiz-list.page').then(
-            (m) => m.QuizListPage
-          )
+          import('./quiz/pages/quiz-list/quiz-list.page').then((m) => m.QuizListPageComponent),
       },
       {
         path: 'quizzes/new',
@@ -155,12 +143,10 @@ export const LMS_ROUTES: Routes = [
         data: {
           permissions: Permission.LmsQuizCreate,
           title: 'Nuevo quiz',
-          breadcrumb: 'Nuevo quiz'
+          breadcrumb: 'Nuevo quiz',
         },
         loadComponent: () =>
-          import('./quiz/pages/quiz-form/quiz-form.page').then(
-            (m) => m.QuizFormPage
-          )
+          import('./quiz/pages/quiz-form/quiz-form.page').then((m) => m.QuizFormPageComponent),
       },
       {
         path: 'quizzes/:uuid',
@@ -168,8 +154,8 @@ export const LMS_ROUTES: Routes = [
         data: { permissions: Permission.LmsQuizRead, title: 'Detalle de quiz' },
         loadComponent: () =>
           import('./quiz/pages/quiz-detail/quiz-detail.page').then(
-            (m) => m.QuizDetailPage
-          )
+            (m) => m.QuizDetailPageComponent,
+          ),
       },
       {
         path: 'quizzes/:uuid/edit',
@@ -177,34 +163,34 @@ export const LMS_ROUTES: Routes = [
         data: {
           permissions: Permission.LmsQuizCreate,
           title: 'Editar quiz',
-          breadcrumb: 'Editar'
+          breadcrumb: 'Editar',
         },
         loadComponent: () =>
-          import('./quiz/pages/quiz-form/quiz-form.page').then(
-            (m) => m.QuizFormPage
-          )
+          import('./quiz/pages/quiz-form/quiz-form.page').then((m) => m.QuizFormPageComponent),
       },
       {
         path: 'quizzes/:uuid/take',
         canMatch: [permissionGuard],
         data: { permissions: Permission.LmsQuizSubmit, title: 'Tomar quiz' },
         loadComponent: () =>
-          import('./quiz/pages/quiz-take/quiz-take.page').then((m) => m.QuizTakePage)
+          import('./quiz/pages/quiz-take/quiz-take.page').then((m) => m.QuizTakePageComponent),
       },
       {
         path: 'quizzes/:uuid/results',
         canMatch: [permissionGuard],
         data: { permissions: Permission.LmsQuizRead, title: 'Resultados del quiz' },
         loadComponent: () =>
-          import('./quiz/pages/quiz-results/quiz-results.page').then((m) => m.QuizResultsPage)
+          import('./quiz/pages/quiz-results/quiz-results.page').then(
+            (m) => m.QuizResultsPageComponent,
+          ),
       },
       {
         path: 'quizzes/:uuid/grade',
         canMatch: [permissionGuard],
         data: { permissions: Permission.LmsQuizGrade, title: 'Cola de grading' },
         loadComponent: () =>
-          import('./quiz/pages/quiz-grade/quiz-grade.page').then((m) => m.QuizGradePage)
-      }
-    ]
-  }
+          import('./quiz/pages/quiz-grade/quiz-grade.page').then((m) => m.QuizGradePageComponent),
+      },
+    ],
+  },
 ];

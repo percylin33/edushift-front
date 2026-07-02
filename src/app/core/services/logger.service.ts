@@ -8,7 +8,7 @@ const LEVELS: Record<LogLevel, number> = {
   info: 20,
   warn: 30,
   error: 40,
-  silent: 100
+  silent: 100,
 };
 
 @Injectable({ providedIn: 'root' })

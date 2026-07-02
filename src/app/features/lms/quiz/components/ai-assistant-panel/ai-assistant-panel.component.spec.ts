@@ -5,11 +5,15 @@ import { AiAssistantService } from '../../services/ai-assistant.service';
 import {
   AiAssistantRequest,
   AiAssistantStatus,
-  QuestionSuggestion
+  QuestionSuggestion,
 } from '../../models/ai-assistant.model';
 
 interface PanelAccess {
-  state: () => { status: AiAssistantStatus; suggestions: QuestionSuggestion[]; error: string | null };
+  state: () => {
+    status: AiAssistantStatus;
+    suggestions: QuestionSuggestion[];
+    error: string | null;
+  };
   topicControl: { setValue: (v: string) => void };
   countControl: { setValue: (v: number) => void };
   accept: { subscribe: (cb: (req: unknown) => void) => { unsubscribe: () => void } };
@@ -41,9 +45,9 @@ class FakeAiAssistantService {
       points: 5,
       options: [
         { label: 'A', isCorrect: true, explanation: 'es A' },
-        { label: 'B', isCorrect: false, explanation: null }
+        { label: 'B', isCorrect: false, explanation: null },
       ],
-      rationale: 'Rationale 1'
+      rationale: 'Rationale 1',
     },
     {
       id: 'sug-test-2',
@@ -52,10 +56,10 @@ class FakeAiAssistantService {
       points: 3,
       options: [
         { label: 'Verdadero', isCorrect: true, explanation: null },
-        { label: 'Falso', isCorrect: false, explanation: null }
+        { label: 'Falso', isCorrect: false, explanation: null },
       ],
-      rationale: 'Rationale 2'
-    }
+      rationale: 'Rationale 2',
+    },
   ];
 
   suggest(_req: AiAssistantRequest): Observable<QuestionSuggestion[]> {
@@ -82,7 +86,7 @@ describe('AiAssistantPanelComponent (FE-7c.1 — wired against FakeAiAssistantSe
     fakeService = new FakeAiAssistantService();
     TestBed.configureTestingModule({
       imports: [AiAssistantPanelComponent],
-      providers: [{ provide: AiAssistantService, useValue: fakeService }]
+      providers: [{ provide: AiAssistantService, useValue: fakeService }],
     });
     fixture = TestBed.createComponent(AiAssistantPanelComponent);
     component = fixture.componentInstance;
@@ -141,7 +145,13 @@ describe('AiAssistantPanelComponent (FE-7c.1 — wired against FakeAiAssistantSe
     const first = a.state().suggestions[0];
     a.onAccept(first);
     expect(emitted.length).toBe(1);
-    const req = emitted[0] as { prompt: string; type: string; points: number; options: unknown[]; aiRationale: string };
+    const req = emitted[0] as {
+      prompt: string;
+      type: string;
+      points: number;
+      options: unknown[];
+      aiRationale: string;
+    };
     expect(req.prompt).toBe(first.prompt);
     expect(req.type).toBe(first.questionType);
     expect(req.points).toBe(first.points);

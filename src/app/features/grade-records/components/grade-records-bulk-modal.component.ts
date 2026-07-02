@@ -8,7 +8,7 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { EvaluationScale } from '@features/evaluations/models';
@@ -19,7 +19,7 @@ import {
   CreateGradeRecordRequest,
   SCORE_MAX,
   SCORE_MIN,
-  validateGradeShape
+  validateGradeShape,
 } from '../models';
 
 interface ParsedRow {
@@ -54,14 +54,14 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
   imports: [CommonModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="bulk-grade-title"
       (click)="onBackdropClick($event)"
     >
       <div
-        class="card w-full max-w-3xl shadow-xl max-h-[92vh] flex flex-col"
+        class="card flex max-h-[92vh] w-full max-w-3xl flex-col shadow-xl"
         (click)="$event.stopPropagation()"
       >
         <header class="card-header flex items-start justify-between gap-3">
@@ -69,23 +69,17 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
             <h2 id="bulk-grade-title" class="card-title">Registro masivo</h2>
             <p class="card-description">
               Pega un CSV con
-              <code>studentPublicUuid, {{ valueColumnLabel() }} [, comentarios]</code>.
-              Una fila por estudiante (máx {{ maxRows }}). Líneas vacías y
-              comentarios <code>#</code> se ignoran. La nota usa coma o punto
-              decimal indistintamente.
+              <code>studentPublicUuid, {{ valueColumnLabel() }} [, comentarios]</code>. Una fila por
+              estudiante (máx {{ maxRows }}). Líneas vacías y comentarios <code>#</code> se ignoran.
+              La nota usa coma o punto decimal indistintamente.
             </p>
           </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            aria-label="Cerrar"
-            (click)="cancel()"
-          >
+          <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
             <app-icon name="x" [size]="18" />
           </button>
         </header>
 
-        <div class="card-body flex-1 overflow-y-auto grid gap-4">
+        <div class="card-body grid flex-1 gap-4 overflow-y-auto">
           <div class="field">
             <label class="label" for="bulk-textarea">CSV</label>
             <textarea
@@ -97,17 +91,16 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
               [placeholder]="placeholder()"
             ></textarea>
             <p class="field-hint">
-              {{ parsed().length }} fila(s) detectada(s) · {{ validCount() }} válida(s)
-              · {{ invalidCount() }} con error.
+              {{ parsed().length }} fila(s) detectada(s) · {{ validCount() }} válida(s) ·
+              {{ invalidCount() }} con error.
             </p>
           </div>
 
           @if (rejectedTooMany()) {
             <div class="alert alert-warning">
               <app-icon name="alert-circle" [size]="16" />
-              <p class="text-sm flex-1">
-                Solo procesaremos las primeras {{ maxRows }} filas. Las demás
-                se ignoran.
+              <p class="flex-1 text-sm">
+                Solo procesaremos las primeras {{ maxRows }} filas. Las demás se ignoran.
               </p>
             </div>
           }
@@ -115,7 +108,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
           @if (errorBanner()) {
             <div class="alert alert-danger">
               <app-icon name="alert-circle" [size]="16" />
-              <p class="text-sm flex-1">{{ errorBanner() }}</p>
+              <p class="flex-1 text-sm">{{ errorBanner() }}</p>
             </div>
           }
 
@@ -145,12 +138,12 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
                           {{ row.payload?.literal ?? '—' }}
                         }
                       </td>
-                      <td class="text-xs text-content-muted truncate max-w-[180px]">
+                      <td class="max-w-[180px] truncate text-xs text-content-muted">
                         {{ row.payload?.comments || '—' }}
                       </td>
                       <td>
                         @if (row.error) {
-                          <span class="text-xs text-danger-700">
+                          <span class="text-danger-700 text-xs">
                             {{ row.error }}
                           </span>
                         } @else {
@@ -166,11 +159,9 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
         </div>
 
         <footer
-          class="px-5 py-3 border-t border-border-subtle flex flex-wrap items-center justify-end gap-2"
+          class="flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle px-5 py-3"
         >
-          <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">
-            Cancelar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">Cancelar</button>
           <button
             type="button"
             class="btn btn-primary btn-sm"
@@ -191,17 +182,23 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
   `,
   styles: [
     `
-      :host { display: block; }
-      .table { @apply w-full text-sm text-left; }
+      :host {
+        display: block;
+      }
+      .table {
+        @apply w-full text-left text-sm;
+      }
       .table th {
-        @apply px-3 py-2 font-semibold text-content-muted uppercase text-xs tracking-wider border-b border-border-subtle bg-surface-subtle;
+        @apply border-b border-border-subtle bg-surface-subtle px-3 py-2 text-xs font-semibold uppercase tracking-wider text-content-muted;
       }
       .table td {
-        @apply px-3 py-2 border-b border-border-subtle;
+        @apply border-b border-border-subtle px-3 py-2;
       }
-      .table tr:last-child td { border-bottom: none; }
-    `
-  ]
+      .table tr:last-child td {
+        border-bottom: none;
+      }
+    `,
+  ],
 })
 export class GradeRecordsBulkModalComponent implements OnInit {
   /** Scale del padre evaluation; determina cómo parseamos la 2da columna. */
@@ -233,11 +230,9 @@ export class GradeRecordsBulkModalComponent implements OnInit {
   });
 
   protected readonly validCount = computed(
-    () => this.parsed().filter((r) => !r.error && r.payload).length
+    () => this.parsed().filter((r) => !r.error && r.payload).length,
   );
-  protected readonly invalidCount = computed(
-    () => this.parsed().filter((r) => r.error).length
-  );
+  protected readonly invalidCount = computed(() => this.parsed().filter((r) => r.error).length);
 
   protected valueColumnLabel(): string {
     return this.scale() === EvaluationScale.SCORE_0_20 ? 'nota' : 'literal';
@@ -250,7 +245,7 @@ export class GradeRecordsBulkModalComponent implements OnInit {
         '# studentPublicUuid, score [, comentarios]',
         'a3f7e2c8-1234-4abc-9999-aaaaaaaaaaaa, 18.5, Excelente',
         'b3f7e2c8-1234-4abc-9999-bbbbbbbbbbbb, 14, ',
-        'c3f7e2c8-1234-4abc-9999-cccccccccccc, 11,75'
+        'c3f7e2c8-1234-4abc-9999-cccccccccccc, 11,75',
       ].join('\n');
     }
     const allowed = ALLOWED_LITERALS_BY_SCALE[this.scale()].join(' / ');
@@ -258,7 +253,7 @@ export class GradeRecordsBulkModalComponent implements OnInit {
       '# Literales permitidos: ' + allowed,
       '# studentPublicUuid, literal [, comentarios]',
       'a3f7e2c8-1234-4abc-9999-aaaaaaaaaaaa, A, Logrado',
-      'b3f7e2c8-1234-4abc-9999-bbbbbbbbbbbb, B'
+      'b3f7e2c8-1234-4abc-9999-bbbbbbbbbbbb, B',
     ].join('\n');
   }
 
@@ -312,7 +307,7 @@ export class GradeRecordsBulkModalComponent implements OnInit {
         index,
         raw,
         payload: null,
-        error: 'Faltan columnas (esperado: uuid, valor [, comentarios]).'
+        error: 'Faltan columnas (esperado: uuid, valor [, comentarios]).',
       };
     }
     const [uuid, valueRaw, ...rest] = cells;
@@ -338,9 +333,9 @@ export class GradeRecordsBulkModalComponent implements OnInit {
           studentPublicUuid: uuid,
           score,
           literal: null,
-          comments: comments || null
+          comments: comments || null,
         },
-        error: null
+        error: null,
       };
     }
 
@@ -357,9 +352,9 @@ export class GradeRecordsBulkModalComponent implements OnInit {
         studentPublicUuid: uuid,
         score: null,
         literal,
-        comments: comments || null
+        comments: comments || null,
       },
-      error: null
+      error: null,
     };
   }
 }

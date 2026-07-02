@@ -1,10 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { catchError, finalize, of, tap } from 'rxjs';
-import {
-  AttendanceDashboardOverview,
-  DashboardWidget,
-  Metric
-} from '../models';
+import { AttendanceDashboardOverview, DashboardWidget, Metric } from '../models';
 import { DashboardApiService } from '../services/dashboard-api.service';
 
 /**
@@ -42,10 +38,7 @@ export class DashboardStore {
   readonly lastLoadedAt = this._lastLoadedAt.asReadonly();
 
   readonly isEmpty = computed(
-    () =>
-      this._overview() === null &&
-      this._metrics().length === 0 &&
-      this._widgets().length === 0
+    () => this._overview() === null && this._metrics().length === 0 && this._widgets().length === 0,
   );
 
   setMetrics(metrics: Metric[]): void {
@@ -85,13 +78,11 @@ export class DashboardStore {
         }),
         catchError((err: unknown) => {
           const message =
-            err instanceof Error
-              ? err.message
-              : 'No se pudo cargar el resumen de asistencia.';
+            err instanceof Error ? err.message : 'No se pudo cargar el resumen de asistencia.';
           this._error.set(message);
           return of(null);
         }),
-        finalize(() => this._loading.set(false))
+        finalize(() => this._loading.set(false)),
       )
       .subscribe();
   }

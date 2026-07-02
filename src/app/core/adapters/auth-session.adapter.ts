@@ -1,5 +1,12 @@
 import { Permission, UserRole } from '@core/enums';
-import { AuthResponseRaw, AuthSession, User, UserResponseRaw, UserSummary, UserSummaryRaw } from '@core/models';
+import {
+  AuthResponseRaw,
+  AuthSession,
+  User,
+  UserResponseRaw,
+  UserSummary,
+  UserSummaryRaw,
+} from '@core/models';
 
 /**
  * Wire ⇒ UI adapters for the shared `AuthResponse` / `UserResponse`
@@ -27,7 +34,7 @@ export function toAuthSession(raw: AuthResponseRaw): AuthSession {
     user: toUserSummary(raw.user),
     accessToken: raw.accessToken,
     refreshToken: raw.refreshToken,
-    expiresAt: new Date(Date.now() + raw.expiresInSec * 1000)
+    expiresAt: new Date(Date.now() + raw.expiresInSec * 1000),
   };
 }
 
@@ -42,7 +49,7 @@ export function toUserSummary(raw: UserSummaryRaw): UserSummary {
     fullName: raw.fullName,
     email: raw.email,
     avatarUrl: raw.avatarUrl ?? undefined,
-    status: raw.status
+    status: raw.status,
   };
 }
 
@@ -66,7 +73,7 @@ export function toUser(raw: UserResponseRaw): User {
     permissions: toPermissions(raw.permissions),
     lastLoginAt: raw.lastLoginAt ?? undefined,
     createdAt: raw.createdAt ?? undefined,
-    updatedAt: raw.updatedAt ?? undefined
+    updatedAt: raw.updatedAt ?? undefined,
   };
 }
 

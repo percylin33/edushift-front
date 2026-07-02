@@ -10,7 +10,7 @@ import {
   AttendanceSessionStatus,
   CreateSessionRequest,
   ManualCheckInRequest,
-  UpdateRecordRequest
+  UpdateRecordRequest,
 } from '../models';
 
 /**
@@ -92,7 +92,7 @@ export class AttendanceStore {
    */
   private readonly _dailyScans = signal<{ date: string; count: number }>({
     date: this.todayKey(),
-    count: 0
+    count: 0,
   });
 
   // -------- error slice --------
@@ -121,10 +121,10 @@ export class AttendanceStore {
 
   readonly hasActiveSession = computed(() => this._currentSession()?.status === 'ACTIVE');
   readonly presentCount = computed(
-    () => this._records().filter((r) => r.status === 'PRESENT' || r.status === 'LATE').length
+    () => this._records().filter((r) => r.status === 'PRESENT' || r.status === 'LATE').length,
   );
   readonly absentCount = computed(
-    () => this._records().filter((r) => r.status === 'ABSENT').length
+    () => this._records().filter((r) => r.status === 'ABSENT').length,
   );
   readonly totalCount = computed(() => this._records().length);
   readonly hasListItems = computed(() => this._listItems().length > 0);
@@ -203,10 +203,10 @@ export class AttendanceStore {
             from,
             to,
             slot: filters.slot,
-            status: filters.status
+            status: filters.status,
           },
-          { page: 0, size: 20, sort: 'occurredOn,DESC' }
-        )
+          { page: 0, size: 20, sort: 'occurredOn,DESC' },
+        ),
       );
       this._listItems.set(result.items);
       this._listTotalElements.set(result.totalElements);
@@ -242,14 +242,12 @@ export class AttendanceStore {
    */
   async updateRecord(
     recordPublicUuid: string,
-    patch: UpdateRecordRequest
+    patch: UpdateRecordRequest,
   ): Promise<AttendanceRecord | null> {
     try {
-      const updated = await firstValueFrom(
-        this.api.updateRecord(recordPublicUuid, patch)
-      );
+      const updated = await firstValueFrom(this.api.updateRecord(recordPublicUuid, patch));
       this._records.update((rows) =>
-        rows.map((r) => (r.publicUuid === updated.publicUuid ? updated : r))
+        rows.map((r) => (r.publicUuid === updated.publicUuid ? updated : r)),
       );
       return updated;
     } catch (err) {
@@ -287,9 +285,7 @@ export class AttendanceStore {
 
     this._scanning.set(true);
     try {
-      const { record, wasIdempotent } = await firstValueFrom(
-        this.api.scanCheckIn(qrToken)
-      );
+      const { record, wasIdempotent } = await firstValueFrom(this.api.scanCheckIn(qrToken));
       // Only update the in-memory roster when the resolved record
       // belongs to the session the scanner page is currently viewing
       // (mirrors the manualCheckIn behaviour for consistency).
@@ -341,9 +337,7 @@ export class AttendanceStore {
     this._scanning.set(true);
     const payload: ManualCheckInRequest = { studentPublicUuid };
     try {
-      const { record, wasIdempotent } = await firstValueFrom(
-        this.api.manualCheckIn(payload)
-      );
+      const { record, wasIdempotent } = await firstValueFrom(this.api.manualCheckIn(payload));
       // Only update the in-memory roster when the resolved record
       // belongs to the session the scanner page is currently viewing.
       const currentUuid = this._currentSession()?.publicUuid;
@@ -389,7 +383,7 @@ export class AttendanceStore {
       PRESENT: 0,
       LATE: 0,
       ABSENT: 0,
-      EXCUSED: 0
+      EXCUSED: 0,
     };
     for (const r of this._records()) {
       acc[r.status] = (acc[r.status] ?? 0) + 1;
@@ -416,7 +410,7 @@ export class AttendanceStore {
       case 'STUDENT_NO_ACTIVE_ENROLLMENT':
         return {
           kind: 'no-active-enrollment',
-          reason: message || 'El alumno no tiene matrícula activa'
+          reason: message || 'El alumno no tiene matrícula activa',
         };
       case 'SESSION_CLOSED':
       case 'SESSION_ALREADY_CLOSED':
@@ -442,9 +436,7 @@ export class AttendanceStore {
   private incrementDailyScans(): void {
     const today = this.todayKey();
     this._dailyScans.update((prev) =>
-      prev.date === today
-        ? { date: today, count: prev.count + 1 }
-        : { date: today, count: 1 }
+      prev.date === today ? { date: today, count: prev.count + 1 } : { date: today, count: 1 },
     );
   }
 

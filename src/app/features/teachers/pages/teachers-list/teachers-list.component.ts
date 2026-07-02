@@ -5,7 +5,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -16,7 +16,7 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import { EmploymentStatusBadgeComponent } from '../../components';
 import { TeachersStore } from '../../store';
@@ -60,7 +60,7 @@ import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
     EmptyStateComponent,
     IconComponent,
     SpinnerComponent,
-    EmploymentStatusBadgeComponent
+    EmploymentStatusBadgeComponent,
   ],
   template: `
     <app-page-container size="wide">
@@ -89,7 +89,9 @@ import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
           <div class="sm:col-span-6">
             <label class="label" for="teachers-search">Buscar</label>
             <div class="relative">
-              <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-content-subtle">
+              <span
+                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-content-subtle"
+              >
                 <app-icon name="search" [size]="16" />
               </span>
               <input
@@ -147,9 +149,7 @@ import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
               <p class="font-medium">No pudimos cargar la lista.</p>
               <p class="mt-1 text-xs opacity-80">{{ errorMessage() }}</p>
             </div>
-            <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">
-              Reintentar
-            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">Reintentar</button>
           </div>
         } @else if (isEmpty()) {
           <app-empty-state
@@ -157,9 +157,7 @@ import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
             title="Aún no hay docentes"
             description="Crea el primer docente o vincula uno a una cuenta existente."
           >
-            <a [routerLink]="newRoute" class="btn btn-primary btn-sm">
-              Nuevo docente
-            </a>
+            <a [routerLink]="newRoute" class="btn btn-primary btn-sm"> Nuevo docente </a>
           </app-empty-state>
         } @else {
           <div class="overflow-x-auto">
@@ -187,7 +185,7 @@ import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
                       @if (teacher.title) {
                         <p class="text-xs text-content-muted">{{ teacher.title }}</p>
                       }
-                      <p class="md:hidden text-xs text-content-muted">
+                      <p class="text-xs text-content-muted md:hidden">
                         {{ teacher.documentType }} · {{ teacher.documentNumber }}
                       </p>
                       @if (teacher.specializations.length > 0) {
@@ -203,11 +201,11 @@ import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
                         </div>
                       }
                     </td>
-                    <td class="hidden md:table-cell text-content-muted">
+                    <td class="hidden text-content-muted md:table-cell">
                       <span class="font-mono text-xs">{{ teacher.documentType }}</span>
                       <span class="ml-2">{{ teacher.documentNumber }}</span>
                     </td>
-                    <td class="hidden lg:table-cell text-content-muted">
+                    <td class="hidden text-content-muted lg:table-cell">
                       {{ teacher.email ?? '—' }}
                     </td>
                     <td>
@@ -216,7 +214,7 @@ import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
                     <td class="text-center">
                       @if (teacher.hasUserAccount) {
                         <span
-                          class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-success-50 text-success-600"
+                          class="bg-success-50 text-success-600 inline-flex h-7 w-7 items-center justify-center rounded-full"
                           title="Vinculado a una cuenta de usuario"
                         >
                           <app-icon name="check" [size]="14" />
@@ -286,7 +284,7 @@ import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
         }
       </section>
     </app-page-container>
-  `
+  `,
 })
 export class TeachersListComponent implements OnInit {
   private readonly store = inject(TeachersStore);
@@ -318,7 +316,7 @@ export class TeachersListComponent implements OnInit {
     label: string;
   }> = (Object.values(EmploymentStatus) as EmploymentStatus[]).map((v) => ({
     value: v,
-    label: EMPLOYMENT_STATUS_LABELS[v]
+    label: EMPLOYMENT_STATUS_LABELS[v],
   }));
 
   /** Debounce timer del search. */
@@ -341,9 +339,7 @@ export class TeachersListComponent implements OnInit {
       const f = this.store.filters();
       this.search.set(f.search ?? '');
       this.employmentStatus.set(f.employmentStatus ?? null);
-      this.hasUserAccount.set(
-        f.hasUserAccount === undefined ? null : f.hasUserAccount
-      );
+      this.hasUserAccount.set(f.hasUserAccount === undefined ? null : f.hasUserAccount);
       if (this.items().length === 0) {
         await this.store.loadList();
       }
@@ -395,7 +391,7 @@ export class TeachersListComponent implements OnInit {
     const filters: TeacherListFilters = {
       search: this.search().trim() || undefined,
       employmentStatus: this.employmentStatus() ?? undefined,
-      hasUserAccount: this.hasUserAccount() ?? undefined
+      hasUserAccount: this.hasUserAccount() ?? undefined,
     };
     this.syncUrl(filters);
     await this.store.applyFilters(filters);
@@ -407,10 +403,10 @@ export class TeachersListComponent implements OnInit {
       queryParams: {
         search: filters.search ?? null,
         employmentStatus: filters.employmentStatus ?? null,
-        hasUserAccount: filters.hasUserAccount ?? null
+        hasUserAccount: filters.hasUserAccount ?? null,
       },
       queryParamsHandling: 'merge',
-      replaceUrl: true
+      replaceUrl: true,
     });
   }
 

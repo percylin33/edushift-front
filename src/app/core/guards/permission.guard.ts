@@ -53,7 +53,7 @@ export interface PermissionRouteData {
  */
 export const permissionGuard: CanMatchFn = (
   _route: Route,
-  _segments: UrlSegment[]
+  _segments: UrlSegment[],
 ): true | UrlTree => {
   const auth = inject(AuthService);
   const router = inject(Router);
@@ -63,16 +63,18 @@ export const permissionGuard: CanMatchFn = (
    * the same `data` shape thanks to the `PermissionRouteData` typing. */
   const data = (_route.data ?? {}) as PermissionRouteData;
   const required = data.permissions
-    ? (Array.isArray(data.permissions) ? data.permissions : [data.permissions])
+    ? Array.isArray(data.permissions)
+      ? data.permissions
+      : [data.permissions]
     : [];
   if (required.length === 0) return true;
 
   const owned = auth.permissions();
   const mode = data.permissionMode ?? 'any';
-  const granted = mode === 'all'
-    ? required.every((p) => owned.includes(p))
-    : required.some((p) => owned.includes(p));
+  const granted =
+    mode === 'all'
+      ? required.every((p) => owned.includes(p))
+      : required.some((p) => owned.includes(p));
 
   return granted ? true : router.createUrlTree([ROUTES.ERRORS.FORBIDDEN]);
 };
-

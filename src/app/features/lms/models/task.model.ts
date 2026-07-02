@@ -12,9 +12,9 @@
  * </pre>
  */
 export enum TaskLifecycle {
-  Draft     = 'DRAFT',
+  Draft = 'DRAFT',
   Published = 'PUBLISHED',
-  Closed    = 'CLOSED'
+  Closed = 'CLOSED',
 }
 
 /**
@@ -29,11 +29,11 @@ export enum TaskLifecycle {
  * {@code PATCH /submissions/{uuid}} on the student side.
  */
 export enum SubmissionStatus {
-  Pending   = 'PENDING',
+  Pending = 'PENDING',
   Submitted = 'SUBMITTED',
-  Late      = 'LATE',
-  Graded    = 'GRADED',
-  Returned  = 'RETURNED'
+  Late = 'LATE',
+  Graded = 'GRADED',
+  Returned = 'RETURNED',
 }
 
 /**
@@ -45,11 +45,7 @@ export enum SubmissionStatus {
  * future"; {@code Late} covers "no submission and dueAt already passed"
  * AND "submission after dueAt".
  */
-export type StudentAssignmentBucket =
-  | 'PENDING'
-  | 'SUBMITTED'
-  | 'GRADED'
-  | 'LATE';
+export type StudentAssignmentBucket = 'PENDING' | 'SUBMITTED' | 'GRADED' | 'LATE';
 
 /* --------------------------------------------------------------------------
  * Wire shapes — these mirror the JSON returned by the backend. Keep them
@@ -182,7 +178,7 @@ export function toTaskRow(raw: TaskSummaryRaw): TaskRow {
     submissionsCount: raw.submissionsCount,
     sectionLabel: raw.sectionLabel ?? null,
     courseLabel: raw.courseLabel ?? null,
-    createdAt: new Date(raw.createdAt)
+    createdAt: new Date(raw.createdAt),
   };
 }
 
@@ -202,7 +198,7 @@ export function toTaskDetail(raw: TaskResponseRaw): TaskDetail {
     createdByTeacherPublicUuid: raw.createdByTeacherPublicUuid,
     createdAt: new Date(raw.createdAt),
     updatedAt: raw.updatedAt ? new Date(raw.updatedAt) : null,
-    submissionsCount: raw.submissionsCount ?? 0
+    submissionsCount: raw.submissionsCount ?? 0,
   };
 }
 
@@ -227,5 +223,5 @@ export function isTaskTerminal(lifecycle: TaskLifecycle): boolean {
 export const ALL_TASK_LIFECYCLES: readonly TaskLifecycle[] = [
   TaskLifecycle.Draft,
   TaskLifecycle.Published,
-  TaskLifecycle.Closed
+  TaskLifecycle.Closed,
 ] as const;

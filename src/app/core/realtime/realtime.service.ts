@@ -44,7 +44,7 @@ export class RealtimeService {
       heartbeatIncoming: 10_000,
       heartbeatOutgoing: 10_000,
       connectHeaders: {
-        Authorization: 'Bearer ' + (this.auth.getToken() ?? '')
+        Authorization: 'Bearer ' + (this.auth.getToken() ?? ''),
       },
       onConnect: () => {
         this.connected.set(true);
@@ -58,7 +58,7 @@ export class RealtimeService {
       onStompError: (frame) => {
         console.warn('[Realtime] STOMP error', frame.headers['message']);
       },
-      onWebSocketClose: () => this.connected.set(false)
+      onWebSocketClose: () => this.connected.set(false),
     });
     this.client.activate();
   }

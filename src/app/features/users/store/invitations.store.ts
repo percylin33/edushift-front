@@ -36,7 +36,7 @@ export class InvitationsStore {
     page: 0,
     size: 20,
     totalElements: 0,
-    totalPages: 0
+    totalPages: 0,
   });
   private readonly _loading = signal(false);
   private readonly _saving = signal(false);
@@ -71,14 +71,12 @@ export class InvitationsStore {
         page: result.number,
         size: result.size,
         totalElements: result.totalElements,
-        totalPages: result.totalPages
+        totalPages: result.totalPages,
       });
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._items.set([]);
-    }
-    finally {
+    } finally {
       this._loading.set(false);
     }
   }
@@ -109,15 +107,13 @@ export class InvitationsStore {
       this._pagination.update((p) => ({
         ...p,
         totalElements: p.totalElements + 1,
-        totalPages: Math.max(p.totalPages, Math.ceil((p.totalElements + 1) / p.size))
+        totalPages: Math.max(p.totalPages, Math.ceil((p.totalElements + 1) / p.size)),
       }));
       return created;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
@@ -139,12 +135,10 @@ export class InvitationsStore {
         return next;
       });
       return cancelled;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }

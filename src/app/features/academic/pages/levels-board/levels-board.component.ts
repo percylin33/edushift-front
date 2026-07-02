@@ -5,23 +5,11 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  CdkDrag,
-  CdkDragDrop,
-  CdkDropList,
-  moveItemInArray
-} from '@angular/cdk/drag-drop';
-import {
-  EmptyStateComponent,
-  IconComponent,
-  SpinnerComponent
-} from '@shared/components';
-import {
-  GradeFormModalComponent,
-  LevelFormModalComponent
-} from '../../components';
+import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
+import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import { GradeFormModalComponent, LevelFormModalComponent } from '../../components';
 import { AcademicStore } from '../../store';
 import { AcademicLevel, Grade } from '../../models';
 
@@ -70,14 +58,15 @@ import { AcademicLevel, Grade } from '../../models';
     IconComponent,
     SpinnerComponent,
     LevelFormModalComponent,
-    GradeFormModalComponent
+    GradeFormModalComponent,
   ],
   template: `
     <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div class="min-w-0">
         <h2 class="text-lg font-semibold text-content">Niveles y grados</h2>
         <p class="text-sm text-content-muted">
-          Estructura curricular del workspace. Selecciona un nivel a la izquierda y arrastra los grados para reordenarlos.
+          Estructura curricular del workspace. Selecciona un nivel a la izquierda y arrastra los
+          grados para reordenarlos.
         </p>
       </div>
       <button
@@ -137,7 +126,7 @@ import { AcademicLevel, Grade } from '../../models';
                 >
                   <div class="min-w-0 flex-1">
                     <p class="font-medium">
-                      <span class="text-content-muted text-xs mr-2">{{ level.ordinal }}.</span>
+                      <span class="mr-2 text-xs text-content-muted">{{ level.ordinal }}.</span>
                       {{ level.name }}
                     </p>
                     <p class="text-xs text-content-muted">
@@ -145,7 +134,7 @@ import { AcademicLevel, Grade } from '../../models';
                       · {{ level.grades.length }} grados
                     </p>
                   </div>
-                  <div class="flex items-center gap-1 shrink-0">
+                  <div class="flex shrink-0 items-center gap-1">
                     <span
                       class="btn btn-ghost btn-sm"
                       role="button"
@@ -195,11 +184,7 @@ import { AcademicLevel, Grade } from '../../models';
               </p>
             </div>
             @if (selectedLevel()) {
-              <button
-                type="button"
-                class="btn btn-outline btn-sm"
-                (click)="openGradeModal(null)"
-              >
+              <button type="button" class="btn btn-outline btn-sm" (click)="openGradeModal(null)">
                 <app-icon name="plus" [size]="14" />
                 <span class="hidden sm:inline">Nuevo grado</span>
               </button>
@@ -234,11 +219,11 @@ import { AcademicLevel, Grade } from '../../models';
                     </span>
                     <div class="min-w-0 flex-1">
                       <p class="font-medium text-content">
-                        <span class="text-content-muted text-xs mr-2">{{ grade.ordinal }}.</span>
+                        <span class="mr-2 text-xs text-content-muted">{{ grade.ordinal }}.</span>
                         {{ grade.name }}
                       </p>
                     </div>
-                    <div class="flex items-center gap-1 shrink-0">
+                    <div class="flex shrink-0 items-center gap-1">
                       <button
                         type="button"
                         class="btn btn-ghost btn-sm"
@@ -288,7 +273,7 @@ import { AcademicLevel, Grade } from '../../models';
         (saved)="onGradeSaved()"
       />
     }
-  `
+  `,
 })
 export class LevelsBoardComponent implements OnInit {
   private readonly store = inject(AcademicStore);
@@ -366,7 +351,7 @@ export class LevelsBoardComponent implements OnInit {
   protected async confirmDeleteLevel(level: AcademicLevel): Promise<void> {
     if (level.grades.length > 0) {
       alert(
-        `No se puede eliminar el nivel "${level.name}" porque aún tiene ${level.grades.length} grados.\n\nElimina o mueve los grados primero.`
+        `No se puede eliminar el nivel "${level.name}" porque aún tiene ${level.grades.length} grados.\n\nElimina o mueve los grados primero.`,
       );
       return;
     }
@@ -409,10 +394,7 @@ export class LevelsBoardComponent implements OnInit {
    * update y dispara la PATCH. Si el backend falla, el store revierte
    * al snapshot.
    */
-  protected async onGradeDrop(
-    event: CdkDragDrop<Grade[]>,
-    level: AcademicLevel
-  ): Promise<void> {
+  protected async onGradeDrop(event: CdkDragDrop<Grade[]>, level: AcademicLevel): Promise<void> {
     if (event.previousIndex === event.currentIndex) return;
 
     const ordered = this.selectedGrades().slice();

@@ -22,16 +22,16 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
   selector: 'app-attendance-status-badge',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<span [class]="badgeClass()">{{ label() }}</span>`
+  template: `<span [class]="badgeClass()">{{ label() }}</span>`,
 })
 export class AttendanceStatusBadgeComponent {
   readonly status = input.required<string>();
 
   readonly label = computed(
-    () => AttendanceStatusBadgeComponent.LABELS[this.status()] ?? this.status()
+    () => AttendanceStatusBadgeComponent.LABELS[this.status()] ?? this.status(),
   );
   readonly badgeClass = computed(
-    () => `badge ${AttendanceStatusBadgeComponent.TIER[this.status()] ?? 'badge-neutral'}`
+    () => `badge ${AttendanceStatusBadgeComponent.TIER[this.status()] ?? 'badge-neutral'}`,
   );
 
   private static readonly LABELS: Readonly<Record<string, string>> = {
@@ -40,7 +40,7 @@ export class AttendanceStatusBadgeComponent {
     ABSENT: 'Ausente',
     EXCUSED: 'Justificado',
     ACTIVE: 'Activa',
-    CLOSED: 'Cerrada'
+    CLOSED: 'Cerrada',
   };
 
   private static readonly TIER: Readonly<Record<string, string>> = {
@@ -49,6 +49,6 @@ export class AttendanceStatusBadgeComponent {
     ABSENT: 'badge-error',
     EXCUSED: 'badge-info',
     ACTIVE: 'badge-success',
-    CLOSED: 'badge-neutral'
+    CLOSED: 'badge-neutral',
   };
 }

@@ -10,11 +10,7 @@
  * chip ("Ya marcado a las HH:MM") vs. a fresh check-in ("PRESENTE").
  */
 
-export type AttendanceRecordStatus =
-  | 'PRESENT'
-  | 'LATE'
-  | 'ABSENT'
-  | 'EXCUSED';
+export type AttendanceRecordStatus = 'PRESENT' | 'LATE' | 'ABSENT' | 'EXCUSED';
 
 export interface AttendanceRecordResponseRaw {
   publicUuid: string;

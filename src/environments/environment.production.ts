@@ -20,6 +20,13 @@ export const environment: AppEnvironment = {
     tokenHeaderName: 'Authorization',
     tokenScheme: 'Bearer'
   },
+  google: {
+    // Disable by default in production until the operator supplies a
+    // real Client ID and registers the prod origin in Google Console.
+    enabled: false,
+    clientId: '',
+    scopes: ['openid', 'profile', 'email']
+  },
   features: {
     dashboard: true,
     auth: true,
@@ -39,7 +46,8 @@ export const environment: AppEnvironment = {
     // LMS (Sprint 7a). Kept off in production until the pilot signs off
     // on the back-end (BE-7a.0..5). The flag is consulted by
     // `featureFlagGuard` to short-circuit the whole `/lms/*` tree.
-    lms: false
+    lms: false,
+    gmailSend: false
   },
   logging: {
     level: 'warn',
@@ -52,5 +60,9 @@ export const environment: AppEnvironment = {
     offlineBannerCopy: 'Sin conexión. Vuelve a conectarte para escanear.',
     pwaDisplay: 'standalone',
     pwaStartUrl: '/attendance/scanner'
-  }
+  },
+  // Production Firebase config intentionally left undefined until the
+  // operator provisions a dedicated EduShift project and uploads the
+  // real config via the deploy pipeline (see docs/infra/firebase.md).
+  firebase: undefined
 };

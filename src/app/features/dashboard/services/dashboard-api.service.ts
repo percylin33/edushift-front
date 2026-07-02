@@ -8,7 +8,7 @@ import {
   AttendanceDashboardOverviewRaw,
   DashboardWidget,
   Metric,
-  toDashboardOverview
+  toDashboardOverview,
 } from '../models';
 
 /**
@@ -39,9 +39,7 @@ export class DashboardApiService {
    */
   getAttendanceOverview(): Observable<AttendanceDashboardOverview> {
     return this.api
-      .get<ApiResponse<AttendanceDashboardOverviewRaw>>(
-        API.ATTENDANCE.DASHBOARD_OVERVIEW
-      )
+      .get<ApiResponse<AttendanceDashboardOverviewRaw>>(API.ATTENDANCE.DASHBOARD_OVERVIEW)
       .pipe(map((envelope) => toDashboardOverview(envelope.data)));
   }
 }

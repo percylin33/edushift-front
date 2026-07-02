@@ -8,7 +8,7 @@ import { API } from '@core/constants/api.constants';
 import {
   AiAssistantRequest,
   AiAssistantStatus,
-  QuestionSuggestion
+  QuestionSuggestion,
 } from '../models/ai-assistant.model';
 
 /**
@@ -49,33 +49,30 @@ export class AiAssistantService {
     if (topic.length < 2) {
       return throwError(() => ({
         code: 'AI_TOPIC_REQUIRED',
-        message: 'Indica un tema de al menos 2 caracteres.'
+        message: 'Indica un tema de al menos 2 caracteres.',
       }));
     }
     if (request.count < 1 || request.count > 10) {
       return throwError(() => ({
         code: 'AI_COUNT_OUT_OF_RANGE',
-        message: 'La cantidad debe estar entre 1 y 10.'
+        message: 'La cantidad debe estar entre 1 y 10.',
       }));
     }
 
     const body = {
       topic,
       count: request.count,
-      questionType: request.questionType ?? null
+      questionType: request.questionType ?? null,
     };
 
     return this.api
-      .post<ApiResponse<WireSuggestionResponse>, typeof body>(
-        API.LMS.AI_SUGGEST_QUESTIONS,
-        body
-      )
+      .post<ApiResponse<WireSuggestionResponse>, typeof body>(API.LMS.AI_SUGGEST_QUESTIONS, body)
       .pipe(
         map((envelope) => {
           if (!envelope || !envelope.success || !envelope.data) {
             throw {
               code: 'AI_EMPTY_RESPONSE',
-              message: 'El asistente devolvió una respuesta vacía.'
+              message: 'El asistente devolvió una respuesta vacía.',
             };
           }
           return envelope.data.questions.map(toQuestionSuggestion);
@@ -83,7 +80,7 @@ export class AiAssistantService {
         catchError((err: unknown) => {
           const mapped = mapHttpError(err);
           return throwError(() => mapped);
-        })
+        }),
       );
   }
 
@@ -135,9 +132,9 @@ function toQuestionSuggestion(w: WireQuestion): QuestionSuggestion {
     options: (w.options ?? []).map((o) => ({
       label: o.label,
       isCorrect: !!o.isCorrect,
-      explanation: o.explanation ?? null
+      explanation: o.explanation ?? null,
     })),
-    rationale: w.rationale ?? ''
+    rationale: w.rationale ?? '',
   };
 }
 
@@ -145,17 +142,14 @@ function toQuestionSuggestion(w: WireQuestion): QuestionSuggestion {
  * shape `{code, message}`. We keep the BE error code when available (it
  * comes in {@code error.error.error.code} per the {@code ApiError} shape,
  * see {@code GlobalExceptionHandler}). */
-function mapHttpError(
-  err: unknown
-): { code: string; message: string; httpStatus?: number } {
+function mapHttpError(err: unknown): { code: string; message: string; httpStatus?: number } {
   if (err && typeof err === 'object' && 'code' in err && 'message' in err) {
     // Pre-flight throw (no HTTP).
     return err as { code: string; message: string };
   }
   if (err instanceof HttpErrorResponse) {
     const apiErr = err.error as
-      | { error?: { code?: string; message?: string }; message?: string }
-      | undefined;
+      { error?: { code?: string; message?: string }; message?: string } | undefined;
     const code = apiErr?.error?.code ?? apiErr?.message ?? 'AI_UNKNOWN';
     const message = apiErr?.error?.message ?? defaultMessageForStatus(err.status, code);
     return { code, message, httpStatus: err.status };

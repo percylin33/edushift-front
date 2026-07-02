@@ -4,8 +4,12 @@
  * ========================================================================= */
 
 @layer utilities {
-  .text-balance { text-wrap: balance; }
-  .text-pretty  { text-wrap: pretty;  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
 
   .scrollbar-thin {
     scrollbar-width: thin;
@@ -19,7 +23,9 @@
     display: none;
   }
 
-  .ring-focus { box-shadow: var(--shadow-ring); }
+  .ring-focus {
+    box-shadow: var(--shadow-ring);
+  }
 
   .bg-gradient-brand {
     background-image: linear-gradient(

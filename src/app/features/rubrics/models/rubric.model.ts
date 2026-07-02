@@ -192,7 +192,7 @@ export function toCriterionView(raw: CriterionViewRaw): CriterionView {
     name: raw.name,
     description: raw.description ?? undefined,
     weight: parseFloat(raw.weight),
-    descriptors: raw.descriptors.map((d) => ({ level: d.level, text: d.text }))
+    descriptors: raw.descriptors.map((d) => ({ level: d.level, text: d.text })),
   };
 }
 
@@ -200,7 +200,7 @@ export function toLevelView(raw: LevelViewRaw): LevelView {
   return {
     code: raw.code,
     name: raw.name,
-    order: raw.order ?? undefined
+    order: raw.order ?? undefined,
   };
 }
 
@@ -215,7 +215,7 @@ export function toRubricDetail(raw: RubricResponseRaw): RubricDetail {
     parentRubricPublicUuid: raw.parentRubricPublicUuid ?? undefined,
     isActive: raw.isActive,
     createdAt: new Date(raw.createdAt),
-    updatedAt: new Date(raw.updatedAt)
+    updatedAt: new Date(raw.updatedAt),
   };
 }
 
@@ -230,7 +230,7 @@ export function toRubricRow(raw: RubricListItemRaw): RubricRow {
     criterionSummary: [...raw.criterionSummary],
     isActive: raw.isActive,
     createdAt: new Date(raw.createdAt),
-    updatedAt: new Date(raw.updatedAt)
+    updatedAt: new Date(raw.updatedAt),
   };
 }
 

@@ -28,12 +28,10 @@ export class NavigationService {
     this.auth.user();
     this.tenant.tenant();
 
-    return NAVIGATION_GROUPS
-      .map((group) => ({
-        ...group,
-        items: this.filterItems([...group.items])
-      }))
-      .filter((group) => group.items.length > 0);
+    return NAVIGATION_GROUPS.map((group) => ({
+      ...group,
+      items: this.filterItems([...group.items]),
+    })).filter((group) => group.items.length > 0);
   });
 
   isVisible(item: NavigationItem): boolean {

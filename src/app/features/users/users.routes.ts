@@ -24,7 +24,7 @@ export const USERS_ROUTES: Routes = [
     canActivate: [roleGuard],
     data: { roles: [UserRole.TenantAdmin], title: 'Usuarios' },
     loadComponent: () =>
-      import('./pages/users-list/users-list.component').then((m) => m.UsersListComponent)
+      import('./pages/users-list/users-list.component').then((m) => m.UsersListComponent),
   },
   {
     path: ':id',
@@ -32,9 +32,9 @@ export const USERS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin],
       breadcrumb: 'Detalle',
-      title: 'Detalle de usuario'
+      title: 'Detalle de usuario',
     },
     loadComponent: () =>
-      import('./pages/user-detail/user-detail.component').then((m) => m.UserDetailComponent)
-  }
+      import('./pages/user-detail/user-detail.component').then((m) => m.UserDetailComponent),
+  },
 ];

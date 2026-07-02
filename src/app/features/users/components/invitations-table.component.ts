@@ -1,10 +1,13 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { InvitationStatus } from '@core/enums';
 import {
-  EmptyStateComponent,
-  IconComponent,
-  SpinnerComponent
-} from '@shared/components';
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { InvitationStatus } from '@core/enums';
+import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
 import { Invitation } from '../models';
 import { InvitationsStore } from '../store';
 import { InvitationStatusBadgeComponent } from './invitation-status-badge.component';
@@ -38,7 +41,7 @@ import { UserRoleBadgeComponent } from './user-role-badge.component';
     IconComponent,
     SpinnerComponent,
     InvitationStatusBadgeComponent,
-    UserRoleBadgeComponent
+    UserRoleBadgeComponent,
   ],
   template: `
     @if (loading() && !hasItems()) {
@@ -90,10 +93,10 @@ import { UserRoleBadgeComponent } from './user-role-badge.component';
                 <td>
                   <app-invitation-status-badge [status]="inv.status" />
                 </td>
-                <td class="hidden lg:table-cell text-content-muted">
+                <td class="hidden text-content-muted lg:table-cell">
                   {{ formatDate(inv.expiresAt) }}
                 </td>
-                <td class="hidden lg:table-cell text-content-muted">
+                <td class="hidden text-content-muted lg:table-cell">
                   {{ formatDate(inv.createdAt) }}
                 </td>
                 <td class="text-right">
@@ -152,7 +155,7 @@ import { UserRoleBadgeComponent } from './user-role-badge.component';
         </div>
       </footer>
     }
-  `
+  `,
 })
 export class InvitationsTableComponent implements OnInit {
   protected readonly store = inject(InvitationsStore);
@@ -220,7 +223,7 @@ export class InvitationsTableComponent implements OnInit {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 }

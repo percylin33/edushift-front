@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal, computed } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  inject,
+  signal,
+  computed,
+} from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { AiUsageService, UsageSummary } from '../../services/ai-usage.service';
 import { IconComponent, SpinnerComponent } from '@shared/components';
@@ -23,15 +30,12 @@ import { firstValueFrom } from 'rxjs';
       <header class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-semibold text-slate-900 dark:text-slate-100">Uso de IA</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-400">
-            Periodo: {{ periodLabel() }}
-          </p>
+          <p class="text-sm text-slate-600 dark:text-slate-400">Periodo: {{ periodLabel() }}</p>
         </div>
         <a
           [href]="csvUrl()"
           download
-          class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium
-                 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+          class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
         >
           <app-icon name="download" class="h-4 w-4"></app-icon>
           Exportar CSV
@@ -45,46 +49,76 @@ import { firstValueFrom } from 'rxjs';
       } @else if (summary(); as s) {
         <!-- Quota meter -->
         <section class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Requests este mes</p>
+          <div
+            class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+          >
+            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Requests este mes
+            </p>
             <p class="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
               {{ s.usedRequests }}
               @if (s.dailyRequestQuota) {
-                <span class="ml-1 text-sm font-normal text-slate-500">/ {{ s.dailyRequestQuota }} (diario)</span>
+                <span class="ml-1 text-sm font-normal text-slate-500"
+                  >/ {{ s.dailyRequestQuota }} (diario)</span
+                >
               }
             </p>
             @if (s.dailyRequestQuota) {
-              <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                <div [style.width.%]="quotaPercent(s.usedRequests, s.dailyRequestQuota)"
-                     [class.bg-rose-500]="quotaPercent(s.usedRequests, s.dailyRequestQuota) > 80"
-                     [class.bg-amber-500]="quotaPercent(s.usedRequests, s.dailyRequestQuota) > 50 && quotaPercent(s.usedRequests, s.dailyRequestQuota) <= 80"
-                     [class.bg-emerald-500]="quotaPercent(s.usedRequests, s.dailyRequestQuota) <= 50"
-                     class="h-full"></div>
+              <div
+                class="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+              >
+                <div
+                  [style.width.%]="quotaPercent(s.usedRequests, s.dailyRequestQuota)"
+                  [class.bg-rose-500]="quotaPercent(s.usedRequests, s.dailyRequestQuota) > 80"
+                  [class.bg-amber-500]="
+                    quotaPercent(s.usedRequests, s.dailyRequestQuota) > 50 &&
+                    quotaPercent(s.usedRequests, s.dailyRequestQuota) <= 80
+                  "
+                  [class.bg-emerald-500]="quotaPercent(s.usedRequests, s.dailyRequestQuota) <= 50"
+                  class="h-full"
+                ></div>
               </div>
             }
           </div>
 
-          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Tokens este mes</p>
+          <div
+            class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+          >
+            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Tokens este mes
+            </p>
             <p class="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
               {{ s.usedTokens }}
               @if (s.monthlyTokenQuota) {
-                <span class="ml-1 text-sm font-normal text-slate-500">/ {{ s.monthlyTokenQuota }}</span>
+                <span class="ml-1 text-sm font-normal text-slate-500"
+                  >/ {{ s.monthlyTokenQuota }}</span
+                >
               }
             </p>
             @if (s.monthlyTokenQuota) {
-              <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                <div [style.width.%]="quotaPercent(s.usedTokens, s.monthlyTokenQuota)"
-                     [class.bg-rose-500]="quotaPercent(s.usedTokens, s.monthlyTokenQuota) > 80"
-                     [class.bg-amber-500]="quotaPercent(s.usedTokens, s.monthlyTokenQuota) > 50 && quotaPercent(s.usedTokens, s.monthlyTokenQuota) <= 80"
-                     [class.bg-emerald-500]="quotaPercent(s.usedTokens, s.monthlyTokenQuota) <= 50"
-                     class="h-full"></div>
+              <div
+                class="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+              >
+                <div
+                  [style.width.%]="quotaPercent(s.usedTokens, s.monthlyTokenQuota)"
+                  [class.bg-rose-500]="quotaPercent(s.usedTokens, s.monthlyTokenQuota) > 80"
+                  [class.bg-amber-500]="
+                    quotaPercent(s.usedTokens, s.monthlyTokenQuota) > 50 &&
+                    quotaPercent(s.usedTokens, s.monthlyTokenQuota) <= 80
+                  "
+                  [class.bg-emerald-500]="quotaPercent(s.usedTokens, s.monthlyTokenQuota) <= 50"
+                  class="h-full"
+                ></div>
               </div>
             }
           </div>
 
-          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Tasa de exito</p>
+          <div
+            class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+          >
+            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Tasa de exito
+            </p>
             <p class="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
               {{ successRate(s) }}%
             </p>
@@ -95,18 +129,29 @@ import { firstValueFrom } from 'rxjs';
         </section>
 
         <!-- By feature -->
-        <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <section
+          class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+        >
           <h2 class="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Por feature</h2>
           @if (s.byFeature?.length) {
             <ul class="space-y-2">
               @for (f of s.byFeature; track f.feature) {
                 <li>
                   <div class="mb-1 flex items-center justify-between text-xs">
-                    <span class="font-medium text-slate-700 dark:text-slate-200">{{ f.feature }}</span>
-                    <span class="text-slate-500">{{ f.requestCount }} requests · {{ f.tokensIn + f.tokensOut }} tokens</span>
+                    <span class="font-medium text-slate-700 dark:text-slate-200">{{
+                      f.feature
+                    }}</span>
+                    <span class="text-slate-500"
+                      >{{ f.requestCount }} requests · {{ f.tokensIn + f.tokensOut }} tokens</span
+                    >
                   </div>
-                  <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                    <div [style.width.%]="featurePercent(f.requestCount, s.usedRequests)" class="h-full bg-indigo-500"></div>
+                  <div
+                    class="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+                  >
+                    <div
+                      [style.width.%]="featurePercent(f.requestCount, s.usedRequests)"
+                      class="h-full bg-indigo-500"
+                    ></div>
                   </div>
                 </li>
               }
@@ -117,8 +162,12 @@ import { firstValueFrom } from 'rxjs';
         </section>
 
         <!-- Daily history -->
-        <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <h2 class="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Historico diario</h2>
+        <section
+          class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+        >
+          <h2 class="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
+            Historico diario
+          </h2>
           @if (s.daily?.length) {
             <div class="overflow-x-auto">
               <table class="min-w-full text-xs">
@@ -137,8 +186,12 @@ import { firstValueFrom } from 'rxjs';
                     <tr class="border-t border-slate-200 dark:border-slate-700">
                       <td class="px-2 py-1 text-slate-800 dark:text-slate-200">{{ d.day }}</td>
                       <td class="px-2 py-1">{{ d.requestCount }}</td>
-                      <td class="px-2 py-1 text-emerald-600 dark:text-emerald-400">{{ d.successCount }}</td>
-                      <td class="px-2 py-1 text-rose-600 dark:text-rose-400">{{ d.failedCount }}</td>
+                      <td class="px-2 py-1 text-emerald-600 dark:text-emerald-400">
+                        {{ d.successCount }}
+                      </td>
+                      <td class="px-2 py-1 text-rose-600 dark:text-rose-400">
+                        {{ d.failedCount }}
+                      </td>
                       <td class="px-2 py-1">{{ d.tokensIn }}</td>
                       <td class="px-2 py-1">{{ d.tokensOut }}</td>
                     </tr>
@@ -154,7 +207,7 @@ import { firstValueFrom } from 'rxjs';
         <p class="text-sm text-rose-600 dark:text-rose-400">{{ e }}</p>
       }
     </div>
-  `
+  `,
 })
 export class AiUsagePageComponent implements OnInit {
   private readonly service = inject(AiUsageService);

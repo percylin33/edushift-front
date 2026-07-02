@@ -1,11 +1,5 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  EventEmitter,
-  Input,
-  Output
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { API } from '@core/constants';
 import { IconComponent, IconName } from '@shared/components';
 import { HasPermissionDirective } from '@shared/directives';
@@ -15,7 +9,7 @@ import {
   MaterialType,
   isFileMaterial,
   materialTypeIcon,
-  materialTypeLabel
+  materialTypeLabel,
 } from '../../models';
 
 /**
@@ -76,22 +70,12 @@ import {
 
       <footer class="card-footer flex flex-wrap items-center justify-end gap-2">
         @if (isLink()) {
-          <a
-            [href]="material.url"
-            target="_blank"
-            rel="noopener"
-            class="btn btn-ghost btn-sm"
-          >
+          <a [href]="material.url" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">
             <app-icon name="globe" [size]="14" />
             Abrir enlace
           </a>
         } @else {
-          <a
-            [href]="downloadUrl()"
-            target="_blank"
-            rel="noopener"
-            class="btn btn-ghost btn-sm"
-          >
+          <a [href]="downloadUrl()" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">
             <app-icon name="download" [size]="14" />
             Descargar
           </a>
@@ -107,7 +91,7 @@ import {
         </button>
       </footer>
     </article>
-  `
+  `,
 })
 export class MaterialCardComponent {
   @Input({ required: true }) material!: MaterialRow;
@@ -133,21 +117,31 @@ export class MaterialCardComponent {
 
   protected iconBgClass(): string {
     switch (this.material.type) {
-      case MaterialType.Pdf: return 'bg-rose-50 text-rose-700';
-      case MaterialType.Image: return 'bg-emerald-50 text-emerald-700';
-      case MaterialType.Doc: return 'bg-sky-50 text-sky-700';
-      case MaterialType.Link: return 'bg-amber-50 text-amber-700';
-      default: return 'bg-slate-50 text-slate-700';
+      case MaterialType.Pdf:
+        return 'bg-rose-50 text-rose-700';
+      case MaterialType.Image:
+        return 'bg-emerald-50 text-emerald-700';
+      case MaterialType.Doc:
+        return 'bg-sky-50 text-sky-700';
+      case MaterialType.Link:
+        return 'bg-amber-50 text-amber-700';
+      default:
+        return 'bg-slate-50 text-slate-700';
     }
   }
 
   protected badgeClass(): string {
     switch (this.material.type) {
-      case MaterialType.Pdf: return 'border-rose-300 bg-rose-50 text-rose-700';
-      case MaterialType.Image: return 'border-emerald-300 bg-emerald-50 text-emerald-700';
-      case MaterialType.Doc: return 'border-sky-300 bg-sky-50 text-sky-700';
-      case MaterialType.Link: return 'border-amber-300 bg-amber-50 text-amber-700';
-      default: return 'border-slate-300 bg-slate-50 text-slate-700';
+      case MaterialType.Pdf:
+        return 'border-rose-300 bg-rose-50 text-rose-700';
+      case MaterialType.Image:
+        return 'border-emerald-300 bg-emerald-50 text-emerald-700';
+      case MaterialType.Doc:
+        return 'border-sky-300 bg-sky-50 text-sky-700';
+      case MaterialType.Link:
+        return 'border-amber-300 bg-amber-50 text-amber-700';
+      default:
+        return 'border-slate-300 bg-slate-50 text-slate-700';
     }
   }
 

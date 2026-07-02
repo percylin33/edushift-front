@@ -16,35 +16,35 @@
  * this enum in sync with `edushift-back/.../security/LmsAuthorities`.
  */
 export enum Permission {
-  StudentsRead   = 'students:read',
-  StudentsWrite  = 'students:write',
+  StudentsRead = 'students:read',
+  StudentsWrite = 'students:write',
   StudentsDelete = 'students:delete',
   StudentsManage = 'students:manage',
 
-  AcademicRead   = 'academic:read',
-  AcademicWrite  = 'academic:write',
+  AcademicRead = 'academic:read',
+  AcademicWrite = 'academic:write',
   AcademicManage = 'academic:manage',
 
-  AttendanceRead   = 'attendance:read',
-  AttendanceWrite  = 'attendance:write',
+  AttendanceRead = 'attendance:read',
+  AttendanceWrite = 'attendance:write',
   AttendanceManage = 'attendance:manage',
 
-  PaymentsRead   = 'payments:read',
-  PaymentsWrite  = 'payments:write',
+  PaymentsRead = 'payments:read',
+  PaymentsWrite = 'payments:write',
   PaymentsManage = 'payments:manage',
 
-  ReportsRead    = 'reports:read',
-  ReportsExport  = 'reports:export',
+  ReportsRead = 'reports:read',
+  ReportsExport = 'reports:export',
 
-  AiUse          = 'ai:use',
-  AiConfigure    = 'ai:configure',
+  AiUse = 'ai:use',
+  AiConfigure = 'ai:configure',
 
-  NotificationsRead   = 'notifications:read',
+  NotificationsRead = 'notifications:read',
   NotificationsManage = 'notifications:manage',
 
-  TenantManage   = 'tenant:manage',
-  UsersManage    = 'users:manage',
-  SettingsRead   = 'settings:read',
+  TenantManage = 'tenant:manage',
+  UsersManage = 'users:manage',
+  SettingsRead = 'settings:read',
   SettingsManage = 'settings:manage',
 
   // -------------------------------------------------------------------------
@@ -52,11 +52,11 @@ export enum Permission {
   // backend one-to-one. See sprint-07a-lms-foundations.md §BE-7a.3 for the
   // role→authority mapping matrix.
   // -------------------------------------------------------------------------
-  LmsTaskRead     = 'LMS_TASK_READ',
-  LmsTaskCreate   = 'LMS_TASK_CREATE',
-  LmsTaskGrade    = 'LMS_TASK_GRADE',
-  LmsTaskSubmit   = 'LMS_TASK_SUBMIT',
-  LmsMaterialRead  = 'LMS_MATERIAL_READ',
+  LmsTaskRead = 'LMS_TASK_READ',
+  LmsTaskCreate = 'LMS_TASK_CREATE',
+  LmsTaskGrade = 'LMS_TASK_GRADE',
+  LmsTaskSubmit = 'LMS_TASK_SUBMIT',
+  LmsMaterialRead = 'LMS_MATERIAL_READ',
   LmsMaterialWrite = 'LMS_MATERIAL_WRITE',
 
   // -------------------------------------------------------------------------
@@ -65,15 +65,23 @@ export enum Permission {
   // `LMS_QUIZ_*` convention as the 7a matrix. Reserved for the Quiz builder
   // (TEACHER), taker (STUDENT/PARENT) and grader (TEACHER) UIs.
   // -------------------------------------------------------------------------
-  LmsQuizRead    = 'LMS_QUIZ_READ',
-  LmsQuizCreate  = 'LMS_QUIZ_CREATE',
-  LmsQuizGrade   = 'LMS_QUIZ_GRADE',
-  LmsQuizSubmit  = 'LMS_QUIZ_SUBMIT',
+  LmsQuizRead = 'LMS_QUIZ_READ',
+  LmsQuizCreate = 'LMS_QUIZ_CREATE',
+  LmsQuizGrade = 'LMS_QUIZ_GRADE',
+  LmsQuizSubmit = 'LMS_QUIZ_SUBMIT',
 
   // -------------------------------------------------------------------------
   // AI assistant (Sprint 7c, BE-7c.1). Authority name mirrors
   // `LmsAuthorities.LMS_AI_GENERATE` on the backend one-to-one. Granted to
   // TENANT_ADMIN + TEACHER only (see `LmsRoleAuthorityMapper`).
   // -------------------------------------------------------------------------
-  LmsAiGenerate  = 'LMS_AI_GENERATE'
+  LmsAiGenerate = 'LMS_AI_GENERATE',
+
+  // -------------------------------------------------------------------------
+  // Payments admin (Sprint 11 / BE-11.7). Authority name mirrors
+  // `LmsAuthorities.LMS_PAYMENT_ADMIN` on the backend. Granted to
+  // TENANT_ADMIN + STAFF (see `LmsRoleAuthorityMapper`). Gates the
+  // `/payments/admin/*` surface (reconcile, refund, mark-paid-cash).
+  // -------------------------------------------------------------------------
+  LmsPaymentAdmin = 'LMS_PAYMENT_ADMIN',
 }

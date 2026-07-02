@@ -68,7 +68,7 @@ import {
   UpdateSectionRequest,
   UpdateTimeSlotRequest,
   UpdateUnitRequest,
-  parseLocalDate
+  parseLocalDate,
 } from '../models';
 
 /**
@@ -156,7 +156,7 @@ export class AcademicApiService {
    */
   listYears(filters: AcademicYearListFilters = {}): Observable<AcademicYearRow[]> {
     const params: Record<string, string | undefined> = {
-      status: filters.status
+      status: filters.status,
     };
     return this.api
       .get<AcademicYearListItemRaw[]>(API.ACADEMIC.YEARS.ROOT, params)
@@ -173,19 +173,16 @@ export class AcademicApiService {
     return this.api
       .post<ApiResponse<AcademicYearResponseRaw>, CreateAcademicYearRequest>(
         API.ACADEMIC.YEARS.ROOT,
-        request
+        request,
       )
       .pipe(map((envelope) => this.toYearDetail(envelope.data)));
   }
 
-  updateYear(
-    publicUuid: string,
-    patch: UpdateAcademicYearRequest
-  ): Observable<AcademicYearDetail> {
+  updateYear(publicUuid: string, patch: UpdateAcademicYearRequest): Observable<AcademicYearDetail> {
     return this.api
       .put<ApiResponse<AcademicYearResponseRaw>, UpdateAcademicYearRequest>(
         API.ACADEMIC.YEARS.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toYearDetail(envelope.data)));
   }
@@ -233,19 +230,16 @@ export class AcademicApiService {
     return this.api
       .post<ApiResponse<AcademicLevelResponseRaw>, CreateAcademicLevelRequest>(
         API.ACADEMIC.LEVELS.ROOT,
-        request
+        request,
       )
       .pipe(map((envelope) => this.toLevel(envelope.data)));
   }
 
-  updateLevel(
-    publicUuid: string,
-    patch: UpdateAcademicLevelRequest
-  ): Observable<AcademicLevel> {
+  updateLevel(publicUuid: string, patch: UpdateAcademicLevelRequest): Observable<AcademicLevel> {
     return this.api
       .put<ApiResponse<AcademicLevelResponseRaw>, UpdateAcademicLevelRequest>(
         API.ACADEMIC.LEVELS.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toLevel(envelope.data)));
   }
@@ -269,20 +263,16 @@ export class AcademicApiService {
     return this.api
       .post<ApiResponse<GradeResponseRaw>, CreateGradeRequest>(
         API.ACADEMIC.LEVELS.GRADES(levelUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toGrade(envelope.data)));
   }
 
-  updateGrade(
-    levelUuid: string,
-    gradeUuid: string,
-    patch: UpdateGradeRequest
-  ): Observable<Grade> {
+  updateGrade(levelUuid: string, gradeUuid: string, patch: UpdateGradeRequest): Observable<Grade> {
     return this.api
       .put<ApiResponse<GradeResponseRaw>, UpdateGradeRequest>(
         API.ACADEMIC.LEVELS.GRADE_BY_ID(levelUuid, gradeUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toGrade(envelope.data)));
   }
@@ -292,9 +282,7 @@ export class AcademicApiService {
    * asociadas (BE-4.3).
    */
   deleteGrade(levelUuid: string, gradeUuid: string): Observable<void> {
-    return this.api.delete<void>(
-      API.ACADEMIC.LEVELS.GRADE_BY_ID(levelUuid, gradeUuid)
-    );
+    return this.api.delete<void>(API.ACADEMIC.LEVELS.GRADE_BY_ID(levelUuid, gradeUuid));
   }
 
   /**
@@ -305,14 +293,11 @@ export class AcademicApiService {
    * <p>Retorna la lista de grades del level ordenada por nuevo
    * {@code ordinal asc} — sin envelope, similar al GET de levels.</p>
    */
-  reorderGrades(
-    levelUuid: string,
-    request: GradeReorderRequest
-  ): Observable<Grade[]> {
+  reorderGrades(levelUuid: string, request: GradeReorderRequest): Observable<Grade[]> {
     return this.api
       .patch<GradeResponseRaw[], GradeReorderRequest>(
         API.ACADEMIC.LEVELS.GRADES_REORDER(levelUuid),
-        request
+        request,
       )
       .pipe(map((rows) => rows.map((r) => this.toGrade(r))));
   }
@@ -334,7 +319,7 @@ export class AcademicApiService {
     const params: Record<string, string | undefined> = {
       academicYearId: filters.academicYearPublicUuid,
       gradeId: filters.gradePublicUuid,
-      levelId: filters.levelPublicUuid
+      levelId: filters.levelPublicUuid,
     };
     return this.api
       .get<SectionListItemRaw[]>(API.ACADEMIC.SECTIONS.ROOT, params)
@@ -343,9 +328,7 @@ export class AcademicApiService {
 
   getSection(publicUuid: string): Observable<SectionDetail> {
     return this.api
-      .get<ApiResponse<SectionResponseRaw>>(
-        API.ACADEMIC.SECTIONS.BY_ID(publicUuid)
-      )
+      .get<ApiResponse<SectionResponseRaw>>(API.ACADEMIC.SECTIONS.BY_ID(publicUuid))
       .pipe(map((envelope) => this.toSectionDetail(envelope.data)));
   }
 
@@ -353,19 +336,16 @@ export class AcademicApiService {
     return this.api
       .post<ApiResponse<SectionResponseRaw>, CreateSectionRequest>(
         API.ACADEMIC.SECTIONS.ROOT,
-        request
+        request,
       )
       .pipe(map((envelope) => this.toSectionDetail(envelope.data)));
   }
 
-  updateSection(
-    publicUuid: string,
-    patch: UpdateSectionRequest
-  ): Observable<SectionDetail> {
+  updateSection(publicUuid: string, patch: UpdateSectionRequest): Observable<SectionDetail> {
     return this.api
       .put<ApiResponse<SectionResponseRaw>, UpdateSectionRequest>(
         API.ACADEMIC.SECTIONS.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toSectionDetail(envelope.data)));
   }
@@ -395,8 +375,7 @@ export class AcademicApiService {
   listCourses(filters: CourseListFilters = {}): Observable<CourseRow[]> {
     const params: Record<string, string | undefined> = {
       levelId: filters.levelPublicUuid,
-      isActive:
-        filters.isActive === undefined ? undefined : String(filters.isActive)
+      isActive: filters.isActive === undefined ? undefined : String(filters.isActive),
     };
     return this.api
       .get<CourseListItemRaw[]>(API.ACADEMIC.COURSES.ROOT, params)
@@ -405,9 +384,7 @@ export class AcademicApiService {
 
   getCourse(publicUuid: string): Observable<CourseDetail> {
     return this.api
-      .get<ApiResponse<CourseResponseRaw>>(
-        API.ACADEMIC.COURSES.BY_ID(publicUuid)
-      )
+      .get<ApiResponse<CourseResponseRaw>>(API.ACADEMIC.COURSES.BY_ID(publicUuid))
       .pipe(map((envelope) => this.toCourseDetail(envelope.data)));
   }
 
@@ -422,10 +399,7 @@ export class AcademicApiService {
    */
   createCourse(request: CreateCourseRequest): Observable<CourseDetail> {
     return this.api
-      .post<ApiResponse<CourseResponseRaw>, CreateCourseRequest>(
-        API.ACADEMIC.COURSES.ROOT,
-        request
-      )
+      .post<ApiResponse<CourseResponseRaw>, CreateCourseRequest>(API.ACADEMIC.COURSES.ROOT, request)
       .pipe(map((envelope) => this.toCourseDetail(envelope.data)));
   }
 
@@ -434,14 +408,11 @@ export class AcademicApiService {
    * cambia levels</strong> — para eso usa
    * {@link #replaceCourseLevels}.
    */
-  updateCourse(
-    publicUuid: string,
-    patch: UpdateCourseRequest
-  ): Observable<CourseDetail> {
+  updateCourse(publicUuid: string, patch: UpdateCourseRequest): Observable<CourseDetail> {
     return this.api
       .put<ApiResponse<CourseResponseRaw>, UpdateCourseRequest>(
         API.ACADEMIC.COURSES.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toCourseDetail(envelope.data)));
   }
@@ -454,12 +425,12 @@ export class AcademicApiService {
    */
   replaceCourseLevels(
     publicUuid: string,
-    request: UpdateCourseLevelsRequest
+    request: UpdateCourseLevelsRequest,
   ): Observable<CourseDetail> {
     return this.api
       .post<ApiResponse<CourseResponseRaw>, UpdateCourseLevelsRequest>(
         API.ACADEMIC.COURSES.LEVELS(publicUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toCourseDetail(envelope.data)));
   }
@@ -485,7 +456,7 @@ export class AcademicApiService {
   listPeriods(filters: AcademicPeriodListFilters = {}): Observable<AcademicPeriodRow[]> {
     const params: Record<string, string | undefined> = {
       academicYearId: filters.academicYearPublicUuid,
-      periodType: filters.periodType
+      periodType: filters.periodType,
     };
     return this.api
       .get<AcademicPeriodListItemRaw[]>(API.ACADEMIC.PERIODS.ROOT, params)
@@ -494,9 +465,7 @@ export class AcademicApiService {
 
   getPeriod(publicUuid: string): Observable<AcademicPeriodDetail> {
     return this.api
-      .get<ApiResponse<AcademicPeriodResponseRaw>>(
-        API.ACADEMIC.PERIODS.BY_ID(publicUuid)
-      )
+      .get<ApiResponse<AcademicPeriodResponseRaw>>(API.ACADEMIC.PERIODS.BY_ID(publicUuid))
       .pipe(map((envelope) => this.toPeriodDetail(envelope.data)));
   }
 
@@ -510,13 +479,11 @@ export class AcademicApiService {
    *   <li>409 {@code PERIOD_DATE_OVERLAP}.</li>
    * </ul>
    */
-  createPeriod(
-    request: CreateAcademicPeriodRequest
-  ): Observable<AcademicPeriodDetail> {
+  createPeriod(request: CreateAcademicPeriodRequest): Observable<AcademicPeriodDetail> {
     return this.api
       .post<ApiResponse<AcademicPeriodResponseRaw>, CreateAcademicPeriodRequest>(
         API.ACADEMIC.PERIODS.ROOT,
-        request
+        request,
       )
       .pipe(map((envelope) => this.toPeriodDetail(envelope.data)));
   }
@@ -527,12 +494,12 @@ export class AcademicApiService {
    */
   updatePeriod(
     publicUuid: string,
-    patch: UpdateAcademicPeriodRequest
+    patch: UpdateAcademicPeriodRequest,
   ): Observable<AcademicPeriodDetail> {
     return this.api
       .put<ApiResponse<AcademicPeriodResponseRaw>, UpdateAcademicPeriodRequest>(
         API.ACADEMIC.PERIODS.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toPeriodDetail(envelope.data)));
   }
@@ -578,14 +545,11 @@ export class AcademicApiService {
    *       {@code displayOrder} (raro: explícito en payload).</li>
    * </ul>
    */
-  createUnit(
-    courseUuid: string,
-    request: CreateUnitRequest
-  ): Observable<UnitDetail> {
+  createUnit(courseUuid: string, request: CreateUnitRequest): Observable<UnitDetail> {
     return this.api
       .post<ApiResponse<UnitResponseRaw>, CreateUnitRequest>(
         API.ACADEMIC.COURSES.UNITS(courseUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toUnitDetail(envelope.data)));
   }
@@ -595,14 +559,11 @@ export class AcademicApiService {
    * {@code displayOrder}</strong> — para mover una unidad usa
    * {@link #reorderUnits}.
    */
-  updateUnit(
-    publicUuid: string,
-    patch: UpdateUnitRequest
-  ): Observable<UnitDetail> {
+  updateUnit(publicUuid: string, patch: UpdateUnitRequest): Observable<UnitDetail> {
     return this.api
       .put<ApiResponse<UnitResponseRaw>, UpdateUnitRequest>(
         API.ACADEMIC.UNITS.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toUnitDetail(envelope.data)));
   }
@@ -625,14 +586,11 @@ export class AcademicApiService {
    * (envelope {@code data}). La UI puede usarla para reemplazar el
    * estado tras commit.</p>
    */
-  reorderUnits(
-    courseUuid: string,
-    request: UnitReorderRequest
-  ): Observable<UnitDetail[]> {
+  reorderUnits(courseUuid: string, request: UnitReorderRequest): Observable<UnitDetail[]> {
     return this.api
       .patch<ApiResponse<UnitResponseRaw[]>, UnitReorderRequest>(
         API.ACADEMIC.COURSES.UNITS_REORDER(courseUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => envelope.data.map((r) => this.toUnitDetail(r))));
   }
@@ -647,7 +605,7 @@ export class AcademicApiService {
    */
   listCompetencies(courseUuid: string, isActive?: boolean): Observable<CompetencyRow[]> {
     const params: Record<string, string | undefined> = {
-      isActive: isActive === undefined ? undefined : String(isActive)
+      isActive: isActive === undefined ? undefined : String(isActive),
     };
     return this.api
       .get<CompetencyListItemRaw[]>(API.ACADEMIC.COURSES.COMPETENCIES(courseUuid), params)
@@ -669,12 +627,12 @@ export class AcademicApiService {
    */
   createCompetency(
     courseUuid: string,
-    request: CreateCompetencyRequest
+    request: CreateCompetencyRequest,
   ): Observable<CompetencyDetail> {
     return this.api
       .post<ApiResponse<CompetencyResponseRaw>, CreateCompetencyRequest>(
         API.ACADEMIC.COURSES.COMPETENCIES(courseUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toCompetencyDetail(envelope.data)));
   }
@@ -686,12 +644,12 @@ export class AcademicApiService {
    */
   updateCompetency(
     publicUuid: string,
-    patch: UpdateCompetencyRequest
+    patch: UpdateCompetencyRequest,
   ): Observable<CompetencyDetail> {
     return this.api
       .put<ApiResponse<CompetencyResponseRaw>, UpdateCompetencyRequest>(
         API.ACADEMIC.COMPETENCIES.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toCompetencyDetail(envelope.data)));
   }
@@ -710,12 +668,12 @@ export class AcademicApiService {
    */
   reorderCompetencies(
     courseUuid: string,
-    request: CompetencyReorderRequest
+    request: CompetencyReorderRequest,
   ): Observable<CompetencyDetail[]> {
     return this.api
       .patch<ApiResponse<CompetencyResponseRaw[]>, CompetencyReorderRequest>(
         API.ACADEMIC.COURSES.COMPETENCIES_REORDER(courseUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => envelope.data.map((r) => this.toCompetencyDetail(r))));
   }
@@ -726,7 +684,9 @@ export class AcademicApiService {
    */
   seedCompetencies(courseUuid: string): Observable<SeedCompetenciesResponse> {
     return this.api
-      .post<ApiResponse<SeedCompetenciesResponse>>(API.ACADEMIC.COURSES.COMPETENCIES_SEED(courseUuid))
+      .post<ApiResponse<SeedCompetenciesResponse>>(
+        API.ACADEMIC.COURSES.COMPETENCIES_SEED(courseUuid),
+      )
       .pipe(map((envelope) => envelope.data));
   }
 
@@ -736,7 +696,7 @@ export class AcademicApiService {
    */
   listCapacities(competencyUuid: string, isActive?: boolean): Observable<CapacityDetail[]> {
     const params: Record<string, string | undefined> = {
-      isActive: isActive === undefined ? undefined : String(isActive)
+      isActive: isActive === undefined ? undefined : String(isActive),
     };
     return this.api
       .get<CapacityResponseRaw[]>(API.ACADEMIC.COMPETENCIES.CAPACITIES(competencyUuid), params)
@@ -752,12 +712,12 @@ export class AcademicApiService {
    */
   createCapacity(
     competencyUuid: string,
-    request: CreateCapacityRequest
+    request: CreateCapacityRequest,
   ): Observable<CapacityDetail> {
     return this.api
       .post<ApiResponse<CapacityResponseRaw>, CreateCapacityRequest>(
         API.ACADEMIC.COMPETENCIES.CAPACITIES(competencyUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toCapacityDetail(envelope.data)));
   }
@@ -767,14 +727,11 @@ export class AcademicApiService {
    * {@code displayOrder}</strong> — para mover una capacidad usa
    * {@link #reorderCapacities}.
    */
-  updateCapacity(
-    publicUuid: string,
-    patch: UpdateCapacityRequest
-  ): Observable<CapacityDetail> {
+  updateCapacity(publicUuid: string, patch: UpdateCapacityRequest): Observable<CapacityDetail> {
     return this.api
       .put<ApiResponse<CapacityResponseRaw>, UpdateCapacityRequest>(
         API.ACADEMIC.CAPACITIES.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toCapacityDetail(envelope.data)));
   }
@@ -792,12 +749,12 @@ export class AcademicApiService {
    */
   reorderCapacities(
     competencyUuid: string,
-    request: CapacityReorderRequest
+    request: CapacityReorderRequest,
   ): Observable<CapacityDetail[]> {
     return this.api
       .patch<ApiResponse<CapacityResponseRaw[]>, CapacityReorderRequest>(
         API.ACADEMIC.COMPETENCIES.CAPACITIES_REORDER(competencyUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => envelope.data.map((r) => this.toCapacityDetail(r))));
   }
@@ -812,7 +769,7 @@ export class AcademicApiService {
    */
   getTeacherSchedule(teacherUuid: string, periodId?: string): Observable<ScheduleSlotItem[]> {
     const params: Record<string, string | undefined> = {
-      periodId
+      periodId,
     };
     return this.api
       .get<ScheduleSlotItemRaw[]>(API.ACADEMIC.SCHEDULE.TEACHER_SCHEDULE(teacherUuid), params)
@@ -825,7 +782,7 @@ export class AcademicApiService {
    */
   getSectionSchedule(sectionUuid: string, periodId?: string): Observable<ScheduleSlotItem[]> {
     const params: Record<string, string | undefined> = {
-      periodId
+      periodId,
     };
     return this.api
       .get<ScheduleSlotItemRaw[]>(API.ACADEMIC.SCHEDULE.SECTION_SCHEDULE(sectionUuid), params)
@@ -836,12 +793,19 @@ export class AcademicApiService {
    * Lista las asignaciones de docentes del tenant.
    * Acepta filtros opcionales para la cascada del formulario de sesiones.
    */
-  listAssignments(filters: { teacherId?: string; sectionId?: string; courseId?: string; activeOnly?: boolean } = {}): Observable<any[]> {
+  listAssignments(
+    filters: {
+      teacherId?: string;
+      sectionId?: string;
+      courseId?: string;
+      activeOnly?: boolean;
+    } = {},
+  ): Observable<any[]> {
     const params: Record<string, string | undefined> = {
       teacherId: filters.teacherId,
       sectionId: filters.sectionId,
       courseId: filters.courseId,
-      activeOnly: filters.activeOnly === undefined ? undefined : String(filters.activeOnly)
+      activeOnly: filters.activeOnly === undefined ? undefined : String(filters.activeOnly),
     };
     return this.api.get<any[]>(API.TEACHER_ASSIGNMENTS.ROOT, params);
   }
@@ -859,11 +823,14 @@ export class AcademicApiService {
    * Crea un time slot para una asignación.
    * Errores: 400 {@code TIME_SLOT_DATE_INVERTED}, 409 {@code TIME_SLOT_OVERLAP}, 409 {@code ASSIGNMENT_NOT_ACTIVE}.
    */
-  createTimeSlot(assignmentUuid: string, request: CreateTimeSlotRequest): Observable<TimeSlotDetail> {
+  createTimeSlot(
+    assignmentUuid: string,
+    request: CreateTimeSlotRequest,
+  ): Observable<TimeSlotDetail> {
     return this.api
       .post<ApiResponse<TimeSlotResponseRaw>, CreateTimeSlotRequest>(
         API.ACADEMIC.TIME_SLOTS.BY_ASSIGNMENT(assignmentUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toTimeSlotDetail(envelope.data)));
   }
@@ -875,7 +842,7 @@ export class AcademicApiService {
     return this.api
       .put<ApiResponse<TimeSlotResponseRaw>, UpdateTimeSlotRequest>(
         API.ACADEMIC.TIME_SLOTS.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toTimeSlotDetail(envelope.data)));
   }
@@ -897,7 +864,7 @@ export class AcademicApiService {
       name: raw.name,
       status: raw.status,
       startDate: parseLocalDate(raw.startDate),
-      endDate: parseLocalDate(raw.endDate)
+      endDate: parseLocalDate(raw.endDate),
     };
   }
 
@@ -909,7 +876,7 @@ export class AcademicApiService {
       startDate: parseLocalDate(raw.startDate),
       endDate: parseLocalDate(raw.endDate),
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 
@@ -921,7 +888,7 @@ export class AcademicApiService {
       ordinal: raw.ordinal,
       grades: (raw.grades ?? []).map((g) => this.toGrade(g)),
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 
@@ -932,7 +899,7 @@ export class AcademicApiService {
       name: raw.name,
       ordinal: raw.ordinal,
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 
@@ -949,7 +916,7 @@ export class AcademicApiService {
       levelCode: raw.levelCode,
       name: raw.name,
       capacity: raw.capacity ?? undefined,
-      displayOrder: raw.displayOrder ?? undefined
+      displayOrder: raw.displayOrder ?? undefined,
     };
   }
 
@@ -969,7 +936,7 @@ export class AcademicApiService {
       capacity: raw.capacity ?? undefined,
       displayOrder: raw.displayOrder ?? undefined,
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 
@@ -981,7 +948,7 @@ export class AcademicApiService {
       credits: raw.credits ?? undefined,
       hoursPerWeek: raw.hoursPerWeek ?? undefined,
       isActive: raw.isActive,
-      levels: raw.levels.slice().sort((a, b) => a.ordinal - b.ordinal)
+      levels: raw.levels.slice().sort((a, b) => a.ordinal - b.ordinal),
     };
   }
 
@@ -996,7 +963,7 @@ export class AcademicApiService {
       isActive: raw.isActive,
       levels: raw.levels.slice().sort((a, b) => a.ordinal - b.ordinal),
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 
@@ -1008,7 +975,7 @@ export class AcademicApiService {
       ordinal: raw.ordinal,
       name: raw.name,
       startDate: parseLocalDate(raw.startDate),
-      endDate: parseLocalDate(raw.endDate)
+      endDate: parseLocalDate(raw.endDate),
     };
   }
 
@@ -1023,7 +990,7 @@ export class AcademicApiService {
       startDate: parseLocalDate(raw.startDate),
       endDate: parseLocalDate(raw.endDate),
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 
@@ -1035,7 +1002,7 @@ export class AcademicApiService {
       startDate: raw.startDate ? parseLocalDate(raw.startDate) : undefined,
       endDate: raw.endDate ? parseLocalDate(raw.endDate) : undefined,
       isActive: raw.isActive,
-      sessionCount: raw.sessionCount
+      sessionCount: raw.sessionCount,
     };
   }
 
@@ -1045,7 +1012,7 @@ export class AcademicApiService {
       course: {
         publicUuid: raw.course.publicUuid,
         code: raw.course.code,
-        name: raw.course.name
+        name: raw.course.name,
       },
       name: raw.name,
       description: raw.description ?? undefined,
@@ -1055,7 +1022,7 @@ export class AcademicApiService {
       isActive: raw.isActive,
       sessionCount: raw.sessionCount,
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 
@@ -1073,7 +1040,7 @@ export class AcademicApiService {
       displayOrder: raw.displayOrder,
       isActive: raw.isActive,
       capacityCount: raw.capacityCount,
-      capacities: []
+      capacities: [],
     };
   }
 
@@ -1097,11 +1064,11 @@ export class AcademicApiService {
           publicUuid: raw.publicUuid,
           code: raw.code,
           name: raw.name,
-          course: raw.course
-        }
+          course: raw.course,
+        },
       })),
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 
@@ -1115,7 +1082,7 @@ export class AcademicApiService {
       displayOrder: raw.displayOrder,
       isActive: raw.isActive,
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 
@@ -1130,7 +1097,7 @@ export class AcademicApiService {
       teacher: raw.teacher ?? undefined,
       course: raw.course,
       section: raw.section ?? undefined,
-      period: raw.period
+      period: raw.period,
     };
   }
 
@@ -1143,7 +1110,7 @@ export class AcademicApiService {
       endTime: raw.endTime,
       classroom: raw.classroom ?? undefined,
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 }

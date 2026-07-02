@@ -8,14 +8,9 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApiError } from '@core/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
@@ -29,7 +24,7 @@ import {
   EvaluationKind,
   EvaluationScale,
   EvaluationStatus,
-  UpdateEvaluationRequest
+  UpdateEvaluationRequest,
 } from '../models';
 
 const NAME_MAX_LENGTH = 200;
@@ -74,14 +69,14 @@ const WEIGHT_MAX = 999.99;
   imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="evaluation-form-title"
       (click)="onBackdropClick($event)"
     >
       <div
-        class="card w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto"
+        class="card max-h-[90vh] w-full max-w-2xl overflow-y-auto shadow-xl"
         (click)="$event.stopPropagation()"
       >
         <header class="card-header flex items-start justify-between gap-3">
@@ -89,21 +84,15 @@ const WEIGHT_MAX = 999.99;
             <h2 id="evaluation-form-title" class="card-title">{{ title() }}</h2>
             <p class="card-description">
               @if (editing()) {
-                Edita los campos permitidos por el ciclo de vida actual.
-                Los campos en gris solo se pueden cambiar en estado
+                Edita los campos permitidos por el ciclo de vida actual. Los campos en gris solo se
+                pueden cambiar en estado
                 <strong>Borrador</strong>.
               } @else {
-                Crea una evaluación borrador. Podrás publicarla más tarde
-                desde el listado.
+                Crea una evaluación borrador. Podrás publicarla más tarde desde el listado.
               }
             </p>
           </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            aria-label="Cerrar"
-            (click)="cancel()"
-          >
+          <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
             <app-icon name="x" [size]="18" />
           </button>
         </header>
@@ -120,11 +109,7 @@ const WEIGHT_MAX = 999.99;
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="field">
               <label class="label" for="evaluation-kind">Tipo *</label>
-              <select
-                id="evaluation-kind"
-                class="input"
-                formControlName="kind"
-              >
+              <select id="evaluation-kind" class="input" formControlName="kind">
                 @for (k of kinds; track k) {
                   <option [value]="k">{{ kindLabel(k) }}</option>
                 }
@@ -136,11 +121,7 @@ const WEIGHT_MAX = 999.99;
 
             <div class="field">
               <label class="label" for="evaluation-scale">Escala *</label>
-              <select
-                id="evaluation-scale"
-                class="input"
-                formControlName="scale"
-              >
+              <select id="evaluation-scale" class="input" formControlName="scale">
                 @for (s of allowedScales(); track s) {
                   <option [value]="s">{{ scaleLabel(s) }}</option>
                 }
@@ -168,9 +149,7 @@ const WEIGHT_MAX = 999.99;
             @if (showError('name'); as msg) {
               <p class="field-error">{{ msg }}</p>
             } @else {
-              <p class="field-hint">
-                Único dentro de esta asignación (no diferencia mayúsculas).
-              </p>
+              <p class="field-hint">Único dentro de esta asignación (no diferencia mayúsculas).</p>
             }
           </div>
 
@@ -227,12 +206,7 @@ const WEIGHT_MAX = 999.99;
 
             <div class="field">
               <label class="label" for="evaluation-due">Entrega</label>
-              <input
-                id="evaluation-due"
-                type="date"
-                class="input"
-                formControlName="dueDate"
-              />
+              <input id="evaluation-due" type="date" class="input" formControlName="dueDate" />
               @if (showError('dueDate'); as msg) {
                 <p class="field-error">{{ msg }}</p>
               } @else {
@@ -259,14 +233,12 @@ const WEIGHT_MAX = 999.99;
                   autocomplete="off"
                 />
                 <p class="field-hint">
-                  Vacío para desanclar. La unidad debe pertenecer al
-                  mismo curso que esta asignación.
+                  Vacío para desanclar. La unidad debe pertenecer al mismo curso que esta
+                  asignación.
                 </p>
               </div>
               <div class="field">
-                <label class="label" for="evaluation-session">
-                  Sesión anclada
-                </label>
+                <label class="label" for="evaluation-session"> Sesión anclada </label>
                 <input
                   id="evaluation-session"
                   type="text"
@@ -276,8 +248,7 @@ const WEIGHT_MAX = 999.99;
                   autocomplete="off"
                 />
                 <p class="field-hint">
-                  Vacío para desanclar. La sesión debe pertenecer a esta
-                  asignación.
+                  Vacío para desanclar. La sesión debe pertenecer a esta asignación.
                 </p>
               </div>
             </div>
@@ -286,16 +257,14 @@ const WEIGHT_MAX = 999.99;
               <input type="checkbox" formControlName="isActive" />
               <span>Evaluación activa</span>
               <span class="text-xs text-content-muted">
-                (las inactivas siguen visibles para el docente pero
-                no aparecen en cómputos por defecto)
+                (las inactivas siguen visibles para el docente pero no aparecen en cómputos por
+                defecto)
               </span>
             </label>
           }
 
           <footer class="flex flex-wrap items-center justify-end gap-2 pt-2">
-            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">
-              Cancelar
-            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">Cancelar</button>
             <button
               type="submit"
               class="btn btn-primary btn-sm"
@@ -313,7 +282,7 @@ const WEIGHT_MAX = 999.99;
         </form>
       </div>
     </div>
-  `
+  `,
 })
 export class EvaluationFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -332,13 +301,13 @@ export class EvaluationFormModalComponent implements OnInit {
 
   protected readonly editing = computed(() => this.evaluation() !== null);
   protected readonly title = computed(() =>
-    this.editing() ? 'Editar evaluación' : 'Nueva evaluación'
+    this.editing() ? 'Editar evaluación' : 'Nueva evaluación',
   );
   protected readonly submitLabel = computed(() =>
-    this.editing() ? 'Guardar cambios' : 'Crear borrador'
+    this.editing() ? 'Guardar cambios' : 'Crear borrador',
   );
   protected readonly isReadOnly = computed(
-    () => this.evaluation()?.status === EvaluationStatus.CLOSED
+    () => this.evaluation()?.status === EvaluationStatus.CLOSED,
   );
 
   protected readonly nameMaxLength = NAME_MAX_LENGTH;
@@ -350,12 +319,12 @@ export class EvaluationFormModalComponent implements OnInit {
     EvaluationKind.QUIZ,
     EvaluationKind.EXAM,
     EvaluationKind.RUBRIC,
-    EvaluationKind.COMPETENCY
+    EvaluationKind.COMPETENCY,
   ];
 
   /** Subset de scales válidas según el kind activo en el form. */
   protected readonly allowedScales = signal<EvaluationScale[]>(
-    ALLOWED_SCALES_BY_KIND[EvaluationKind.TASK]
+    ALLOWED_SCALES_BY_KIND[EvaluationKind.TASK],
   );
 
   private readonly fieldErrors = signal<Record<string, string>>({});
@@ -366,21 +335,14 @@ export class EvaluationFormModalComponent implements OnInit {
       scale: [EvaluationScale.SCORE_0_20, [Validators.required]],
       name: ['', [Validators.required, Validators.maxLength(NAME_MAX_LENGTH)]],
       description: ['', [Validators.maxLength(DESCRIPTION_MAX_LENGTH)]],
-      weight: [
-        25,
-        [
-          Validators.required,
-          Validators.min(WEIGHT_MIN),
-          Validators.max(WEIGHT_MAX)
-        ]
-      ],
+      weight: [25, [Validators.required, Validators.min(WEIGHT_MIN), Validators.max(WEIGHT_MAX)]],
       scheduledDate: [this.todayIso, [Validators.required]],
       dueDate: [''],
       unitPublicUuid: [''],
       learningSessionPublicUuid: [''],
-      isActive: [true]
+      isActive: [true],
     },
-    { validators: [dateRangeValidator] }
+    { validators: [dateRangeValidator] },
   );
 
   ngOnInit(): void {
@@ -398,7 +360,7 @@ export class EvaluationFormModalComponent implements OnInit {
         dueDate: e.dueDate ? toDateInput(e.dueDate) : '',
         unitPublicUuid: e.unitPublicUuid ?? '',
         learningSessionPublicUuid: e.learningSessionPublicUuid ?? '',
-        isActive: e.isActive
+        isActive: e.isActive,
       });
 
       // PUBLISHED: solo description y dueDate son editables.
@@ -480,7 +442,7 @@ export class EvaluationFormModalComponent implements OnInit {
           description: ((v.description as string) ?? '').trim() || undefined,
           weight: parseFloat(String(v.weight)),
           scheduledDate: v.scheduledDate as string,
-          dueDate: (v.dueDate as string) || undefined
+          dueDate: (v.dueDate as string) || undefined,
         };
         const created = await this.store.create(assignmentUuid, payload);
         if (created) this.saved.emit(created);
@@ -540,7 +502,7 @@ export class EvaluationFormModalComponent implements OnInit {
       'scheduledDate',
       'unitPublicUuid',
       'learningSessionPublicUuid',
-      'isActive'
+      'isActive',
     ];
     for (const ctrl of lockable) {
       this.form.get(ctrl)?.disable();
@@ -555,8 +517,7 @@ export class EvaluationFormModalComponent implements OnInit {
    */
   private applyServerErrors(err: unknown): void {
     if (!(err instanceof HttpErrorResponse)) return;
-    const apiErr = (err.error as { errors?: ApiError[] } | null | undefined)
-      ?.errors?.[0];
+    const apiErr = (err.error as { errors?: ApiError[] } | null | undefined)?.errors?.[0];
     if (!apiErr) return;
 
     const next: Record<string, string> = {};
@@ -571,12 +532,10 @@ export class EvaluationFormModalComponent implements OnInit {
         next['dueDate'] = 'La fecha de entrega debe ser ≥ la fecha programada.';
         break;
       case 'EVAL_UNIT_NOT_IN_COURSE':
-        next['unitPublicUuid'] =
-          'La unidad debe pertenecer al mismo curso que la asignación.';
+        next['unitPublicUuid'] = 'La unidad debe pertenecer al mismo curso que la asignación.';
         break;
       case 'EVAL_SESSION_NOT_IN_ASSIGNMENT':
-        next['learningSessionPublicUuid'] =
-          'La sesión debe pertenecer a esta asignación.';
+        next['learningSessionPublicUuid'] = 'La sesión debe pertenecer a esta asignación.';
         break;
     }
     this.fieldErrors.set(next);

@@ -121,7 +121,7 @@ export class TenantService {
     '.ngrok.dev',
     '.trycloudflare.com',
     '.loca.lt',
-    '.lhr.life'
+    '.lhr.life',
   ];
 
   private static isTunnelHost(host: string): boolean {
@@ -165,7 +165,7 @@ export class TenantService {
       slug: trimmed,
       name: trimmed,
       status: TenantStatus.Active,
-      isActive: true
+      isActive: true,
     };
     this._context.set({ tenant: placeholder, resolvedFrom: 'header' });
     this.storage.set(STORAGE_KEYS.CURRENT_TENANT, trimmed);
@@ -174,7 +174,7 @@ export class TenantService {
   setTenant(
     tenant: Tenant | null,
     resolvedFrom: TenantContext['resolvedFrom'] = 'default',
-    options: { persist?: boolean } = {}
+    options: { persist?: boolean } = {},
   ): void {
     const persist = options.persist ?? true;
     this._context.set({ tenant, resolvedFrom });

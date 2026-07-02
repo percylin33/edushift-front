@@ -28,7 +28,7 @@ import {
   StudentRow,
   UpdateGuardianLinkRequest,
   UpdateStudentRequest,
-  WithdrawEnrollmentRequest
+  WithdrawEnrollmentRequest,
 } from '../models';
 
 /**
@@ -74,7 +74,7 @@ export class StudentsApiService {
    */
   list(
     filters: StudentListFilters = {},
-    pagination: StudentListPagination = {}
+    pagination: StudentListPagination = {},
   ): Observable<SpringPage<StudentRow>> {
     const params: Record<string, string | number | undefined> = {
       search: filters.search?.trim() || undefined,
@@ -84,7 +84,7 @@ export class StudentsApiService {
       currentAcademicYearId: filters.currentAcademicYearId,
       page: pagination.page,
       size: pagination.size,
-      sort: pagination.sort
+      sort: pagination.sort,
     };
 
     return this.api
@@ -100,10 +100,7 @@ export class StudentsApiService {
 
   create(request: CreateStudentRequest): Observable<StudentDetail> {
     return this.api
-      .post<ApiResponse<StudentResponseRaw>, CreateStudentRequest>(
-        API.STUDENTS.ROOT,
-        request
-      )
+      .post<ApiResponse<StudentResponseRaw>, CreateStudentRequest>(API.STUDENTS.ROOT, request)
       .pipe(map((envelope) => this.toStudentDetail(envelope.data)));
   }
 
@@ -111,7 +108,7 @@ export class StudentsApiService {
     return this.api
       .put<ApiResponse<StudentResponseRaw>, UpdateStudentRequest>(
         API.STUDENTS.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toStudentDetail(envelope.data)));
   }
@@ -137,7 +134,7 @@ export class StudentsApiService {
    */
   downloadTemplate(): Observable<Blob> {
     return this.http.get(API.STUDENTS.BULK_IMPORT.TEMPLATE, {
-      responseType: 'blob'
+      responseType: 'blob',
     });
   }
 
@@ -151,10 +148,7 @@ export class StudentsApiService {
     const form = new FormData();
     form.append('file', file, file.name);
     return this.http
-      .post<ApiResponse<BulkImportJobResponseRaw>>(
-        API.STUDENTS.BULK_IMPORT.ROOT,
-        form
-      )
+      .post<ApiResponse<BulkImportJobResponseRaw>>(API.STUDENTS.BULK_IMPORT.ROOT, form)
       .pipe(map((envelope) => this.toBulkImportJob(envelope.data)));
   }
 
@@ -166,9 +160,7 @@ export class StudentsApiService {
    */
   getBulkImportJob(publicUuid: string): Observable<BulkImportJob> {
     return this.api
-      .get<ApiResponse<BulkImportJobResponseRaw>>(
-        API.STUDENTS.BULK_IMPORT.BY_ID(publicUuid)
-      )
+      .get<ApiResponse<BulkImportJobResponseRaw>>(API.STUDENTS.BULK_IMPORT.BY_ID(publicUuid))
       .pipe(map((envelope) => this.toBulkImportJob(envelope.data)));
   }
 
@@ -194,14 +186,11 @@ export class StudentsApiService {
    * response carries the freshly persisted projection (including
    * {@code linkPublicUuid} the UI needs for subsequent edits).
    */
-  addGuardian(
-    studentPublicUuid: string,
-    request: AddGuardianRequest
-  ): Observable<Guardian> {
+  addGuardian(studentPublicUuid: string, request: AddGuardianRequest): Observable<Guardian> {
     return this.api
       .post<ApiResponse<GuardianResponseRaw>, AddGuardianRequest>(
         API.STUDENTS.GUARDIANS(studentPublicUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toGuardian(envelope.data)));
   }
@@ -214,12 +203,12 @@ export class StudentsApiService {
   updateGuardianLink(
     studentPublicUuid: string,
     guardianPublicUuid: string,
-    patch: UpdateGuardianLinkRequest
+    patch: UpdateGuardianLinkRequest,
   ): Observable<Guardian> {
     return this.api
       .put<ApiResponse<GuardianResponseRaw>, UpdateGuardianLinkRequest>(
         API.STUDENTS.GUARDIAN_BY_ID(studentPublicUuid, guardianPublicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toGuardian(envelope.data)));
   }
@@ -229,12 +218,9 @@ export class StudentsApiService {
    * a sibling). Backend returns 422 LAST_PRIMARY_CONTACT when the
    * removal would strand the student without a primary contact.
    */
-  unlinkGuardian(
-    studentPublicUuid: string,
-    guardianPublicUuid: string
-  ): Observable<void> {
+  unlinkGuardian(studentPublicUuid: string, guardianPublicUuid: string): Observable<void> {
     return this.api.delete<void>(
-      API.STUDENTS.GUARDIAN_BY_ID(studentPublicUuid, guardianPublicUuid)
+      API.STUDENTS.GUARDIAN_BY_ID(studentPublicUuid, guardianPublicUuid),
     );
   }
 
@@ -266,12 +252,12 @@ export class StudentsApiService {
    */
   createEnrollment(
     studentPublicUuid: string,
-    request: CreateEnrollmentRequest
+    request: CreateEnrollmentRequest,
   ): Observable<EnrollmentDetail> {
     return this.api
       .post<ApiResponse<EnrollmentResponseRaw>, CreateEnrollmentRequest>(
         API.STUDENTS.ENROLLMENTS(studentPublicUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toEnrollmentDetail(envelope.data)));
   }
@@ -286,12 +272,12 @@ export class StudentsApiService {
    */
   withdrawEnrollment(
     enrollmentPublicUuid: string,
-    request: WithdrawEnrollmentRequest
+    request: WithdrawEnrollmentRequest,
   ): Observable<EnrollmentDetail> {
     return this.api
       .post<ApiResponse<EnrollmentResponseRaw>, WithdrawEnrollmentRequest>(
         API.ENROLLMENTS.WITHDRAW(enrollmentPublicUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toEnrollmentDetail(envelope.data)));
   }
@@ -302,13 +288,9 @@ export class StudentsApiService {
    * aparecen aquí (forman parte del histórico del estudiante).
    * Ordenado alfabéticamente por apellido.
    */
-  listSectionRoster(
-    sectionPublicUuid: string
-  ): Observable<SectionStudentRosterItem[]> {
+  listSectionRoster(sectionPublicUuid: string): Observable<SectionStudentRosterItem[]> {
     return this.api
-      .get<SectionStudentRosterItemRaw[]>(
-        API.ACADEMIC.SECTIONS.STUDENTS(sectionPublicUuid)
-      )
+      .get<SectionStudentRosterItemRaw[]>(API.ACADEMIC.SECTIONS.STUDENTS(sectionPublicUuid))
       .pipe(map((rows) => rows.map((r) => this.toRosterItem(r))));
   }
 
@@ -316,12 +298,10 @@ export class StudentsApiService {
   // Adapters
   // ---------------------------------------------------------------------------
 
-  private toStudentPage(
-    raw: SpringPage<StudentListItemRaw>
-  ): SpringPage<StudentRow> {
+  private toStudentPage(raw: SpringPage<StudentListItemRaw>): SpringPage<StudentRow> {
     return {
       ...raw,
-      content: raw.content.map((row) => this.toStudentRow(row))
+      content: raw.content.map((row) => this.toStudentRow(row)),
     };
   }
 
@@ -335,7 +315,7 @@ export class StudentsApiService {
       fullName: raw.fullName,
       email: raw.email ?? undefined,
       enrollmentStatus: raw.enrollmentStatus,
-      enrollmentDate: this.parseDate(raw.enrollmentDate)
+      enrollmentDate: this.parseDate(raw.enrollmentDate),
     };
   }
 
@@ -358,7 +338,7 @@ export class StudentsApiService {
       userId: raw.userId ?? undefined,
       metadata: raw.metadata ?? undefined,
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 
@@ -376,7 +356,7 @@ export class StudentsApiService {
       failReason: raw.failReason ?? undefined,
       startedAt: this.parseDate(raw.startedAt),
       finishedAt: this.parseDate(raw.finishedAt),
-      createdAt: this.parseDate(raw.createdAt)
+      createdAt: this.parseDate(raw.createdAt),
     };
   }
 
@@ -394,13 +374,11 @@ export class StudentsApiService {
       occupation: raw.occupation ?? undefined,
       relationship: raw.relationship,
       isPrimaryContact: raw.isPrimaryContact,
-      canPickupStudent: raw.canPickupStudent
+      canPickupStudent: raw.canPickupStudent,
     };
   }
 
-  private toRowErrors(
-    raw: BulkImportRowErrorRaw[] | null | undefined
-  ): BulkImportRowError[] {
+  private toRowErrors(raw: BulkImportRowErrorRaw[] | null | undefined): BulkImportRowError[] {
     if (!raw || raw.length === 0) return [];
     return raw.map((e) => ({ row: e.row, code: e.code, message: e.message }));
   }
@@ -417,7 +395,7 @@ export class StudentsApiService {
       enrolledAt: this.parseDate(raw.enrolledAt),
       withdrawnAt: this.parseDate(raw.withdrawnAt),
       status: raw.status,
-      active: raw.active
+      active: raw.active,
     };
   }
 
@@ -437,13 +415,11 @@ export class StudentsApiService {
       active: raw.active,
       notes: raw.notes ?? undefined,
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 
-  private toRosterItem(
-    raw: SectionStudentRosterItemRaw
-  ): SectionStudentRosterItem {
+  private toRosterItem(raw: SectionStudentRosterItemRaw): SectionStudentRosterItem {
     return {
       enrollmentPublicUuid: raw.enrollmentPublicUuid,
       studentPublicUuid: raw.studentPublicUuid,
@@ -451,7 +427,7 @@ export class StudentsApiService {
       studentDocumentNumber: raw.studentDocumentNumber,
       studentDocumentType: raw.studentDocumentType,
       studentEmail: raw.studentEmail ?? undefined,
-      enrolledAt: this.parseDate(raw.enrolledAt)
+      enrolledAt: this.parseDate(raw.enrolledAt),
     };
   }
 

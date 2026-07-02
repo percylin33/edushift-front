@@ -15,5 +15,5 @@ export enum UserRole {
   Teacher = 'TEACHER',
   Student = 'STUDENT',
   Guardian = 'GUARDIAN',
-  Guest = 'GUEST'
+  Guest = 'GUEST',
 }

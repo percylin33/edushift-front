@@ -8,14 +8,9 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApiError } from '@core/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
@@ -51,7 +46,7 @@ import { Grade } from '../models';
   imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="grade-form-title"
@@ -61,16 +56,9 @@ import { Grade } from '../models';
         <header class="card-header flex items-start justify-between gap-3">
           <div>
             <h2 id="grade-form-title" class="card-title">{{ title() }}</h2>
-            <p class="card-description">
-              Grado dentro del nivel actual (ej. "1ro", "2do").
-            </p>
+            <p class="card-description">Grado dentro del nivel actual (ej. "1ro", "2do").</p>
           </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            aria-label="Cerrar"
-            (click)="cancel()"
-          >
+          <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
             <app-icon name="x" [size]="18" />
           </button>
         </header>
@@ -118,9 +106,7 @@ import { Grade } from '../models';
           </div>
 
           <footer class="flex flex-wrap items-center justify-end gap-2 pt-2">
-            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">
-              Cancelar
-            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">Cancelar</button>
             <button
               type="submit"
               class="btn btn-primary btn-sm"
@@ -138,7 +124,7 @@ import { Grade } from '../models';
         </form>
       </div>
     </div>
-  `
+  `,
 })
 export class GradeFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -158,18 +144,16 @@ export class GradeFormModalComponent implements OnInit {
   protected readonly errorBanner = this.store.error;
 
   protected readonly editing = computed(() => this.grade() !== null);
-  protected readonly title = computed(() =>
-    this.editing() ? 'Editar grado' : 'Nuevo grado'
-  );
+  protected readonly title = computed(() => (this.editing() ? 'Editar grado' : 'Nuevo grado'));
   protected readonly submitLabel = computed(() =>
-    this.editing() ? 'Guardar cambios' : 'Crear grado'
+    this.editing() ? 'Guardar cambios' : 'Crear grado',
   );
 
   private readonly fieldErrors = signal<Record<string, string>>({});
 
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
-    ordinal: [1, [Validators.required, Validators.min(1)]]
+    ordinal: [1, [Validators.required, Validators.min(1)]],
   });
 
   ngOnInit(): void {
@@ -206,7 +190,7 @@ export class GradeFormModalComponent implements OnInit {
       if (g) {
         const updated = await this.store.updateGrade(g.levelPublicUuid, g.publicUuid, {
           name: v.name?.trim(),
-          ordinal: v.ordinal
+          ordinal: v.ordinal,
         });
         if (updated) {
           this.saved.emit(updated);
@@ -216,14 +200,13 @@ export class GradeFormModalComponent implements OnInit {
         if (!lvl) return;
         const created = await this.store.createGrade(lvl, {
           name: (v.name ?? '').trim(),
-          ordinal: v.ordinal as number
+          ordinal: v.ordinal as number,
         });
         if (created) {
           this.saved.emit(created);
         }
       }
-    }
-    catch (err) {
+    } catch (err) {
       this.applyServerErrors(err);
     }
   }

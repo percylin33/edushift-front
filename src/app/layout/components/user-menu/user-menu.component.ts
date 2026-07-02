@@ -19,9 +19,7 @@ import { AuthApiService } from '@features/auth/services/auth-api.service';
     <div class="relative">
       <button
         type="button"
-        class="flex items-center gap-2 rounded-md p-1.5 text-content
-               hover:bg-surface-muted
-               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
+        class="flex items-center gap-2 rounded-md p-1.5 text-content hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
         [attr.aria-expanded]="open()"
         aria-haspopup="menu"
         (click)="toggle()"
@@ -50,8 +48,7 @@ import { AuthApiService } from '@features/auth/services/auth-api.service';
         ></button>
 
         <div
-          class="absolute right-0 z-40 mt-2 w-60 origin-top-right animate-fade-in
-                 rounded-lg border border-border bg-surface-raised p-1 shadow-soft-lg"
+          class="absolute right-0 z-40 mt-2 w-60 origin-top-right animate-fade-in rounded-lg border border-border bg-surface-raised p-1 shadow-soft-lg"
           role="menu"
         >
           <div class="border-b border-border-subtle px-3 py-2">
@@ -64,8 +61,7 @@ import { AuthApiService } from '@features/auth/services/auth-api.service';
           <a
             [routerLink]="['/profile']"
             role="menuitem"
-            class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-content
-                   hover:bg-surface-muted"
+            class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-content hover:bg-surface-muted"
             (click)="close()"
           >
             <app-icon name="user" [size]="16" class="text-content-subtle" />
@@ -74,8 +70,7 @@ import { AuthApiService } from '@features/auth/services/auth-api.service';
           <a
             [routerLink]="['/settings']"
             role="menuitem"
-            class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-content
-                   hover:bg-surface-muted"
+            class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-content hover:bg-surface-muted"
             (click)="close()"
           >
             <app-icon name="settings" [size]="16" class="text-content-subtle" />
@@ -88,8 +83,7 @@ import { AuthApiService } from '@features/auth/services/auth-api.service';
             <button
               type="button"
               role="menuitem"
-              class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-danger
-                     hover:bg-danger/10"
+              class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-danger hover:bg-danger/10"
               (click)="signOut()"
             >
               <app-icon name="log-out" [size]="16" />
@@ -99,8 +93,7 @@ import { AuthApiService } from '@features/auth/services/auth-api.service';
             <a
               [routerLink]="loginRoute"
               role="menuitem"
-              class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-primary-700
-                     dark:text-primary-300 hover:bg-surface-muted"
+              class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-primary-700 hover:bg-surface-muted dark:text-primary-300"
               (click)="close()"
             >
               <app-icon name="log-in" [size]="16" />
@@ -110,7 +103,7 @@ import { AuthApiService } from '@features/auth/services/auth-api.service';
         </div>
       }
     </div>
-  `
+  `,
 })
 export class UserMenuComponent {
   private readonly auth = inject(AuthService);
@@ -134,8 +127,12 @@ export class UserMenuComponent {
 
   readonly loginRoute = ROUTES.AUTH.LOGIN;
 
-  toggle(): void { this._open.update((v) => !v); }
-  close(): void { this._open.set(false); }
+  toggle(): void {
+    this._open.update((v) => !v);
+  }
+  close(): void {
+    this._open.set(false);
+  }
 
   /**
    * Logout flow:
@@ -167,7 +164,7 @@ export class UserMenuComponent {
 
     this.authApi.logout(refresh).subscribe({
       complete: () => finishLocally(),
-      error: () => finishLocally()
+      error: () => finishLocally(),
     });
   }
 }

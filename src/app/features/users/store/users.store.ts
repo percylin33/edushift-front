@@ -7,7 +7,7 @@ import {
   UserDetail,
   UserListFilters,
   UserListPagination,
-  UserRow
+  UserRow,
 } from '../models';
 
 /** Internal pagination state — zero-based to match Spring's contract. */
@@ -55,7 +55,7 @@ export class UsersStore {
     page: 0,
     size: 20,
     totalElements: 0,
-    totalPages: 0
+    totalPages: 0,
   });
   private readonly _loading = signal(false);
 
@@ -128,14 +128,12 @@ export class UsersStore {
         page: result.number,
         size: result.size,
         totalElements: result.totalElements,
-        totalPages: result.totalPages
+        totalPages: result.totalPages,
       });
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._items.set([]);
-    }
-    finally {
+    } finally {
       this._loading.set(false);
     }
   }
@@ -152,13 +150,11 @@ export class UsersStore {
       const detail = await firstValueFrom(this.api.get(publicUuid));
       this._selected.set(detail);
       return detail;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._selected.set(null);
       return null;
-    }
-    finally {
+    } finally {
       this._loadingDetail.set(false);
     }
   }
@@ -185,12 +181,10 @@ export class UsersStore {
     try {
       await firstValueFrom(this.api.resetPassword(publicUuid));
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return false;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
@@ -223,7 +217,7 @@ export class UsersStore {
    * {@code null} so it can branch on the result without try/catch).
    */
   private async runMutation(
-    op: () => ReturnType<UsersApiService['update']>
+    op: () => ReturnType<UsersApiService['update']>,
   ): Promise<UserDetail | null> {
     this._saving.set(true);
     this._error.set(null);
@@ -233,12 +227,10 @@ export class UsersStore {
       this._selected.set(updated);
       this.upsertRow(updated);
       return updated;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
@@ -263,7 +255,7 @@ export class UsersStore {
         status: detail.status,
         roles: detail.roles,
         lastLoginAt: detail.lastLoginAt,
-        createdAt: detail.createdAt
+        createdAt: detail.createdAt,
       };
       return next;
     });

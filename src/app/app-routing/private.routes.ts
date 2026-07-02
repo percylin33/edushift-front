@@ -25,42 +25,45 @@ export const PRIVATE_ROUTES: Routes = [
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Dashboard, breadcrumb: 'Dashboard', title: 'Dashboard' },
         loadChildren: () =>
-          import('@features/dashboard/dashboard.routes').then((m) => m.DASHBOARD_ROUTES)
+          import('@features/dashboard/dashboard.routes').then((m) => m.DASHBOARD_ROUTES),
       },
       {
         path: 'users',
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Users, breadcrumb: 'Usuarios', title: 'Usuarios' },
-        loadChildren: () =>
-          import('@features/users/users.routes').then((m) => m.USERS_ROUTES)
+        loadChildren: () => import('@features/users/users.routes').then((m) => m.USERS_ROUTES),
       },
       {
         path: 'students',
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Students, breadcrumb: 'Estudiantes', title: 'Estudiantes' },
         loadChildren: () =>
-          import('@features/students/students.routes').then((m) => m.STUDENTS_ROUTES)
+          import('@features/students/students.routes').then((m) => m.STUDENTS_ROUTES),
       },
       {
         path: 'teachers',
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Teachers, breadcrumb: 'Docentes', title: 'Docentes' },
         loadChildren: () =>
-          import('@features/teachers/teachers.routes').then((m) => m.TEACHERS_ROUTES)
+          import('@features/teachers/teachers.routes').then((m) => m.TEACHERS_ROUTES),
       },
       {
         path: 'academic',
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Academic, breadcrumb: 'Académico', title: 'Académico' },
         loadChildren: () =>
-          import('@features/academic/academic.routes').then((m) => m.ACADEMIC_ROUTES)
+          import('@features/academic/academic.routes').then((m) => m.ACADEMIC_ROUTES),
       },
       {
         path: 'learning-sessions',
         canActivate: [featureFlagGuard],
-        data: { feature: FeatureKey.Sessions, breadcrumb: 'Sesiones', title: 'Sesiones de Aprendizaje' },
+        data: {
+          feature: FeatureKey.Sessions,
+          breadcrumb: 'Sesiones',
+          title: 'Sesiones de Aprendizaje',
+        },
         loadChildren: () =>
-          import('@features/sessions/sessions.routes').then((m) => m.SESSIONS_ROUTES)
+          import('@features/sessions/sessions.routes').then((m) => m.SESSIONS_ROUTES),
       },
       {
         path: 'evaluations',
@@ -68,12 +71,10 @@ export const PRIVATE_ROUTES: Routes = [
         data: {
           feature: FeatureKey.Evaluations,
           breadcrumb: 'Evaluaciones',
-          title: 'Evaluaciones'
+          title: 'Evaluaciones',
         },
         loadChildren: () =>
-          import('@features/evaluations/evaluations.routes').then(
-            (m) => m.EVALUATIONS_ROUTES
-          )
+          import('@features/evaluations/evaluations.routes').then((m) => m.EVALUATIONS_ROUTES),
       },
       {
         path: 'rubrics',
@@ -81,39 +82,37 @@ export const PRIVATE_ROUTES: Routes = [
         data: {
           feature: FeatureKey.Rubrics,
           breadcrumb: 'Rúbricas',
-          title: 'Rúbricas'
+          title: 'Rúbricas',
         },
         loadChildren: () =>
-          import('@features/rubrics/rubrics.routes').then(
-            (m) => m.RUBRICS_ROUTES
-          )
+          import('@features/rubrics/rubrics.routes').then((m) => m.RUBRICS_ROUTES),
       },
       {
         path: 'attendance',
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Attendance, breadcrumb: 'Asistencia', title: 'Asistencia' },
         loadChildren: () =>
-          import('@features/attendance/attendance.routes').then((m) => m.ATTENDANCE_ROUTES)
+          import('@features/attendance/attendance.routes').then((m) => m.ATTENDANCE_ROUTES),
       },
       {
         path: 'payments',
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Payments, breadcrumb: 'Pagos', title: 'Pagos' },
         loadChildren: () =>
-          import('@features/payments/payments.routes').then((m) => m.PAYMENTS_ROUTES)
+          import('@features/payments/payments.routes').then((m) => m.PAYMENTS_ROUTES),
       },
       {
         path: 'ai',
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Ai, breadcrumb: 'Asistente IA', title: 'Asistente IA' },
-        loadChildren: () => import('@features/ai/ai.routes').then((m) => m.AI_ROUTES)
+        loadChildren: () => import('@features/ai/ai.routes').then((m) => m.AI_ROUTES),
       },
       {
         path: 'reports',
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Reports, breadcrumb: 'Reportes', title: 'Reportes' },
         loadChildren: () =>
-          import('@features/reports/reports.routes').then((m) => m.REPORTS_ROUTES)
+          import('@features/reports/reports.routes').then((m) => m.REPORTS_ROUTES),
       },
       {
         path: 'notifications',
@@ -121,26 +120,38 @@ export const PRIVATE_ROUTES: Routes = [
         data: {
           feature: FeatureKey.Notifications,
           breadcrumb: 'Notificaciones',
-          title: 'Notificaciones'
+          title: 'Notificaciones',
         },
         loadChildren: () =>
           import('@features/notifications/notifications.routes').then(
-            (m) => m.NOTIFICATIONS_ROUTES
-          )
+            (m) => m.NOTIFICATIONS_ROUTES,
+          ),
       },
       {
         path: 'settings',
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Settings, breadcrumb: 'Configuración', title: 'Configuración' },
         loadChildren: () =>
-          import('@features/settings/settings.routes').then((m) => m.SETTINGS_ROUTES)
+          import('@features/settings/settings.routes').then((m) => m.SETTINGS_ROUTES),
       },
       {
         path: 'lms',
         canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Lms, breadcrumb: 'LMS', title: 'LMS' },
-        loadChildren: () => import('@features/lms/lms.routes').then((m) => m.LMS_ROUTES)
-      }
-    ]
-  }
+        loadChildren: () => import('@features/lms/lms.routes').then((m) => m.LMS_ROUTES),
+      },
+      /*
+       * Sprint 17 / FE-17.2 — self-service profile. Lives in the
+       * private tree because it requires an authenticated session.
+       * No `featureFlagGuard` (every user has a profile) and no
+       * `tenantGuard` (the profile is for the current session, not a
+       * specific tenant's data).
+       */
+      {
+        path: 'profile',
+        loadChildren: () =>
+          import('@features/profile/profile.routes').then((m) => m.PROFILE_ROUTES),
+      },
+    ],
+  },
 ];

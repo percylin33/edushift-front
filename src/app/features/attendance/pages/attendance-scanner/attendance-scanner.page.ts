@@ -4,7 +4,7 @@ import {
   OnDestroy,
   OnInit,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,11 +13,7 @@ import { BarcodeFormat } from '@zxing/library';
 import { ZXingScannerModule } from '@zxing/ngx-scanner';
 import { environment } from '@env/environment';
 import { IconName } from '@shared/components/icon/icons.registry';
-import {
-  IconComponent,
-  PageContainerComponent,
-  PageHeaderComponent
-} from '@shared/components';
+import { IconComponent, PageContainerComponent, PageHeaderComponent } from '@shared/components';
 import { StudentSearchPickerComponent } from '../../components/student-search-picker.component';
 import { AttendanceStudentLookupItem } from '../../models';
 import { AttendanceStore } from '../../store';
@@ -94,7 +90,7 @@ type CameraState =
     PageContainerComponent,
     PageHeaderComponent,
     IconComponent,
-    StudentSearchPickerComponent
+    StudentSearchPickerComponent,
   ],
   template: `
     <app-page-container>
@@ -127,11 +123,11 @@ type CameraState =
             @switch (cameraState().kind) {
               @case ('granted') {
                 <div
-                  class="aspect-video w-full rounded-lg overflow-hidden bg-slate-900"
+                  class="aspect-video w-full overflow-hidden rounded-lg bg-slate-900"
                   data-testid="scanner-viewport"
                 >
                   <zxing-scanner
-                    class="block w-full h-full"
+                    class="block h-full w-full"
                     [enable]="!isOffline()"
                     [autostart]="true"
                     [formats]="qrFormats"
@@ -143,22 +139,21 @@ type CameraState =
                   />
                 </div>
                 <p class="mt-3 text-xs text-slate-500">
-                  Apunta la cámara al QR del alumno. Si no trae credencial,
-                  búscalo por nombre debajo.
+                  Apunta la cámara al QR del alumno. Si no trae credencial, búscalo por nombre
+                  debajo.
                 </p>
               }
               @case ('denied') {
-                <div class="flex flex-col items-center text-center py-8 px-4">
+                <div class="flex flex-col items-center px-4 py-8 text-center">
                   <app-icon name="eye-off" [size]="48" class="text-error" />
                   <h3 class="mt-3 font-semibold">Cámara bloqueada</h3>
-                  <p class="mt-1 text-sm text-slate-600 max-w-md">
-                    El navegador no nos dio permiso para usar la cámara. Podés
-                    seguir marcando asistencia <strong>buscando al alumno por
-                    nombre debajo</strong>, o reactivar la cámara siguiendo los
-                    pasos según tu navegador.
+                  <p class="mt-1 max-w-md text-sm text-slate-600">
+                    El navegador no nos dio permiso para usar la cámara. Podés seguir marcando
+                    asistencia <strong>buscando al alumno por nombre debajo</strong>, o reactivar la
+                    cámara siguiendo los pasos según tu navegador.
                   </p>
 
-                  <div class="mt-4 flex flex-col sm:flex-row gap-2">
+                  <div class="mt-4 flex flex-col gap-2 sm:flex-row">
                     <button
                       type="button"
                       class="btn btn-primary btn-sm"
@@ -169,14 +164,14 @@ type CameraState =
                     </button>
                   </div>
 
-                  <details class="mt-4 text-left max-w-md w-full text-sm">
+                  <details class="mt-4 w-full max-w-md text-left text-sm">
                     <summary class="cursor-pointer font-medium text-slate-700">
                       ¿Cómo habilito la cámara?
                     </summary>
                     <div class="mt-2 space-y-3 text-slate-600">
                       <div>
                         <p class="font-medium">En Edge / Chrome móvil:</p>
-                        <ol class="mt-1 list-decimal pl-5 space-y-0.5">
+                        <ol class="mt-1 list-decimal space-y-0.5 pl-5">
                           <li>Tocá el candado o los tres puntos junto a la URL.</li>
                           <li>Entrá a <em>Configuración del sitio</em> (o <em>Permisos</em>).</li>
                           <li>Activá <em>Cámara</em>.</li>
@@ -185,7 +180,7 @@ type CameraState =
                       </div>
                       <div>
                         <p class="font-medium">En Chrome / Edge escritorio:</p>
-                        <ol class="mt-1 list-decimal pl-5 space-y-0.5">
+                        <ol class="mt-1 list-decimal space-y-0.5 pl-5">
                           <li>Hacé clic en el candado de la URL.</li>
                           <li>Cambiá <em>Cámara</em> a <em>Permitir</em>.</li>
                           <li>Volvé acá y tocá <em>Reintentar permiso</em>.</li>
@@ -196,28 +191,24 @@ type CameraState =
                 </div>
               }
               @case ('unsupported') {
-                <div class="flex flex-col items-center text-center py-8">
+                <div class="flex flex-col items-center py-8 text-center">
                   <app-icon name="alert-circle" [size]="48" class="text-warning" />
                   <h3 class="mt-3 font-semibold">Tu navegador no soporta scanner</h3>
-                  <p class="mt-1 text-sm text-slate-600 max-w-md">
+                  <p class="mt-1 max-w-md text-sm text-slate-600">
                     Usa el buscador manual debajo para registrar la asistencia.
                   </p>
                 </div>
               }
               @case ('probing') {
-                <div class="flex items-center gap-2 text-slate-500 py-8 justify-center">
+                <div class="flex items-center justify-center gap-2 py-8 text-slate-500">
                   <span class="loading loading-spinner loading-sm"></span>
                   <span>Verificando permisos de cámara…</span>
                 </div>
               }
               @default {
-                <div class="flex flex-col items-center text-center py-8">
+                <div class="flex flex-col items-center py-8 text-center">
                   <app-icon name="target" [size]="48" class="text-slate-400" />
-                  <button
-                    type="button"
-                    class="btn btn-primary btn-sm mt-4"
-                    (click)="probeCamera()"
-                  >
+                  <button type="button" class="btn btn-primary btn-sm mt-4" (click)="probeCamera()">
                     Permitir cámara
                   </button>
                 </div>
@@ -232,17 +223,13 @@ type CameraState =
             >
               <div class="mb-2 flex items-center gap-2">
                 <app-icon name="search" [size]="16" class="text-slate-500" />
-                <h3 class="text-sm font-semibold">
-                  Sin agenda QR — buscar alumno por nombre
-                </h3>
+                <h3 class="text-sm font-semibold">Sin agenda QR — buscar alumno por nombre</h3>
               </div>
               <p class="mb-3 text-xs text-slate-500">
-                Útil cuando el alumno no trae su credencial. El sistema asigna
-                el check-in a su sección actual automáticamente.
+                Útil cuando el alumno no trae su credencial. El sistema asigna el check-in a su
+                sección actual automáticamente.
               </p>
-              <app-student-search-picker
-                (selected)="onStudentSelected($event)"
-              />
+              <app-student-search-picker (selected)="onStudentSelected($event)" />
               @if (isOffline()) {
                 <p class="mt-2 text-xs text-warning">
                   Sin conexión: el buscador no puede consultar el servidor.
@@ -258,7 +245,7 @@ type CameraState =
             <div class="card-body">
               <h3 class="card-title text-base">Sesión actual</h3>
               @if (store.currentSession(); as session) {
-                <dl class="text-sm space-y-1">
+                <dl class="space-y-1 text-sm">
                   <div class="flex justify-between">
                     <dt class="text-slate-500">Sección</dt>
                     <dd class="font-medium">
@@ -292,8 +279,7 @@ type CameraState =
                 </button>
               } @else {
                 <p class="text-sm text-slate-500">
-                  No hay sesión activa. El backend la abrirá en el
-                  próximo check-in (idempotente).
+                  No hay sesión activa. El backend la abrirá en el próximo check-in (idempotente).
                 </p>
               }
             </div>
@@ -311,7 +297,7 @@ type CameraState =
                     <p class="text-xs text-slate-500">Presentes</p>
                   </div>
                   <div>
-                    <p class="text-2xl font-semibold text-error">
+                    <p class="text-error text-2xl font-semibold">
                       {{ store.absentCount() }}
                     </p>
                     <p class="text-xs text-slate-500">Ausentes</p>
@@ -327,7 +313,7 @@ type CameraState =
                   <p class="text-4xl font-bold text-primary">
                     {{ store.dailyScanCount() }}
                   </p>
-                  <p class="text-xs text-slate-500 mt-1">
+                  <p class="mt-1 text-xs text-slate-500">
                     Alumnos registrados (entrada / múltiples secciones)
                   </p>
                 </div>
@@ -345,13 +331,13 @@ type CameraState =
         so the next scan can start immediately when the response arrives. -->
       @if (feedback(); as fb) {
         <div
-          class="fixed inset-x-0 bottom-4 sm:bottom-6 z-[9999] flex justify-center px-4 pointer-events-none scan-feedback-chip"
+          class="scan-feedback-chip pointer-events-none fixed inset-x-0 bottom-4 z-[9999] flex justify-center px-4 sm:bottom-6"
           role="status"
           aria-live="assertive"
           data-testid="scan-feedback"
         >
           <div
-            class="alert shadow-lg max-w-md w-full pointer-events-auto cursor-pointer"
+            class="alert pointer-events-auto w-full max-w-md cursor-pointer shadow-lg"
             [class.alert-success]="fb.tone === 'ok'"
             [class.alert-info]="fb.tone === 'info'"
             [class.alert-warning]="fb.tone === 'warn'"
@@ -360,7 +346,7 @@ type CameraState =
           >
             <app-icon [name]="fb.icon" [size]="32" />
             <div class="flex flex-col">
-              <span class="font-bold text-lg leading-tight uppercase">{{ fb.title }}</span>
+              <span class="text-lg font-bold uppercase leading-tight">{{ fb.title }}</span>
               @if (fb.subtitle) {
                 <span class="text-sm opacity-90">{{ fb.subtitle }}</span>
               }
@@ -372,8 +358,8 @@ type CameraState =
   `,
   styles: [
     '.scan-feedback-chip { animation: scanFeedbackSlide 180ms ease-out; }',
-    '@keyframes scanFeedbackSlide { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }'
-  ]
+    '@keyframes scanFeedbackSlide { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }',
+  ],
 })
 export class AttendanceScannerPageComponent implements OnInit, OnDestroy {
   protected readonly store = inject(AttendanceStore);
@@ -405,7 +391,7 @@ export class AttendanceScannerPageComponent implements OnInit, OnDestroy {
   protected readonly videoConstraints: MediaTrackConstraints = {
     facingMode: { ideal: 'environment' },
     width: { ideal: 1280 },
-    height: { ideal: 720 }
+    height: { ideal: 720 },
   };
 
   /** Cooldown timer for manual scans. */
@@ -465,7 +451,7 @@ export class AttendanceScannerPageComponent implements OnInit, OnDestroy {
           this.cameraState.set(
             status.state === 'granted' || status.state === 'prompt'
               ? { kind: 'granted' }
-              : { kind: 'denied' }
+              : { kind: 'denied' },
           );
         })
         .catch(() => this.cameraState.set({ kind: 'granted' }));
@@ -504,7 +490,7 @@ export class AttendanceScannerPageComponent implements OnInit, OnDestroy {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
-        audio: false
+        audio: false,
       });
       stream.getTracks().forEach((track) => track.stop());
       this.cameraState.set({ kind: 'granted' });
@@ -518,12 +504,12 @@ export class AttendanceScannerPageComponent implements OnInit, OnDestroy {
         title: stillBlocked ? 'Permiso aún bloqueado' : 'No pudimos acceder a la cámara',
         subtitle: stillBlocked
           ? 'Habilítalo en la configuración del navegador y vuelve a reintentar.'
-          : 'Verificá que ninguna otra app esté usando la cámara.'
+          : 'Verificá que ninguna otra app esté usando la cámara.',
       });
       if (this.dismissHandle) clearTimeout(this.dismissHandle);
       this.dismissHandle = setTimeout(
         () => this.feedback.set(null),
-        this.environment.attendance.feedbackDismissMs
+        this.environment.attendance.feedbackDismissMs,
       );
     }
   }
@@ -549,7 +535,7 @@ export class AttendanceScannerPageComponent implements OnInit, OnDestroy {
         tone: 'warn',
         icon: 'alert-circle',
         title: 'Sin conexión',
-        subtitle: 'Reintenta cuando vuelvas a tener internet.'
+        subtitle: 'Reintenta cuando vuelvas a tener internet.',
       });
       return;
     }
@@ -589,12 +575,12 @@ export class AttendanceScannerPageComponent implements OnInit, OnDestroy {
       tone: 'warn',
       icon: 'alert-circle',
       title: 'Cámara con problemas',
-      subtitle: 'Reintenta apuntando al QR o usa el campo manual.'
+      subtitle: 'Reintenta apuntando al QR o usa el campo manual.',
     });
     if (this.dismissHandle) clearTimeout(this.dismissHandle);
     this.dismissHandle = setTimeout(
       () => this.feedback.set(null),
-      this.environment.attendance.feedbackDismissMs
+      this.environment.attendance.feedbackDismissMs,
     );
   }
 
@@ -628,10 +614,7 @@ export class AttendanceScannerPageComponent implements OnInit, OnDestroy {
     );
   }
 
-  private showFeedback(
-    outcome: ScanOutcome,
-    pickedStudent?: AttendanceStudentLookupItem
-  ): void {
+  private showFeedback(outcome: ScanOutcome, pickedStudent?: AttendanceStudentLookupItem): void {
     const chip = this.toChip(outcome, pickedStudent);
     if (!chip) return;
     this.feedback.set(chip);
@@ -673,8 +656,7 @@ export class AttendanceScannerPageComponent implements OnInit, OnDestroy {
       // Safari throws on vibrate(); ignore.
     }
     try {
-      const frequency =
-        tone === 'ok' ? 880 : tone === 'error' ? 220 : 440;
+      const frequency = tone === 'ok' ? 880 : tone === 'error' ? 220 : 440;
       this.playBeep(frequency, 140);
     } catch {
       // AudioContext disabled (e.g. user hasn't tapped yet); ignore.
@@ -739,7 +721,7 @@ export class AttendanceScannerPageComponent implements OnInit, OnDestroy {
    */
   private toChip(
     outcome: ScanOutcome,
-    pickedStudent?: AttendanceStudentLookupItem
+    pickedStudent?: AttendanceStudentLookupItem,
   ): FeedbackChip | null {
     const subtitleName =
       pickedStudent?.fullName ??
@@ -755,55 +737,64 @@ export class AttendanceScannerPageComponent implements OnInit, OnDestroy {
               title: 'Ya marcado',
               subtitle: subtitleName
                 ? `${subtitleName} • ${formatTime(outcome.record.occurredAt)}`
-                : `Marcado a las ${formatTime(outcome.record.occurredAt)}`
+                : `Marcado a las ${formatTime(outcome.record.occurredAt)}`,
             }
           : {
               tone: 'ok',
               icon: 'check',
               title: 'PRESENTE',
-              subtitle: subtitleName ?? 'Alumno registrado correctamente'
+              subtitle: subtitleName ?? 'Alumno registrado correctamente',
             };
       case 'invalid':
-        return { tone: 'error', icon: 'alert-circle', title: 'QR inválido', subtitle: outcome.reason };
+        return {
+          tone: 'error',
+          icon: 'alert-circle',
+          title: 'QR inválido',
+          subtitle: outcome.reason,
+        };
       case 'expired':
-        return { tone: 'error', icon: 'lock', title: 'Credencial revocada', subtitle: outcome.reason };
+        return {
+          tone: 'error',
+          icon: 'lock',
+          title: 'Credencial revocada',
+          subtitle: outcome.reason,
+        };
       case 'tenant-mismatch':
         return {
           tone: 'error',
           icon: 'lock',
           title: 'QR de otro colegio',
-          subtitle: 'Pídele al alumno su credencial actual.'
+          subtitle: 'Pídele al alumno su credencial actual.',
         };
       case 'not-enrolled':
         return {
           tone: 'warn',
           icon: 'users',
           title: 'No matriculado',
-          subtitle: outcome.reason
+          subtitle: outcome.reason,
         };
       case 'no-active-enrollment':
         return {
           tone: 'warn',
           icon: 'users',
           title: 'Sin matrícula activa',
-          subtitle:
-            pickedStudent
-              ? `${pickedStudent.fullName} no tiene sección asignada hoy.`
-              : outcome.reason
+          subtitle: pickedStudent
+            ? `${pickedStudent.fullName} no tiene sección asignada hoy.`
+            : outcome.reason,
         };
       case 'session-closed':
         return {
           tone: 'warn',
           icon: 'lock',
           title: 'Sesión cerrada',
-          subtitle: 'Abre una nueva sesión para seguir escaneando.'
+          subtitle: 'Abre una nueva sesión para seguir escaneando.',
         };
       case 'network':
         return {
           tone: 'error',
           icon: 'alert-circle',
           title: 'Sin conexión',
-          subtitle: 'Reintenta cuando vuelvas a tener internet.'
+          subtitle: 'Reintenta cuando vuelvas a tener internet.',
         };
       case 'unknown':
         return { tone: 'error', icon: 'alert-circle', title: 'Error', subtitle: outcome.reason };

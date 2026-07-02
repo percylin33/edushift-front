@@ -21,9 +21,9 @@ export class BreadcrumbService {
     this.router.events.pipe(
       filter((event) => event instanceof NavigationEnd),
       startWith(null),
-      map(() => this.build(this.router.routerState.snapshot.root))
+      map(() => this.build(this.router.routerState.snapshot.root)),
     ),
-    { initialValue: [] as Breadcrumb[] }
+    { initialValue: [] as Breadcrumb[] },
   );
 
   private build(root: ActivatedRouteSnapshot): Breadcrumb[] {

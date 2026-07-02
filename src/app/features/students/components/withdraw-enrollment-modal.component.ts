@@ -8,32 +8,28 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IconComponent, SpinnerComponent } from '@shared/components';
-import {
-  StudentEnrollmentStatus,
-  TERMINAL_ENROLLMENT_STATUSES
-} from '@core/enums';
+import { StudentEnrollmentStatus, TERMINAL_ENROLLMENT_STATUSES } from '@core/enums';
 import { EnrollmentRow } from '../models';
 import { StudentsStore } from '../store';
 
 const STATUS_LABELS: Readonly<Record<StudentEnrollmentStatus, string>> = {
-  [StudentEnrollmentStatus.Active]:      'Activo',
-  [StudentEnrollmentStatus.Withdrawn]:   'Retirado',
+  [StudentEnrollmentStatus.Active]: 'Activo',
+  [StudentEnrollmentStatus.Withdrawn]: 'Retirado',
   [StudentEnrollmentStatus.Transferred]: 'Trasladado',
-  [StudentEnrollmentStatus.Graduated]:   'Graduado'
+  [StudentEnrollmentStatus.Graduated]: 'Graduado',
 };
 
 const STATUS_DESCRIPTIONS: Readonly<Record<StudentEnrollmentStatus, string>> = {
-  [StudentEnrollmentStatus.Active]:      '',
+  [StudentEnrollmentStatus.Active]: '',
   [StudentEnrollmentStatus.Withdrawn]:
     'El estudiante deja la institución por iniciativa propia o de la familia.',
   [StudentEnrollmentStatus.Transferred]:
     'El estudiante se traslada a otra escuela. Si solo cambia de sección dentro de esta institución, usa el flujo "Cambiar de sección".',
-  [StudentEnrollmentStatus.Graduated]:
-    'El estudiante terminó el ciclo. Estado terminal.'
+  [StudentEnrollmentStatus.Graduated]: 'El estudiante terminó el ciclo. Estado terminal.',
 };
 
 /**
@@ -53,14 +49,14 @@ const STATUS_DESCRIPTIONS: Readonly<Record<StudentEnrollmentStatus, string>> = {
   imports: [CommonModule, FormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="withdraw-title"
       (click)="onBackdropClick($event)"
     >
       <div
-        class="card w-full max-w-lg shadow-xl flex flex-col max-h-[90vh]"
+        class="card flex max-h-[90vh] w-full max-w-lg flex-col shadow-xl"
         (click)="$event.stopPropagation()"
       >
         <header class="card-header">
@@ -69,8 +65,7 @@ const STATUS_DESCRIPTIONS: Readonly<Record<StudentEnrollmentStatus, string>> = {
             <p class="card-description">
               Cierra la matrícula activa de
               <strong>{{ enrollment().sectionName }}</strong>
-              ({{ enrollment().academicYearName }}). Esta acción no es
-              reversible.
+              ({{ enrollment().academicYearName }}). Esta acción no es reversible.
             </p>
           </div>
           <button
@@ -127,8 +122,7 @@ const STATUS_DESCRIPTIONS: Readonly<Record<StudentEnrollmentStatus, string>> = {
               [disabled]="saving()"
             />
             <p class="hint mt-1 text-xs text-content-muted">
-              Debe ser posterior o igual a la fecha de matrícula
-              ({{ minDate() }}).
+              Debe ser posterior o igual a la fecha de matrícula ({{ minDate() }}).
             </p>
           </div>
         </div>
@@ -156,7 +150,7 @@ const STATUS_DESCRIPTIONS: Readonly<Record<StudentEnrollmentStatus, string>> = {
         </footer>
       </div>
     </div>
-  `
+  `,
 })
 export class WithdrawEnrollmentModalComponent implements OnInit {
   private readonly store = inject(StudentsStore);
@@ -171,9 +165,7 @@ export class WithdrawEnrollmentModalComponent implements OnInit {
 
   protected readonly terminalStatuses = TERMINAL_ENROLLMENT_STATUSES;
 
-  protected readonly status = signal<StudentEnrollmentStatus>(
-    StudentEnrollmentStatus.Withdrawn
-  );
+  protected readonly status = signal<StudentEnrollmentStatus>(StudentEnrollmentStatus.Withdrawn);
   protected readonly withdrawnAt = signal<string>('');
 
   protected readonly minDate = computed<string>(() => {
@@ -182,7 +174,7 @@ export class WithdrawEnrollmentModalComponent implements OnInit {
   });
 
   protected readonly statusDescription = computed<string>(
-    () => STATUS_DESCRIPTIONS[this.status()] ?? ''
+    () => STATUS_DESCRIPTIONS[this.status()] ?? '',
   );
 
   protected readonly canSubmit = computed<boolean>(() => {
@@ -218,13 +210,10 @@ export class WithdrawEnrollmentModalComponent implements OnInit {
 
   protected async onSubmit(): Promise<void> {
     if (!this.canSubmit() || this.saving()) return;
-    const result = await this.store.withdrawEnrollment(
-      this.enrollment().publicUuid,
-      {
-        status: this.status(),
-        withdrawnAt: this.withdrawnAt()
-      }
-    );
+    const result = await this.store.withdrawEnrollment(this.enrollment().publicUuid, {
+      status: this.status(),
+      withdrawnAt: this.withdrawnAt(),
+    });
     if (result) this.withdrew.emit();
   }
 

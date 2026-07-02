@@ -15,7 +15,7 @@ export enum EvaluationKind {
   QUIZ = 'QUIZ',
   EXAM = 'EXAM',
   RUBRIC = 'RUBRIC',
-  COMPETENCY = 'COMPETENCY'
+  COMPETENCY = 'COMPETENCY',
 }
 
 /**
@@ -26,7 +26,7 @@ export enum EvaluationScale {
   SCORE_0_20 = 'SCORE_0_20',
   LITERAL_AD = 'LITERAL_AD',
   LITERAL_NA = 'LITERAL_NA',
-  LITERAL_A_B_C_D = 'LITERAL_A_B_C_D'
+  LITERAL_A_B_C_D = 'LITERAL_A_B_C_D',
 }
 
 /**
@@ -37,7 +37,7 @@ export enum EvaluationScale {
 export enum EvaluationStatus {
   DRAFT = 'DRAFT',
   PUBLISHED = 'PUBLISHED',
-  CLOSED = 'CLOSED'
+  CLOSED = 'CLOSED',
 }
 
 // =============================================================================
@@ -49,26 +49,26 @@ export const EVALUATION_KIND_LABELS: Record<EvaluationKind, string> = {
   [EvaluationKind.QUIZ]: 'Práctica',
   [EvaluationKind.EXAM]: 'Examen',
   [EvaluationKind.RUBRIC]: 'Rúbrica',
-  [EvaluationKind.COMPETENCY]: 'Competencia'
+  [EvaluationKind.COMPETENCY]: 'Competencia',
 };
 
 export const EVALUATION_SCALE_LABELS: Record<EvaluationScale, string> = {
   [EvaluationScale.SCORE_0_20]: 'Vigesimal (0-20)',
   [EvaluationScale.LITERAL_AD]: 'Literal AD/A/B/C',
   [EvaluationScale.LITERAL_NA]: 'NA / Logrado / En proceso',
-  [EvaluationScale.LITERAL_A_B_C_D]: 'Literal A/B/C/D'
+  [EvaluationScale.LITERAL_A_B_C_D]: 'Literal A/B/C/D',
 };
 
 export const EVALUATION_STATUS_LABELS: Record<EvaluationStatus, string> = {
   [EvaluationStatus.DRAFT]: 'Borrador',
   [EvaluationStatus.PUBLISHED]: 'Publicada',
-  [EvaluationStatus.CLOSED]: 'Cerrada'
+  [EvaluationStatus.CLOSED]: 'Cerrada',
 };
 
 export const EVALUATION_STATUS_BADGE_CLASS: Record<EvaluationStatus, string> = {
   [EvaluationStatus.DRAFT]: 'badge-secondary',
   [EvaluationStatus.PUBLISHED]: 'badge-info',
-  [EvaluationStatus.CLOSED]: 'badge-success'
+  [EvaluationStatus.CLOSED]: 'badge-success',
 };
 
 export const EVALUATION_KIND_BADGE_CLASS: Record<EvaluationKind, string> = {
@@ -76,7 +76,7 @@ export const EVALUATION_KIND_BADGE_CLASS: Record<EvaluationKind, string> = {
   [EvaluationKind.QUIZ]: 'badge-warning',
   [EvaluationKind.EXAM]: 'badge-danger',
   [EvaluationKind.RUBRIC]: 'badge-primary',
-  [EvaluationKind.COMPETENCY]: 'badge-secondary'
+  [EvaluationKind.COMPETENCY]: 'badge-secondary',
 };
 
 /**
@@ -90,19 +90,16 @@ export const ALLOWED_SCALES_BY_KIND: Record<EvaluationKind, EvaluationScale[]> =
   [EvaluationKind.TASK]: [
     EvaluationScale.SCORE_0_20,
     EvaluationScale.LITERAL_NA,
-    EvaluationScale.LITERAL_A_B_C_D
+    EvaluationScale.LITERAL_A_B_C_D,
   ],
   [EvaluationKind.QUIZ]: [EvaluationScale.SCORE_0_20],
   [EvaluationKind.EXAM]: [EvaluationScale.SCORE_0_20],
   [EvaluationKind.RUBRIC]: [
     EvaluationScale.LITERAL_AD,
     EvaluationScale.LITERAL_A_B_C_D,
-    EvaluationScale.LITERAL_NA
+    EvaluationScale.LITERAL_NA,
   ],
-  [EvaluationKind.COMPETENCY]: [
-    EvaluationScale.LITERAL_AD,
-    EvaluationScale.LITERAL_A_B_C_D
-  ]
+  [EvaluationKind.COMPETENCY]: [EvaluationScale.LITERAL_AD, EvaluationScale.LITERAL_A_B_C_D],
 };
 
 // =============================================================================
@@ -307,7 +304,7 @@ export function toEvaluationDetail(raw: EvaluationResponseRaw): EvaluationDetail
     isActive: raw.isActive,
     gradeCount: raw.gradeCount ?? 0,
     createdAt: new Date(raw.createdAt),
-    updatedAt: new Date(raw.updatedAt)
+    updatedAt: new Date(raw.updatedAt),
   };
 }
 
@@ -324,7 +321,7 @@ export function toEvaluationRow(raw: EvaluationListItemRaw): EvaluationRow {
     gradeCount: raw.gradeCount ?? 0,
     isActive: raw.isActive,
     createdAt: new Date(raw.createdAt),
-    updatedAt: new Date(raw.updatedAt)
+    updatedAt: new Date(raw.updatedAt),
   };
 }
 

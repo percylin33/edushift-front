@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
@@ -8,13 +15,13 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import {
   InvitationsTableComponent,
   InviteUserModalComponent,
   UserRoleBadgeComponent,
-  UserStatusBadgeComponent
+  UserStatusBadgeComponent,
 } from '../../components';
 import { InvitationsStore, UsersStore } from '../../store';
 import { UserListFilters } from '../../models';
@@ -61,7 +68,7 @@ type UsersTab = 'users' | 'invitations';
     UserRoleBadgeComponent,
     UserStatusBadgeComponent,
     InvitationsTableComponent,
-    InviteUserModalComponent
+    InviteUserModalComponent,
   ],
   template: `
     <app-page-container size="wide">
@@ -98,7 +105,9 @@ type UsersTab = 'users' | 'invitations';
             >
               Invitaciones
               @if (invitationsBadge() > 0) {
-                <span class="ml-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary-500/15 px-1.5 text-2xs font-semibold text-primary-700 dark:text-primary-300">
+                <span
+                  class="ml-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary-500/15 px-1.5 text-2xs font-semibold text-primary-700 dark:text-primary-300"
+                >
                   {{ invitationsBadge() }}
                 </span>
               }
@@ -112,180 +121,185 @@ type UsersTab = 'users' | 'invitations';
           <app-invitations-table />
         </section>
       } @else {
-
-      <!-- Filtros -->
-      <section class="card mb-4">
-        <div class="card-body grid gap-3 sm:grid-cols-12">
-          <div class="sm:col-span-6">
-            <label class="label" for="users-search">Buscar</label>
-            <div class="relative">
-              <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-content-subtle">
-                <app-icon name="search" [size]="16" />
-              </span>
-              <input
-                id="users-search"
-                type="search"
-                class="input pl-9"
-                placeholder="Email, nombre o apellido…"
-                [ngModel]="search()"
-                (ngModelChange)="onSearchChange($event)"
-              />
+        <!-- Filtros -->
+        <section class="card mb-4">
+          <div class="card-body grid gap-3 sm:grid-cols-12">
+            <div class="sm:col-span-6">
+              <label class="label" for="users-search">Buscar</label>
+              <div class="relative">
+                <span
+                  class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-content-subtle"
+                >
+                  <app-icon name="search" [size]="16" />
+                </span>
+                <input
+                  id="users-search"
+                  type="search"
+                  class="input pl-9"
+                  placeholder="Email, nombre o apellido…"
+                  [ngModel]="search()"
+                  (ngModelChange)="onSearchChange($event)"
+                />
+              </div>
             </div>
-          </div>
 
-          <div class="sm:col-span-3">
-            <label class="label" for="users-status">Estado</label>
-            <select
-              id="users-status"
-              class="select"
-              [ngModel]="status()"
-              (ngModelChange)="onStatusChange($event)"
-            >
-              <option [ngValue]="null">Todos</option>
-              @for (opt of statusOptions; track opt.value) {
-                <option [ngValue]="opt.value">{{ opt.label }}</option>
-              }
-            </select>
-          </div>
-
-          <div class="sm:col-span-3">
-            <label class="label" for="users-role">Rol</label>
-            <select
-              id="users-role"
-              class="select"
-              [ngModel]="role()"
-              (ngModelChange)="onRoleChange($event)"
-            >
-              <option [ngValue]="null">Todos</option>
-              @for (opt of roleOptions; track opt.value) {
-                <option [ngValue]="opt.value">{{ opt.label }}</option>
-              }
-            </select>
-          </div>
-        </div>
-      </section>
-
-      <!-- Lista -->
-      <section class="card overflow-hidden">
-        @if (loading() && !hasItems()) {
-          <div class="flex items-center justify-center py-16">
-            <app-spinner [size]="24" label="Cargando usuarios…" />
-          </div>
-        } @else if (errorMessage()) {
-          <div class="alert alert-danger m-5">
-            <app-icon name="alert-circle" [size]="18" />
-            <div class="flex-1">
-              <p class="font-medium">No pudimos cargar la lista.</p>
-              <p class="mt-1 text-xs opacity-80">{{ errorMessage() }}</p>
-            </div>
-            <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">Reintentar</button>
-          </div>
-        } @else if (isEmpty()) {
-          <app-empty-state
-            icon="users"
-            title="No encontramos usuarios"
-            description="Ajusta los filtros o invita a alguien nuevo (próximamente)."
-          />
-        } @else {
-          <div class="overflow-x-auto">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th class="min-w-[220px]">Usuario</th>
-                  <th class="hidden md:table-cell">Email</th>
-                  <th>Roles</th>
-                  <th>Estado</th>
-                  <th class="hidden lg:table-cell">Último acceso</th>
-                  <th class="text-right" aria-label="Acciones"></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (user of items(); track user.publicUuid) {
-                  <tr>
-                    <td>
-                      <a
-                        [routerLink]="detailLink(user.publicUuid)"
-                        class="block font-medium text-content hover:text-primary-600"
-                      >
-                        {{ user.fullName || '—' }}
-                      </a>
-                      <p class="md:hidden text-xs text-content-muted">{{ user.email }}</p>
-                    </td>
-                    <td class="hidden md:table-cell text-content-muted">{{ user.email }}</td>
-                    <td>
-                      @if (user.roles.length === 0) {
-                        <span class="badge badge-neutral">Sin rol</span>
-                      } @else {
-                        <div class="flex flex-wrap gap-1.5">
-                          @for (r of user.roles; track r) {
-                            <app-user-role-badge [role]="r" />
-                          }
-                        </div>
-                      }
-                    </td>
-                    <td>
-                      <app-user-status-badge [status]="user.status" />
-                    </td>
-                    <td class="hidden lg:table-cell text-content-muted">
-                      {{ formatDate(user.lastLoginAt) }}
-                    </td>
-                    <td class="text-right">
-                      <a
-                        [routerLink]="detailLink(user.publicUuid)"
-                        class="btn btn-ghost btn-sm"
-                        aria-label="Ver detalle"
-                      >
-                        <span class="hidden sm:inline">Ver</span>
-                        <app-icon name="chevron-right" [size]="16" />
-                      </a>
-                    </td>
-                  </tr>
+            <div class="sm:col-span-3">
+              <label class="label" for="users-status">Estado</label>
+              <select
+                id="users-status"
+                class="select"
+                [ngModel]="status()"
+                (ngModelChange)="onStatusChange($event)"
+              >
+                <option [ngValue]="null">Todos</option>
+                @for (opt of statusOptions; track opt.value) {
+                  <option [ngValue]="opt.value">{{ opt.label }}</option>
                 }
-              </tbody>
-            </table>
-          </div>
+              </select>
+            </div>
 
-          <!-- Pagination -->
-          <footer
-            class="flex flex-col items-center justify-between gap-3 border-t border-border-subtle px-5 py-3 sm:flex-row"
-          >
-            <p class="text-xs text-content-muted">
-              Página
-              <span class="font-medium text-content">{{ pagination().page + 1 }}</span>
-              de
-              <span class="font-medium text-content">{{ Math.max(pagination().totalPages, 1) }}</span>
-              · {{ pagination().totalElements }} usuarios
-            </p>
-            <div class="flex items-center gap-2">
-              <button
-                type="button"
-                class="btn btn-outline btn-sm"
-                [disabled]="!canPrev() || loading()"
-                (click)="prev()"
+            <div class="sm:col-span-3">
+              <label class="label" for="users-role">Rol</label>
+              <select
+                id="users-role"
+                class="select"
+                [ngModel]="role()"
+                (ngModelChange)="onRoleChange($event)"
               >
-                <app-icon name="chevron-left" [size]="16" />
-                <span class="hidden sm:inline">Anterior</span>
-              </button>
-              <button
-                type="button"
-                class="btn btn-outline btn-sm"
-                [disabled]="!canNext() || loading()"
-                (click)="next()"
-              >
-                <span class="hidden sm:inline">Siguiente</span>
-                <app-icon name="chevron-right" [size]="16" />
+                <option [ngValue]="null">Todos</option>
+                @for (opt of roleOptions; track opt.value) {
+                  <option [ngValue]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Lista -->
+        <section class="card overflow-hidden">
+          @if (loading() && !hasItems()) {
+            <div class="flex items-center justify-center py-16">
+              <app-spinner [size]="24" label="Cargando usuarios…" />
+            </div>
+          } @else if (errorMessage()) {
+            <div class="alert alert-danger m-5">
+              <app-icon name="alert-circle" [size]="18" />
+              <div class="flex-1">
+                <p class="font-medium">No pudimos cargar la lista.</p>
+                <p class="mt-1 text-xs opacity-80">{{ errorMessage() }}</p>
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">
+                Reintentar
               </button>
             </div>
-          </footer>
-        }
-      </section>
+          } @else if (isEmpty()) {
+            <app-empty-state
+              icon="users"
+              title="No encontramos usuarios"
+              description="Ajusta los filtros o invita a alguien nuevo (próximamente)."
+            />
+          } @else {
+            <div class="overflow-x-auto">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th class="min-w-[220px]">Usuario</th>
+                    <th class="hidden md:table-cell">Email</th>
+                    <th>Roles</th>
+                    <th>Estado</th>
+                    <th class="hidden lg:table-cell">Último acceso</th>
+                    <th class="text-right" aria-label="Acciones"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (user of items(); track user.publicUuid) {
+                    <tr>
+                      <td>
+                        <a
+                          [routerLink]="detailLink(user.publicUuid)"
+                          class="block font-medium text-content hover:text-primary-600"
+                        >
+                          {{ user.fullName || '—' }}
+                        </a>
+                        <p class="text-xs text-content-muted md:hidden">{{ user.email }}</p>
+                      </td>
+                      <td class="hidden text-content-muted md:table-cell">{{ user.email }}</td>
+                      <td>
+                        @if (user.roles.length === 0) {
+                          <span class="badge badge-neutral">Sin rol</span>
+                        } @else {
+                          <div class="flex flex-wrap gap-1.5">
+                            @for (r of user.roles; track r) {
+                              <app-user-role-badge [role]="r" />
+                            }
+                          </div>
+                        }
+                      </td>
+                      <td>
+                        <app-user-status-badge [status]="user.status" />
+                      </td>
+                      <td class="hidden text-content-muted lg:table-cell">
+                        {{ formatDate(user.lastLoginAt) }}
+                      </td>
+                      <td class="text-right">
+                        <a
+                          [routerLink]="detailLink(user.publicUuid)"
+                          class="btn btn-ghost btn-sm"
+                          aria-label="Ver detalle"
+                        >
+                          <span class="hidden sm:inline">Ver</span>
+                          <app-icon name="chevron-right" [size]="16" />
+                        </a>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            <footer
+              class="flex flex-col items-center justify-between gap-3 border-t border-border-subtle px-5 py-3 sm:flex-row"
+            >
+              <p class="text-xs text-content-muted">
+                Página
+                <span class="font-medium text-content">{{ pagination().page + 1 }}</span>
+                de
+                <span class="font-medium text-content">{{
+                  Math.max(pagination().totalPages, 1)
+                }}</span>
+                · {{ pagination().totalElements }} usuarios
+              </p>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="btn btn-outline btn-sm"
+                  [disabled]="!canPrev() || loading()"
+                  (click)="prev()"
+                >
+                  <app-icon name="chevron-left" [size]="16" />
+                  <span class="hidden sm:inline">Anterior</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline btn-sm"
+                  [disabled]="!canNext() || loading()"
+                  (click)="next()"
+                >
+                  <span class="hidden sm:inline">Siguiente</span>
+                  <app-icon name="chevron-right" [size]="16" />
+                </button>
+              </div>
+            </footer>
+          }
+        </section>
       }
 
       @if (modalOpen()) {
         <app-invite-user-modal (closed)="closeInviteModal()" />
       }
     </app-page-container>
-  `
+  `,
 })
 export class UsersListComponent implements OnInit {
   private readonly store = inject(UsersStore);
@@ -319,7 +333,9 @@ export class UsersListComponent implements OnInit {
    * the admin creates / cancels invitations elsewhere on the page.
    */
   private readonly invitationsStore = inject(InvitationsStore);
-  protected readonly invitationsBadge = computed(() => this.invitationsStore.pagination().totalElements);
+  protected readonly invitationsBadge = computed(
+    () => this.invitationsStore.pagination().totalElements,
+  );
 
   protected readonly canPrev = computed(() => this.pagination().page > 0);
   protected readonly canNext = computed(() => {
@@ -328,19 +344,19 @@ export class UsersListComponent implements OnInit {
   });
 
   protected readonly statusOptions: ReadonlyArray<{ value: UserStatus; label: string }> = [
-    { value: UserStatus.Active,              label: 'Activo' },
-    { value: UserStatus.Suspended,           label: 'Suspendido' },
-    { value: UserStatus.Locked,              label: 'Bloqueado' },
-    { value: UserStatus.Inactive,            label: 'Inactivo' },
-    { value: UserStatus.PendingVerification, label: 'Pendiente verificación' }
+    { value: UserStatus.Active, label: 'Activo' },
+    { value: UserStatus.Suspended, label: 'Suspendido' },
+    { value: UserStatus.Locked, label: 'Bloqueado' },
+    { value: UserStatus.Inactive, label: 'Inactivo' },
+    { value: UserStatus.PendingVerification, label: 'Pendiente verificación' },
   ];
 
   protected readonly roleOptions: ReadonlyArray<{ value: UserRole; label: string }> = [
     { value: UserRole.TenantAdmin, label: 'Administrador' },
-    { value: UserRole.Staff,       label: 'Staff' },
-    { value: UserRole.Teacher,     label: 'Profesor' },
-    { value: UserRole.Student,     label: 'Estudiante' },
-    { value: UserRole.Guardian,    label: 'Tutor' }
+    { value: UserRole.Staff, label: 'Staff' },
+    { value: UserRole.Teacher, label: 'Profesor' },
+    { value: UserRole.Student, label: 'Estudiante' },
+    { value: UserRole.Guardian, label: 'Tutor' },
   ];
 
   /**
@@ -394,7 +410,7 @@ export class UsersListComponent implements OnInit {
       relativeTo: this.route,
       queryParams: { tab: target === 'users' ? null : target },
       queryParamsHandling: 'merge',
-      replaceUrl: true
+      replaceUrl: true,
     });
   }
 
@@ -463,7 +479,7 @@ export class UsersListComponent implements OnInit {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 
@@ -471,7 +487,7 @@ export class UsersListComponent implements OnInit {
     const filters: UserListFilters = {
       search: this.search().trim() || undefined,
       status: this.status() ?? undefined,
-      role: this.role() ?? undefined
+      role: this.role() ?? undefined,
     };
     await this.store.applyFilters(filters);
   }

@@ -7,8 +7,8 @@
  * the student aggregate, not as a new enum value.
  */
 export enum DocumentType {
-  Dni      = 'DNI',
-  Ce       = 'CE',
+  Dni = 'DNI',
+  Ce = 'CE',
   Passport = 'PASSPORT',
-  Other    = 'OTHER'
+  Other = 'OTHER',
 }

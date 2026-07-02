@@ -35,7 +35,7 @@ describe('permissionGuard', () => {
       fullName: 'Test User',
       email: 'test@edushift.app',
       status: UserStatus.Active,
-      permissions: perms
+      permissions: perms,
     };
   }
 
@@ -44,7 +44,7 @@ describe('permissionGuard', () => {
   beforeEach(() => {
     mockRouter = jasmine.createSpyObj<Router>('Router', ['createUrlTree']);
     mockRouter.createUrlTree.and.callFake(
-      (commands) => ({ commands } as unknown as ReturnType<Router['createUrlTree']>)
+      (commands) => ({ commands }) as unknown as ReturnType<Router['createUrlTree']>,
     );
 
     userSignal = signal<User | null>(null);
@@ -52,14 +52,14 @@ describe('permissionGuard', () => {
 
     authStub = {
       user: userSignal.asReadonly(),
-      permissions: permissionsSignal.asReadonly()
+      permissions: permissionsSignal.asReadonly(),
     };
 
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: authStub },
-        { provide: Router, useValue: mockRouter }
-      ]
+        { provide: Router, useValue: mockRouter },
+      ],
     });
   });
 
@@ -99,12 +99,12 @@ describe('permissionGuard', () => {
 
   it('grants a TEACHER with LMS_TASK_GRADE access to a grading route', () => {
     userSignal.set(
-      userWith([Permission.LmsTaskRead, Permission.LmsTaskCreate, Permission.LmsTaskGrade])
+      userWith([Permission.LmsTaskRead, Permission.LmsTaskCreate, Permission.LmsTaskGrade]),
     );
     permissionsSignal.set([
       Permission.LmsTaskRead,
       Permission.LmsTaskCreate,
-      Permission.LmsTaskGrade
+      Permission.LmsTaskGrade,
     ]);
 
     const result = run({ permissions: Permission.LmsTaskGrade });
@@ -118,7 +118,7 @@ describe('permissionGuard', () => {
     permissionsSignal.set([Permission.LmsTaskSubmit]);
 
     const result = run({
-      permissions: [Permission.LmsTaskGrade, Permission.LmsTaskSubmit]
+      permissions: [Permission.LmsTaskGrade, Permission.LmsTaskSubmit],
     });
 
     expect(result).toBeTrue();
@@ -130,7 +130,7 @@ describe('permissionGuard', () => {
 
     const result = run({
       permissions: [Permission.LmsTaskRead, Permission.LmsTaskGrade],
-      permissionMode: 'all'
+      permissionMode: 'all',
     });
 
     expect(result).not.toBeTrue();
@@ -143,7 +143,7 @@ describe('permissionGuard', () => {
 
     const result = run({
       permissions: [Permission.LmsTaskRead, Permission.LmsTaskGrade],
-      permissionMode: 'all'
+      permissionMode: 'all',
     });
 
     expect(result).toBeTrue();

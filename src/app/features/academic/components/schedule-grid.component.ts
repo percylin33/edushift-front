@@ -1,11 +1,5 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  Input,
-  computed,
-  signal
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, computed, signal } from '@angular/core';
 import { IconComponent, EmptyStateComponent } from '@shared/components';
 import { ScheduleSlotItem, DAYS_OF_WEEK, formatTime } from '../models';
 
@@ -28,40 +22,48 @@ import { ScheduleSlotItem, DAYS_OF_WEEK, formatTime } from '../models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, IconComponent, EmptyStateComponent],
   template: `
-      @if (isEmpty()) {
-        <app-empty-state
-          icon="calendar"
-          [title]="emptyTitle"
-          description="Aún no hay horario configurado."
-        />
+    @if (isEmpty()) {
+      <app-empty-state
+        icon="calendar"
+        [title]="emptyTitle"
+        description="Aún no hay horario configurado."
+      />
     } @else {
       <!-- Vista Desktop: Grid -->
-      <div class="hidden md:block overflow-x-auto">
+      <div class="hidden overflow-x-auto md:block">
         <div class="min-w-[800px]">
           <!-- Header -->
-          <div class="grid grid-cols-7 gap-px bg-border-subtle border border-border-subtle rounded-t-lg overflow-hidden">
+          <div
+            class="grid grid-cols-7 gap-px overflow-hidden rounded-t-lg border border-border-subtle bg-border-subtle"
+          >
             @for (day of daysOfWeek; track day.value) {
-              <div class="bg-surface-subtle p-2 text-center text-xs font-semibold uppercase tracking-wider text-content-muted">
+              <div
+                class="bg-surface-subtle p-2 text-center text-xs font-semibold uppercase tracking-wider text-content-muted"
+              >
                 {{ day.label }}
               </div>
             }
           </div>
           <!-- Body -->
-          <div class="grid grid-cols-7 gap-px bg-border-subtle border-x border-b border-border-subtle rounded-b-lg overflow-hidden">
+          <div
+            class="grid grid-cols-7 gap-px overflow-hidden rounded-b-lg border-x border-b border-border-subtle bg-border-subtle"
+          >
             @for (day of daysOfWeek; track day.value) {
-              <div class="bg-surface p-2 min-h-[120px]">
+              <div class="min-h-[120px] bg-surface p-2">
                 @for (slot of slotsByDay()[day.value]; track slot.slotPublicUuid) {
-                  <div class="mb-2 last:mb-0 rounded border border-border-subtle bg-surface-subtle p-2 text-xs hover:shadow-sm transition-shadow">
-                    <p class="font-semibold text-content truncate">
+                  <div
+                    class="mb-2 rounded border border-border-subtle bg-surface-subtle p-2 text-xs transition-shadow last:mb-0 hover:shadow-sm"
+                  >
+                    <p class="truncate font-semibold text-content">
                       {{ slot.course.code }} - {{ slot.course.name }}
                     </p>
                     @if (showSection()) {
-                      <p class="text-content-muted truncate">
+                      <p class="truncate text-content-muted">
                         {{ slot.section?.name }}
                       </p>
                     }
                     @if (showTeacher()) {
-                      <p class="text-content-muted truncate">
+                      <p class="truncate text-content-muted">
                         {{ slot.teacher?.firstName }} {{ slot.teacher?.lastName }}
                       </p>
                     }
@@ -84,7 +86,7 @@ import { ScheduleSlotItem, DAYS_OF_WEEK, formatTime } from '../models';
       </div>
 
       <!-- Vista Mobile: Lista vertical agrupada por día -->
-      <div class="md:hidden space-y-4">
+      <div class="space-y-4 md:hidden">
         @for (day of daysOfWeek; track day.value) {
           @if (slotsByDay()[day.value].length > 0) {
             <div class="card">
@@ -96,20 +98,22 @@ import { ScheduleSlotItem, DAYS_OF_WEEK, formatTime } from '../models';
                   <div class="rounded border border-border-subtle bg-surface-subtle p-3">
                     <div class="flex items-start justify-between gap-2">
                       <div class="min-w-0 flex-1">
-                        <p class="font-semibold text-content text-sm truncate">
+                        <p class="truncate text-sm font-semibold text-content">
                           {{ slot.course.code }} - {{ slot.course.name }}
                         </p>
                         @if (showSection()) {
-                          <p class="text-xs text-content-muted truncate">
+                          <p class="truncate text-xs text-content-muted">
                             {{ slot.section?.name }}
                           </p>
                         }
                         @if (showTeacher()) {
-                          <p class="text-xs text-content-muted truncate">
+                          <p class="truncate text-xs text-content-muted">
                             {{ slot.teacher?.firstName }} {{ slot.teacher?.lastName }}
                           </p>
                         }
-                        <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-content-muted">
+                        <div
+                          class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-content-muted"
+                        >
                           <span class="flex items-center gap-1">
                             <app-icon name="clock" [size]="14" />
                             {{ formatTime(slot.startTime) }} - {{ formatTime(slot.endTime) }}
@@ -134,9 +138,11 @@ import { ScheduleSlotItem, DAYS_OF_WEEK, formatTime } from '../models';
   `,
   styles: [
     `
-      :host { display: block; }
-    `
-  ]
+      :host {
+        display: block;
+      }
+    `,
+  ],
 })
 export class ScheduleGridComponent {
   @Input() slots: ScheduleSlotItem[] = [];
@@ -151,7 +157,13 @@ export class ScheduleGridComponent {
 
   protected readonly slotsByDay = computed(() => {
     const grouped: Record<number, ScheduleSlotItem[]> = {
-      1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: []
+      1: [],
+      2: [],
+      3: [],
+      4: [],
+      5: [],
+      6: [],
+      7: [],
     };
     for (const slot of this.slots) {
       if (grouped[slot.dayOfWeek]) {

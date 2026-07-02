@@ -12,7 +12,7 @@ import {
   RubricRow,
   UpdateRubricRequest,
   toRubricDetail,
-  toRubricRow
+  toRubricRow,
 } from '../models';
 
 /**
@@ -45,11 +45,9 @@ export class RubricsApiService {
    */
   listRubrics(filters: RubricFilters = {}): Observable<RubricRow[]> {
     const params: Record<string, string | undefined> = {
-      systemOnly:
-        filters.systemOnly === undefined ? undefined : String(filters.systemOnly),
-      isActive:
-        filters.isActive === undefined ? undefined : String(filters.isActive),
-      q: filters.q
+      systemOnly: filters.systemOnly === undefined ? undefined : String(filters.systemOnly),
+      isActive: filters.isActive === undefined ? undefined : String(filters.isActive),
+      q: filters.q,
     };
     return this.api
       .get<RubricListItemRaw[]>(API.RUBRICS.ROOT, params)
@@ -80,10 +78,7 @@ export class RubricsApiService {
    */
   createRubric(request: CreateRubricRequest): Observable<RubricDetail> {
     return this.api
-      .post<ApiResponse<RubricResponseRaw>, CreateRubricRequest>(
-        API.RUBRICS.ROOT,
-        request
-      )
+      .post<ApiResponse<RubricResponseRaw>, CreateRubricRequest>(API.RUBRICS.ROOT, request)
       .pipe(map((envelope) => toRubricDetail(envelope.data)));
   }
 
@@ -93,14 +88,11 @@ export class RubricsApiService {
    * "(fork)" al nombre. Cualquier campo que el caller pase reemplaza
    * el del origen (override granular).
    */
-  forkRubric(
-    publicUuid: string,
-    request?: Partial<CreateRubricRequest>
-  ): Observable<RubricDetail> {
+  forkRubric(publicUuid: string, request?: Partial<CreateRubricRequest>): Observable<RubricDetail> {
     return this.api
       .post<ApiResponse<RubricResponseRaw>, Partial<CreateRubricRequest>>(
         API.RUBRICS.FORK(publicUuid),
-        request ?? {}
+        request ?? {},
       )
       .pipe(map((envelope) => toRubricDetail(envelope.data)));
   }
@@ -110,14 +102,11 @@ export class RubricsApiService {
    * {@code RUB_SYSTEM_READ_ONLY} (403); usar {@link #forkRubric} y
    * editar el clon.
    */
-  updateRubric(
-    publicUuid: string,
-    patch: UpdateRubricRequest
-  ): Observable<RubricDetail> {
+  updateRubric(publicUuid: string, patch: UpdateRubricRequest): Observable<RubricDetail> {
     return this.api
       .put<ApiResponse<RubricResponseRaw>, UpdateRubricRequest>(
         API.RUBRICS.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => toRubricDetail(envelope.data)));
   }

@@ -7,7 +7,7 @@ import {
   AssignmentRow,
   CreateAssignmentRequest,
   SectionTeacherItem,
-  SectionTeachersFilters
+  SectionTeachersFilters,
 } from '../models';
 
 /**
@@ -66,7 +66,7 @@ export class TeacherAssignmentsStore {
 
   readonly hasAssignments = computed(() => this._assignments().length > 0);
   readonly isAssignmentsEmpty = computed(
-    () => !this._loading() && this._assignments().length === 0
+    () => !this._loading() && this._assignments().length === 0,
   );
 
   // ===========================================================================
@@ -80,7 +80,7 @@ export class TeacherAssignmentsStore {
    */
   async loadAssignmentsFor(
     teacherPublicUuid: string,
-    filters: AssignmentListFilters = {}
+    filters: AssignmentListFilters = {},
   ): Promise<void> {
     this._currentTeacherUuid.set(teacherPublicUuid);
     /* {@code active = true} es el default del back; sólo lo
@@ -101,30 +101,23 @@ export class TeacherAssignmentsStore {
 
   async create(
     teacherPublicUuid: string,
-    request: CreateAssignmentRequest
+    request: CreateAssignmentRequest,
   ): Promise<AssignmentDetail | null> {
     this._saving.set(true);
     this._error.set(null);
 
     try {
-      const created = await firstValueFrom(
-        this.api.createAssignment(teacherPublicUuid, request)
-      );
+      const created = await firstValueFrom(this.api.createAssignment(teacherPublicUuid, request));
       /* Si el teacher cargado coincide con el del create, prepend la
        * row para que aparezca inmediatamente sin refetch. */
       if (this._currentTeacherUuid() === teacherPublicUuid) {
-        this._assignments.update((rows) => [
-          this.toRow(created),
-          ...rows
-        ]);
+        this._assignments.update((rows) => [this.toRow(created), ...rows]);
       }
       return created;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
@@ -150,18 +143,14 @@ export class TeacherAssignmentsStore {
           return rows.filter((r) => r.publicUuid !== publicUuid);
         }
         return rows.map((r) =>
-          r.publicUuid === publicUuid
-            ? { ...r, active: false, unassignedAt: now }
-            : r
+          r.publicUuid === publicUuid ? { ...r, active: false, unassignedAt: now } : r,
         );
       });
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return false;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
@@ -172,23 +161,19 @@ export class TeacherAssignmentsStore {
 
   async loadSectionTeachers(
     sectionPublicUuid: string,
-    filters: SectionTeachersFilters = {}
+    filters: SectionTeachersFilters = {},
   ): Promise<void> {
     this._currentSectionUuid.set(sectionPublicUuid);
     this._loadingSection.set(true);
     this._error.set(null);
 
     try {
-      const rows = await firstValueFrom(
-        this.api.listSectionTeachers(sectionPublicUuid, filters)
-      );
+      const rows = await firstValueFrom(this.api.listSectionTeachers(sectionPublicUuid, filters));
       this._sectionTeachers.set(rows);
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._sectionTeachers.set([]);
-    }
-    finally {
+    } finally {
       this._loadingSection.set(false);
     }
   }
@@ -224,16 +209,12 @@ export class TeacherAssignmentsStore {
     this._error.set(null);
 
     try {
-      const rows = await firstValueFrom(
-        this.api.listAssignments(uuid, this._filters())
-      );
+      const rows = await firstValueFrom(this.api.listAssignments(uuid, this._filters()));
       this._assignments.set(rows);
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._assignments.set([]);
-    }
-    finally {
+    } finally {
       this._loading.set(false);
     }
   }
@@ -253,7 +234,7 @@ export class TeacherAssignmentsStore {
       periodOrdinal: detail.periodOrdinal,
       assignedAt: detail.assignedAt,
       unassignedAt: detail.unassignedAt,
-      active: detail.active
+      active: detail.active,
     };
   }
 
@@ -264,8 +245,7 @@ export class TeacherAssignmentsStore {
         message?: unknown;
         error?: { message?: unknown };
       };
-      if (typeof anyErr.error?.message === 'string')
-        return anyErr.error.message;
+      if (typeof anyErr.error?.message === 'string') return anyErr.error.message;
       if (typeof anyErr.message === 'string') return anyErr.message;
     }
     return 'Ocurrió un error inesperado.';

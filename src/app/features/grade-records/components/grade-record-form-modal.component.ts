@@ -8,14 +8,9 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { EvaluationScale } from '@features/evaluations/models';
 import {
@@ -25,7 +20,7 @@ import {
   GradeRecordRow,
   SCORE_MAX,
   SCORE_MIN,
-  validateGradeShape
+  validateGradeShape,
 } from '../models';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -52,40 +47,28 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
   imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="grade-form-title"
       (click)="onBackdropClick($event)"
     >
-      <div
-        class="card w-full max-w-md shadow-xl"
-        (click)="$event.stopPropagation()"
-      >
+      <div class="card w-full max-w-md shadow-xl" (click)="$event.stopPropagation()">
         <header class="card-header flex items-start justify-between gap-3">
           <div>
             <h2 id="grade-form-title" class="card-title">{{ title() }}</h2>
             <p class="card-description">{{ description() }}</p>
           </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            aria-label="Cerrar"
-            (click)="cancel()"
-          >
+          <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
             <app-icon name="x" [size]="18" />
           </button>
         </header>
 
-        <form
-          [formGroup]="form"
-          (ngSubmit)="onSubmit()"
-          class="card-body grid gap-4"
-        >
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="card-body grid gap-4">
           @if (errorBanner()) {
             <div class="alert alert-danger">
               <app-icon name="alert-circle" [size]="16" />
-              <p class="text-sm flex-1">{{ errorBanner() }}</p>
+              <p class="flex-1 text-sm">{{ errorBanner() }}</p>
             </div>
           }
 
@@ -104,8 +87,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
               <p class="field-error">{{ msg }}</p>
             } @else if (!editing()) {
               <p class="field-hint">
-                Pega el publicUuid del estudiante. (Roster por sección
-                llegará en sprint posterior.)
+                Pega el publicUuid del estudiante. (Roster por sección llegará en sprint posterior.)
               </p>
             }
           </div>
@@ -126,9 +108,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
               @if (showError('score'); as msg) {
                 <p class="field-error">{{ msg }}</p>
               } @else {
-                <p class="field-hint">
-                  Vigesimal {{ scoreMin }} a {{ scoreMax }} (2 decimales).
-                </p>
+                <p class="field-hint">Vigesimal {{ scoreMin }} a {{ scoreMax }} (2 decimales).</p>
               }
             </div>
           } @else {
@@ -166,9 +146,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
           }
 
           <footer class="flex flex-wrap items-center justify-end gap-2 pt-2">
-            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">
-              Cancelar
-            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">Cancelar</button>
             <button
               type="submit"
               class="btn btn-primary btn-sm"
@@ -186,7 +164,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
         </form>
       </div>
     </div>
-  `
+  `,
 })
 export class GradeRecordFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -206,21 +184,17 @@ export class GradeRecordFormModalComponent implements OnInit {
 
   protected readonly editing = computed(() => this.row() !== null);
 
-  protected readonly allowedLiterals = computed(
-    () => ALLOWED_LITERALS_BY_SCALE[this.scale()]
-  );
+  protected readonly allowedLiterals = computed(() => ALLOWED_LITERALS_BY_SCALE[this.scale()]);
 
-  protected readonly title = computed(() =>
-    this.editing() ? 'Editar nota' : 'Registrar nota'
-  );
+  protected readonly title = computed(() => (this.editing() ? 'Editar nota' : 'Registrar nota'));
   protected readonly description = computed(() =>
     this.editing()
       ? `Estudiante: ${this.row()!.studentFullName}.`
       : 'Registra una nota individual. Si el estudiante ya tiene una, el ' +
-        'servidor hace upsert (idempotente).'
+        'servidor hace upsert (idempotente).',
   );
   protected readonly submitLabel = computed(() =>
-    this.editing() ? 'Guardar cambios' : 'Registrar'
+    this.editing() ? 'Guardar cambios' : 'Registrar',
   );
 
   private readonly _formError = signal<string | null>(null);
@@ -229,7 +203,7 @@ export class GradeRecordFormModalComponent implements OnInit {
     studentPublicUuid: ['', [Validators.required]],
     score: [null as number | null],
     literal: [''],
-    comments: ['', [Validators.maxLength(COMMENTS_MAX_LENGTH)]]
+    comments: ['', [Validators.maxLength(COMMENTS_MAX_LENGTH)]],
   });
 
   ngOnInit(): void {
@@ -239,7 +213,7 @@ export class GradeRecordFormModalComponent implements OnInit {
         studentPublicUuid: r.studentPublicUuid,
         score: r.score,
         literal: r.literal ?? '',
-        comments: r.comments ?? ''
+        comments: r.comments ?? '',
       });
       this.form.get('studentPublicUuid')?.disable({ emitEvent: false });
     } else {
@@ -303,7 +277,7 @@ export class GradeRecordFormModalComponent implements OnInit {
       studentPublicUuid: v.studentPublicUuid,
       score,
       literal,
-      comments: v.comments?.trim() || null
+      comments: v.comments?.trim() || null,
     });
   }
 }

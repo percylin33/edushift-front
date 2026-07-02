@@ -8,13 +8,13 @@ import {
   toOptionRow,
   toQuestionRow,
   toQuizDetail,
-  toQuizRow
+  toQuizRow,
 } from './quiz.model';
 import type {
   OptionResponseRaw,
   QuestionResponseRaw,
   QuizResponseRaw,
-  QuizSummaryRaw
+  QuizSummaryRaw,
 } from './quiz.model';
 
 /**
@@ -44,7 +44,7 @@ describe('quiz.model', () => {
         ownerPublicUuid: 'tch-1',
         questionCount: 5,
         totalPoints: 50,
-        createdAt: '2026-01-01T00:00:00.000Z'
+        createdAt: '2026-01-01T00:00:00.000Z',
       };
       const row = toQuizRow(raw);
       expect(row.dueAt).toBeInstanceOf(Date);
@@ -65,7 +65,7 @@ describe('quiz.model', () => {
         ownerPublicUuid: 'tch-1',
         questionCount: 0,
         totalPoints: 0,
-        createdAt: '2026-01-01T00:00:00.000Z'
+        createdAt: '2026-01-01T00:00:00.000Z',
       };
       const row = toQuizRow(raw);
       expect(row.timeLimitMinutes).toBeNull();
@@ -80,7 +80,7 @@ describe('quiz.model', () => {
         label: '4',
         isCorrect: true,
         explanation: 'porque 2+2',
-        position: 0
+        position: 0,
       };
       const row = toOptionRow(opt);
       expect(row.isCorrect).toBeTrue();
@@ -93,7 +93,7 @@ describe('quiz.model', () => {
         label: '5',
         isCorrect: null,
         explanation: null,
-        position: 0
+        position: 0,
       };
       const row = toOptionRow(opt);
       expect(row.isCorrect).toBeNull();
@@ -110,7 +110,7 @@ describe('quiz.model', () => {
         correctText: null,
         expectedKeywords: null,
         correctBoolean: true,
-        options: []
+        options: [],
       };
       const row = toQuestionRow(raw);
       expect(row.options).toEqual([]);
@@ -147,11 +147,11 @@ describe('quiz.model', () => {
             correctText: null,
             expectedKeywords: null,
             correctBoolean: null,
-            options: []
-          }
+            options: [],
+          },
         ],
         createdAt: '2026-01-01T00:00:00.000Z',
-        updatedAt: null
+        updatedAt: null,
       };
       const detail = toQuizDetail(raw);
       expect(detail.questions).toHaveSize(1);
@@ -177,7 +177,7 @@ describe('quiz.model', () => {
       revealCorrectness: false,
       questions: [],
       createdAt: new Date(),
-      updatedAt: null
+      updatedAt: null,
     };
 
     it('isQuizEditable true solo en DRAFT', () => {
@@ -202,9 +202,9 @@ describe('quiz.model', () => {
             correctText: null,
             expectedKeywords: null,
             correctBoolean: true,
-            options: []
-          }
-        ]
+            options: [],
+          },
+        ],
       };
       expect(isQuizPublishable(withQuestions)).toBeTrue();
     });
@@ -219,7 +219,7 @@ describe('quiz.model', () => {
       expect(ALL_QUIZ_STATUSES).toEqual([
         QuizStatus.Draft,
         QuizStatus.Published,
-        QuizStatus.Closed
+        QuizStatus.Closed,
       ]);
     });
   });

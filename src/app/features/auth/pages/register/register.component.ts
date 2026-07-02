@@ -1,17 +1,6 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  signal
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, finalize, of, switchMap, tap } from 'rxjs';
 
@@ -98,10 +87,7 @@ import { AuthStore } from '../../store/auth.store';
             [attr.aria-invalid]="invalid('tenantName')"
             [attr.aria-describedby]="invalid('tenantName') ? 'tenantName-error' : null"
             placeholder="Colegio San José"
-            class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content
-                   placeholder:text-content-subtle
-                   focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30
-                   disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
+            class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
           />
           @if (invalid('tenantName')) {
             <p id="tenantName-error" class="text-xs text-danger">{{ errorOf('tenantName') }}</p>
@@ -127,12 +113,11 @@ import { AuthStore } from '../../store/auth.store';
               formControlName="tenantSlug"
               (input)="markSlugAsTouched()"
               [attr.aria-invalid]="invalid('tenantSlug')"
-              [attr.aria-describedby]="invalid('tenantSlug') ? 'tenantSlug-error' : 'tenantSlug-hint'"
+              [attr.aria-describedby]="
+                invalid('tenantSlug') ? 'tenantSlug-error' : 'tenantSlug-hint'
+              "
               placeholder="colegio-san-jose"
-              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm text-content
-                     placeholder:text-content-subtle
-                     focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30
-                     disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
+              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
             />
           </div>
           @if (invalid('tenantSlug')) {
@@ -159,10 +144,7 @@ import { AuthStore } from '../../store/auth.store';
               [attr.aria-invalid]="invalid('adminFirstName')"
               [attr.aria-describedby]="invalid('adminFirstName') ? 'adminFirstName-error' : null"
               placeholder="María"
-              class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content
-                     placeholder:text-content-subtle
-                     focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30
-                     disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
+              class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
             />
             @if (invalid('adminFirstName')) {
               <p id="adminFirstName-error" class="text-xs text-danger">
@@ -182,10 +164,7 @@ import { AuthStore } from '../../store/auth.store';
               [attr.aria-invalid]="invalid('adminLastName')"
               [attr.aria-describedby]="invalid('adminLastName') ? 'adminLastName-error' : null"
               placeholder="García"
-              class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content
-                     placeholder:text-content-subtle
-                     focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30
-                     disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
+              class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
             />
             @if (invalid('adminLastName')) {
               <p id="adminLastName-error" class="text-xs text-danger">
@@ -213,10 +192,7 @@ import { AuthStore } from '../../store/auth.store';
               [attr.aria-invalid]="invalid('adminEmail')"
               [attr.aria-describedby]="invalid('adminEmail') ? 'adminEmail-error' : null"
               placeholder="tu@institucion.edu"
-              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm text-content
-                     placeholder:text-content-subtle
-                     focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30
-                     disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
+              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
             />
           </div>
           @if (invalid('adminEmail')) {
@@ -241,17 +217,15 @@ import { AuthStore } from '../../store/auth.store';
               autocomplete="new-password"
               formControlName="adminPassword"
               [attr.aria-invalid]="invalid('adminPassword')"
-              [attr.aria-describedby]="invalid('adminPassword') ? 'adminPassword-error' : 'adminPassword-hint'"
+              [attr.aria-describedby]="
+                invalid('adminPassword') ? 'adminPassword-error' : 'adminPassword-hint'
+              "
               placeholder="Mínimo 8 caracteres"
-              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-10 text-sm text-content
-                     placeholder:text-content-subtle
-                     focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30
-                     disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
+              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-10 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
             />
             <button
               type="button"
-              class="absolute inset-y-0 right-0 flex items-center pr-3 text-content-subtle
-                     hover:text-content focus:outline-none"
+              class="absolute inset-y-0 right-0 flex items-center pr-3 text-content-subtle hover:text-content focus:outline-none"
               [attr.aria-label]="passwordVisible() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
               (click)="togglePasswordVisibility()"
             >
@@ -273,11 +247,7 @@ import { AuthStore } from '../../store/auth.store';
         <button
           type="submit"
           [disabled]="loading() || form.invalid"
-          class="inline-flex w-full items-center justify-center gap-2 rounded-md
-                 bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white
-                 transition-colors hover:bg-primary-700 focus-visible:outline-none
-                 focus-visible:ring-2 focus-visible:ring-primary-500/40
-                 disabled:cursor-not-allowed disabled:opacity-60"
+          class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:cursor-not-allowed disabled:opacity-60"
         >
           @if (loading()) {
             <app-spinner [size]="16" label="Creando…" />
@@ -292,15 +262,14 @@ import { AuthStore } from '../../store/auth.store';
           ¿Ya tienes una cuenta?
           <a
             [routerLink]="loginRoute"
-            class="font-medium text-primary-700 hover:text-primary-800
-                   dark:text-primary-300 dark:hover:text-primary-200"
+            class="font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
           >
             Inicia sesión
           </a>
         </p>
       </form>
     </div>
-  `
+  `,
 })
 export class RegisterComponent {
   private readonly fb = inject(FormBuilder);
@@ -329,13 +298,13 @@ export class RegisterComponent {
         Validators.required,
         Validators.minLength(2),
         Validators.maxLength(80),
-        Validators.pattern(/^[a-z0-9]([a-z0-9-]{0,78}[a-z0-9])?$/)
-      ]
+        Validators.pattern(/^[a-z0-9]([a-z0-9-]{0,78}[a-z0-9])?$/),
+      ],
     ],
     adminFirstName: ['', [Validators.required, Validators.maxLength(100)]],
     adminLastName: ['', [Validators.required, Validators.maxLength(100)]],
     adminEmail: ['', [Validators.required, Validators.email, Validators.maxLength(254)]],
-    adminPassword: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]]
+    adminPassword: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
   });
 
   private readonly _passwordVisible = signal(false);
@@ -421,7 +390,7 @@ export class RegisterComponent {
       adminEmail: raw.adminEmail.trim().toLowerCase(),
       adminPassword: raw.adminPassword,
       adminFirstName: raw.adminFirstName.trim(),
-      adminLastName: raw.adminLastName.trim()
+      adminLastName: raw.adminLastName.trim(),
     };
 
     this.store.setLoading(true);
@@ -442,16 +411,16 @@ export class RegisterComponent {
         switchMap(() =>
           this.authApi.me().pipe(
             tap((user) => this.auth.setUser(user)),
-            catchError(() => of(null))
-          )
+            catchError(() => of(null)),
+          ),
         ),
         switchMap(() =>
           this.tenantApi.findCurrent().pipe(
             tap((tenant) => this.tenant.setTenant(tenant, 'header')),
-            catchError(() => of(null))
-          )
+            catchError(() => of(null)),
+          ),
         ),
-        finalize(() => this.store.setLoading(false))
+        finalize(() => this.store.setLoading(false)),
       )
       .subscribe({
         next: () => {
@@ -459,7 +428,7 @@ export class RegisterComponent {
         },
         error: (err: HttpErrorResponse) => {
           this.applyServerErrors(err);
-        }
+        },
       });
   }
 
@@ -493,7 +462,7 @@ export class RegisterComponent {
     switch (code) {
       case 'TENANT_SLUG_TAKEN':
         this.form.controls['tenantSlug'].setErrors({
-          serverField: 'Este identificador ya está en uso. Elige otro.'
+          serverField: 'Este identificador ya está en uso. Elige otro.',
         });
         this.form.controls['tenantSlug'].markAsTouched();
         this.store.setError('Revisa el identificador del workspace.');
@@ -504,7 +473,7 @@ export class RegisterComponent {
       case 'EMAIL_TAKEN':
       case 'USER_EMAIL_TAKEN':
         this.form.controls['adminEmail'].setErrors({
-          serverField: 'Ya existe una cuenta con este correo.'
+          serverField: 'Ya existe una cuenta con este correo.',
         });
         this.form.controls['adminEmail'].markAsTouched();
         this.store.setError('Revisa el correo.');
@@ -532,10 +501,7 @@ export class RegisterComponent {
 
   private firstApiError(err: HttpErrorResponse): ApiError | null {
     const body = err.error as
-      | (ApiResponse<unknown> & { errors?: ApiError[] })
-      | ApiError
-      | null
-      | undefined;
+      (ApiResponse<unknown> & { errors?: ApiError[] }) | ApiError | null | undefined;
     if (body && typeof body === 'object') {
       if ('errors' in body && Array.isArray(body.errors) && body.errors.length > 0) {
         return body.errors[0];

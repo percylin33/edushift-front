@@ -5,7 +5,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
@@ -14,14 +14,14 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import {
   EmploymentStatusBadgeComponent,
   InviteTeacherDialogComponent,
   LinkUserDialogComponent,
   TeacherAssignmentsTabComponent,
-  TeacherScheduleTabComponent
+  TeacherScheduleTabComponent,
 } from '../../components';
 import { TeachersStore } from '../../store';
 import { EMPLOYMENT_STATUS_LABELS } from '../../models';
@@ -68,7 +68,7 @@ type TabId = 'info' | 'account' | 'assignments' | 'specializations' | 'schedule'
     InviteTeacherDialogComponent,
     LinkUserDialogComponent,
     TeacherAssignmentsTabComponent,
-    TeacherScheduleTabComponent
+    TeacherScheduleTabComponent,
   ],
   template: `
     <app-page-container size="wide">
@@ -134,7 +134,9 @@ type TabId = 'info' | 'account' | 'assignments' | 'specializations' | 'schedule'
                   <dt class="text-content-muted">Apellidos</dt>
                   <dd class="col-span-2">
                     {{ t.lastName }}
-                    @if (t.secondLastName) { · {{ t.secondLastName }} }
+                    @if (t.secondLastName) {
+                      · {{ t.secondLastName }}
+                    }
                   </dd>
                   <dt class="text-content-muted">Nacimiento</dt>
                   <dd class="col-span-2">{{ formatDate(t.birthDate) }}</dd>
@@ -180,8 +182,8 @@ type TabId = 'info' | 'account' | 'assignments' | 'specializations' | 'schedule'
                     <app-icon name="check" [size]="18" />
                     <p class="flex-1 text-sm">
                       Cuenta vinculada al usuario
-                      <code class="font-mono">{{ t.userPublicUuid }}</code>.
-                      El docente puede iniciar sesión.
+                      <code class="font-mono">{{ t.userPublicUuid }}</code
+                      >. El docente puede iniciar sesión.
                     </p>
                     <a
                       [routerLink]="userDetailRoute(t.userPublicUuid)"
@@ -193,9 +195,7 @@ type TabId = 'info' | 'account' | 'assignments' | 'specializations' | 'schedule'
                   </div>
                 } @else {
                   <div class="rounded-md border border-dashed border-border p-4">
-                    <p class="text-sm font-medium text-content">
-                      Aún no tiene cuenta de usuario
-                    </p>
+                    <p class="text-sm font-medium text-content">Aún no tiene cuenta de usuario</p>
                     <p class="mt-1 text-xs text-content-muted">
                       Hay dos formas de habilitarle el acceso al sistema:
                     </p>
@@ -203,17 +203,15 @@ type TabId = 'info' | 'account' | 'assignments' | 'specializations' | 'schedule'
                       <li class="flex gap-2">
                         <strong class="text-primary-600">1.</strong>
                         <span>
-                          <strong>Invitar al sistema</strong> — generamos un
-                          enlace que el docente abre y crea su contraseña.
-                          Al aceptar, queda vinculado automáticamente.
+                          <strong>Invitar al sistema</strong> — generamos un enlace que el docente
+                          abre y crea su contraseña. Al aceptar, queda vinculado automáticamente.
                         </span>
                       </li>
                       <li class="flex gap-2">
                         <strong class="text-primary-600">2.</strong>
                         <span>
-                          <strong>Vincular a usuario existente</strong> —
-                          si el docente ya tiene cuenta (porque era admin
-                          o staff), buscamos al user con rol
+                          <strong>Vincular a usuario existente</strong> — si el docente ya tiene
+                          cuenta (porque era admin o staff), buscamos al user con rol
                           <em>Profesor</em> y los conectamos.
                         </span>
                       </li>
@@ -257,8 +255,7 @@ type TabId = 'info' | 'account' | 'assignments' | 'specializations' | 'schedule'
                 <div>
                   <h3 class="card-title">Especialidades</h3>
                   <p class="card-description">
-                    Áreas de docencia. Se usan en filtros y en las
-                    sugerencias de asignaciones.
+                    Áreas de docencia. Se usan en filtros y en las sugerencias de asignaciones.
                   </p>
                 </div>
                 <a [routerLink]="editRoute(t.publicUuid)" class="btn btn-outline btn-sm">
@@ -268,9 +265,7 @@ type TabId = 'info' | 'account' | 'assignments' | 'specializations' | 'schedule'
               </header>
               <div class="card-body">
                 @if (t.specializations.length === 0) {
-                  <p class="text-sm text-content-muted">
-                    Aún no hay especialidades registradas.
-                  </p>
+                  <p class="text-sm text-content-muted">Aún no hay especialidades registradas.</p>
                 } @else {
                   <div class="flex flex-wrap gap-2">
                     @for (s of t.specializations; track s) {
@@ -291,11 +286,7 @@ type TabId = 'info' | 'account' | 'assignments' | 'specializations' | 'schedule'
           />
         }
         @if (showLinkDialog()) {
-          <app-link-user-dialog
-            [teacher]="t"
-            (closed)="closeLinkDialog()"
-            (linked)="onLinked()"
-          />
+          <app-link-user-dialog [teacher]="t" (closed)="closeLinkDialog()" (linked)="onLinked()" />
         }
       } @else if (loadingDetail()) {
         <div class="flex items-center justify-center py-16">
@@ -314,7 +305,7 @@ type TabId = 'info' | 'account' | 'assignments' | 'specializations' | 'schedule'
         </div>
       }
     </app-page-container>
-  `
+  `,
 })
 export class TeacherDetailComponent implements OnInit {
   private readonly store = inject(TeachersStore);
@@ -334,11 +325,11 @@ export class TeacherDetailComponent implements OnInit {
   protected readonly showLinkDialog = signal<boolean>(false);
 
   protected readonly tabs: ReadonlyArray<{ id: TabId; label: string }> = [
-    { id: 'info',            label: 'Información' },
-    { id: 'account',         label: 'Cuenta' },
-    { id: 'assignments',     label: 'Asignaciones' },
+    { id: 'info', label: 'Información' },
+    { id: 'account', label: 'Cuenta' },
+    { id: 'assignments', label: 'Asignaciones' },
     { id: 'specializations', label: 'Especialidades' },
-    { id: 'schedule',        label: 'Horario' }
+    { id: 'schedule', label: 'Horario' },
   ];
 
   async ngOnInit(): Promise<void> {
@@ -370,7 +361,7 @@ export class TeacherDetailComponent implements OnInit {
       relativeTo: this.route,
       queryParams: { tab },
       queryParamsHandling: 'merge',
-      replaceUrl: true
+      replaceUrl: true,
     });
   }
 
@@ -411,7 +402,7 @@ export class TeacherDetailComponent implements OnInit {
       `¿Eliminar al docente "${t.fullName}"?\n\n` +
         'Si tiene asignaciones activas, el backend rechazará la eliminación.\n' +
         'En ese caso, finaliza las asignaciones primero desde la pestaña\n' +
-        '"Asignaciones" antes de reintentar.'
+        '"Asignaciones" antes de reintentar.',
     );
     if (!ok) return;
     const success = await this.store.delete(t.publicUuid);
@@ -440,17 +431,21 @@ export class TeacherDetailComponent implements OnInit {
     return date.toLocaleDateString('es', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 
   protected genderLabel(gender: Gender | undefined): string {
     if (!gender) return '—';
     switch (gender) {
-      case Gender.Female:       return 'Femenino';
-      case Gender.Male:         return 'Masculino';
-      case Gender.Other:        return 'Otro';
-      case Gender.NotSpecified: return 'Sin especificar';
+      case Gender.Female:
+        return 'Femenino';
+      case Gender.Male:
+        return 'Masculino';
+      case Gender.Other:
+        return 'Otro';
+      case Gender.NotSpecified:
+        return 'Sin especificar';
     }
   }
 

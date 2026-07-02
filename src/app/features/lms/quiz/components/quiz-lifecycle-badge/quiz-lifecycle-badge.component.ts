@@ -1,10 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  Input,
-  computed,
-  signal
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, computed, signal } from '@angular/core';
 import { QuizStatus } from '../../models/quiz.model';
 
 /**
@@ -29,7 +23,7 @@ import { QuizStatus } from '../../models/quiz.model';
       <span class="h-1.5 w-1.5 rounded-full" [class]="dotClass()"></span>
       {{ label() }}
     </span>
-  `
+  `,
 })
 export class QuizLifecycleBadgeComponent {
   @Input({ required: true }) set status(value: QuizStatus) {
@@ -43,24 +37,24 @@ export class QuizLifecycleBadgeComponent {
   readonly colorClass = computed(() => LIFECYCLE_COLOR[this.#status()]);
   readonly dotClass = computed(() => LIFECYCLE_DOT[this.#status()]);
   readonly sizeClass = computed(() =>
-    this.size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm'
+    this.size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm',
   );
 }
 
 const LIFECYCLE_LABEL: Record<QuizStatus, string> = {
   [QuizStatus.Draft]: 'Borrador',
   [QuizStatus.Published]: 'Publicado',
-  [QuizStatus.Closed]: 'Cerrado'
+  [QuizStatus.Closed]: 'Cerrado',
 };
 
 const LIFECYCLE_COLOR: Record<QuizStatus, string> = {
   [QuizStatus.Draft]: 'border-slate-300 bg-slate-100 text-slate-700',
   [QuizStatus.Published]: 'border-emerald-300 bg-emerald-50 text-emerald-700',
-  [QuizStatus.Closed]: 'border-rose-300 bg-rose-50 text-rose-700'
+  [QuizStatus.Closed]: 'border-rose-300 bg-rose-50 text-rose-700',
 };
 
 const LIFECYCLE_DOT: Record<QuizStatus, string> = {
   [QuizStatus.Draft]: 'bg-slate-500',
   [QuizStatus.Published]: 'bg-emerald-500',
-  [QuizStatus.Closed]: 'bg-rose-500'
+  [QuizStatus.Closed]: 'bg-rose-500',
 };

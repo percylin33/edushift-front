@@ -15,8 +15,8 @@
  */
 export enum AcademicYearStatus {
   Planning = 'PLANNING',
-  Active   = 'ACTIVE',
-  Closed   = 'CLOSED'
+  Active = 'ACTIVE',
+  Closed = 'CLOSED',
 }
 
 // =============================================================================

@@ -6,7 +6,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -16,21 +16,16 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import {
   EVALUATION_KIND_LABELS,
   EVALUATION_SCALE_LABELS,
   EvaluationScale,
-  EvaluationStatus
+  EvaluationStatus,
 } from '@features/evaluations/models';
 import { EvaluationStatusBadgeComponent } from '@features/evaluations/components/evaluation-status-badge.component';
-import {
-  GradeBook,
-  GradeBookEvaluation,
-  GradeBookStudent,
-  cellKey
-} from '../../models';
+import { GradeBook, GradeBookEvaluation, GradeBookStudent, cellKey } from '../../models';
 import { GradeBookStore } from '../../store';
 
 /**
@@ -70,15 +65,11 @@ import { GradeBookStore } from '../../store';
     IconComponent,
     PageContainerComponent,
     PageHeaderComponent,
-    SpinnerComponent
+    SpinnerComponent,
   ],
   template: `
     <app-page-container size="wide">
-      <app-page-header
-        eyebrow="Libro de calificaciones"
-        [title]="title()"
-        [subtitle]="subtitle()"
-      >
+      <app-page-header eyebrow="Libro de calificaciones" [title]="title()" [subtitle]="subtitle()">
         <button type="button" class="btn btn-ghost btn-sm" (click)="goBack()">
           <app-icon name="chevron-left" [size]="16" />
           <span>Volver</span>
@@ -95,7 +86,7 @@ import { GradeBookStore } from '../../store';
       </app-page-header>
 
       @if (gradebook(); as gb) {
-        <div class="flex flex-wrap items-center gap-3 mb-4 text-sm">
+        <div class="mb-4 flex flex-wrap items-center gap-3 text-sm">
           <span class="badge badge-neutral">
             <app-icon name="users" [size]="12" class="mr-1" />
             {{ gb.students.length }} estudiantes
@@ -123,13 +114,7 @@ import { GradeBookStore } from '../../store';
         <div class="alert alert-danger">
           <app-icon name="alert-circle" [size]="18" />
           <p class="flex-1 text-sm">{{ errorBanner() }}</p>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            (click)="reload()"
-          >
-            Reintentar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">Reintentar</button>
         </div>
       }
 
@@ -152,30 +137,21 @@ import { GradeBookStore } from '../../store';
             title="Sin evaluaciones"
             description="Crea evaluaciones desde la pantalla de la asignación para empezar a llenar el libro."
           >
-            <button
-              type="button"
-              class="btn btn-primary btn-sm"
-              (click)="goToEvaluations()"
-            >
+            <button type="button" class="btn btn-primary btn-sm" (click)="goToEvaluations()">
               <app-icon name="plus" [size]="16" />
               <span>Ir a evaluaciones</span>
             </button>
           </app-empty-state>
         } @else {
           <!-- Desktop: matriz -->
-          <section class="card overflow-hidden hidden md:block">
+          <section class="card hidden overflow-hidden md:block">
             <div class="overflow-x-auto" tabindex="0">
               <table class="gradebook-table">
                 <thead>
                   <tr>
-                    <th class="sticky-left sticky-top z-30 student-col">
-                      Estudiante
-                    </th>
+                    <th class="sticky-left sticky-top student-col z-30">Estudiante</th>
                     @for (e of gb.evaluations; track e.publicUuid) {
-                      <th
-                        class="sticky-top z-20 eval-col"
-                        [title]="evaluationTitle(e)"
-                      >
+                      <th class="sticky-top eval-col z-20" [title]="evaluationTitle(e)">
                         <button
                           type="button"
                           class="eval-header"
@@ -184,12 +160,12 @@ import { GradeBookStore } from '../../store';
                           <span class="text-xs uppercase text-content-muted">
                             {{ kindLabel(e.kind) }}
                           </span>
-                          <p class="font-medium truncate">{{ e.name }}</p>
-                          <div class="flex items-center justify-between gap-1 mt-1">
+                          <p class="truncate font-medium">{{ e.name }}</p>
+                          <div class="mt-1 flex items-center justify-between gap-1">
                             <span class="text-xs text-content-muted">
                               {{ formatDate(e.scheduledDate) }}
                             </span>
-                            <span class="text-xs font-mono">
+                            <span class="font-mono text-xs">
                               p {{ e.weight | number: '1.0-2' }}
                             </span>
                           </div>
@@ -197,20 +173,18 @@ import { GradeBookStore } from '../../store';
                         </button>
                       </th>
                     }
-                    <th class="sticky-right sticky-top z-30 avg-col">
+                    <th class="sticky-right sticky-top avg-col z-30">
                       Promedio<br />
-                      <span class="text-xs font-normal text-content-muted">
-                        ponderado
-                      </span>
+                      <span class="text-xs font-normal text-content-muted"> ponderado </span>
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (s of gb.students; track s.publicUuid) {
                     <tr>
-                      <th class="sticky-left z-10 student-col text-left">
+                      <th class="sticky-left student-col z-10 text-left">
                         <p class="font-medium">{{ s.fullName }}</p>
-                        <p class="text-xs text-content-muted font-mono">
+                        <p class="font-mono text-xs text-content-muted">
                           {{ shorten(s.publicUuid) }}
                         </p>
                       </th>
@@ -218,12 +192,8 @@ import { GradeBookStore } from '../../store';
                         <td
                           class="cell"
                           [class.cell-empty]="!hasCell(s, e)"
-                          [class.cell-warning]="
-                            !hasCell(s, e) && e.status === statusPublished
-                          "
-                          [class.cell-final]="
-                            hasScore(s, e) && e.status === statusClosed
-                          "
+                          [class.cell-warning]="!hasCell(s, e) && e.status === statusPublished"
+                          [class.cell-final]="hasScore(s, e) && e.status === statusClosed"
                           [title]="cellTitle(s, e)"
                           (click)="goToEvaluation(e.publicUuid)"
                         >
@@ -242,10 +212,10 @@ import { GradeBookStore } from '../../store';
                           }
                         </td>
                       }
-                      <td class="sticky-right z-10 avg-col">
+                      <td class="sticky-right avg-col z-10">
                         @if (s.weightedAverage !== null) {
                           <span
-                            class="font-mono tabular-nums font-semibold"
+                            class="font-mono font-semibold tabular-nums"
                             [class.text-success-700]="s.weightedAverage >= 14"
                             [class.text-danger-700]="s.weightedAverage < 11"
                           >
@@ -263,12 +233,12 @@ import { GradeBookStore } from '../../store';
           </section>
 
           <!-- Mobile: cards por estudiante (colapsibles) -->
-          <section class="md:hidden grid gap-3">
+          <section class="grid gap-3 md:hidden">
             @for (s of gb.students; track s.publicUuid) {
               <article class="card">
                 <header class="card-header flex items-center justify-between gap-3">
-                  <div class="flex-1 min-w-0">
-                    <p class="font-medium truncate">{{ s.fullName }}</p>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate font-medium">{{ s.fullName }}</p>
                     <p class="text-xs text-content-muted">
                       Promedio:
                       @if (s.weightedAverage !== null) {
@@ -299,14 +269,14 @@ import { GradeBookStore } from '../../store';
                         class="flex items-center justify-between gap-3 rounded-md px-3 py-2 hover:bg-surface-subtle"
                         (click)="goToEvaluation(e.publicUuid)"
                       >
-                        <div class="flex-1 min-w-0 text-left">
+                        <div class="min-w-0 flex-1 text-left">
                           <p class="text-xs uppercase text-content-muted">
                             {{ kindLabel(e.kind) }}
                           </p>
-                          <p class="font-medium truncate text-sm">{{ e.name }}</p>
+                          <p class="truncate text-sm font-medium">{{ e.name }}</p>
                         </div>
                         @if (cellScore(s, e); as score) {
-                          <span class="font-mono tabular-nums text-sm">
+                          <span class="font-mono text-sm tabular-nums">
                             {{ score | number: '1.0-2' }}
                           </span>
                         } @else {
@@ -315,7 +285,7 @@ import { GradeBookStore } from '../../store';
                               {{ literal }}
                             </span>
                           } @else {
-                            <span class="text-content-muted text-sm">—</span>
+                            <span class="text-sm text-content-muted">—</span>
                           }
                         }
                       </button>
@@ -428,8 +398,8 @@ import { GradeBookStore } from '../../store';
         background: rgba(251, 191, 36, 0.12);
         color: var(--color-warning-700, #b45309);
       }
-    `
-  ]
+    `,
+  ],
 })
 export class GradeBookPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
@@ -493,27 +463,16 @@ export class GradeBookPageComponent implements OnInit, OnDestroy {
   }
 
   protected cellScore(s: GradeBookStudent, e: GradeBookEvaluation): number | null {
-    return (
-      this.gradebook()?.cellIndex.get(cellKey(s.publicUuid, e.publicUuid))
-        ?.score ?? null
-    );
+    return this.gradebook()?.cellIndex.get(cellKey(s.publicUuid, e.publicUuid))?.score ?? null;
   }
 
-  protected cellLiteral(
-    s: GradeBookStudent,
-    e: GradeBookEvaluation
-  ): string | null {
-    return (
-      this.gradebook()?.cellIndex.get(cellKey(s.publicUuid, e.publicUuid))
-        ?.literal ?? null
-    );
+  protected cellLiteral(s: GradeBookStudent, e: GradeBookEvaluation): string | null {
+    return this.gradebook()?.cellIndex.get(cellKey(s.publicUuid, e.publicUuid))?.literal ?? null;
   }
 
   protected cellTitle(s: GradeBookStudent, e: GradeBookEvaluation): string {
     const has = this.hasCell(s, e);
-    return has
-      ? `${s.fullName} · ${e.name}`
-      : `${s.fullName} · ${e.name} (sin nota)`;
+    return has ? `${s.fullName} · ${e.name}` : `${s.fullName} · ${e.name} (sin nota)`;
   }
 
   protected evaluationTitle(e: GradeBookEvaluation): string {
@@ -522,7 +481,7 @@ export class GradeBookPageComponent implements OnInit, OnDestroy {
       EVALUATION_KIND_LABELS[e.kind],
       EVALUATION_SCALE_LABELS[e.scale],
       `peso ${e.weight}`,
-      this.formatDate(e.scheduledDate)
+      this.formatDate(e.scheduledDate),
     ].join(' · ');
   }
 
@@ -537,7 +496,7 @@ export class GradeBookPageComponent implements OnInit, OnDestroy {
   protected formatDate(d: Date): string {
     return d.toLocaleDateString('es', {
       day: '2-digit',
-      month: 'short'
+      month: 'short',
     });
   }
 
@@ -559,9 +518,7 @@ export class GradeBookPageComponent implements OnInit, OnDestroy {
 
   protected goToEvaluations(): void {
     if (!this.currentAssignmentUuid) return;
-    void this.router.navigate([
-      ROUTES.EVALUATIONS.byAssignment(this.currentAssignmentUuid)
-    ]);
+    void this.router.navigate([ROUTES.EVALUATIONS.byAssignment(this.currentAssignmentUuid)]);
   }
 
   protected async reload(): Promise<void> {

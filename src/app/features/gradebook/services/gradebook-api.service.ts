@@ -25,9 +25,7 @@ export class GradeBookApiService {
 
   getByAssignment(assignmentPublicUuid: string): Observable<GradeBook> {
     return this.api
-      .get<ApiResponse<GradeBookResponseRaw>>(
-        API.GRADE_BOOK.BY_ASSIGNMENT(assignmentPublicUuid)
-      )
+      .get<ApiResponse<GradeBookResponseRaw>>(API.GRADE_BOOK.BY_ASSIGNMENT(assignmentPublicUuid))
       .pipe(map((envelope) => toGradeBook(envelope.data)));
   }
 }

@@ -17,7 +17,7 @@ import {
   UpdateQuizRequest,
   toQuestionRow,
   toQuizDetail,
-  toQuizRow
+  toQuizRow,
 } from '../models/quiz.model';
 
 /**
@@ -56,13 +56,12 @@ export class QuizApiService {
    */
   listBySection(
     sectionPublicUuid: string,
-    filters: { status?: QuizStatus } = {}
+    filters: { status?: QuizStatus } = {},
   ): Observable<QuizRow[]> {
     return this.api
-      .get<SpringPage<QuizSummaryRaw>>(
-        API.LMS.SECTION_QUIZZES(sectionPublicUuid),
-        { status: filters.status }
-      )
+      .get<SpringPage<QuizSummaryRaw>>(API.LMS.SECTION_QUIZZES(sectionPublicUuid), {
+        status: filters.status,
+      })
       .pipe(map((page) => page.content.map(toQuizRow)));
   }
 
@@ -78,14 +77,11 @@ export class QuizApiService {
    * se insertan en bulk (BE-7b.1 valida cada uno contra las invariantes
    * del {@code QuestionType}). {@code dueAt} se pasa como ISO-8601.
    */
-  createQuiz(
-    sectionPublicUuid: string,
-    request: CreateQuizRequest
-  ): Observable<QuizDetail> {
+  createQuiz(sectionPublicUuid: string, request: CreateQuizRequest): Observable<QuizDetail> {
     return this.api
       .post<ApiResponse<QuizResponseRaw>, CreateQuizRequest>(
         API.LMS.SECTION_QUIZZES_CREATE(sectionPublicUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => toQuizDetail(envelope.data)));
   }
@@ -94,15 +90,9 @@ export class QuizApiService {
    * Edita un quiz. El backend rechaza con 409 si el status es CLOSED
    * (o PUBLISHED para campos distintos de {@code dueAt}/{@code maxAttempts}).
    */
-  updateQuiz(
-    publicUuid: string,
-    patch: UpdateQuizRequest
-  ): Observable<QuizDetail> {
+  updateQuiz(publicUuid: string, patch: UpdateQuizRequest): Observable<QuizDetail> {
     return this.api
-      .patch<ApiResponse<QuizResponseRaw>, UpdateQuizRequest>(
-        API.LMS.QUIZ_PATCH(publicUuid),
-        patch
-      )
+      .patch<ApiResponse<QuizResponseRaw>, UpdateQuizRequest>(API.LMS.QUIZ_PATCH(publicUuid), patch)
       .pipe(map((envelope) => toQuizDetail(envelope.data)));
   }
 
@@ -138,14 +128,11 @@ export class QuizApiService {
    * options; SHORT_ANSWER admite {@code expectedKeywords} sin
    * options.
    */
-  addQuestion(
-    quizPublicUuid: string,
-    request: CreateQuestionRequest
-  ): Observable<QuestionRow> {
+  addQuestion(quizPublicUuid: string, request: CreateQuestionRequest): Observable<QuestionRow> {
     return this.api
       .post<ApiResponse<QuestionResponseRaw>, CreateQuestionRequest>(
         API.LMS.QUIZ_ADD_QUESTION(quizPublicUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => toQuestionRow(envelope.data)));
   }
@@ -155,14 +142,11 @@ export class QuizApiService {
    * "exactly one correct" en el set completo tras el insert. Devuelve
    * la pregunta entera con la nueva option agregada.
    */
-  addOption(
-    questionPublicUuid: string,
-    request: AddOptionRequest
-  ): Observable<QuestionRow> {
+  addOption(questionPublicUuid: string, request: AddOptionRequest): Observable<QuestionRow> {
     return this.api
       .post<ApiResponse<QuestionResponseRaw>, AddOptionRequest>(
         API.LMS.QUESTION_ADD_OPTION(questionPublicUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => toQuestionRow(envelope.data)));
   }

@@ -20,16 +20,14 @@
  * </ul>
  */
 export enum StudentEnrollmentStatus {
-  Active      = 'ACTIVE',
-  Withdrawn   = 'WITHDRAWN',
+  Active = 'ACTIVE',
+  Withdrawn = 'WITHDRAWN',
   Transferred = 'TRANSFERRED',
-  Graduated   = 'GRADUATED'
+  Graduated = 'GRADUATED',
 }
 
 /** {@code true} sii la row es soft-ended (cualquier valor distinto de Active). */
-export function isTerminalEnrollmentStatus(
-  status: StudentEnrollmentStatus
-): boolean {
+export function isTerminalEnrollmentStatus(status: StudentEnrollmentStatus): boolean {
   return status !== StudentEnrollmentStatus.Active;
 }
 
@@ -41,5 +39,5 @@ export function isTerminalEnrollmentStatus(
 export const TERMINAL_ENROLLMENT_STATUSES: ReadonlyArray<StudentEnrollmentStatus> = [
   StudentEnrollmentStatus.Withdrawn,
   StudentEnrollmentStatus.Transferred,
-  StudentEnrollmentStatus.Graduated
+  StudentEnrollmentStatus.Graduated,
 ];

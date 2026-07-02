@@ -6,13 +6,10 @@ import {
   SimpleChanges,
   inject,
   input,
-  signal
+  signal,
 } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import {
-  IconComponent,
-  SpinnerComponent
-} from '@shared/components';
+import { IconComponent, SpinnerComponent } from '@shared/components';
 import { AcademicApiService } from '../services';
 import { ScheduleSlotItem } from '../models';
 import { ScheduleGridComponent } from './schedule-grid.component';
@@ -32,12 +29,7 @@ import { ScheduleGridComponent } from './schedule-grid.component';
   selector: 'app-section-schedule-tab',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule,
-    IconComponent,
-    SpinnerComponent,
-    ScheduleGridComponent
-  ],
+  imports: [CommonModule, IconComponent, SpinnerComponent, ScheduleGridComponent],
   template: `
     <header class="mb-3 flex items-end justify-between gap-3">
       <div>
@@ -60,9 +52,7 @@ import { ScheduleGridComponent } from './schedule-grid.component';
             <p class="font-medium">No pudimos cargar el horario.</p>
             <p class="mt-1 text-xs opacity-80">{{ errorMessage() }}</p>
           </div>
-          <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">
-            Reintentar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">Reintentar</button>
         </div>
       } @else {
         <div class="p-4">
@@ -78,9 +68,11 @@ import { ScheduleGridComponent } from './schedule-grid.component';
   `,
   styles: [
     `
-      :host { display: block; }
-    `
-  ]
+      :host {
+        display: block;
+      }
+    `,
+  ],
 })
 export class SectionScheduleTabComponent implements OnChanges {
   private readonly api = inject(AcademicApiService);

@@ -33,10 +33,10 @@ describe('HasPermissionDirective', () => {
           provide: AuthService,
           useValue: {
             user: userSignal.asReadonly(),
-            permissions: permissionsSignal.asReadonly()
-          }
-        }
-      ]
+            permissions: permissionsSignal.asReadonly(),
+          },
+        },
+      ],
     });
     fixture = TestBed.createComponent(HostComponent);
     component = fixture.componentInstance;
@@ -132,7 +132,7 @@ describe('HasPermissionDirective', () => {
     >
       Ver rúbrica
     </button>
-  `
+  `,
 })
 class HostComponent {
   protected readonly permission = Permission;

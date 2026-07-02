@@ -8,21 +8,16 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApiError } from '@core/models';
 import {
   ChipMultiSelectComponent,
   ChipOption,
   IconComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import { AcademicStore } from '../store';
 import {
@@ -31,7 +26,7 @@ import {
   COURSE_DESCRIPTION_MAX_LENGTH,
   COURSE_NAME_MAX_LENGTH,
   CourseDetail,
-  UpdateCourseRequest
+  UpdateCourseRequest,
 } from '../models';
 
 /**
@@ -70,34 +65,29 @@ import {
     ReactiveFormsModule,
     ChipMultiSelectComponent,
     IconComponent,
-    SpinnerComponent
+    SpinnerComponent,
   ],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="course-form-title"
       (click)="onBackdropClick($event)"
     >
       <div
-        class="card w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl"
+        class="card max-h-[90vh] w-full max-w-2xl overflow-y-auto shadow-xl"
         (click)="$event.stopPropagation()"
       >
         <header class="card-header flex items-start justify-between gap-3">
           <div>
             <h2 id="course-form-title" class="card-title">{{ title() }}</h2>
             <p class="card-description">
-              Catálogo de cursos del workspace. Cada curso se asocia a uno o
-              más niveles para que aparezca en la matriz de asignaciones.
+              Catálogo de cursos del workspace. Cada curso se asocia a uno o más niveles para que
+              aparezca en la matriz de asignaciones.
             </p>
           </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            aria-label="Cerrar"
-            (click)="cancel()"
-          >
+          <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
             <app-icon name="x" [size]="18" />
           </button>
         </header>
@@ -116,7 +106,7 @@ import {
               <input
                 id="course-code"
                 type="text"
-                class="input uppercase font-mono"
+                class="input font-mono uppercase"
                 formControlName="code"
                 [maxLength]="codeMaxLength"
                 placeholder="MAT"
@@ -192,8 +182,8 @@ import {
               }
             </div>
 
-            <div class="field sm:col-span-6 flex items-end">
-              <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+            <div class="field flex items-end sm:col-span-6">
+              <label class="inline-flex cursor-pointer select-none items-center gap-2">
                 <input
                   type="checkbox"
                   class="size-4 rounded border-border accent-primary-600"
@@ -201,7 +191,7 @@ import {
                 />
                 <span class="text-sm">
                   Activo
-                  <span class="text-content-muted text-xs ml-1">
+                  <span class="ml-1 text-xs text-content-muted">
                     (los cursos inactivos no aparecen en asignaciones)
                   </span>
                 </span>
@@ -221,17 +211,15 @@ import {
                 <p class="field-error">{{ msg }}</p>
               } @else {
                 <p class="field-hint">
-                  Mínimo 1 nivel requerido. La cascada de levels se aplica al
-                  guardar (replace, no add).
+                  Mínimo 1 nivel requerido. La cascada de levels se aplica al guardar (replace, no
+                  add).
                 </p>
               }
             </div>
           </div>
 
           <footer class="flex flex-wrap items-center justify-end gap-2 pt-2">
-            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">
-              Cancelar
-            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">Cancelar</button>
             <button
               type="submit"
               class="btn btn-primary btn-sm"
@@ -249,7 +237,7 @@ import {
         </form>
       </div>
     </div>
-  `
+  `,
 })
 export class CourseFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -269,11 +257,9 @@ export class CourseFormModalComponent implements OnInit {
   protected readonly descriptionMaxLength = COURSE_DESCRIPTION_MAX_LENGTH;
 
   protected readonly editing = computed(() => this.course() !== null);
-  protected readonly title = computed(() =>
-    this.editing() ? 'Editar curso' : 'Nuevo curso'
-  );
+  protected readonly title = computed(() => (this.editing() ? 'Editar curso' : 'Nuevo curso'));
   protected readonly submitLabel = computed(() =>
-    this.editing() ? 'Guardar cambios' : 'Crear curso'
+    this.editing() ? 'Guardar cambios' : 'Crear curso',
   );
 
   /** Adapta los levels al shape esperado por chip-multi-select. */
@@ -284,8 +270,8 @@ export class CourseFormModalComponent implements OnInit {
       .map((l) => ({
         id: l.publicUuid,
         label: l.name,
-        subtitle: l.code
-      }))
+        subtitle: l.code,
+      })),
   );
 
   private readonly fieldErrors = signal<Record<string, string>>({});
@@ -296,21 +282,15 @@ export class CourseFormModalComponent implements OnInit {
       [
         Validators.required,
         Validators.maxLength(COURSE_CODE_MAX_LENGTH),
-        Validators.pattern(COURSE_CODE_REGEX)
-      ]
+        Validators.pattern(COURSE_CODE_REGEX),
+      ],
     ],
-    name: [
-      '',
-      [Validators.required, Validators.maxLength(COURSE_NAME_MAX_LENGTH)]
-    ],
-    description: [
-      '',
-      [Validators.maxLength(COURSE_DESCRIPTION_MAX_LENGTH)]
-    ],
+    name: ['', [Validators.required, Validators.maxLength(COURSE_NAME_MAX_LENGTH)]],
+    description: ['', [Validators.maxLength(COURSE_DESCRIPTION_MAX_LENGTH)]],
     credits: [null as number | null, [Validators.min(0)]],
     hoursPerWeek: [null as number | null, [Validators.min(0)]],
     isActive: [true],
-    levelIds: [[] as string[], [Validators.required, atLeastOneLevel()]]
+    levelIds: [[] as string[], [Validators.required, atLeastOneLevel()]],
   });
 
   /** Snapshot del estado original — usado para detectar cambios. */
@@ -364,7 +344,7 @@ export class CourseFormModalComponent implements OnInit {
         credits: c.credits ?? null,
         hoursPerWeek: c.hoursPerWeek ?? null,
         isActive: c.isActive,
-        levelIds
+        levelIds,
       });
       this.original = {
         code: c.code,
@@ -373,7 +353,7 @@ export class CourseFormModalComponent implements OnInit {
         credits: c.credits ?? null,
         hoursPerWeek: c.hoursPerWeek ?? null,
         isActive: c.isActive,
-        levelIds: [...levelIds].sort()
+        levelIds: [...levelIds].sort(),
       };
     }
   }
@@ -440,12 +420,11 @@ export class CourseFormModalComponent implements OnInit {
           if (isActive !== this.original.isActive) patch.isActive = isActive;
         }
 
-        const levelsChanged =
-          !!this.original && !sameSet(this.original.levelIds, levelIds);
+        const levelsChanged = !!this.original && !sameSet(this.original.levelIds, levelIds);
 
         const updated = await this.store.updateCourse(c.publicUuid, {
           patch: Object.keys(patch).length > 0 ? patch : undefined,
-          levels: levelsChanged ? { levelPublicUuids: levelIds } : undefined
+          levels: levelsChanged ? { levelPublicUuids: levelIds } : undefined,
         });
         if (updated) this.saved.emit(updated);
       } else {
@@ -456,12 +435,11 @@ export class CourseFormModalComponent implements OnInit {
           credits: credits ?? undefined,
           hoursPerWeek: hoursPerWeek ?? undefined,
           isActive,
-          levelPublicUuids: levelIds
+          levelPublicUuids: levelIds,
         });
         if (created) this.saved.emit(created);
       }
-    }
-    catch (err) {
+    } catch (err) {
       this.applyServerErrors(err);
     }
   }
@@ -514,8 +492,7 @@ export class CourseFormModalComponent implements OnInit {
         next['levelIds'] = 'Debes seleccionar al menos un nivel.';
         break;
       case 'RESOURCE_NOT_FOUND':
-        next['levelIds'] =
-          'Uno de los niveles seleccionados ya no existe. Refresca la lista.';
+        next['levelIds'] = 'Uno de los niveles seleccionados ya no existe. Refresca la lista.';
         break;
       case 'COURSE_IN_USE_BY_ASSIGNMENTS':
         /* No aplica al form pero por completitud. */
@@ -535,11 +512,7 @@ export class CourseFormModalComponent implements OnInit {
   private suggestNextCode(): string {
     const ctrl = this.form.get('code');
     const base = ((ctrl?.value as string) ?? 'X').trim().toUpperCase();
-    const existing = new Set(
-      this.store
-        .courses()
-        .map((c) => c.code.toUpperCase())
-    );
+    const existing = new Set(this.store.courses().map((c) => c.code.toUpperCase()));
     if (!existing.has(base)) return base;
     for (let i = 2; i < 100; i++) {
       const candidate = `${base}_${i}`;

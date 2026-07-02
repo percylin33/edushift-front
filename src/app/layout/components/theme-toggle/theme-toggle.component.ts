@@ -25,9 +25,7 @@ interface ThemeOption {
     <div class="relative">
       <button
         type="button"
-        class="inline-flex h-9 w-9 items-center justify-center rounded-md
-               text-content-muted hover:bg-surface-muted hover:text-content
-               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
+        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-content-muted hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
         [attr.aria-expanded]="open()"
         aria-haspopup="menu"
         aria-label="Cambiar tema"
@@ -47,8 +45,7 @@ interface ThemeOption {
         ></button>
 
         <div
-          class="absolute right-0 z-40 mt-2 w-48 origin-top-right animate-fade-in
-                 rounded-lg border border-border bg-surface-raised p-1 shadow-soft-lg"
+          class="absolute right-0 z-40 mt-2 w-48 origin-top-right animate-fade-in rounded-lg border border-border bg-surface-raised p-1 shadow-soft-lg"
           role="menu"
         >
           @for (option of options; track option.value) {
@@ -56,9 +53,7 @@ interface ThemeOption {
               type="button"
               role="menuitemradio"
               [attr.aria-checked]="userTheme() === option.value"
-              class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm
-                     text-content hover:bg-surface-muted
-                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
+              class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-content hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
               (click)="pick(option.value)"
             >
               <app-icon [name]="option.icon" [size]="16" class="text-content-muted" />
@@ -74,9 +69,7 @@ interface ThemeOption {
             <button
               type="button"
               role="menuitem"
-              class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-xs
-                     text-content-muted hover:bg-surface-muted hover:text-content
-                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
+              class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-xs text-content-muted hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
               (click)="reset()"
             >
               <app-icon name="x" [size]="14" />
@@ -86,15 +79,15 @@ interface ThemeOption {
         </div>
       }
     </div>
-  `
+  `,
 })
 export class ThemeToggleComponent {
   private readonly themeService = inject(ThemeService);
 
   readonly options: readonly ThemeOption[] = [
-    { value: Theme.Light,  label: 'Claro',   icon: 'sun',     hint: 'Tema claro' },
-    { value: Theme.Dark,   label: 'Oscuro',  icon: 'moon',    hint: 'Tema oscuro' },
-    { value: Theme.System, label: 'Sistema', icon: 'monitor', hint: 'Sigue al sistema operativo' }
+    { value: Theme.Light, label: 'Claro', icon: 'sun', hint: 'Tema claro' },
+    { value: Theme.Dark, label: 'Oscuro', icon: 'moon', hint: 'Tema oscuro' },
+    { value: Theme.System, label: 'Sistema', icon: 'monitor', hint: 'Sigue al sistema operativo' },
   ];
 
   readonly userTheme = this.themeService.userTheme;
@@ -107,8 +100,12 @@ export class ThemeToggleComponent {
   private readonly _open = signal(false);
   readonly open = this._open.asReadonly();
 
-  toggle(): void { this._open.update((v) => !v); }
-  close(): void { this._open.set(false); }
+  toggle(): void {
+    this._open.update((v) => !v);
+  }
+  close(): void {
+    this._open.set(false);
+  }
 
   pick(theme: Theme): void {
     this.themeService.setTheme(theme);

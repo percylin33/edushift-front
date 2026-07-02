@@ -26,7 +26,7 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         icon: 'home',
         route: ROUTES.DASHBOARD.ROOT,
         exactMatch: true,
-        feature: FeatureKey.Dashboard
+        feature: FeatureKey.Dashboard,
       },
       {
         /*
@@ -40,7 +40,7 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         icon: 'graduation-cap',
         route: ROUTES.STUDENTS.ROOT,
         feature: FeatureKey.Students,
-        roles: [UserRole.TenantAdmin]
+        roles: [UserRole.TenantAdmin],
       },
       {
         /*
@@ -53,7 +53,7 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         icon: 'users',
         route: ROUTES.TEACHERS.ROOT,
         feature: FeatureKey.Teachers,
-        roles: [UserRole.TenantAdmin]
+        roles: [UserRole.TenantAdmin],
       },
       {
         /*
@@ -79,33 +79,33 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
             id: 'academic-years',
             label: 'Años académicos',
             route: ROUTES.ACADEMIC.YEARS.LIST,
-            roles: [UserRole.TenantAdmin]
+            roles: [UserRole.TenantAdmin],
           },
           {
             id: 'academic-levels',
             label: 'Niveles y grados',
             route: ROUTES.ACADEMIC.LEVELS.LIST,
-            roles: [UserRole.TenantAdmin]
+            roles: [UserRole.TenantAdmin],
           },
           {
             id: 'academic-sections',
             label: 'Secciones',
             route: ROUTES.ACADEMIC.SECTIONS.LIST,
-            roles: [UserRole.TenantAdmin]
+            roles: [UserRole.TenantAdmin],
           },
           {
             id: 'academic-courses',
             label: 'Cursos',
             route: ROUTES.ACADEMIC.COURSES.LIST,
-            roles: [UserRole.TenantAdmin]
+            roles: [UserRole.TenantAdmin],
           },
           {
             id: 'academic-periods',
             label: 'Periodos',
             route: ROUTES.ACADEMIC.PERIODS.LIST,
-            roles: [UserRole.TenantAdmin]
-          }
-        ]
+            roles: [UserRole.TenantAdmin],
+          },
+        ],
       },
       {
         /*
@@ -119,7 +119,7 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         icon: 'layers',
         route: ROUTES.RUBRICS.ROOT,
         feature: FeatureKey.Rubrics,
-        roles: [UserRole.TenantAdmin, UserRole.Teacher]
+        roles: [UserRole.TenantAdmin, UserRole.Teacher],
       },
       {
         /*
@@ -143,15 +143,15 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
             id: 'attendance-sessions',
             label: 'Sesiones',
             route: ROUTES.ATTENDANCE.SESSIONS,
-            roles: [UserRole.TenantAdmin, UserRole.Teacher]
+            roles: [UserRole.TenantAdmin, UserRole.Teacher],
           },
           {
             id: 'attendance-scanner',
             label: 'Escáner QR',
             route: ROUTES.ATTENDANCE.SCANNER,
-            roles: [UserRole.TenantAdmin, UserRole.Teacher]
-          }
-        ]
+            roles: [UserRole.TenantAdmin, UserRole.Teacher],
+          },
+        ],
       },
       {
         id: 'payments',
@@ -159,9 +159,27 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         icon: 'credit-card',
         route: ROUTES.PAYMENTS.ROOT,
         feature: FeatureKey.Payments,
-        permissions: [Permission.PaymentsRead]
-      }
-    ]
+        roles: [UserRole.TenantAdmin, UserRole.Staff, UserRole.Student, UserRole.Guardian],
+        children: [
+          {
+            /*
+             * Sprint 11 / FE-11.3 — admin power tools (reconcile /
+             * refund / mark-paid-cash). Gated by `LMS_PAYMENT_ADMIN`
+             * (TENANT_ADMIN + STAFF per `LmsRoleAuthorityMapper`).
+             * The authority string is passed verbatim to match the
+             * `LMS_*` convention used by every other LMS guard — the
+             * `permissions` array in `permission.enum.ts` is the
+             * authoritative listing.
+             */
+            id: 'payments-admin',
+            label: 'Conciliación',
+            icon: 'shield-check',
+            route: ROUTES.PAYMENTS.ADMIN.ROOT,
+            permissions: [Permission.LmsPaymentAdmin],
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'insights',
@@ -174,7 +192,7 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         route: ROUTES.AI.ROOT,
         badge: 'Beta',
         feature: FeatureKey.Ai,
-        permissions: [Permission.AiUse]
+        roles: [UserRole.TenantAdmin, UserRole.Teacher],
       },
       {
         id: 'reports',
@@ -182,9 +200,9 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         icon: 'bar-chart',
         route: ROUTES.REPORTS.ROOT,
         feature: FeatureKey.Reports,
-        permissions: [Permission.ReportsRead]
-      }
-    ]
+        roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Staff],
+      },
+    ],
   },
   {
     id: 'system',
@@ -201,7 +219,7 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         icon: 'users',
         route: ROUTES.USERS.ROOT,
         feature: FeatureKey.Users,
-        roles: [UserRole.TenantAdmin]
+        roles: [UserRole.TenantAdmin],
       },
       {
         id: 'settings',
@@ -209,8 +227,8 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         icon: 'settings',
         route: ROUTES.SETTINGS.ROOT,
         feature: FeatureKey.Settings,
-        permissions: [Permission.SettingsRead, Permission.SettingsManage]
-      }
-    ]
-  }
+        roles: [UserRole.TenantAdmin],
+      },
+    ],
+  },
 ];

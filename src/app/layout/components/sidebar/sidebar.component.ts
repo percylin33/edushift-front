@@ -30,9 +30,7 @@ import { SidebarItemComponent } from './sidebar-item.component';
     }
 
     <aside
-      class="fixed inset-y-0 left-0 z-40 flex flex-col border-r border-border bg-surface
-             transition-[transform,width] duration-200 ease-out
-             md:static md:translate-x-0 md:shadow-none"
+      class="fixed inset-y-0 left-0 z-40 flex flex-col border-r border-border bg-surface transition-[transform,width] duration-200 ease-out md:static md:translate-x-0 md:shadow-none"
       [class.translate-x-0]="mobileOpen()"
       [class.-translate-x-full]="!mobileOpen()"
       [style.width.px]="width()"
@@ -66,11 +64,13 @@ import { SidebarItemComponent } from './sidebar-item.component';
         </button>
       </div>
 
-      <nav class="flex-1 space-y-6 overflow-y-auto scrollbar-thin px-3 py-4">
+      <nav class="scrollbar-thin flex-1 space-y-6 overflow-y-auto px-3 py-4">
         @for (group of groups(); track group.id) {
           <div>
             @if (group.label && !collapsed()) {
-              <p class="mb-2 px-3 text-2xs font-semibold uppercase tracking-wider text-content-subtle">
+              <p
+                class="mb-2 px-3 text-2xs font-semibold uppercase tracking-wider text-content-subtle"
+              >
                 {{ group.label }}
               </p>
             }
@@ -96,23 +96,19 @@ import { SidebarItemComponent } from './sidebar-item.component';
       <div class="hidden border-t border-border-subtle p-2 md:block">
         <button
           type="button"
-          class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-content-muted
-                 transition-colors hover:bg-surface-muted hover:text-content"
+          class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-content-muted transition-colors hover:bg-surface-muted hover:text-content"
           [class.justify-center]="collapsed()"
           [attr.aria-label]="collapsed() ? 'Expandir menú' : 'Colapsar menú'"
           (click)="toggleCollapsed()"
         >
-          <app-icon
-            [name]="collapsed() ? 'panel-left-open' : 'panel-left-close'"
-            [size]="18"
-          />
+          <app-icon [name]="collapsed() ? 'panel-left-open' : 'panel-left-close'" [size]="18" />
           @if (!collapsed()) {
             <span>Colapsar</span>
           }
         </button>
       </div>
     </aside>
-  `
+  `,
 })
 export class SidebarComponent {
   private readonly layout = inject(LayoutService);

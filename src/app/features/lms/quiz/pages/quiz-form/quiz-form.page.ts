@@ -4,7 +4,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -13,15 +13,12 @@ import {
   FormControl,
   FormGroup,
   ReactiveFormsModule,
-  Validators
+  Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { Permission } from '@core/enums';
-import {
-  EmptyStateComponent,
-  IconComponent
-} from '@shared/components';
+import { EmptyStateComponent, IconComponent } from '@shared/components';
 import { HasPermissionDirective } from '@shared/directives/has-permission.directive';
 import { QuizzesStore } from '../../store/quizzes.store';
 import {
@@ -29,7 +26,7 @@ import {
   QuestionRow,
   QuestionType,
   QuizDetail,
-  isQuizEditable
+  isQuizEditable,
 } from '../../models/quiz.model';
 import { QuestionTypeBadgeComponent } from '../../components/question-type-badge/question-type-badge.component';
 import { AiAssistantPanelComponent } from '../../components/ai-assistant-panel/ai-assistant-panel.component';
@@ -70,7 +67,7 @@ import { CreateAiQuestionRequest } from '../../models/ai-assistant.model';
     EmptyStateComponent,
     QuestionTypeBadgeComponent,
     HasPermissionDirective,
-    AiAssistantPanelComponent
+    AiAssistantPanelComponent,
   ],
   template: `
     <header class="mb-4 flex items-center justify-between gap-2">
@@ -104,9 +101,7 @@ import { CreateAiQuestionRequest } from '../../models/ai-assistant.model';
         <app-icon name="alert-triangle" [size]="18" />
         <div>
           <p class="font-medium">Este quiz no se puede editar.</p>
-          <p class="text-xs opacity-80">
-            Solo se pueden editar quizzes en estado DRAFT.
-          </p>
+          <p class="text-xs opacity-80">Solo se pueden editar quizzes en estado DRAFT.</p>
         </div>
       </div>
     } @else {
@@ -127,7 +122,7 @@ import { CreateAiQuestionRequest } from '../../models/ai-assistant.model';
                   placeholder="p. ej. Quiz: Fracciones — 5to grado"
                 />
                 @if (showMetaError('title')) {
-                  <span class="text-xs text-error">
+                  <span class="text-error text-xs">
                     El título es obligatorio (máx. 200 caracteres).
                   </span>
                 }
@@ -145,11 +140,7 @@ import { CreateAiQuestionRequest } from '../../models/ai-assistant.model';
 
               <label class="form-control">
                 <span class="label-text">Vence</span>
-                <input
-                  type="datetime-local"
-                  class="input"
-                  formControlName="dueAt"
-                />
+                <input type="datetime-local" class="input" formControlName="dueAt" />
               </label>
 
               <label class="form-control">
@@ -165,24 +156,12 @@ import { CreateAiQuestionRequest } from '../../models/ai-assistant.model';
 
               <label class="form-control">
                 <span class="label-text">Intentos permitidos</span>
-                <input
-                  type="number"
-                  class="input"
-                  formControlName="maxAttempts"
-                  min="1"
-                  max="10"
-                />
+                <input type="number" class="input" formControlName="maxAttempts" min="1" max="10" />
               </label>
 
               <label class="form-control">
                 <span class="label-text">Puntaje máximo</span>
-                <input
-                  type="number"
-                  class="input"
-                  formControlName="maxScore"
-                  min="0"
-                  max="1000"
-                />
+                <input type="number" class="input" formControlName="maxScore" min="0" max="1000" />
               </label>
             </div>
 
@@ -207,8 +186,7 @@ import { CreateAiQuestionRequest } from '../../models/ai-assistant.model';
             <header class="flex items-center justify-between">
               <h2 class="card-title text-base">Banco de preguntas</h2>
               <span class="text-xs text-content-muted">
-                {{ quiz.questions.length }} pregunta(s) ·
-                {{ totalPoints() }} pts
+                {{ quiz.questions.length }} pregunta(s) · {{ totalPoints() }} pts
               </span>
             </header>
 
@@ -221,16 +199,12 @@ import { CreateAiQuestionRequest } from '../../models/ai-assistant.model';
             } @else {
               <ol class="space-y-3">
                 @for (q of quiz.questions; track q.publicUuid; let i = $index) {
-                  <li class="rounded-lg border border-base-200 p-3">
+                  <li class="border-base-200 rounded-lg border p-3">
                     <div class="mb-2 flex items-center justify-between gap-2">
                       <div class="flex items-center gap-2">
-                        <span class="text-sm font-semibold text-content-muted">
-                          {{ i + 1 }}.
-                        </span>
+                        <span class="text-sm font-semibold text-content-muted"> {{ i + 1 }}. </span>
                         <app-question-type-badge [type]="q.type" />
-                        <span class="text-xs text-content-muted">
-                          {{ q.points }} pts
-                        </span>
+                        <span class="text-xs text-content-muted"> {{ q.points }} pts </span>
                       </div>
                     </div>
                     <p class="text-sm text-content">{{ q.prompt }}</p>
@@ -271,7 +245,7 @@ import { CreateAiQuestionRequest } from '../../models/ai-assistant.model';
               </ol>
             }
 
-            <details class="rounded-lg border border-base-200 p-3">
+            <details class="border-base-200 rounded-lg border p-3">
               <summary class="cursor-pointer text-sm font-medium text-content">
                 <app-icon name="plus" [size]="14" />
                 Añadir pregunta
@@ -293,11 +267,7 @@ import { CreateAiQuestionRequest } from '../../models/ai-assistant.model';
                   <app-ai-assistant-panel (accept)="onAiAccepted($event)" />
                 </div>
               }
-              <form
-                [formGroup]="questionForm"
-                (ngSubmit)="onAddQuestion()"
-                class="mt-3 space-y-3"
-              >
+              <form [formGroup]="questionForm" (ngSubmit)="onAddQuestion()" class="mt-3 space-y-3">
                 <div class="grid gap-3 sm:grid-cols-12">
                   <label class="form-control sm:col-span-4">
                     <span class="label-text">Tipo</span>
@@ -310,13 +280,7 @@ import { CreateAiQuestionRequest } from '../../models/ai-assistant.model';
 
                   <label class="form-control sm:col-span-6">
                     <span class="label-text">Puntos</span>
-                    <input
-                      type="number"
-                      class="input"
-                      formControlName="points"
-                      min="1"
-                      max="100"
-                    />
+                    <input type="number" class="input" formControlName="points" min="1" max="100" />
                   </label>
                 </div>
 
@@ -329,7 +293,7 @@ import { CreateAiQuestionRequest } from '../../models/ai-assistant.model';
                     maxlength="2000"
                   ></textarea>
                   @if (showQError('prompt')) {
-                    <span class="text-xs text-error">
+                    <span class="text-error text-xs">
                       El enunciado es obligatorio (máx. 2000 caracteres).
                     </span>
                   }
@@ -365,11 +329,7 @@ import { CreateAiQuestionRequest } from '../../models/ai-assistant.model';
                       </div>
                     }
                     @if (optionsArray.length < 6) {
-                      <button
-                        type="button"
-                        class="btn btn-ghost btn-xs"
-                        (click)="addOption()"
-                      >
+                      <button type="button" class="btn btn-ghost btn-xs" (click)="addOption()">
                         <app-icon name="plus" [size]="12" />
                         Añadir opción
                       </button>
@@ -410,8 +370,8 @@ import { CreateAiQuestionRequest } from '../../models/ai-assistant.model';
                       maxlength="1000"
                     />
                     <span class="text-xs text-content-muted">
-                      El backend matchea case-insensitive. Una respuesta es
-                      correcta si contiene TODAS las keywords.
+                      El backend matchea case-insensitive. Una respuesta es correcta si contiene
+                      TODAS las keywords.
                     </span>
                   </label>
                 }
@@ -453,9 +413,9 @@ import { CreateAiQuestionRequest } from '../../models/ai-assistant.model';
         <p>{{ errorBanner() }}</p>
       </div>
     }
-  `
+  `,
 })
-export class QuizFormPage implements OnInit {
+export class QuizFormPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(QuizzesStore);
   private readonly route = inject(ActivatedRoute);
@@ -502,21 +462,21 @@ export class QuizFormPage implements OnInit {
     maxScore: FormControl<number | null>;
   }> = this.fb.group({
     title: this.fb.control<string | null>(null, {
-      validators: [Validators.required, Validators.maxLength(200)]
+      validators: [Validators.required, Validators.maxLength(200)],
     }),
     description: this.fb.control<string | null>(null, {
-      validators: [Validators.maxLength(10000)]
+      validators: [Validators.maxLength(10000)],
     }),
     dueAt: this.fb.control<string | null>(null),
     timeLimitMinutes: this.fb.control<number | null>(null, {
-      validators: [Validators.min(1), Validators.max(480)]
+      validators: [Validators.min(1), Validators.max(480)],
     }),
     maxAttempts: this.fb.control<number | null>(1, {
-      validators: [Validators.required, Validators.min(1), Validators.max(10)]
+      validators: [Validators.required, Validators.min(1), Validators.max(10)],
     }),
     maxScore: this.fb.control<number | null>(100, {
-      validators: [Validators.required, Validators.min(0), Validators.max(1000)]
-    })
+      validators: [Validators.required, Validators.min(0), Validators.max(1000)],
+    }),
   });
 
   protected readonly questionForm: FormGroup<{
@@ -525,28 +485,30 @@ export class QuizFormPage implements OnInit {
     points: FormControl<number | null>;
     correctBoolean: FormControl<boolean | null>;
     expectedKeywords: FormControl<string | null>;
-    options: FormArray<FormGroup<{
-      label: FormControl<string | null>;
-      isCorrect: FormControl<boolean>;
-    }>>;
+    options: FormArray<
+      FormGroup<{
+        label: FormControl<string | null>;
+        isCorrect: FormControl<boolean>;
+      }>
+    >;
   }> = this.fb.nonNullable.group({
     type: this.fb.nonNullable.control<QuestionType>(QuestionType.MultipleChoice, {
-      validators: [Validators.required]
+      validators: [Validators.required],
     }),
     prompt: this.fb.control<string | null>(null, {
-      validators: [Validators.required, Validators.maxLength(2000)]
+      validators: [Validators.required, Validators.maxLength(2000)],
     }),
     points: this.fb.control<number | null>(5, {
-      validators: [Validators.required, Validators.min(1), Validators.max(100)]
+      validators: [Validators.required, Validators.min(1), Validators.max(100)],
     }),
     correctBoolean: this.fb.control<boolean | null>(true),
     expectedKeywords: this.fb.control<string | null>(null),
-    options: this.fb.array<FormGroup<{
-      label: FormControl<string | null>;
-      isCorrect: FormControl<boolean>;
-    }>>(
-      this.makeDefaultOptions()
-    )
+    options: this.fb.array<
+      FormGroup<{
+        label: FormControl<string | null>;
+        isCorrect: FormControl<boolean>;
+      }>
+    >(this.makeDefaultOptions()),
   });
 
   #sectionUuid: string | null = null;
@@ -594,7 +556,7 @@ export class QuizFormPage implements OnInit {
         dueAt: raw.dueAt ? new Date(raw.dueAt).toISOString() : null,
         timeLimitMinutes: raw.timeLimitMinutes ?? null,
         maxAttempts: raw.maxAttempts ?? undefined,
-        maxScore: raw.maxScore ?? undefined
+        maxScore: raw.maxScore ?? undefined,
       });
       if (updated) this.populateFromDetail(updated);
     } else if (this.#sectionUuid) {
@@ -604,16 +566,13 @@ export class QuizFormPage implements OnInit {
         dueAt: raw.dueAt ? new Date(raw.dueAt).toISOString() : null,
         timeLimitMinutes: raw.timeLimitMinutes ?? null,
         maxAttempts: raw.maxAttempts ?? 1,
-        maxScore: raw.maxScore ?? 100
+        maxScore: raw.maxScore ?? 100,
       });
       if (created) {
         this.#quizUuid = created.publicUuid;
         this.isEdit.set(true);
         // Navigate to /edit so a refresh keeps the wizard open.
-        void this.router.navigate(
-          [ROUTES.LMS.quizEdit(created.publicUuid)],
-          { replaceUrl: true }
-        );
+        void this.router.navigate([ROUTES.LMS.quizEdit(created.publicUuid)], { replaceUrl: true });
       }
     }
   }
@@ -629,12 +588,9 @@ export class QuizFormPage implements OnInit {
       type: raw.type as QuestionType,
       prompt: raw.prompt ?? '',
       points: raw.points ?? 5,
-      correctBoolean:
-        raw.type === QuestionType.TrueFalse ? raw.correctBoolean : undefined,
+      correctBoolean: raw.type === QuestionType.TrueFalse ? raw.correctBoolean : undefined,
       expectedKeywords:
-        raw.type === QuestionType.ShortAnswer
-          ? (raw.expectedKeywords ?? null)
-          : undefined,
+        raw.type === QuestionType.ShortAnswer ? (raw.expectedKeywords ?? null) : undefined,
       options:
         raw.type === QuestionType.MultipleChoice
           ? (raw.options ?? [])
@@ -642,9 +598,9 @@ export class QuizFormPage implements OnInit {
               .map((o, i, arr) => ({
                 label: o!.label as string,
                 isCorrect: !!o!.isCorrect,
-                explanation: null
+                explanation: null,
               }))
-          : undefined
+          : undefined,
     };
     const added = await this.store.addQuestion(this.#quizUuid, request);
     if (added) {
@@ -715,12 +671,14 @@ export class QuizFormPage implements OnInit {
   protected addOption(): void {
     const group = this.fb.nonNullable.group({
       label: this.fb.control<string | null>(null),
-      isCorrect: this.fb.control<boolean>(false)
+      isCorrect: this.fb.control<boolean>(false),
     });
-    this.optionsArray.push(group as unknown as FormGroup<{
-      label: FormControl<string | null>;
-      isCorrect: FormControl<boolean>;
-    }>);
+    this.optionsArray.push(
+      group as unknown as FormGroup<{
+        label: FormControl<string | null>;
+        isCorrect: FormControl<boolean>;
+      }>,
+    );
   }
 
   protected removeOption(index: number): void {
@@ -731,12 +689,10 @@ export class QuizFormPage implements OnInit {
     this.metadataForm.patchValue({
       title: detail.title,
       description: detail.description,
-      dueAt: detail.dueAt
-        ? this.toLocalDatetime(detail.dueAt)
-        : null,
+      dueAt: detail.dueAt ? this.toLocalDatetime(detail.dueAt) : null,
       timeLimitMinutes: detail.timeLimitMinutes,
       maxAttempts: detail.maxAttempts,
-      maxScore: detail.maxScore
+      maxScore: detail.maxScore,
     });
   }
 
@@ -746,14 +702,16 @@ export class QuizFormPage implements OnInit {
       prompt: null,
       points: 5,
       correctBoolean: true,
-      expectedKeywords: null
+      expectedKeywords: null,
     });
     this.optionsArray.clear();
     for (const opt of this.makeDefaultOptions()) {
-      this.optionsArray.push(opt as unknown as FormGroup<{
-        label: FormControl<string | null>;
-        isCorrect: FormControl<boolean>;
-      }>);
+      this.optionsArray.push(
+        opt as unknown as FormGroup<{
+          label: FormControl<string | null>;
+          isCorrect: FormControl<boolean>;
+        }>,
+      );
     }
   }
 
@@ -761,12 +719,12 @@ export class QuizFormPage implements OnInit {
     return [
       this.fb.nonNullable.group({
         label: this.fb.control<string | null>(null),
-        isCorrect: this.fb.control<boolean>(true)
+        isCorrect: this.fb.control<boolean>(true),
       }),
       this.fb.nonNullable.group({
         label: this.fb.control<string | null>(null),
-        isCorrect: this.fb.control<boolean>(false)
-      })
+        isCorrect: this.fb.control<boolean>(false),
+      }),
     ];
   }
 
@@ -806,13 +764,13 @@ function aiToCreateQuestionRequest(req: CreateAiQuestionRequest): CreateQuestion
         .map((o) => ({
           label: o.label.trim(),
           isCorrect: !!o.isCorrect,
-          explanation: o.explanation ?? null
+          explanation: o.explanation ?? null,
         }));
       return {
         type: QuestionType.MultipleChoice,
         prompt: req.prompt,
         points: req.points,
-        options
+        options,
       };
     }
     case 'TF': {
@@ -823,7 +781,7 @@ function aiToCreateQuestionRequest(req: CreateAiQuestionRequest): CreateQuestion
         type: QuestionType.TrueFalse,
         prompt: req.prompt,
         points: req.points,
-        correctBoolean: correct ? /^verdader|^true$/i.test(correct.label.trim()) : true
+        correctBoolean: correct ? /^verdader|^true$/i.test(correct.label.trim()) : true,
       };
     }
     case 'SHORT_ANSWER': {
@@ -831,7 +789,7 @@ function aiToCreateQuestionRequest(req: CreateAiQuestionRequest): CreateQuestion
         type: QuestionType.ShortAnswer,
         prompt: req.prompt,
         points: req.points,
-        expectedKeywords: req.aiRationale ? req.aiRationale : null
+        expectedKeywords: req.aiRationale ? req.aiRationale : null,
       };
     }
   }

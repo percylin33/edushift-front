@@ -5,7 +5,7 @@ import {
   TemplateRef,
   ViewContainerRef,
   effect,
-  inject
+  inject,
 } from '@angular/core';
 import { AuthService } from '@core/services';
 import { Permission } from '@core/enums';
@@ -56,7 +56,7 @@ import { Permission } from '@core/enums';
  */
 @Directive({
   selector: '[appHasPermission]',
-  standalone: true
+  standalone: true,
 })
 export class HasPermissionDirective {
   private readonly template = inject(TemplateRef<unknown>);
@@ -64,7 +64,7 @@ export class HasPermissionDirective {
   private readonly auth = inject(AuthService);
 
   /** Required permissions — accepts a single `Permission` or an array (ANY_OF semantics). */
-  @Input({ alias: 'appHasPermission', required: true })
+  @Input({ required: true })
   set appHasPermission(value: Permission | Permission[] | null | undefined) {
     this.#required = Array.isArray(value) ? value : value ? [value] : [];
   }

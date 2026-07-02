@@ -11,7 +11,7 @@ import {
   LearningSessionRow,
   LifecycleRequest,
   CreateLearningSessionRequest,
-  UpdateLearningSessionRequest
+  UpdateLearningSessionRequest,
 } from '../models';
 
 /**
@@ -48,7 +48,7 @@ export class SessionsApiService {
       periodId: filters.periodUuid,
       status: filters.status,
       dateFrom: filters.dateFrom,
-      dateTo: filters.dateTo
+      dateTo: filters.dateTo,
     };
     return this.api
       .get<LearningSessionListItemRaw[]>(API.SESSIONS.ROOT, params)
@@ -65,19 +65,19 @@ export class SessionsApiService {
     return this.api
       .post<ApiResponse<LearningSessionResponseRaw>, CreateLearningSessionRequest>(
         API.SESSIONS.ROOT,
-        request
+        request,
       )
       .pipe(map((envelope) => this.toSessionDetail(envelope.data)));
   }
 
   updateSession(
     publicUuid: string,
-    patch: UpdateLearningSessionRequest
+    patch: UpdateLearningSessionRequest,
   ): Observable<LearningSessionDetail> {
     return this.api
       .put<ApiResponse<LearningSessionResponseRaw>, UpdateLearningSessionRequest>(
         API.SESSIONS.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toSessionDetail(envelope.data)));
   }
@@ -94,7 +94,7 @@ export class SessionsApiService {
     return this.api
       .post<ApiResponse<LearningSessionResponseRaw>, LifecycleRequest>(
         API.SESSIONS.START(publicUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toSessionDetail(envelope.data)));
   }
@@ -103,11 +103,14 @@ export class SessionsApiService {
    * Transición: IN_PROGRESS → COMPLETED.
    * Requiere {@code version} para optimistic lock.
    */
-  completeSession(publicUuid: string, request: LifecycleRequest): Observable<LearningSessionDetail> {
+  completeSession(
+    publicUuid: string,
+    request: LifecycleRequest,
+  ): Observable<LearningSessionDetail> {
     return this.api
       .post<ApiResponse<LearningSessionResponseRaw>, LifecycleRequest>(
         API.SESSIONS.COMPLETE(publicUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toSessionDetail(envelope.data)));
   }
@@ -120,7 +123,7 @@ export class SessionsApiService {
     return this.api
       .post<ApiResponse<LearningSessionResponseRaw>, LifecycleRequest>(
         API.SESSIONS.CANCEL(publicUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toSessionDetail(envelope.data)));
   }
@@ -156,7 +159,7 @@ export class SessionsApiService {
       courseCode: raw.assignment.courseCode,
       sectionName: raw.assignment.sectionName,
       unitName: raw.unit.name,
-      unitDisplayOrder: raw.unit.displayOrder
+      unitDisplayOrder: raw.unit.displayOrder,
     };
   }
 
@@ -172,8 +175,8 @@ export class SessionsApiService {
         period: {
           ...raw.assignment.period,
           startDate: this.parseDate(raw.assignment.period.startDate)!,
-          endDate: this.parseDate(raw.assignment.period.endDate)!
-        }
+          endDate: this.parseDate(raw.assignment.period.endDate)!,
+        },
       },
       unit: raw.unit,
       title: raw.title,
@@ -188,7 +191,7 @@ export class SessionsApiService {
       endedAt: raw.endedAt ? this.parseDate(raw.endedAt) : undefined,
       cancelledAt: raw.cancelledAt ? this.parseDate(raw.cancelledAt) : undefined,
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 

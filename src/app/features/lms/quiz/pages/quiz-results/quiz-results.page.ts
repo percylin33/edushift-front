@@ -5,7 +5,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
@@ -18,7 +18,7 @@ import {
   AttemptStatus,
   AttemptSummaryRow,
   isAttemptFinal,
-  canRevealCorrectnessFor
+  canRevealCorrectnessFor,
 } from '../../models/attempt.model';
 import { QuestionRow, QuizDetail } from '../../models/quiz.model';
 import { AuthService } from '@core/services';
@@ -63,7 +63,7 @@ import { Permission } from '@core/enums';
     IconComponent,
     SpinnerComponent,
     EmptyStateComponent,
-    AttemptStatusBadgeComponent
+    AttemptStatusBadgeComponent,
   ],
   template: `
     <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -116,168 +116,189 @@ import { Permission } from '@core/enums';
         </app-empty-state>
       } @else {
         <article class="card">
-        <div class="card-body p-0">
-          <div class="overflow-x-auto">
-            <table class="table">
-              <thead>
-                <tr>
-                  @if (canGrade()) {
-                    <th>Estudiante</th>
-                  }
-                  <th>Intento</th>
-                  <th>Status</th>
-                  <th class="text-right">Auto</th>
-                  <th class="text-right">Manual</th>
-                  <th class="text-right">Final</th>
-                  <th class="text-right">Pendientes</th>
-                  <th>Inicio</th>
-                  <th>Entregado</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (s of summaries(); track s.publicUuid) {
-                  <tr
-                    class="cursor-pointer hover:bg-surface-muted/50"
-                    (click)="toggleRow(s.publicUuid)"
-                  >
+          <div class="card-body p-0">
+            <div class="overflow-x-auto">
+              <table class="table">
+                <thead>
+                  <tr>
                     @if (canGrade()) {
-                      <td class="font-mono text-xs text-content-muted">
-                        {{ shortId(s.studentUserId) }}
-                      </td>
+                      <th>Estudiante</th>
                     }
-                    <td>#{{ s.attemptNumber }}</td>
-                    <td>
-                      <app-attempt-status-badge [status]="s.status" />
-                    </td>
-                    <td class="text-right tabular-nums">{{ s.autoScore ?? '—' }}</td>
-                    <td class="text-right tabular-nums">{{ s.manualScore ?? '—' }}</td>
-                    <td class="text-right tabular-nums font-semibold">
-                      {{ s.score ?? '—' }} / {{ s.maxScore ?? '—' }}
-                    </td>
-                    <td class="text-right tabular-nums">
-                      @if (s.pendingAnswerCount > 0) {
-                        <span class="inline-flex items-center gap-1 text-amber-700">
-                          <app-icon name="alert-triangle" [size]="12" />
-                          {{ s.pendingAnswerCount }}
-                        </span>
-                      } @else {
-                        0
-                      }
-                    </td>
-                    <td class="text-xs text-content-muted">
-                      {{ s.startedAt | date: 'short' }}
-                    </td>
-                    <td class="text-xs text-content-muted">
-                      {{ s.submittedAt ? (s.submittedAt | date: 'short') : '—' }}
-                    </td>
-                    <td>
-                      <app-icon
-                        [name]="isExpanded(s.publicUuid) ? 'chevron-up' : 'chevron-down'"
-                        [size]="14"
-                      />
-                    </td>
+                    <th>Intento</th>
+                    <th>Status</th>
+                    <th class="text-right">Auto</th>
+                    <th class="text-right">Manual</th>
+                    <th class="text-right">Final</th>
+                    <th class="text-right">Pendientes</th>
+                    <th>Inicio</th>
+                    <th>Entregado</th>
+                    <th></th>
                   </tr>
-                  @if (isExpanded(s.publicUuid)) {
-                    <tr>
-                      <td [attr.colspan]="canGrade() ? 10 : 9" class="bg-surface-muted/30 p-0">
-                        <div class="p-4">
-                          @if (loadingDetail() === s.publicUuid) {
-                            <div class="flex items-center justify-center py-8">
-                              <app-spinner [size]="16" label="Cargando detalle…" />
-                            </div>
-                          }
-                          @let _a = expandedDetail();
-                          @if (_a) {
-                            <div class="space-y-3">
-                              <div class="flex flex-wrap items-center gap-2 text-xs text-content-muted">
-                                <span>
-                                  Inicio: <strong>{{ _a.startedAt | date: 'medium' }}</strong>
-                                </span>
-                                @if (_a.submittedAt) {
-                                  <span>
-                                    · Entregado:
-                                    <strong>{{ _a.submittedAt | date: 'medium' }}</strong>
-                                  </span>
-                                }
-                                @if (_a.gradedAt) {
-                                  <span>
-                                    · Calificado:
-                                    <strong>{{ _a.gradedAt | date: 'medium' }}</strong>
-                                  </span>
-                                }
-                                @if (_a.feedback) {
-                                  <span>
-                                    · Feedback:
-                                    <em class="text-content">"{{ _a.feedback }}"</em>
-                                  </span>
-                                }
-                              </div>
-
-                              @if (_a.answers.length === 0) {
-                                <p class="text-sm text-content-muted">
-                                  Este intento no tiene respuestas registradas.
-                                </p>
-                              } @else {
-                                <ol class="space-y-2">
-                                  @for (ans of _a.answers; track ans.publicUuid; let i = $index) {
-                                    <li class="rounded-md border border-surface-muted p-3">
-                                      <p class="text-sm font-medium text-content">
-                                        <span class="text-content-muted">{{ i + 1 }}.</span>
-                                        {{ findQuestion(ans.questionPublicUuid)?.prompt ?? 'Pregunta' }}
-                                      </p>
-                                      <p class="mt-1 text-sm text-content-muted">
-                                        Tu respuesta: <span class="text-content">{{ formatAnswer(ans) }}</span>
-                                      </p>
-                                      @if (canReveal(_a)) {
-                                        <p class="mt-1 text-xs">
-                                          <span
-                                            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 ring-1 ring-inset"
-                                            [class]="ans.correct ? 'text-emerald-700 bg-emerald-50 ring-emerald-200' : (ans.correct === false ? 'text-red-700 bg-red-50 ring-red-200' : 'text-slate-600 bg-slate-50 ring-slate-200')"
-                                          >
-                                            <app-icon [name]="ans.correct ? 'check' : (ans.correct === false ? 'x' : 'help-circle')" [size]="12" />
-                                            @if (ans.correct === null) {
-                                              Pendiente
-                                            } @else if (ans.correct) {
-                                              Correcta
-                                            }
-                                            @if (ans.correct === false) {
-                                              Incorrecta
-                                            }
-                                            · {{ ans.pointsAwarded ?? 0 }} pts
-                                          </span>
-                                        </p>
-                                      }
-                                    </li>
-                                  }
-                                </ol>
-                              }
-
-                              @if (canGrade() && _a.status === 'AUTO_GRADED') {
-                                <div class="pt-2">
-                                  <a [routerLink]="gradeRoute()" class="btn btn-primary btn-sm">
-                                    <app-icon name="pencil" [size]="14" />
-                                    Calificar short-answers
-                                  </a>
-                                </div>
-                              }
-                            </div>
-                          }
-                        </div>
+                </thead>
+                <tbody>
+                  @for (s of summaries(); track s.publicUuid) {
+                    <tr
+                      class="cursor-pointer hover:bg-surface-muted/50"
+                      (click)="toggleRow(s.publicUuid)"
+                    >
+                      @if (canGrade()) {
+                        <td class="font-mono text-xs text-content-muted">
+                          {{ shortId(s.studentUserId) }}
+                        </td>
+                      }
+                      <td>#{{ s.attemptNumber }}</td>
+                      <td>
+                        <app-attempt-status-badge [status]="s.status" />
+                      </td>
+                      <td class="text-right tabular-nums">{{ s.autoScore ?? '—' }}</td>
+                      <td class="text-right tabular-nums">{{ s.manualScore ?? '—' }}</td>
+                      <td class="text-right font-semibold tabular-nums">
+                        {{ s.score ?? '—' }} / {{ s.maxScore ?? '—' }}
+                      </td>
+                      <td class="text-right tabular-nums">
+                        @if (s.pendingAnswerCount > 0) {
+                          <span class="inline-flex items-center gap-1 text-amber-700">
+                            <app-icon name="alert-triangle" [size]="12" />
+                            {{ s.pendingAnswerCount }}
+                          </span>
+                        } @else {
+                          0
+                        }
+                      </td>
+                      <td class="text-xs text-content-muted">
+                        {{ s.startedAt | date: 'short' }}
+                      </td>
+                      <td class="text-xs text-content-muted">
+                        {{ s.submittedAt ? (s.submittedAt | date: 'short') : '—' }}
+                      </td>
+                      <td>
+                        <app-icon
+                          [name]="isExpanded(s.publicUuid) ? 'chevron-up' : 'chevron-down'"
+                          [size]="14"
+                        />
                       </td>
                     </tr>
+                    @if (isExpanded(s.publicUuid)) {
+                      <tr>
+                        <td [attr.colspan]="canGrade() ? 10 : 9" class="bg-surface-muted/30 p-0">
+                          <div class="p-4">
+                            @if (loadingDetail() === s.publicUuid) {
+                              <div class="flex items-center justify-center py-8">
+                                <app-spinner [size]="16" label="Cargando detalle…" />
+                              </div>
+                            }
+                            @let _a = expandedDetail();
+                            @if (_a) {
+                              <div class="space-y-3">
+                                <div
+                                  class="flex flex-wrap items-center gap-2 text-xs text-content-muted"
+                                >
+                                  <span>
+                                    Inicio: <strong>{{ _a.startedAt | date: 'medium' }}</strong>
+                                  </span>
+                                  @if (_a.submittedAt) {
+                                    <span>
+                                      · Entregado:
+                                      <strong>{{ _a.submittedAt | date: 'medium' }}</strong>
+                                    </span>
+                                  }
+                                  @if (_a.gradedAt) {
+                                    <span>
+                                      · Calificado:
+                                      <strong>{{ _a.gradedAt | date: 'medium' }}</strong>
+                                    </span>
+                                  }
+                                  @if (_a.feedback) {
+                                    <span>
+                                      · Feedback:
+                                      <em class="text-content">"{{ _a.feedback }}"</em>
+                                    </span>
+                                  }
+                                </div>
+
+                                @if (_a.answers.length === 0) {
+                                  <p class="text-sm text-content-muted">
+                                    Este intento no tiene respuestas registradas.
+                                  </p>
+                                } @else {
+                                  <ol class="space-y-2">
+                                    @for (ans of _a.answers; track ans.publicUuid; let i = $index) {
+                                      <li class="rounded-md border border-surface-muted p-3">
+                                        <p class="text-sm font-medium text-content">
+                                          <span class="text-content-muted">{{ i + 1 }}.</span>
+                                          {{
+                                            findQuestion(ans.questionPublicUuid)?.prompt ??
+                                              'Pregunta'
+                                          }}
+                                        </p>
+                                        <p class="mt-1 text-sm text-content-muted">
+                                          Tu respuesta:
+                                          <span class="text-content">{{ formatAnswer(ans) }}</span>
+                                        </p>
+                                        @if (canReveal(_a)) {
+                                          <p class="mt-1 text-xs">
+                                            <span
+                                              class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 ring-1 ring-inset"
+                                              [class]="
+                                                ans.correct
+                                                  ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                                                  : ans.correct === false
+                                                    ? 'bg-red-50 text-red-700 ring-red-200'
+                                                    : 'bg-slate-50 text-slate-600 ring-slate-200'
+                                              "
+                                            >
+                                              <app-icon
+                                                [name]="
+                                                  ans.correct
+                                                    ? 'check'
+                                                    : ans.correct === false
+                                                      ? 'x'
+                                                      : 'help-circle'
+                                                "
+                                                [size]="12"
+                                              />
+                                              @if (ans.correct === null) {
+                                                Pendiente
+                                              } @else if (ans.correct) {
+                                                Correcta
+                                              }
+                                              @if (ans.correct === false) {
+                                                Incorrecta
+                                              }
+                                              · {{ ans.pointsAwarded ?? 0 }} pts
+                                            </span>
+                                          </p>
+                                        }
+                                      </li>
+                                    }
+                                  </ol>
+                                }
+
+                                @if (canGrade() && _a.status === 'AUTO_GRADED') {
+                                  <div class="pt-2">
+                                    <a [routerLink]="gradeRoute()" class="btn btn-primary btn-sm">
+                                      <app-icon name="pencil" [size]="14" />
+                                      Calificar short-answers
+                                    </a>
+                                  </div>
+                                }
+                              </div>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
                   }
-                }
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </article>
+        </article>
+      }
     }
-    }
-  `
+  `,
 })
-export class QuizResultsPage implements OnInit {
+export class QuizResultsPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly quizzes = inject(QuizzesStore);
@@ -285,7 +306,7 @@ export class QuizResultsPage implements OnInit {
   private readonly auth = inject(AuthService);
 
   protected readonly quizPublicUuid = computed<string>(
-    () => this.route.snapshot.paramMap.get('uuid') ?? ''
+    () => this.route.snapshot.paramMap.get('uuid') ?? '',
   );
 
   protected readonly quiz = signal<QuizDetail | null>(null);
@@ -293,7 +314,7 @@ export class QuizResultsPage implements OnInit {
   // Store signals aliased for template brevity.
   protected readonly summaries = this.attempts.summaries;
   protected readonly loading = computed(
-    () => this.attempts.loadingSummaries() || this.quiz() === null
+    () => this.attempts.loadingSummaries() || this.quiz() === null,
   );
   protected readonly errorBanner = this.attempts.error;
   protected readonly expandedDetail = this.attempts.current;
@@ -303,7 +324,7 @@ export class QuizResultsPage implements OnInit {
 
   /** True if the caller has LMS_QUIZ_GRADE (TEACHER/ADMIN) — sees all attempts + the grade button. */
   protected readonly canGrade = computed<boolean>(() =>
-    this.auth.hasPermission(Permission.LmsQuizGrade)
+    this.auth.hasPermission(Permission.LmsQuizGrade),
   );
 
   protected readonly quizTitle = computed<string | null>(() => this.quiz()?.title ?? null);

@@ -24,7 +24,7 @@ import {
   TeacherResponseRaw,
   TeacherRow,
   UpdateTeacherRequest,
-  computeTeacherFullName
+  computeTeacherFullName,
 } from '../models';
 
 /**
@@ -62,7 +62,7 @@ export class TeachersApiService {
    */
   list(
     filters: TeacherListFilters = {},
-    pagination: TeacherListPagination = {}
+    pagination: TeacherListPagination = {},
   ): Observable<SpringPage<TeacherRow>> {
     const params: Record<string, string | number | boolean | undefined> = {
       search: filters.search?.trim() || undefined,
@@ -70,7 +70,7 @@ export class TeachersApiService {
       hasUserAccount: filters.hasUserAccount,
       page: pagination.page,
       size: pagination.size,
-      sort: pagination.sort
+      sort: pagination.sort,
     };
 
     return this.api
@@ -86,10 +86,7 @@ export class TeachersApiService {
 
   create(request: CreateTeacherRequest): Observable<TeacherDetail> {
     return this.api
-      .post<ApiResponse<TeacherResponseRaw>, CreateTeacherRequest>(
-        API.TEACHERS.ROOT,
-        request
-      )
+      .post<ApiResponse<TeacherResponseRaw>, CreateTeacherRequest>(API.TEACHERS.ROOT, request)
       .pipe(map((envelope) => this.toTeacherDetail(envelope.data)));
   }
 
@@ -98,14 +95,11 @@ export class TeachersApiService {
    * {@code email}); {@code undefined} = no-op (la prop se omite del
    * JSON antes de salir al wire). Misma convención de students.
    */
-  update(
-    publicUuid: string,
-    patch: UpdateTeacherRequest
-  ): Observable<TeacherDetail> {
+  update(publicUuid: string, patch: UpdateTeacherRequest): Observable<TeacherDetail> {
     return this.api
       .put<ApiResponse<TeacherResponseRaw>, UpdateTeacherRequest>(
         API.TEACHERS.BY_ID(publicUuid),
-        patch
+        patch,
       )
       .pipe(map((envelope) => this.toTeacherDetail(envelope.data)));
   }
@@ -120,14 +114,11 @@ export class TeachersApiService {
    *   <li>404 {@code RESOURCE_NOT_FOUND}</li>
    * </ul>
    */
-  linkUser(
-    publicUuid: string,
-    request: LinkTeacherUserRequest
-  ): Observable<TeacherDetail> {
+  linkUser(publicUuid: string, request: LinkTeacherUserRequest): Observable<TeacherDetail> {
     return this.api
       .post<ApiResponse<TeacherResponseRaw>, LinkTeacherUserRequest>(
         API.TEACHERS.LINK_USER(publicUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toTeacherDetail(envelope.data)));
   }
@@ -173,17 +164,14 @@ export class TeachersApiService {
    */
   listAssignments(
     teacherPublicUuid: string,
-    filters: AssignmentListFilters = {}
+    filters: AssignmentListFilters = {},
   ): Observable<AssignmentRow[]> {
     const params: Record<string, string | boolean | undefined> = {
       periodId: filters.periodId,
-      active: filters.active
+      active: filters.active,
     };
     return this.api
-      .get<AssignmentListItemRaw[]>(
-        API.TEACHERS.ASSIGNMENTS(teacherPublicUuid),
-        params
-      )
+      .get<AssignmentListItemRaw[]>(API.TEACHERS.ASSIGNMENTS(teacherPublicUuid), params)
       .pipe(map((rows) => rows.map((r) => this.toAssignmentRow(r))));
   }
 
@@ -204,12 +192,12 @@ export class TeachersApiService {
    */
   createAssignment(
     teacherPublicUuid: string,
-    request: CreateAssignmentRequest
+    request: CreateAssignmentRequest,
   ): Observable<AssignmentDetail> {
     return this.api
       .post<ApiResponse<AssignmentResponseRaw>, CreateAssignmentRequest>(
         API.TEACHERS.ASSIGNMENTS(teacherPublicUuid),
-        request
+        request,
       )
       .pipe(map((envelope) => this.toAssignmentDetail(envelope.data)));
   }
@@ -220,9 +208,7 @@ export class TeachersApiService {
    * 204. La row queda en histórico para reportes / audit.
    */
   softEndAssignment(assignmentPublicUuid: string): Observable<void> {
-    return this.api.delete<void>(
-      API.ASSIGNMENTS.BY_ID(assignmentPublicUuid)
-    );
+    return this.api.delete<void>(API.ASSIGNMENTS.BY_ID(assignmentPublicUuid));
   }
 
   /**
@@ -231,16 +217,13 @@ export class TeachersApiService {
    */
   listSectionTeachers(
     sectionPublicUuid: string,
-    filters: SectionTeachersFilters = {}
+    filters: SectionTeachersFilters = {},
   ): Observable<SectionTeacherItem[]> {
     const params: Record<string, string | undefined> = {
-      periodId: filters.periodId
+      periodId: filters.periodId,
     };
     return this.api
-      .get<SectionTeacherItemRaw[]>(
-        API.ACADEMIC.SECTIONS.TEACHERS(sectionPublicUuid),
-        params
-      )
+      .get<SectionTeacherItemRaw[]>(API.ACADEMIC.SECTIONS.TEACHERS(sectionPublicUuid), params)
       .pipe(map((rows) => rows.map((r) => this.toSectionTeacherItem(r))));
   }
 
@@ -248,12 +231,10 @@ export class TeachersApiService {
   // Adapters
   // ---------------------------------------------------------------------------
 
-  private toTeacherPage(
-    raw: SpringPage<TeacherListItemRaw>
-  ): SpringPage<TeacherRow> {
+  private toTeacherPage(raw: SpringPage<TeacherListItemRaw>): SpringPage<TeacherRow> {
     return {
       ...raw,
-      content: raw.content.map((row) => this.toTeacherRow(row))
+      content: raw.content.map((row) => this.toTeacherRow(row)),
     };
   }
 
@@ -265,16 +246,12 @@ export class TeachersApiService {
       firstName: raw.firstName,
       lastName: raw.lastName,
       secondLastName: raw.secondLastName ?? undefined,
-      fullName: computeTeacherFullName(
-        raw.firstName,
-        raw.lastName,
-        raw.secondLastName
-      ),
+      fullName: computeTeacherFullName(raw.firstName, raw.lastName, raw.secondLastName),
       email: raw.email ?? undefined,
       title: raw.title ?? undefined,
       specializations: raw.specializations ?? [],
       employmentStatus: raw.employmentStatus,
-      hasUserAccount: raw.hasUserAccount
+      hasUserAccount: raw.hasUserAccount,
     };
   }
 
@@ -286,11 +263,7 @@ export class TeachersApiService {
       firstName: raw.firstName,
       lastName: raw.lastName,
       secondLastName: raw.secondLastName ?? undefined,
-      fullName: computeTeacherFullName(
-        raw.firstName,
-        raw.lastName,
-        raw.secondLastName
-      ),
+      fullName: computeTeacherFullName(raw.firstName, raw.lastName, raw.secondLastName),
       birthDate: this.parseDate(raw.birthDate),
       gender: raw.gender ?? undefined,
       email: raw.email ?? undefined,
@@ -303,19 +276,17 @@ export class TeachersApiService {
       userPublicUuid: raw.userPublicUuid ?? undefined,
       metadata: raw.metadata ?? undefined,
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 
-  private toInvitationResult(
-    raw: InviteTeacherResponseRaw
-  ): TeacherInvitationResult {
+  private toInvitationResult(raw: InviteTeacherResponseRaw): TeacherInvitationResult {
     return {
       invitationPublicUuid: raw.invitationPublicUuid,
       invitationToken: raw.invitationToken,
       expiresAt: this.parseDate(raw.expiresAt),
       teacherPublicUuid: raw.teacherPublicUuid,
-      email: raw.email
+      email: raw.email,
     };
   }
 
@@ -334,7 +305,7 @@ export class TeachersApiService {
       periodOrdinal: raw.periodOrdinal,
       assignedAt: this.parseDate(raw.assignedAt),
       unassignedAt: this.parseDate(raw.unassignedAt),
-      active: raw.active
+      active: raw.active,
     };
   }
 
@@ -359,13 +330,11 @@ export class TeachersApiService {
       active: raw.active,
       notes: raw.notes ?? undefined,
       createdAt: this.parseDate(raw.createdAt),
-      updatedAt: this.parseDate(raw.updatedAt)
+      updatedAt: this.parseDate(raw.updatedAt),
     };
   }
 
-  private toSectionTeacherItem(
-    raw: SectionTeacherItemRaw
-  ): SectionTeacherItem {
+  private toSectionTeacherItem(raw: SectionTeacherItemRaw): SectionTeacherItem {
     return {
       assignmentPublicUuid: raw.assignmentPublicUuid,
       teacherPublicUuid: raw.teacherPublicUuid,
@@ -377,7 +346,7 @@ export class TeachersApiService {
       academicPeriodPublicUuid: raw.academicPeriodPublicUuid,
       periodType: raw.periodType,
       periodOrdinal: raw.periodOrdinal,
-      assignedAt: this.parseDate(raw.assignedAt)
+      assignedAt: this.parseDate(raw.assignedAt),
     };
   }
 

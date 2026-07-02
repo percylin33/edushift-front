@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import {
   EmptyStateComponent,
   PageContainerComponent,
-  PageHeaderComponent
+  PageHeaderComponent,
 } from '@shared/components';
 
 @Component({
@@ -27,6 +27,6 @@ import {
         </div>
       </div>
     </app-page-container>
-  `
+  `,
 })
 export class ReportsHomeComponent {}

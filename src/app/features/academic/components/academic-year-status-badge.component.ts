@@ -18,29 +18,27 @@ import { AcademicYearStatus } from '../models';
   selector: 'app-academic-year-status-badge',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <span [class]="badgeClass()">{{ label() }}</span>
-  `
+  template: ` <span [class]="badgeClass()">{{ label() }}</span> `,
 })
 export class AcademicYearStatusBadgeComponent {
   readonly status = input.required<AcademicYearStatus>();
 
   readonly label = computed(
-    () => AcademicYearStatusBadgeComponent.LABELS[this.status()] ?? this.status()
+    () => AcademicYearStatusBadgeComponent.LABELS[this.status()] ?? this.status(),
   );
   readonly badgeClass = computed(
-    () => `badge ${AcademicYearStatusBadgeComponent.TIER[this.status()] ?? 'badge-neutral'}`
+    () => `badge ${AcademicYearStatusBadgeComponent.TIER[this.status()] ?? 'badge-neutral'}`,
   );
 
   private static readonly LABELS: Readonly<Record<AcademicYearStatus, string>> = {
     [AcademicYearStatus.Planning]: 'Planificación',
-    [AcademicYearStatus.Active]:   'Activo',
-    [AcademicYearStatus.Closed]:   'Cerrado'
+    [AcademicYearStatus.Active]: 'Activo',
+    [AcademicYearStatus.Closed]: 'Cerrado',
   };
 
   private static readonly TIER: Readonly<Record<AcademicYearStatus, string>> = {
     [AcademicYearStatus.Planning]: 'badge-info',
-    [AcademicYearStatus.Active]:   'badge-success',
-    [AcademicYearStatus.Closed]:   'badge-neutral'
+    [AcademicYearStatus.Active]: 'badge-success',
+    [AcademicYearStatus.Closed]: 'badge-neutral',
   };
 }

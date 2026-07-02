@@ -18,7 +18,7 @@ describe('QuizLifecycleBadgeComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [QuizLifecycleBadgeComponent]
+      imports: [QuizLifecycleBadgeComponent],
     }).compileComponents();
   });
 

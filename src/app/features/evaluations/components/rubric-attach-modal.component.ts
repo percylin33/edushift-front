@@ -8,15 +8,10 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  IconComponent,
-  SpinnerComponent
-} from '@shared/components';
-import {
-  RubricSystemBadgeComponent
-} from '@features/rubrics/components/rubric-system-badge.component';
+import { IconComponent, SpinnerComponent } from '@shared/components';
+import { RubricSystemBadgeComponent } from '@features/rubrics/components/rubric-system-badge.component';
 import { RubricsApiService } from '@features/rubrics/services/rubrics-api.service';
 import { RubricRow } from '@features/rubrics/models';
 import { firstValueFrom } from 'rxjs';
@@ -34,22 +29,17 @@ import { firstValueFrom } from 'rxjs';
   selector: 'app-rubric-attach-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule,
-    IconComponent,
-    SpinnerComponent,
-    RubricSystemBadgeComponent
-  ],
+  imports: [CommonModule, IconComponent, SpinnerComponent, RubricSystemBadgeComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="rubric-attach-title"
       (click)="onBackdropClick($event)"
     >
       <div
-        class="card w-full max-w-2xl shadow-xl max-h-[90vh] flex flex-col"
+        class="card flex max-h-[90vh] w-full max-w-2xl flex-col shadow-xl"
         (click)="$event.stopPropagation()"
       >
         <header class="card-header flex items-start justify-between gap-3">
@@ -58,16 +48,11 @@ import { firstValueFrom } from 'rxjs';
               {{ replacing() ? 'Reemplazar rúbrica' : 'Vincular rúbrica' }}
             </h2>
             <p class="card-description">
-              Elige una rúbrica del tenant. Si necesitas adaptarla,
-              forkéala desde el catálogo y luego vincula el clon.
+              Elige una rúbrica del tenant. Si necesitas adaptarla, forkéala desde el catálogo y
+              luego vincula el clon.
             </p>
           </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            aria-label="Cerrar"
-            (click)="cancel()"
-          >
+          <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
             <app-icon name="x" [size]="18" />
           </button>
         </header>
@@ -92,16 +77,12 @@ import { firstValueFrom } from 'rxjs';
             <div class="alert alert-danger">
               <app-icon name="alert-circle" [size]="18" />
               <p class="flex-1 text-sm">{{ errorMessage() }}</p>
-              <button
-                type="button"
-                class="btn btn-ghost btn-sm"
-                (click)="reload()"
-              >
+              <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">
                 Reintentar
               </button>
             </div>
           } @else if (filteredRows().length === 0) {
-            <div class="text-center py-8 text-content-muted text-sm">
+            <div class="py-8 text-center text-sm text-content-muted">
               No hay rúbricas que coincidan. Crea una desde
               <strong>/rubrics</strong> o ajusta la búsqueda.
             </div>
@@ -111,24 +92,24 @@ import { firstValueFrom } from 'rxjs';
                 <li>
                   <button
                     type="button"
-                    class="w-full text-left rounded-md border border-border-subtle p-3 hover:bg-surface-subtle transition-colors flex items-start gap-3"
+                    class="flex w-full items-start gap-3 rounded-md border border-border-subtle p-3 text-left transition-colors hover:bg-surface-subtle"
                     [disabled]="saving()"
                     (click)="onSelect(row)"
                   >
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2 mb-1">
-                        <p class="font-medium truncate">{{ row.name }}</p>
+                    <div class="min-w-0 flex-1">
+                      <div class="mb-1 flex items-center gap-2">
+                        <p class="truncate font-medium">{{ row.name }}</p>
                         <app-rubric-system-badge
                           [isSystem]="row.isSystem"
                           [parentPublicUuid]="row.parentRubricPublicUuid"
                         />
                       </div>
                       @if (row.description) {
-                        <p class="text-xs text-content-muted line-clamp-2">
+                        <p class="line-clamp-2 text-xs text-content-muted">
                           {{ row.description }}
                         </p>
                       }
-                      <p class="text-xs text-content-muted mt-1">
+                      <p class="mt-1 text-xs text-content-muted">
                         {{ row.criterionCount }}
                         {{ row.criterionCount === 1 ? 'criterio' : 'criterios' }}
                       </p>
@@ -141,14 +122,12 @@ import { firstValueFrom } from 'rxjs';
           }
         </div>
 
-        <footer class="px-5 py-3 border-t border-border-subtle flex justify-end">
-          <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">
-            Cancelar
-          </button>
+        <footer class="flex justify-end border-t border-border-subtle px-5 py-3">
+          <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">Cancelar</button>
         </footer>
       </div>
     </div>
-  `
+  `,
 })
 export class RubricAttachModalComponent implements OnInit {
   private readonly rubricsApi = inject(RubricsApiService);
@@ -175,8 +154,7 @@ export class RubricAttachModalComponent implements OnInit {
       if (exclude && r.publicUuid === exclude) return false;
       if (!q) return true;
       return (
-        r.name.toLowerCase().includes(q) ||
-        (r.description?.toLowerCase().includes(q) ?? false)
+        r.name.toLowerCase().includes(q) || (r.description?.toLowerCase().includes(q) ?? false)
       );
     });
   });
@@ -189,14 +167,10 @@ export class RubricAttachModalComponent implements OnInit {
     this.loading.set(true);
     this.errorMessage.set(null);
     try {
-      const rows = await firstValueFrom(
-        this.rubricsApi.listRubrics({ isActive: true })
-      );
+      const rows = await firstValueFrom(this.rubricsApi.listRubrics({ isActive: true }));
       this.rows.set(rows);
     } catch (err) {
-      this.errorMessage.set(
-        err instanceof Error ? err.message : 'No pudimos cargar las rúbricas.'
-      );
+      this.errorMessage.set(err instanceof Error ? err.message : 'No pudimos cargar las rúbricas.');
       this.rows.set([]);
     } finally {
       this.loading.set(false);

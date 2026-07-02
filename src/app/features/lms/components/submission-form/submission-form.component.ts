@@ -9,25 +9,18 @@ import {
   SimpleChanges,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UserRole } from '@core/enums';
 import { AuthService } from '@core/services';
-import {
-  IconComponent
-} from '@shared/components';
+import { IconComponent } from '@shared/components';
 import {
   ALLOWED_ATTACHMENT_MIME,
   MAX_ATTACHMENT_SIZE_BYTES,
   MAX_ATTACHMENT_SIZE_LABEL,
   Submission,
-  canResubmit
+  canResubmit,
 } from '../../models';
 
 /**
@@ -64,23 +57,17 @@ import {
         <p class="card-description">
           @if (existingSubmission) {
             @if (canResubmitNow()) {
-              Ya tienes una entrega. Si la tarea permite re-entregas,
-              puedes reemplazarla.
+              Ya tienes una entrega. Si la tarea permite re-entregas, puedes reemplazarla.
             } @else {
               Ya entregaste. Esta tarea no permite re-entregas.
             }
           } @else {
-            Completa el formulario y adjunta un archivo (opcional) para
-            registrar tu entrega.
+            Completa el formulario y adjunta un archivo (opcional) para registrar tu entrega.
           }
         </p>
       </header>
 
-      <form
-        [formGroup]="form"
-        (ngSubmit)="onSubmit()"
-        class="card-body grid gap-4"
-      >
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="card-body grid gap-4">
         @if (errorBanner(); as err) {
           <div class="alert alert-danger" role="alert">
             <app-icon name="alert-circle" [size]="18" />
@@ -100,9 +87,7 @@ import {
           @if (showError('textContent'); as msg) {
             <p class="field-error">{{ msg }}</p>
           } @else {
-            <p class="field-hint">
-              Opcional si adjuntas archivo. Hasta 5000 caracteres.
-            </p>
+            <p class="field-hint">Opcional si adjuntas archivo. Hasta 5000 caracteres.</p>
           }
         </div>
 
@@ -118,13 +103,7 @@ import {
           @if (selectedFile(); as file) {
             <p class="field-hint">
               {{ file.name }} · {{ formatSize(file.size) }}
-              <button
-                type="button"
-                class="ml-2 underline"
-                (click)="clearFile()"
-              >
-                Quitar
-              </button>
+              <button type="button" class="ml-2 underline" (click)="clearFile()">Quitar</button>
             </p>
           } @else {
             <p class="field-hint">
@@ -145,8 +124,8 @@ import {
               placeholder="UUID del hijo (selector rico pendiente)"
             />
             <p class="field-hint">
-              MVP: pega el UUID del hijo. La UI de selector múltiple
-              queda como ticket explícito en el card de FE-7a.2.
+              MVP: pega el UUID del hijo. La UI de selector múltiple queda como ticket explícito en
+              el card de FE-7a.2.
             </p>
           </div>
         }
@@ -157,11 +136,7 @@ import {
               <span>Subiendo…</span>
               <span>{{ uploadPercentSig() }}%</span>
             </div>
-            <progress
-              class="progress"
-              [value]="uploadPercentSig()"
-              max="100"
-            ></progress>
+            <progress class="progress" [value]="uploadPercentSig()" max="100"></progress>
           </div>
         }
 
@@ -177,7 +152,7 @@ import {
         </footer>
       </form>
     </section>
-  `
+  `,
 })
 export class SubmissionFormComponent implements OnChanges {
   @Input({ required: true }) assignmentUuid!: string;
@@ -211,7 +186,7 @@ export class SubmissionFormComponent implements OnChanges {
 
   protected readonly form: FormGroup = this.fb.group({
     textContent: ['', [Validators.maxLength(5000)]],
-    submittedForStudentPublicUuid: ['', []]
+    submittedForStudentPublicUuid: ['', []],
   });
 
   protected readonly isParent = computed(() => this.auth.hasRole(UserRole.Guardian));
@@ -231,7 +206,7 @@ export class SubmissionFormComponent implements OnChanges {
         this.form.patchValue({
           textContent: this.existingSubmission.textContent ?? '',
           submittedForStudentPublicUuid:
-            this.existingSubmission.submittedForStudentPublicUuid ?? ''
+            this.existingSubmission.submittedForStudentPublicUuid ?? '',
         });
       }
     }
@@ -312,7 +287,7 @@ export class SubmissionFormComponent implements OnChanges {
       this.submitCreate.emit({
         textContent: text,
         attachment: file,
-        submittedForStudentPublicUuid: submittedFor
+        submittedForStudentPublicUuid: submittedFor,
       });
     }
   }

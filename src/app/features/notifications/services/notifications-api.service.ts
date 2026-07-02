@@ -34,8 +34,7 @@ export class NotificationsApiService {
 
   /** Bulk mark-all-read (POST /read-all). Returns the count updated. */
   markAllRead(): Observable<{ updated: number } | number | null> {
-    return this.api.post<{ updated: number } | number | null>(
-      API.NOTIFICATIONS.MARK_ALL_READ);
+    return this.api.post<{ updated: number } | number | null>(API.NOTIFICATIONS.MARK_ALL_READ);
   }
 
   /** Sprint 9 / FE-9.4 — list the user's preference rows. */

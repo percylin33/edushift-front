@@ -1,10 +1,5 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  input,
-  output
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { IconComponent } from '@shared/components';
 import { RubricRow } from '../models';
 import { RubricSystemBadgeComponent } from './rubric-system-badge.component';
@@ -22,11 +17,11 @@ import { RubricSystemBadgeComponent } from './rubric-system-badge.component';
   imports: [CommonModule, IconComponent, RubricSystemBadgeComponent],
   template: `
     <article
-      class="card hover:shadow-md transition-shadow flex flex-col"
+      class="card flex flex-col transition-shadow hover:shadow-md"
       [class.opacity-60]="!rubric().isActive"
     >
       <header class="card-header flex items-start justify-between gap-3">
-        <div class="flex-1 min-w-0">
+        <div class="min-w-0 flex-1">
           <h3 class="card-title truncate" [title]="rubric().name">
             {{ rubric().name }}
           </h3>
@@ -45,23 +40,25 @@ import { RubricSystemBadgeComponent } from './rubric-system-badge.component';
 
       <div class="card-body flex-1">
         @if (rubric().description) {
-          <p class="text-sm text-content-muted line-clamp-3">
+          <p class="line-clamp-3 text-sm text-content-muted">
             {{ rubric().description }}
           </p>
         } @else {
-          <p class="text-sm text-content-muted italic">Sin descripción.</p>
+          <p class="text-sm italic text-content-muted">Sin descripción.</p>
         }
 
         @if (rubric().criterionSummary.length > 0) {
           <ul class="mt-3 space-y-1">
             @for (item of rubric().criterionSummary; track item) {
-              <li class="text-xs text-content-muted truncate">• {{ item }}</li>
+              <li class="truncate text-xs text-content-muted">• {{ item }}</li>
             }
           </ul>
         }
       </div>
 
-      <footer class="px-5 py-3 border-t border-border-subtle flex flex-wrap items-center justify-end gap-1">
+      <footer
+        class="flex flex-wrap items-center justify-end gap-1 border-t border-border-subtle px-5 py-3"
+      >
         <button
           type="button"
           class="btn btn-ghost btn-xs"
@@ -99,7 +96,7 @@ import { RubricSystemBadgeComponent } from './rubric-system-badge.component';
         }
       </footer>
     </article>
-  `
+  `,
 })
 export class RubricCardComponent {
   readonly rubric = input.required<RubricRow>();

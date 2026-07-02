@@ -7,7 +7,7 @@ import {
   QuestionType,
   QuizResponseRaw,
   QuizStatus,
-  toQuizDetail
+  toQuizDetail,
 } from '../models/quiz.model';
 
 /**
@@ -32,14 +32,9 @@ describe('QuizApiService', () => {
   let apiSpy: jasmine.SpyObj<ApiService>;
 
   beforeEach(() => {
-    apiSpy = jasmine.createSpyObj<ApiService>('ApiService', [
-      'get', 'post', 'patch', 'delete'
-    ]);
+    apiSpy = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'post', 'patch', 'delete']);
     TestBed.configureTestingModule({
-      providers: [
-        QuizApiService,
-        { provide: ApiService, useValue: apiSpy }
-      ]
+      providers: [QuizApiService, { provide: ApiService, useValue: apiSpy }],
     });
     service = TestBed.inject(QuizApiService);
   });
@@ -58,11 +53,17 @@ describe('QuizApiService', () => {
           ownerPublicUuid: 'tch-1',
           questionCount: 0,
           totalPoints: 0,
-          createdAt: '2026-01-01T00:00:00.000Z'
-        }
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
       ],
-      number: 0, size: 20, totalElements: 1, totalPages: 1,
-      first: true, last: true, empty: false, numberOfElements: 1
+      number: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+      first: true,
+      last: true,
+      empty: false,
+      numberOfElements: 1,
     };
     apiSpy.get.and.returnValue(of(page));
 
@@ -72,20 +73,29 @@ describe('QuizApiService', () => {
       expect(rows[0].status).toBe(QuizStatus.Draft);
       expect(apiSpy.get).toHaveBeenCalledOnceWith(
         jasmine.stringMatching(/\/sections\/s-1\/quizzes$/),
-        { status: undefined }
+        { status: undefined },
       );
       done();
     });
   });
 
   it('listBySection pasa el filtro status cuando se da', (done) => {
-    const page = { content: [], number: 0, size: 20, totalElements: 0, totalPages: 0,
-      first: true, last: true, empty: true, numberOfElements: 0 };
+    const page = {
+      content: [],
+      number: 0,
+      size: 20,
+      totalElements: 0,
+      totalPages: 0,
+      first: true,
+      last: true,
+      empty: true,
+      numberOfElements: 0,
+    };
     apiSpy.get.and.returnValue(of(page));
     service.listBySection('s-1', { status: QuizStatus.Published }).subscribe(() => {
       expect(apiSpy.get).toHaveBeenCalledOnceWith(
         jasmine.stringMatching(/\/sections\/s-1\/quizzes$/),
-        { status: QuizStatus.Published }
+        { status: QuizStatus.Published },
       );
       done();
     });
@@ -110,15 +120,13 @@ describe('QuizApiService', () => {
       revealCorrectness: true,
       questions: [],
       createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: null
+      updatedAt: null,
     };
     apiSpy.get.and.returnValue(of({ success: true, data: raw }));
 
     service.getQuiz('q-1').subscribe((detail) => {
       expect(detail).toEqual(toQuizDetail(raw));
-      expect(apiSpy.get).toHaveBeenCalledOnceWith(
-        jasmine.stringMatching(/\/quizzes\/q-1$/)
-      );
+      expect(apiSpy.get).toHaveBeenCalledOnceWith(jasmine.stringMatching(/\/quizzes\/q-1$/));
       done();
     });
   });
@@ -142,22 +150,24 @@ describe('QuizApiService', () => {
       revealCorrectness: false,
       questions: [],
       createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: null
+      updatedAt: null,
     };
     apiSpy.post.and.returnValue(of({ success: true, data: raw }));
 
-    service.createQuiz('s-1', {
-      title: 'Nuevo',
-      maxAttempts: 1,
-      maxScore: 50
-    }).subscribe((detail) => {
-      expect(detail.publicUuid).toBe('q-new');
-      expect(apiSpy.post).toHaveBeenCalledOnceWith(
-        jasmine.stringMatching(/\/sections\/s-1\/quizzes$/),
-        { title: 'Nuevo', maxAttempts: 1, maxScore: 50 }
-      );
-      done();
-    });
+    service
+      .createQuiz('s-1', {
+        title: 'Nuevo',
+        maxAttempts: 1,
+        maxScore: 50,
+      })
+      .subscribe((detail) => {
+        expect(detail.publicUuid).toBe('q-new');
+        expect(apiSpy.post).toHaveBeenCalledOnceWith(
+          jasmine.stringMatching(/\/sections\/s-1\/quizzes$/),
+          { title: 'Nuevo', maxAttempts: 1, maxScore: 50 },
+        );
+        done();
+      });
   });
 
   it('updateQuiz PATCHea a /quizzes/{uuid}', (done) => {
@@ -179,16 +189,15 @@ describe('QuizApiService', () => {
       revealCorrectness: false,
       questions: [],
       createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-02T00:00:00.000Z'
+      updatedAt: '2026-01-02T00:00:00.000Z',
     };
     apiSpy.patch.and.returnValue(of({ success: true, data: raw }));
 
     service.updateQuiz('q-1', { title: 'T-edit' }).subscribe((detail) => {
       expect(detail.title).toBe('T-edit');
-      expect(apiSpy.patch).toHaveBeenCalledOnceWith(
-        jasmine.stringMatching(/\/quizzes\/q-1$/),
-        { title: 'T-edit' }
-      );
+      expect(apiSpy.patch).toHaveBeenCalledOnceWith(jasmine.stringMatching(/\/quizzes\/q-1$/), {
+        title: 'T-edit',
+      });
       done();
     });
   });
@@ -196,9 +205,7 @@ describe('QuizApiService', () => {
   it('deleteQuiz llama DELETE a /quizzes/{uuid}', (done) => {
     apiSpy.delete.and.returnValue(of(undefined));
     service.deleteQuiz('q-1').subscribe(() => {
-      expect(apiSpy.delete).toHaveBeenCalledOnceWith(
-        jasmine.stringMatching(/\/quizzes\/q-1$/)
-      );
+      expect(apiSpy.delete).toHaveBeenCalledOnceWith(jasmine.stringMatching(/\/quizzes\/q-1$/));
       done();
     });
   });
@@ -222,14 +229,14 @@ describe('QuizApiService', () => {
       revealCorrectness: false,
       questions: [],
       createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: null
+      updatedAt: null,
     };
     apiSpy.post.and.returnValue(of({ success: true, data: raw }));
 
     service.publishQuiz('q-1').subscribe((detail) => {
       expect(detail.status).toBe(QuizStatus.Published);
       expect(apiSpy.post).toHaveBeenCalledOnceWith(
-        jasmine.stringMatching(/\/quizzes\/q-1\/publish$/)
+        jasmine.stringMatching(/\/quizzes\/q-1\/publish$/),
       );
       done();
     });
@@ -254,14 +261,14 @@ describe('QuizApiService', () => {
       revealCorrectness: false,
       questions: [],
       createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: null
+      updatedAt: null,
     };
     apiSpy.post.and.returnValue(of({ success: true, data: raw }));
 
     service.closeQuiz('q-1').subscribe((detail) => {
       expect(detail.status).toBe(QuizStatus.Closed);
       expect(apiSpy.post).toHaveBeenCalledOnceWith(
-        jasmine.stringMatching(/\/quizzes\/q-1\/close$/)
+        jasmine.stringMatching(/\/quizzes\/q-1\/close$/),
       );
       done();
     });
@@ -277,7 +284,7 @@ describe('QuizApiService', () => {
       correctText: null,
       expectedKeywords: null,
       correctBoolean: null,
-      options: []
+      options: [],
     };
     apiSpy.post.and.returnValue(of({ success: true, data: qRaw }));
 
@@ -287,14 +294,14 @@ describe('QuizApiService', () => {
       points: 5,
       options: [
         { label: 'A', isCorrect: true, explanation: null },
-        { label: 'B', isCorrect: false, explanation: null }
-      ]
+        { label: 'B', isCorrect: false, explanation: null },
+      ],
     };
     service.addQuestion('q-1', req).subscribe((row) => {
       expect(row.publicUuid).toBe('qq-1');
       expect(apiSpy.post).toHaveBeenCalledOnceWith(
         jasmine.stringMatching(/\/quizzes\/q-1\/questions$/),
-        req
+        req,
       );
       done();
     });
@@ -310,9 +317,7 @@ describe('QuizApiService', () => {
       correctText: null,
       expectedKeywords: null,
       correctBoolean: null,
-      options: [
-        { publicUuid: 'o-1', label: 'A', isCorrect: true, explanation: null, position: 0 }
-      ]
+      options: [{ publicUuid: 'o-1', label: 'A', isCorrect: true, explanation: null, position: 0 }],
     };
     apiSpy.post.and.returnValue(of({ success: true, data: qRaw }));
 
@@ -320,7 +325,7 @@ describe('QuizApiService', () => {
       expect(row.options[0].label).toBe('A');
       expect(apiSpy.post).toHaveBeenCalledOnceWith(
         jasmine.stringMatching(/\/questions\/qq-1\/options$/),
-        { label: 'A', isCorrect: true }
+        { label: 'A', isCorrect: true },
       );
       done();
     });

@@ -1,17 +1,6 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  signal
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { of } from 'rxjs';
 import { catchError, finalize, switchMap, tap } from 'rxjs/operators';
@@ -20,8 +9,11 @@ import { AuthService, TenantService } from '@core/services';
 import { ROUTES } from '@core/constants';
 import { ApiError, ApiResponse } from '@core/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
+import { environment } from '@env/environment';
 
 import { AuthApiService } from '../../services/auth-api.service';
+import { GoogleAuthService } from '../../services/google-auth.service';
+import { GoogleSigninButtonComponent } from '../../components/google-signin-button/google-signin-button.component';
 import { AuthStore } from '../../store/auth.store';
 import { LoginRequest } from '../../models';
 
@@ -56,14 +48,18 @@ import { LoginRequest } from '../../models';
   selector: 'app-login',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, IconComponent, SpinnerComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    IconComponent,
+    SpinnerComponent,
+    GoogleSigninButtonComponent,
+  ],
   template: `
     <div class="space-y-6">
       <header class="space-y-1.5">
         <h1 class="text-2xl font-semibold tracking-tight text-content">Iniciar sesión</h1>
-        <p class="text-sm text-content-muted">
-          Accede a tu workspace para continuar.
-        </p>
+        <p class="text-sm text-content-muted">Accede a tu workspace para continuar.</p>
       </header>
 
       @if (errorMessage(); as message) {
@@ -96,10 +92,7 @@ import { LoginRequest } from '../../models';
               [attr.aria-invalid]="tenantSlugInvalid()"
               [attr.aria-describedby]="tenantSlugInvalid() ? 'tenant-error' : 'tenant-help'"
               placeholder="tecnosur"
-              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm text-content
-                     placeholder:text-content-subtle
-                     focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30
-                     disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
+              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
             />
           </div>
           @if (tenantSlugInvalid()) {
@@ -129,10 +122,7 @@ import { LoginRequest } from '../../models';
               [attr.aria-invalid]="emailInvalid()"
               [attr.aria-describedby]="emailInvalid() ? 'email-error' : null"
               placeholder="tu@institucion.edu"
-              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm text-content
-                     placeholder:text-content-subtle
-                     focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30
-                     disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
+              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
             />
           </div>
           @if (emailInvalid()) {
@@ -146,8 +136,7 @@ import { LoginRequest } from '../../models';
             <label for="password" class="block text-sm font-medium text-content">Contraseña</label>
             <a
               [routerLink]="forgotPasswordRoute"
-              class="text-xs font-medium text-primary-700 hover:text-primary-800
-                     dark:text-primary-300 dark:hover:text-primary-200"
+              class="text-xs font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
             >
               ¿La olvidaste?
             </a>
@@ -166,15 +155,11 @@ import { LoginRequest } from '../../models';
               [attr.aria-invalid]="passwordInvalid()"
               [attr.aria-describedby]="passwordInvalid() ? 'password-error' : null"
               placeholder="••••••••"
-              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-10 text-sm text-content
-                     placeholder:text-content-subtle
-                     focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30
-                     disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
+              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-10 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
             />
             <button
               type="button"
-              class="absolute inset-y-0 right-0 flex items-center pr-3 text-content-subtle
-                     hover:text-content focus:outline-none"
+              class="absolute inset-y-0 right-0 flex items-center pr-3 text-content-subtle hover:text-content focus:outline-none"
               [attr.aria-label]="passwordVisible() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
               (click)="togglePasswordVisibility()"
             >
@@ -191,8 +176,7 @@ import { LoginRequest } from '../../models';
           <input
             type="checkbox"
             formControlName="remember"
-            class="h-4 w-4 rounded border-border text-primary-600
-                   focus:ring-primary-500/30 focus:ring-offset-0"
+            class="h-4 w-4 rounded border-border text-primary-600 focus:ring-primary-500/30 focus:ring-offset-0"
           />
           <span>Recordarme en este dispositivo</span>
         </label>
@@ -200,12 +184,8 @@ import { LoginRequest } from '../../models';
         <!-- Submit -->
         <button
           type="submit"
-          [disabled]="loading() || form.invalid"
-          class="inline-flex w-full items-center justify-center gap-2 rounded-md
-                 bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white
-                 transition-colors hover:bg-primary-700 focus-visible:outline-none
-                 focus-visible:ring-2 focus-visible:ring-primary-500/40
-                 disabled:cursor-not-allowed disabled:opacity-60"
+          [disabled]="loading() || googleBusy() || form.invalid"
+          class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:cursor-not-allowed disabled:opacity-60"
         >
           @if (loading()) {
             <app-spinner [size]="16" label="Verificando…" />
@@ -216,19 +196,39 @@ import { LoginRequest } from '../../models';
           }
         </button>
 
+        @if (googleEnabled()) {
+          <!--
+            Divider + Google button are only rendered when the deployment
+            has the provider configured. Keeps the UI clean for tenants
+            that have not opted in.
+          -->
+          <div class="relative my-2 flex items-center" aria-hidden="true">
+            <div class="grow border-t border-border"></div>
+            <span class="shrink-0 px-3 text-xs uppercase tracking-wide text-content-subtle">
+              o
+            </span>
+            <div class="grow border-t border-border"></div>
+          </div>
+
+          <app-google-signin-button
+            [loading]="googleBusy()"
+            [disabled]="loading()"
+            (googleSigninClick)="onGoogleSignIn()"
+          />
+        }
+
         <p class="pt-1 text-center text-xs text-content-muted">
           ¿No tienes cuenta?
           <a
             [routerLink]="registerRoute"
-            class="font-medium text-primary-700 hover:text-primary-800
-                   dark:text-primary-300 dark:hover:text-primary-200"
+            class="font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
           >
             Crea tu institución
           </a>
         </p>
       </form>
     </div>
-  `
+  `,
 })
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);
@@ -238,9 +238,21 @@ export class LoginComponent {
   private readonly store = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly googleAuth = inject(GoogleAuthService);
 
   readonly forgotPasswordRoute = ROUTES.AUTH.FORGOT_PASSWORD;
   readonly registerRoute = ROUTES.AUTH.REGISTER;
+
+  /**
+   * The Google Sign-in button is only shown when the deployment has
+   * `environment.google.enabled === true`. We compute it from the env
+   * so a future hot-reload of the env file flips the UI without
+   * requiring a code change.
+   */
+  readonly googleEnabled = computed(() => environment.google.enabled);
+
+  /** Busy flag mirrored from {@link GoogleAuthService.busy}. */
+  readonly googleBusy = this.googleAuth.busy;
 
   /* Pre-fill the institución field with the tenant resolved by
    * {@link TenantService} (subdomain in production, query param if present,
@@ -254,12 +266,12 @@ export class LoginComponent {
       [
         Validators.required,
         Validators.maxLength(64),
-        Validators.pattern(/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/i)
-      ]
+        Validators.pattern(/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/i),
+      ],
     ],
     email: ['', [Validators.required, Validators.email, Validators.maxLength(254)]],
     password: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(128)]],
-    remember: [true]
+    remember: [true],
   });
 
   /* Pulled out so the template can show errors with `aria-invalid` and a
@@ -314,6 +326,76 @@ export class LoginComponent {
     this._passwordVisible.update((v) => !v);
   }
 
+  /**
+   * Open the Google account chooser, ship the resulting {@code id_token}
+   * to {@code POST /v1/auth/google}, then run the same boot chain as
+   * the password flow ({@code setSession → me → navigate}).
+   *
+   * <p>The tenant slug must already be present in {@link TenantService}
+   * (the user typed it in the institution field above the button), so
+   * the {@code tenantInterceptor} forwards it correctly. If the field is
+   * empty or invalid we surface a validation message instead of opening
+   * the popup — no point authenticating an identity into an unknown
+   * tenant.
+   */
+  async onGoogleSignIn(): Promise<void> {
+    if (this.loading() || this.googleBusy()) return;
+
+    // Make sure the institution field is valid before we bounce the
+    // user through the Google popup. Otherwise they could end up
+    // authenticated with no clear idea where they're being logged into.
+    this.form.controls['tenantSlug'].markAsTouched();
+    if (this.form.controls['tenantSlug'].invalid) {
+      this.store.setError(
+        'Ingresa el identificador de tu institución antes de continuar con Google.',
+      );
+      return;
+    }
+
+    const tenantSlug: string = this.form.controls['tenantSlug'].value.trim().toLowerCase();
+    this.tenant.setSlug(tenantSlug);
+
+    this.store.setError(null);
+    try {
+      const { idToken } = await this.googleAuth.signIn();
+      if (!idToken) {
+        this.store.setError('Google no devolvió un token válido. Inténtalo de nuevo.');
+        return;
+      }
+
+      this.store.setLoading(true);
+      this.authApi
+        .loginWithGoogle({ idToken })
+        .pipe(
+          tap((session) => this.auth.setSession(session)),
+          switchMap(() =>
+            this.authApi.me().pipe(
+              tap((user) => this.auth.setUser(user)),
+              catchError(() => of(null)),
+            ),
+          ),
+          finalize(() => this.store.setLoading(false)),
+        )
+        .subscribe({
+          next: () => {
+            const returnUrl =
+              this.route.snapshot.queryParamMap.get('returnUrl') ?? ROUTES.DASHBOARD.ROOT;
+            this.router.navigateByUrl(returnUrl);
+          },
+          error: (err: HttpErrorResponse) => {
+            this.store.setError(this.toMessage(err));
+          },
+        });
+    } catch (err) {
+      // User closed the popup, denied consent, or Google itself errored.
+      // We log the raw error so it's visible in dev tools, but we keep
+      // the user-facing copy friendly.
+      console.warn('[google-signin] popup flow failed', err);
+      const message = err instanceof Error ? err.message : 'No se pudo iniciar sesión con Google.';
+      this.store.setError(message);
+    }
+  }
+
   onSubmit(): void {
     if (this.loading()) return;
     if (this.form.invalid) {
@@ -324,7 +406,7 @@ export class LoginComponent {
     const tenantSlug: string = this.form.controls['tenantSlug'].value.trim().toLowerCase();
     const payload: LoginRequest = {
       email: this.form.controls['email'].value.trim().toLowerCase(),
-      password: this.form.controls['password'].value
+      password: this.form.controls['password'].value,
     };
 
     /* Push the user-provided slug into TenantService BEFORE firing /login so
@@ -336,33 +418,42 @@ export class LoginComponent {
 
     this.authApi
       .login(payload)
-      .pipe(
-        /*
-         * `/auth/login` returns a lean {@code UserSummary} (no roles) so the
-         * shell can render immediately. We chain {@code /auth/me} to enrich
-         * the session with roles before navigating, otherwise role-gated
-         * guards (e.g. {@code TENANT_ADMIN} on `/users`) bounce to `/403`.
-         * If `/auth/me` fails we still proceed: the boot initializer will
-         * retry on the next reload, and most pages are role-tolerant.
-         */
-        tap((session) => this.auth.setSession(session)),
-        switchMap(() =>
-          this.authApi.me().pipe(
-            tap((user) => this.auth.setUser(user)),
-            catchError(() => of(null))
-          )
-        ),
-        finalize(() => this.store.setLoading(false))
-      )
+      .pipe(finalize(() => this.store.setLoading(false)))
       .subscribe({
-        next: () => {
-          const returnUrl =
-            this.route.snapshot.queryParamMap.get('returnUrl') ?? ROUTES.DASHBOARD.ROOT;
-          this.router.navigateByUrl(returnUrl);
+        next: (result) => {
+          // Sprint 17 / BE-17.2: the same endpoint can return either a
+          // full session (the user can be logged in immediately) or an
+          // MFA challenge (the password is correct but the user has 2FA
+          // enabled). The sealed LoginResult discriminates — we pattern-
+          // match here and route accordingly.
+          if (result.kind === 'mfa-required') {
+            this.auth.setMfaToken(result.mfa.mfaToken, result.mfa.expiresInSec);
+            this.store.setLoading(false);
+            const returnUrl =
+              this.route.snapshot.queryParamMap.get('returnUrl') ?? ROUTES.DASHBOARD.ROOT;
+            this.router.navigate(['/auth/mfa-challenge'], {
+              queryParams: { returnUrl },
+            });
+            return;
+          }
+
+          // Full session path: stash it, enrich with /me, navigate.
+          this.auth.setSession(result.session);
+          this.authApi
+            .me()
+            .pipe(
+              tap((user) => this.auth.setUser(user)),
+              catchError(() => of(null)),
+            )
+            .subscribe(() => {
+              const returnUrl =
+                this.route.snapshot.queryParamMap.get('returnUrl') ?? ROUTES.DASHBOARD.ROOT;
+              this.router.navigateByUrl(returnUrl);
+            });
         },
         error: (err: HttpErrorResponse) => {
           this.store.setError(this.toMessage(err));
-        }
+        },
       });
   }
 
@@ -398,6 +489,15 @@ export class LoginComponent {
         return 'No es posible autenticar tu cuenta en este momento.';
       case 'VALIDATION_ERROR':
         return fallback ?? 'Revisa los datos ingresados.';
+      // Sprint 11 / PR-1 — Google Sign-in error catalogue. The BE is
+      // the source of truth; these cases mirror `docs/api/endpoints.md`
+      // §"POST /v1/auth/google".
+      case 'GOOGLE_PROVIDER_DISABLED':
+        return 'El inicio de sesión con Google no está disponible en este momento.';
+      case 'INVALID_GOOGLE_TOKEN':
+        return 'La sesión con Google expiró o es inválida. Vuelve a intentarlo.';
+      case 'TENANT_NOT_FOUND':
+        return 'No se encontró la institución solicitada.';
     }
 
     if (err.status === 404) {
@@ -418,10 +518,7 @@ export class LoginComponent {
      * with `errors: [...]`) or as a flat `ApiError` (older style). We try
      * both shapes here so we don't have to care about the boundary. */
     const body = err.error as
-      | (ApiResponse<unknown> & { errors?: ApiError[] })
-      | ApiError
-      | null
-      | undefined;
+      (ApiResponse<unknown> & { errors?: ApiError[] }) | ApiError | null | undefined;
 
     if (body && typeof body === 'object') {
       if ('errors' in body && Array.isArray(body.errors) && body.errors.length > 0) {

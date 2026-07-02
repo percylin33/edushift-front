@@ -50,43 +50,41 @@ import { AuthApiService } from './auth-api.service';
  */
 @Injectable({ providedIn: 'root' })
 export class TokenRefreshService {
+  private readonly auth = inject(AuthService);
 
-	private readonly auth = inject(AuthService);
+  private readonly authApi = inject(AuthApiService);
 
-	private readonly authApi = inject(AuthApiService);
+  private inflight$: Observable<string> | null = null;
 
-	private inflight$: Observable<string> | null = null;
+  /**
+   * Returns an Observable that emits the new access token once the
+   * (possibly already in-flight) refresh completes. Resolves with an
+   * error if no refresh token is present (caller should treat this as
+   * "session is dead, log out") or if the backend rejects the token.
+   */
+  refresh(): Observable<string> {
+    if (this.inflight$) return this.inflight$;
 
-	/**
-	 * Returns an Observable that emits the new access token once the
-	 * (possibly already in-flight) refresh completes. Resolves with an
-	 * error if no refresh token is present (caller should treat this as
-	 * "session is dead, log out") or if the backend rejects the token.
-	 */
-	refresh(): Observable<string> {
-		if (this.inflight$) return this.inflight$;
+    const refreshToken = this.auth.refreshToken();
+    if (!refreshToken) {
+      return throwError(() => new Error('NO_REFRESH_TOKEN'));
+    }
 
-		const refreshToken = this.auth.refreshToken();
-		if (!refreshToken) {
-			return throwError(() => new Error('NO_REFRESH_TOKEN'));
-		}
+    this.inflight$ = this.authApi.refresh(refreshToken).pipe(
+      /* Use `rotateTokens` (not `setSession`) so the cached rich
+       * `User` (with roles/permissions from `/auth/me`) is preserved
+       * across silent refreshes. `/auth/refresh` only returns the
+       * 5-field `UserSummary`, so calling `setSession` here would
+       * strip authorization data and collapse the navigation
+       * sidebar to a single item ("only Dashboard" bug). */
+      tap((session) => this.auth.rotateTokens(session)),
+      map((session) => session.accessToken),
+      finalize(() => {
+        this.inflight$ = null;
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
 
-		this.inflight$ = this.authApi.refresh(refreshToken).pipe(
-			/* Use `rotateTokens` (not `setSession`) so the cached rich
-			 * `User` (with roles/permissions from `/auth/me`) is preserved
-			 * across silent refreshes. `/auth/refresh` only returns the
-			 * 5-field `UserSummary`, so calling `setSession` here would
-			 * strip authorization data and collapse the navigation
-			 * sidebar to a single item ("only Dashboard" bug). */
-			tap((session) => this.auth.rotateTokens(session)),
-			map((session) => session.accessToken),
-			finalize(() => {
-				this.inflight$ = null;
-			}),
-			shareReplay({ bufferSize: 1, refCount: false })
-		);
-
-		return this.inflight$;
-	}
-
+    return this.inflight$;
+  }
 }

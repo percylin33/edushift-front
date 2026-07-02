@@ -88,7 +88,7 @@ function appInitializerFactory(): () => Promise<void> {
     tenantService.setTenant(
       { id: slug, slug, name: slug, status: TenantStatus.Active, isActive: true },
       resolvedFrom,
-      { persist: false }
+      { persist: false },
     );
 
     /* FE-2.4 — hydrate the tenant from the public `by-slug` endpoint.
@@ -96,14 +96,11 @@ function appInitializerFactory(): () => Promise<void> {
      * even when no session is in storage. */
     try {
       const tenant = await firstValueFrom(
-        tenantApi.findBySlug(slug).pipe(timeout(BOOT_HTTP_TIMEOUT_MS))
+        tenantApi.findBySlug(slug).pipe(timeout(BOOT_HTTP_TIMEOUT_MS)),
       );
       tenantService.setTenant(tenant, resolvedFrom);
     } catch (err) {
-      logger.warn(
-        `Failed to hydrate tenant '${slug}' at boot; keeping the placeholder.`,
-        err
-      );
+      logger.warn(`Failed to hydrate tenant '${slug}' at boot; keeping the placeholder.`, err);
     }
 
     if (auth.accessToken()) {
@@ -122,5 +119,5 @@ function appInitializerFactory(): () => Promise<void> {
 export const APP_INITIALIZER_PROVIDER: Provider = {
   provide: APP_INITIALIZER,
   useFactory: appInitializerFactory,
-  multi: true
+  multi: true,
 };

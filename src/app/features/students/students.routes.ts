@@ -26,9 +26,7 @@ export const STUDENTS_ROUTES: Routes = [
     canActivate: [roleGuard],
     data: { roles: [UserRole.TenantAdmin], title: 'Estudiantes' },
     loadComponent: () =>
-      import('./pages/students-list/students-list.component').then(
-        (m) => m.StudentsListComponent
-      )
+      import('./pages/students-list/students-list.component').then((m) => m.StudentsListComponent),
   },
   {
     path: 'new',
@@ -36,12 +34,10 @@ export const STUDENTS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin],
       breadcrumb: 'Nuevo',
-      title: 'Nuevo estudiante'
+      title: 'Nuevo estudiante',
     },
     loadComponent: () =>
-      import('./pages/student-form/student-form.component').then(
-        (m) => m.StudentFormComponent
-      )
+      import('./pages/student-form/student-form.component').then((m) => m.StudentFormComponent),
   },
   {
     path: ':id',
@@ -49,12 +45,12 @@ export const STUDENTS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin],
       breadcrumb: 'Detalle',
-      title: 'Estudiante'
+      title: 'Estudiante',
     },
     loadComponent: () =>
       import('./pages/student-detail/student-detail.component').then(
-        (m) => m.StudentDetailComponent
-      )
+        (m) => m.StudentDetailComponent,
+      ),
   },
   {
     path: ':id/edit',
@@ -62,12 +58,10 @@ export const STUDENTS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin],
       breadcrumb: 'Editar',
-      title: 'Editar estudiante'
+      title: 'Editar estudiante',
     },
     loadComponent: () =>
-      import('./pages/student-form/student-form.component').then(
-        (m) => m.StudentFormComponent
-      )
+      import('./pages/student-form/student-form.component').then((m) => m.StudentFormComponent),
   },
   {
     /* FE-6.3 — Credencial QR del alumno. TEACHER también, alineado con
@@ -79,11 +73,9 @@ export const STUDENTS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin, UserRole.Teacher],
       breadcrumb: 'Credencial',
-      title: 'Credencial QR'
+      title: 'Credencial QR',
     },
     loadComponent: () =>
-      import('./pages/student-qr/student-qr.component').then(
-        (m) => m.StudentQrPageComponent
-      )
-  }
+      import('./pages/student-qr/student-qr.component').then((m) => m.StudentQrPageComponent),
+  },
 ];

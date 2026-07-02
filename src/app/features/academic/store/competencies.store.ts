@@ -8,7 +8,7 @@ import {
   CreateCapacityRequest,
   CreateCompetencyRequest,
   UpdateCapacityRequest,
-  UpdateCompetencyRequest
+  UpdateCompetencyRequest,
 } from '../models';
 
 /**
@@ -178,8 +178,8 @@ export class CompetenciesStore {
         list.map((c) =>
           c.publicUuid === competencyUuid
             ? { ...c, capacities: c.capacities.filter((cap) => cap.publicUuid !== publicUuid) }
-            : c
-        )
+            : c,
+        ),
       );
       return true;
     } catch (err) {
@@ -216,7 +216,7 @@ export class CompetenciesStore {
     try {
       const items = this._competencies().map((c, i) => ({
         publicUuid: c.publicUuid,
-        displayOrder: i + 1
+        displayOrder: i + 1,
       }));
       await firstValueFrom(this.api.reorderCompetencies(courseUuid, { items }));
       this._reorderSnapshot = null;
@@ -271,7 +271,7 @@ export class CompetenciesStore {
         displayOrder: detail.displayOrder,
         isActive: detail.isActive,
         capacityCount: detail.capacities.length,
-        capacities: detail.capacities.map(cap => ({
+        capacities: detail.capacities.map((cap) => ({
           publicUuid: cap.publicUuid,
           code: cap.code,
           name: cap.name,
@@ -279,8 +279,8 @@ export class CompetenciesStore {
           isActive: cap.isActive,
           competency: cap.competency,
           createdAt: cap.createdAt,
-          updatedAt: cap.updatedAt
-        }))
+          updatedAt: cap.updatedAt,
+        })),
       };
       if (idx === -1) {
         const newList = [...list, row];
@@ -306,7 +306,7 @@ export class CompetenciesStore {
           description: detail.description,
           competency: detail.competency,
           createdAt: detail.createdAt,
-          updatedAt: detail.updatedAt
+          updatedAt: detail.updatedAt,
         };
         const newCapacities = [...c.capacities];
         if (idx === -1) {
@@ -317,9 +317,9 @@ export class CompetenciesStore {
         return {
           ...c,
           capacityCount: newCapacities.length,
-          capacities: newCapacities.sort((a, b) => a.displayOrder - b.displayOrder)
+          capacities: newCapacities.sort((a, b) => a.displayOrder - b.displayOrder),
         };
-      })
+      }),
     );
   }
 

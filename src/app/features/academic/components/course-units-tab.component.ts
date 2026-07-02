@@ -8,20 +8,11 @@ import {
   effect,
   inject,
   input,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  CdkDrag,
-  CdkDragDrop,
-  CdkDropList,
-  moveItemInArray
-} from '@angular/cdk/drag-drop';
+import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { firstValueFrom } from 'rxjs';
-import {
-  EmptyStateComponent,
-  IconComponent,
-  SpinnerComponent
-} from '@shared/components';
+import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
 import { UnitsStore } from '../store';
 import { UnitDetail, UnitRow } from '../models';
 import { AcademicApiService } from '../services';
@@ -60,16 +51,15 @@ import { UnitFormModalComponent } from './unit-form-modal.component';
     EmptyStateComponent,
     IconComponent,
     SpinnerComponent,
-    UnitFormModalComponent
+    UnitFormModalComponent,
   ],
   template: `
     <header class="mb-3 flex items-end justify-between gap-3">
       <div>
         <h3 class="text-base font-semibold text-content">Unidades</h3>
         <p class="text-sm text-content-muted">
-          Bloques pedagógicos del curso. Las sesiones (BE-5A.4) se
-          anclan a una unidad y validan su fecha contra el periodo
-          del assignment, no contra el rango de la unidad.
+          Bloques pedagógicos del curso. Las sesiones (BE-5A.4) se anclan a una unidad y validan su
+          fecha contra el periodo del assignment, no contra el rango de la unidad.
         </p>
       </div>
       <button
@@ -95,9 +85,7 @@ import { UnitFormModalComponent } from './unit-form-modal.component';
             <p class="font-medium">No pudimos cargar las unidades.</p>
             <p class="mt-1 text-xs opacity-80">{{ errorMessage() }}</p>
           </div>
-          <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">
-            Reintentar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">Reintentar</button>
         </div>
       } @else if (isEmpty()) {
         <app-empty-state
@@ -105,11 +93,7 @@ import { UnitFormModalComponent } from './unit-form-modal.component';
           title="Aún no hay unidades en este curso"
           description="Crea la primera para empezar a planificar sesiones."
         >
-          <button
-            type="button"
-            class="btn btn-primary btn-sm"
-            (click)="openCreate()"
-          >
+          <button type="button" class="btn btn-primary btn-sm" (click)="openCreate()">
             Nueva unidad
           </button>
         </app-empty-state>
@@ -137,14 +121,10 @@ import { UnitFormModalComponent } from './unit-form-modal.component';
 
               <div class="min-w-0 flex-1">
                 <p class="font-medium text-content">
-                  <span class="text-content-muted text-xs mr-2">
-                    {{ unit.displayOrder }}.
-                  </span>
+                  <span class="mr-2 text-xs text-content-muted"> {{ unit.displayOrder }}. </span>
                   {{ unit.name }}
                   @if (!unit.isActive) {
-                    <span class="badge badge-neutral text-[10px] ml-2">
-                      Inactiva
-                    </span>
+                    <span class="badge badge-neutral ml-2 text-[10px]"> Inactiva </span>
                   }
                 </p>
                 <p class="mt-0.5 text-xs text-content-muted">
@@ -161,7 +141,7 @@ import { UnitFormModalComponent } from './unit-form-modal.component';
                 </p>
               </div>
 
-              <div class="flex items-center gap-1 shrink-0">
+              <div class="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
                   class="btn btn-ghost btn-sm"
@@ -198,9 +178,11 @@ import { UnitFormModalComponent } from './unit-form-modal.component';
   `,
   styles: [
     `
-      :host { display: block; }
-    `
-  ]
+      :host {
+        display: block;
+      }
+    `,
+  ],
 })
 export class CourseUnitsTabComponent implements OnChanges {
   private readonly store = inject(UnitsStore);
@@ -225,9 +207,7 @@ export class CourseUnitsTabComponent implements OnChanges {
   protected readonly unitBeingEdited = signal<UnitDetail | null>(null);
 
   /** Cantidad de unidades activas — handy para badges del tab padre. */
-  readonly activeCount = computed(
-    () => this.units().filter((u) => u.isActive).length
-  );
+  readonly activeCount = computed(() => this.units().filter((u) => u.isActive).length);
 
   constructor() {
     /* Reset cuando el componente se destruye (cambio de tab / page).
@@ -267,8 +247,7 @@ export class CourseUnitsTabComponent implements OnChanges {
       const detail = await firstValueFrom(this.api.getUnit(row.publicUuid));
       this.unitBeingEdited.set(detail);
       this.modalOpen.set(true);
-    }
-    catch {
+    } catch {
       /* Si falla, el banner del store no se actualiza (no pasa por
        * mutación). Activamos uno local mínimo. */
       this.store.clearError();
@@ -293,7 +272,7 @@ export class CourseUnitsTabComponent implements OnChanges {
     const ok = confirm(
       `¿Eliminar la unidad "${unit.name}"?\n\n` +
         'Esta operación es reversible solo desde el backend.' +
-        sessionWarn
+        sessionWarn,
     );
     if (!ok) return;
     await this.store.deleteUnit(unit.publicUuid);
@@ -323,7 +302,7 @@ export class CourseUnitsTabComponent implements OnChanges {
     return d.toLocaleDateString('es', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 

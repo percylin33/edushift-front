@@ -15,10 +15,10 @@
  * transient DB outage), surfaced via {@code failReason}.
  */
 export enum BulkImportStatus {
-  Pending    = 'PENDING',
+  Pending = 'PENDING',
   Processing = 'PROCESSING',
-  Completed  = 'COMPLETED',
-  Failed     = 'FAILED'
+  Completed = 'COMPLETED',
+  Failed = 'FAILED',
 }
 
 /** Convenience predicate matching the backend {@code isTerminal()} method. */

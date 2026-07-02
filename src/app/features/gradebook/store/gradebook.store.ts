@@ -25,30 +25,21 @@ export class GradeBookStore {
 
   readonly isEmpty = computed(() => {
     const gb = this._gradebook();
-    return (
-      !this._loading() &&
-      !!gb &&
-      gb.students.length === 0 &&
-      gb.evaluations.length === 0
-    );
+    return !this._loading() && !!gb && gb.students.length === 0 && gb.evaluations.length === 0;
   });
 
   /** Suma de pesos de las evaluations PUBLISHED+CLOSED con scale numeric. */
   readonly totalWeight = computed(() => {
     const gb = this._gradebook();
     if (!gb) return 0;
-    return gb.evaluations
-      .filter((e) => e.status !== 'DRAFT')
-      .reduce((acc, e) => acc + e.weight, 0);
+    return gb.evaluations.filter((e) => e.status !== 'DRAFT').reduce((acc, e) => acc + e.weight, 0);
   });
 
   async load(assignmentPublicUuid: string): Promise<void> {
     this._loading.set(true);
     this._error.set(null);
     try {
-      const gb = await firstValueFrom(
-        this.api.getByAssignment(assignmentPublicUuid)
-      );
+      const gb = await firstValueFrom(this.api.getByAssignment(assignmentPublicUuid));
       this._gradebook.set(gb);
     } catch (err) {
       this._error.set(this.toErrorMessage(err));

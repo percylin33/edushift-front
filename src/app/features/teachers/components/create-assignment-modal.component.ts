@@ -8,7 +8,7 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -20,7 +20,7 @@ import {
   AcademicYearStatus,
   CourseRow,
   PERIOD_TYPE_LABELS,
-  SectionRow
+  SectionRow,
 } from '@features/academic/models';
 import { TeacherDetail } from '../models';
 import { TeacherAssignmentsStore } from '../store';
@@ -55,22 +55,22 @@ import { TeacherAssignmentsStore } from '../store';
   imports: [CommonModule, FormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="assignment-title"
       (click)="onBackdropClick($event)"
     >
       <div
-        class="card w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]"
+        class="card flex max-h-[90vh] w-full max-w-2xl flex-col shadow-xl"
         (click)="$event.stopPropagation()"
       >
         <header class="card-header">
           <div>
             <h2 id="assignment-title" class="card-title">Nueva asignación</h2>
             <p class="card-description">
-              Asigna a {{ teacher().fullName }} a una sección, curso y periodo
-              del año académico activo.
+              Asigna a {{ teacher().fullName }} a una sección, curso y periodo del año académico
+              activo.
             </p>
           </div>
           <button
@@ -99,24 +99,24 @@ import { TeacherAssignmentsStore } from '../store';
             <div class="alert alert-warning">
               <app-icon name="info" [size]="18" />
               <p class="flex-1 text-sm">
-                No hay un año académico <strong>activo</strong>. Activa uno
-                desde <em>Académico → Años</em> antes de crear asignaciones.
+                No hay un año académico <strong>activo</strong>. Activa uno desde
+                <em>Académico → Años</em> antes de crear asignaciones.
               </p>
             </div>
           } @else if (sections().length === 0) {
             <div class="alert alert-warning">
               <app-icon name="info" [size]="18" />
               <p class="flex-1 text-sm">
-                El año {{ activeYear()?.name }} no tiene secciones creadas.
-                Crea al menos una desde <em>Académico → Secciones</em>.
+                El año {{ activeYear()?.name }} no tiene secciones creadas. Crea al menos una desde
+                <em>Académico → Secciones</em>.
               </p>
             </div>
           } @else if (periods().length === 0) {
             <div class="alert alert-warning">
               <app-icon name="info" [size]="18" />
               <p class="flex-1 text-sm">
-                El año {{ activeYear()?.name }} no tiene periodos creados.
-                Genera la calendarización desde <em>Académico → Periodos</em>.
+                El año {{ activeYear()?.name }} no tiene periodos creados. Genera la calendarización
+                desde <em>Académico → Periodos</em>.
               </p>
             </div>
           } @else {
@@ -182,10 +182,10 @@ import { TeacherAssignmentsStore } from '../store';
                 </p>
               }
               @if (sectionUuid() && hasOnlyInapplicableCourses()) {
-                <p class="hint mt-1 text-warning-600">
+                <p class="hint text-warning-600 mt-1">
                   Ningún curso está vinculado al nivel
-                  <strong>{{ selectedLevelCode() }}</strong>. Asocia uno desde
-                  el detalle del curso.
+                  <strong>{{ selectedLevelCode() }}</strong
+                  >. Asocia uno desde el detalle del curso.
                 </p>
               }
             </div>
@@ -212,7 +212,7 @@ import { TeacherAssignmentsStore } from '../store';
 
             <div class="field">
               <label class="label" for="assignment-notes">
-                Notas <span class="text-content-muted text-xs">(opcional)</span>
+                Notas <span class="text-xs text-content-muted">(opcional)</span>
               </label>
               <textarea
                 id="assignment-notes"
@@ -251,7 +251,7 @@ import { TeacherAssignmentsStore } from '../store';
         </footer>
       </div>
     </div>
-  `
+  `,
 })
 export class CreateAssignmentModalComponent implements OnInit {
   private readonly academicApi = inject(AcademicApiService);
@@ -259,23 +259,23 @@ export class CreateAssignmentModalComponent implements OnInit {
 
   readonly teacher = input.required<TeacherDetail>();
 
-  readonly closed  = output<void>();
+  readonly closed = output<void>();
   readonly created = output<void>();
 
   /** Año académico ACTIVE del tenant; necesario para gateway de cascada. */
   protected readonly activeYear = signal<AcademicYearRow | null>(null);
-  protected readonly sections   = signal<SectionRow[]>([]);
-  protected readonly courses    = signal<CourseRow[]>([]);
-  protected readonly periods    = signal<AcademicPeriodRow[]>([]);
+  protected readonly sections = signal<SectionRow[]>([]);
+  protected readonly courses = signal<CourseRow[]>([]);
+  protected readonly periods = signal<AcademicPeriodRow[]>([]);
 
   protected readonly loadingCatalogs = signal(false);
   protected readonly saving = this.store.saving;
   protected readonly errorMessage = this.store.error;
 
   protected readonly sectionUuid = signal<string>('');
-  protected readonly courseUuid  = signal<string>('');
-  protected readonly periodUuid  = signal<string>('');
-  protected readonly notes       = signal<string>('');
+  protected readonly courseUuid = signal<string>('');
+  protected readonly periodUuid = signal<string>('');
+  protected readonly notes = signal<string>('');
 
   /** Sección actualmente seleccionada (para resolver el level). */
   protected readonly selectedSection = computed<SectionRow | null>(() => {
@@ -285,7 +285,7 @@ export class CreateAssignmentModalComponent implements OnInit {
   });
 
   protected readonly selectedLevelCode = computed<string>(
-    () => this.selectedSection()?.levelCode ?? ''
+    () => this.selectedSection()?.levelCode ?? '',
   );
 
   protected readonly hasOnlyInapplicableCourses = computed<boolean>(() => {
@@ -295,11 +295,8 @@ export class CreateAssignmentModalComponent implements OnInit {
   });
 
   protected readonly canSubmit = computed<boolean>(() => {
-    if (!this.sectionUuid() || !this.courseUuid() || !this.periodUuid())
-      return false;
-    const course = this.courses().find(
-      (c) => c.publicUuid === this.courseUuid()
-    );
+    if (!this.sectionUuid() || !this.courseUuid() || !this.periodUuid()) return false;
+    const course = this.courses().find((c) => c.publicUuid === this.courseUuid());
     return !course || this.isCourseApplicable(course);
   });
 
@@ -337,9 +334,7 @@ export class CreateAssignmentModalComponent implements OnInit {
     this.sectionUuid.set(value);
     /* Si el curso elegido deja de aplicar al level nuevo, lo
      * limpiamos para forzar al admin a re-seleccionar. */
-    const course = this.courses().find(
-      (c) => c.publicUuid === this.courseUuid()
-    );
+    const course = this.courses().find((c) => c.publicUuid === this.courseUuid());
     if (course && !this.isCourseApplicable(course)) {
       this.courseUuid.set('');
     }
@@ -351,7 +346,7 @@ export class CreateAssignmentModalComponent implements OnInit {
       sectionPublicUuid: this.sectionUuid(),
       coursePublicUuid: this.courseUuid(),
       academicPeriodPublicUuid: this.periodUuid(),
-      notes: this.notes().trim() || undefined
+      notes: this.notes().trim() || undefined,
     });
     if (result) this.created.emit();
   }
@@ -361,8 +356,7 @@ export class CreateAssignmentModalComponent implements OnInit {
     try {
       /* 1) Localizamos el año ACTIVE. Sin él la cascada no tiene sentido. */
       const years = await firstValueFrom(this.academicApi.listYears());
-      const active =
-        years.find((y) => y.status === AcademicYearStatus.Active) ?? null;
+      const active = years.find((y) => y.status === AcademicYearStatus.Active) ?? null;
       this.activeYear.set(active);
 
       if (!active) return;
@@ -373,27 +367,25 @@ export class CreateAssignmentModalComponent implements OnInit {
       const [sections, courses, periods] = await Promise.all([
         firstValueFrom(
           this.academicApi.listSections({
-            academicYearPublicUuid: active.publicUuid
-          })
+            academicYearPublicUuid: active.publicUuid,
+          }),
         ),
         firstValueFrom(this.academicApi.listCourses({ isActive: true })),
         firstValueFrom(
           this.academicApi.listPeriods({
-            academicYearPublicUuid: active.publicUuid
-          })
-        )
+            academicYearPublicUuid: active.publicUuid,
+          }),
+        ),
       ]);
       this.sections.set(sections);
       this.courses.set(courses);
       this.periods.set(periods);
-    }
-    catch {
+    } catch {
       this.activeYear.set(null);
       this.sections.set([]);
       this.courses.set([]);
       this.periods.set([]);
-    }
-    finally {
+    } finally {
       this.loadingCatalogs.set(false);
     }
   }

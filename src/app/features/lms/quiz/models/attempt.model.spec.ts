@@ -8,7 +8,7 @@ import {
   isAttemptInProgress,
   isAttemptFinal,
   isAttemptAwaitingManualGrade,
-  canRevealCorrectnessFor
+  canRevealCorrectnessFor,
 } from './attempt.model';
 
 describe('attempt.model (FE-7b.2)', () => {
@@ -24,7 +24,7 @@ describe('attempt.model (FE-7b.2)', () => {
         pointsAwarded: null,
         gradedByUserId: null,
         gradedAt: null,
-        updatedAt: null
+        updatedAt: null,
       });
       expect(row.status).toBe(AnswerStatus.Empty);
     });
@@ -40,7 +40,7 @@ describe('attempt.model (FE-7b.2)', () => {
         pointsAwarded: null,
         gradedByUserId: null,
         gradedAt: null,
-        updatedAt: null
+        updatedAt: null,
       });
       expect(row.status).toBe(AnswerStatus.Saved);
     });
@@ -56,7 +56,7 @@ describe('attempt.model (FE-7b.2)', () => {
         pointsAwarded: 5,
         gradedByUserId: null,
         gradedAt: null,
-        updatedAt: null
+        updatedAt: null,
       });
       expect(row.status).toBe(AnswerStatus.AutoGraded);
     });
@@ -72,7 +72,7 @@ describe('attempt.model (FE-7b.2)', () => {
         pointsAwarded: 3,
         gradedByUserId: 't-1',
         gradedAt: '2026-06-12T12:00:00Z',
-        updatedAt: '2026-06-12T12:00:00Z'
+        updatedAt: '2026-06-12T12:00:00Z',
       });
       expect(row.status).toBe(AnswerStatus.ManuallyGraded);
     });
@@ -88,7 +88,7 @@ describe('attempt.model (FE-7b.2)', () => {
         pointsAwarded: 5,
         gradedByUserId: null,
         gradedAt: '2026-06-12T12:00:00Z',
-        updatedAt: 'not-a-date'
+        updatedAt: 'not-a-date',
       });
       expect(row.gradedAt).toBeInstanceOf(Date);
       expect(row.updatedAt).toBeNull();
@@ -127,11 +127,11 @@ describe('attempt.model (FE-7b.2)', () => {
             pointsAwarded: null,
             gradedByUserId: null,
             gradedAt: null,
-            updatedAt: '2026-06-12T10:05:00Z'
-          }
+            updatedAt: '2026-06-12T10:05:00Z',
+          },
         ],
         createdAt: '2026-06-12T10:00:00Z',
-        updatedAt: '2026-06-12T10:05:00Z'
+        updatedAt: '2026-06-12T10:05:00Z',
       });
 
       expect(detail.startedAt).toBeInstanceOf(Date);
@@ -152,7 +152,7 @@ describe('attempt.model (FE-7b.2)', () => {
         status: AttemptStatus.Graded,
         startedAt: '',
         revealCorrectness: true,
-        answers: []
+        answers: [],
       } as never);
       expect(detail.startedAt).toBeInstanceOf(Date);
     });
@@ -174,7 +174,7 @@ describe('attempt.model (FE-7b.2)', () => {
         startedAt: '2026-06-12T10:00:00Z',
         submittedAt: '2026-06-12T10:15:00Z',
         gradedAt: null,
-        createdAt: '2026-06-12T10:00:00Z'
+        createdAt: '2026-06-12T10:00:00Z',
       });
       expect(row.status).toBe(AttemptStatus.AutoGraded);
       expect(row.pendingAnswerCount).toBe(3);
@@ -193,7 +193,7 @@ describe('attempt.model (FE-7b.2)', () => {
         quizTitle: 'Quiz 1',
         questionPrompt: '¿Cuál es…?',
         questionPoints: 5,
-        textAnswer: 'mi respuesta'
+        textAnswer: 'mi respuesta',
       });
       expect(item.quizTitle).toBe('Quiz 1');
       expect(item.questionPoints).toBe(5);
@@ -218,9 +218,15 @@ describe('attempt.model (FE-7b.2)', () => {
     });
 
     it('canRevealCorrectnessFor: respects the reveal flag and the GRADED shortcut', () => {
-      expect(canRevealCorrectnessFor({ status: AttemptStatus.InProgress, revealCorrectness: false })).toBeFalse();
-      expect(canRevealCorrectnessFor({ status: AttemptStatus.InProgress, revealCorrectness: true })).toBeTrue();
-      expect(canRevealCorrectnessFor({ status: AttemptStatus.Graded, revealCorrectness: false })).toBeTrue();
+      expect(
+        canRevealCorrectnessFor({ status: AttemptStatus.InProgress, revealCorrectness: false }),
+      ).toBeFalse();
+      expect(
+        canRevealCorrectnessFor({ status: AttemptStatus.InProgress, revealCorrectness: true }),
+      ).toBeTrue();
+      expect(
+        canRevealCorrectnessFor({ status: AttemptStatus.Graded, revealCorrectness: false }),
+      ).toBeTrue();
     });
   });
 });

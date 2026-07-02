@@ -51,7 +51,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
             auth.clearSession();
             const returnUrl = stripQueryFromAuthLogin(router.url);
             router.navigate([ROUTES.AUTH.LOGIN], {
-              queryParams: returnUrl ? { returnUrl } : undefined
+              queryParams: returnUrl ? { returnUrl } : undefined,
             });
           }
           break;
@@ -70,7 +70,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       return throwError(() => error);
-    })
+    }),
   );
 };
 

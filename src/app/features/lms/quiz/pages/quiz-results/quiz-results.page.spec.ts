@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, ActivatedRoute, convertToParamMap } from '@angular/router';
-import { QuizResultsPage } from './quiz-results.page';
+import { QuizResultsPageComponent } from './quiz-results.page';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { AttemptsStore } from '../../store/attempts.store';
 import { QuizzesStore } from '../../store/quizzes.store';
@@ -9,14 +9,14 @@ import {
   AnswerStatus,
   AttemptDetail,
   AttemptStatus,
-  AttemptSummaryRow
+  AttemptSummaryRow,
 } from '../../models/attempt.model';
 import { QuestionRow, QuestionType } from '../../models/quiz.model';
 import { Permission } from '../../../../../core/enums/permission.enum';
 
 function makeSummary(
   publicUuid: string,
-  status: AttemptStatus = AttemptStatus.AutoGraded
+  status: AttemptStatus = AttemptStatus.AutoGraded,
 ): AttemptSummaryRow {
   return {
     publicUuid,
@@ -32,7 +32,7 @@ function makeSummary(
     startedAt: new Date('2026-06-01T10:00:00Z'),
     submittedAt: new Date('2026-06-01T10:15:00Z'),
     gradedAt: new Date('2026-06-01T10:20:00Z'),
-    createdAt: new Date('2026-06-01T10:00:00Z')
+    createdAt: new Date('2026-06-01T10:00:00Z'),
   };
 }
 
@@ -51,8 +51,8 @@ function makeQuestion(publicUuid: string, prompt: string, options: string[]): Qu
       label,
       isCorrect: i === 0 ? true : null,
       explanation: null,
-      position: i
-    }))
+      position: i,
+    })),
   };
 }
 
@@ -69,7 +69,7 @@ function makeAnswer(overrides: Partial<AnswerRow> = {}): AnswerRow {
     gradedAt: null,
     updatedAt: null,
     status: AnswerStatus.Empty,
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -95,7 +95,7 @@ function makeAttempt(publicUuid: string, answers: AnswerRow[]): AttemptDetail {
     revealCorrectness: true,
     answers,
     createdAt: new Date('2026-06-01T10:00:00Z'),
-    updatedAt: new Date('2026-06-01T10:20:00Z')
+    updatedAt: new Date('2026-06-01T10:20:00Z'),
   };
 }
 
@@ -117,17 +117,12 @@ interface PageAccess {
   quiz: { set: (q: { title: string; questions: QuestionRow[] } | null) => void };
 }
 
-function access(page: QuizResultsPage): PageAccess {
+function access(page: QuizResultsPageComponent): PageAccess {
   return page as unknown as PageAccess;
 }
 
-function setup(opts: SetupOpts = {}): QuizResultsPage {
-  const {
-    summaries = [],
-    canGrade = false,
-    detail = null,
-    quizQuestions = []
-  } = opts;
+function setup(opts: SetupOpts = {}): QuizResultsPageComponent {
+  const { summaries = [], canGrade = false, detail = null, quizQuestions = [] } = opts;
 
   const fakeAttempts = {
     summaries: () => summaries,
@@ -135,28 +130,31 @@ function setup(opts: SetupOpts = {}): QuizResultsPage {
     error: () => null,
     current: () => detail,
     loadSummaries: jasmine.createSpy('loadSummaries').and.returnValue(Promise.resolve()),
-    loadAttempt: jasmine.createSpy('loadAttempt').and.returnValue(Promise.resolve(detail))
+    loadAttempt: jasmine.createSpy('loadAttempt').and.returnValue(Promise.resolve(detail)),
   } as unknown as AttemptsStore;
 
   const quiz = { title: 'Quiz demo', questions: quizQuestions };
   const fakeQuizzes = {
-    loadDetail: jasmine.createSpy('loadDetail').and.returnValue(Promise.resolve(quiz))
+    loadDetail: jasmine.createSpy('loadDetail').and.returnValue(Promise.resolve(quiz)),
   } as unknown as QuizzesStore;
 
   const fakeAuth = {
-    hasPermission: (perm: Permission) => (perm === Permission.LmsQuizGrade ? canGrade : false)
+    hasPermission: (perm: Permission) => (perm === Permission.LmsQuizGrade ? canGrade : false),
   } as unknown as AuthService;
 
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
-      { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ uuid: 'qz-1' }) } } },
+      {
+        provide: ActivatedRoute,
+        useValue: { snapshot: { paramMap: convertToParamMap({ uuid: 'qz-1' }) } },
+      },
       { provide: AttemptsStore, useValue: fakeAttempts },
       { provide: QuizzesStore, useValue: fakeQuizzes },
-      { provide: AuthService, useValue: fakeAuth }
-    ]
+      { provide: AuthService, useValue: fakeAuth },
+    ],
   });
-  const fixture = TestBed.createComponent(QuizResultsPage);
+  const fixture = TestBed.createComponent(QuizResultsPageComponent);
   fixture.detectChanges();
   // Inject quiz into the page's local signal (loadDetail returns a quiz, the
   // page stores it via `this.quiz.set(quiz)` inside `bootstrap`).
@@ -166,7 +164,7 @@ function setup(opts: SetupOpts = {}): QuizResultsPage {
   return page;
 }
 
-describe('QuizResultsPage (FE-7b.3) — display helpers', () => {
+describe('QuizResultsPageComponent (FE-7b.3) — display helpers', () => {
   it('shortId truncates to 8 chars', () => {
     const page = setup();
     expect(access(page).shortId('abc12345-uuid-extended')).toBe('abc12345');
@@ -179,9 +177,7 @@ describe('QuizResultsPage (FE-7b.3) — display helpers', () => {
 
   it('formatAnswer returns the option label for MC answers', () => {
     const q = makeQuestion('q-1', '¿Color?', ['Rojo', 'Azul']);
-    const attempt = makeAttempt('att-1', [
-      makeAnswer({ selectedOptionId: 'q-1-opt-1' })
-    ]);
+    const attempt = makeAttempt('att-1', [makeAnswer({ selectedOptionId: 'q-1-opt-1' })]);
     const page = setup({ detail: attempt, quizQuestions: [q] });
     expect(access(page).formatAnswer(attempt.answers[0])).toBe('Azul');
   });
@@ -216,7 +212,7 @@ describe('QuizResultsPage (FE-7b.3) — display helpers', () => {
   });
 });
 
-describe('QuizResultsPage (FE-7b.3) — expand/collapse', () => {
+describe('QuizResultsPageComponent (FE-7b.3) — expand/collapse', () => {
   it('isExpanded is false by default', () => {
     const page = setup();
     expect(access(page).isExpanded('att-1')).toBeFalse();
@@ -228,7 +224,7 @@ describe('QuizResultsPage (FE-7b.3) — expand/collapse', () => {
     await access(page).toggleRow('att-1');
     expect(access(page).isExpanded('att-1')).toBeTrue();
     const store = TestBed.inject(AttemptsStore);
-    expect((store.loadAttempt as jasmine.Spy)).toHaveBeenCalledWith('att-1');
+    expect(store.loadAttempt as jasmine.Spy).toHaveBeenCalledWith('att-1');
   });
 
   it('toggleRow collapses a row that is already expanded', async () => {
@@ -251,7 +247,7 @@ describe('QuizResultsPage (FE-7b.3) — expand/collapse', () => {
   });
 });
 
-describe('QuizResultsPage (FE-7b.3) — RBAC', () => {
+describe('QuizResultsPageComponent (FE-7b.3) — RBAC', () => {
   it('canGrade is true for users with LmsQuizGrade', () => {
     const page = setup({ canGrade: true });
     expect(access(page).canGrade()).toBeTrue();

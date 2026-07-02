@@ -3,10 +3,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/cor
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { Permission } from '@core/enums';
-import {
-  IconComponent,
-  SpinnerComponent
-} from '@shared/components';
+import { IconComponent, SpinnerComponent } from '@shared/components';
 import { HasPermissionDirective } from '@shared/directives';
 import { TasksStore } from '../../store';
 import { TaskLifecycle, isTaskEditable, isTaskTerminal } from '../../models';
@@ -43,7 +40,7 @@ import { TaskLifecycleBadgeComponent } from '../../components';
     IconComponent,
     SpinnerComponent,
     HasPermissionDirective,
-    TaskLifecycleBadgeComponent
+    TaskLifecycleBadgeComponent,
   ],
   template: `
     @if (loadingDetail()) {
@@ -85,9 +82,7 @@ import { TaskLifecycleBadgeComponent } from '../../components';
               {{ detail()!.description }}
             </p>
           } @else {
-            <p class="text-sm italic text-content-muted">
-              Esta tarea no tiene descripción.
-            </p>
+            <p class="text-sm italic text-content-muted">Esta tarea no tiene descripción.</p>
           }
 
           <dl class="grid gap-3 sm:grid-cols-4">
@@ -183,7 +178,7 @@ import { TaskLifecycleBadgeComponent } from '../../components';
         </footer>
       </article>
     }
-  `
+  `,
 })
 export class TaskDetailComponent implements OnInit {
   private readonly store = inject(TasksStore);

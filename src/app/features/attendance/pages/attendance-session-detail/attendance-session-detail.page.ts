@@ -4,7 +4,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -17,12 +17,9 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
-import {
-  AttendanceStatusBadgeComponent,
-  EditRecordModalComponent
-} from '../../components';
+import { AttendanceStatusBadgeComponent, EditRecordModalComponent } from '../../components';
 import { AttendanceStore } from '../../store';
 import { AttendanceRecord, UpdateRecordRequest } from '../../models';
 
@@ -61,25 +58,16 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
     IconComponent,
     SpinnerComponent,
     AttendanceStatusBadgeComponent,
-    EditRecordModalComponent
+    EditRecordModalComponent,
   ],
   template: `
     <app-page-container>
-      <app-page-header
-        [title]="title()"
-        [subtitle]="subtitle()"
-      >
-        <a
-          [routerLink]="sessionsRoute"
-          class="btn btn-ghost btn-sm"
-        >
+      <app-page-header [title]="title()" [subtitle]="subtitle()">
+        <a [routerLink]="sessionsRoute" class="btn btn-ghost btn-sm">
           <app-icon name="arrow-left" [size]="16" />
           <span class="hidden sm:inline">Volver</span>
         </a>
-        <a
-          [routerLink]="scannerRoute"
-          class="btn btn-outline btn-sm"
-        >
+        <a [routerLink]="scannerRoute" class="btn btn-outline btn-sm">
           <app-icon name="target" [size]="16" />
           <span class="hidden sm:inline">Escanear</span>
         </a>
@@ -97,13 +85,11 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
       </app-page-header>
 
       <!-- Resumen -->
-      <section class="grid gap-3 sm:grid-cols-4 mb-4">
+      <section class="mb-4 grid gap-3 sm:grid-cols-4">
         <div class="card">
           <div class="card-body py-3">
             <p class="text-xs text-content-muted">Estado</p>
-            <app-attendance-status-badge
-              [status]="store.currentSession()?.status ?? 'CLOSED'"
-            />
+            <app-attendance-status-badge [status]="store.currentSession()?.status ?? 'CLOSED'" />
           </div>
         </div>
         <div class="card">
@@ -117,7 +103,7 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
         <div class="card">
           <div class="card-body py-3">
             <p class="text-xs text-content-muted">Ausentes</p>
-            <p class="text-2xl font-semibold text-error">
+            <p class="text-error text-2xl font-semibold">
               {{ store.absentCount() }}
             </p>
           </div>
@@ -181,16 +167,16 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
                         {{ record.studentFullName ?? record.studentPublicUuid }}
                       </div>
                     </td>
-                    <td class="hidden md:table-cell text-sm text-content-muted">
+                    <td class="hidden text-sm text-content-muted md:table-cell">
                       {{ record.studentDocumentNumber ?? '—' }}
                     </td>
                     <td>
                       <app-attendance-status-badge [status]="record.status" />
                     </td>
-                    <td class="hidden lg:table-cell text-sm">
+                    <td class="hidden text-sm lg:table-cell">
                       {{ record.occurredAt | date: 'shortTime' }}
                     </td>
-                    <td class="hidden lg:table-cell text-xs text-content-muted">
+                    <td class="hidden text-xs text-content-muted lg:table-cell">
                       {{ record.scannedByUserId ?? '—' }}
                     </td>
                     <td class="text-right">
@@ -220,7 +206,7 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
         (cancelled)="closeEdit()"
       />
     }
-  `
+  `,
 })
 export class AttendanceSessionDetailPageComponent implements OnInit {
   protected readonly store = inject(AttendanceStore);
@@ -246,9 +232,7 @@ export class AttendanceSessionDetailPageComponent implements OnInit {
     return `${s.slot} · ${date}`;
   });
 
-  protected readonly canClose = computed(
-    () => this.store.currentSession()?.status === 'ACTIVE'
-  );
+  protected readonly canClose = computed(() => this.store.currentSession()?.status === 'ACTIVE');
 
   /**
    * Roster view filtered by the "only pending" toggle. In an
@@ -305,10 +289,7 @@ export class AttendanceSessionDetailPageComponent implements OnInit {
     this.editing.set(null);
   }
 
-  protected async onSave(
-    record: AttendanceRecord,
-    request: UpdateRecordRequest
-  ): Promise<void> {
+  protected async onSave(record: AttendanceRecord, request: UpdateRecordRequest): Promise<void> {
     const updated = await this.store.updateRecord(record.publicUuid, request);
     this.editing.set(null);
     // On error the store leaves `error` populated; the page itself

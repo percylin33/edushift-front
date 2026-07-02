@@ -10,7 +10,7 @@ import {
   MaterialRow,
   MaterialSummaryRaw,
   toMaterial,
-  toMaterialRow
+  toMaterialRow,
 } from '../models';
 
 /**
@@ -65,20 +65,20 @@ export class MaterialApiService {
    */
   upload(
     sectionPublicUuid: string,
-    request: CreateMaterialRequest
+    request: CreateMaterialRequest,
   ): Observable<MaterialUploadProgress> {
     if (request.type === 'LINK' || !request.file) {
       const json = {
         title: request.title,
         type: request.type,
-        url: request.url ?? null
+        url: request.url ?? null,
       };
       return this.toUploadProgress(
         this.http.post<ApiResponse<MaterialResponseRaw>>(
           API.LMS.SECTION_MATERIALS(sectionPublicUuid),
           json,
-          { reportProgress: true, observe: 'events' }
-        )
+          { reportProgress: true, observe: 'events' },
+        ),
       );
     }
 
@@ -91,8 +91,8 @@ export class MaterialApiService {
       this.http.post<ApiResponse<MaterialResponseRaw>>(
         API.LMS.SECTION_MATERIALS(sectionPublicUuid),
         fd,
-        { reportProgress: true, observe: 'events' }
-      )
+        { reportProgress: true, observe: 'events' },
+      ),
     );
   }
 
@@ -106,9 +106,7 @@ export class MaterialApiService {
    * 404 — la page trata ambos como "ok, fuera de la lista".
    */
   delete(publicUuid: string): Observable<void> {
-    return this.http
-      .delete<void>(API.LMS.MATERIAL_BY_UUID(publicUuid))
-      .pipe(map(() => void 0));
+    return this.http.delete<void>(API.LMS.MATERIAL_BY_UUID(publicUuid)).pipe(map(() => void 0));
   }
 
   /* ------------------------------------------------------------------------ */
@@ -116,7 +114,7 @@ export class MaterialApiService {
   /* ------------------------------------------------------------------------ */
 
   private toUploadProgress(
-    source: Observable<HttpEvent<ApiResponse<MaterialResponseRaw>>>
+    source: Observable<HttpEvent<ApiResponse<MaterialResponseRaw>>>,
   ): Observable<MaterialUploadProgress> {
     return new Observable<MaterialUploadProgress>((sub) => {
       source.subscribe({
@@ -141,7 +139,7 @@ export class MaterialApiService {
           }
         },
         error: (err: unknown) => sub.error(err),
-        complete: () => sub.complete()
+        complete: () => sub.complete(),
       });
     });
   }

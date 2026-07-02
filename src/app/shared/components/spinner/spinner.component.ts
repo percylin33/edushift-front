@@ -15,7 +15,7 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
         <span class="sr-only">{{ label }}</span>
       }
     </span>
-  `
+  `,
 })
 export class SpinnerComponent {
   @Input() size = 16;

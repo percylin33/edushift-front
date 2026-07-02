@@ -1,11 +1,5 @@
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  computed,
-  inject
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { UserRole } from '@core/enums';
@@ -15,13 +9,9 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  StatCardComponent
+  StatCardComponent,
 } from '@shared/components';
-import {
-  AttendanceRecentSession,
-  AttendanceSessionSlot,
-  AttendanceTopSection
-} from '../../models';
+import { AttendanceRecentSession, AttendanceSessionSlot, AttendanceTopSection } from '../../models';
 import { DashboardStore } from '../../store/dashboard.store';
 
 interface QuickLink {
@@ -35,7 +25,7 @@ interface QuickLink {
 const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
   MORNING: 'Mañana',
   AFTERNOON: 'Tarde',
-  EVENING: 'Noche'
+  EVENING: 'Noche',
 };
 
 /**
@@ -70,15 +60,11 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
     PageHeaderComponent,
     StatCardComponent,
     EmptyStateComponent,
-    IconComponent
+    IconComponent,
   ],
   template: `
     <app-page-container size="wide">
-      <app-page-header
-        [title]="greeting()"
-        [subtitle]="subtitle()"
-        eyebrow="Resumen"
-      >
+      <app-page-header [title]="greeting()" [subtitle]="subtitle()" eyebrow="Resumen">
         @if (isAdmin()) {
           <button
             type="button"
@@ -105,16 +91,9 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
       ==================================================================== -->
       <ng-template #adminView>
         @if (store.error(); as err) {
-          <div
-            role="alert"
-            class="card mb-6 border-l-4 border-l-danger bg-danger/5"
-          >
+          <div role="alert" class="card mb-6 border-l-4 border-l-danger bg-danger/5">
             <div class="card-body flex items-start gap-3">
-              <app-icon
-                name="alert-circle"
-                [size]="20"
-                class="text-danger shrink-0 mt-0.5"
-              />
+              <app-icon name="alert-circle" [size]="20" class="mt-0.5 shrink-0 text-danger" />
               <div class="flex-1">
                 <p class="font-medium text-danger">No se pudo cargar el resumen</p>
                 <p class="mt-1 text-sm text-content-muted">{{ err }}</p>
@@ -164,7 +143,7 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
             <div class="card-body p-0">
               @if (store.loading() && !overview()) {
                 <div class="flex items-center justify-center py-12 text-content-muted">
-                  <app-icon name="rotate-cw" [size]="20" class="animate-spin mr-2" />
+                  <app-icon name="rotate-cw" [size]="20" class="mr-2 animate-spin" />
                   <span class="text-sm">Cargando ranking…</span>
                 </div>
               } @else if (topSections().length === 0) {
@@ -177,20 +156,24 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
                 <div class="overflow-x-auto">
                   <table class="w-full text-sm">
                     <thead>
-                      <tr class="border-b border-border text-left text-xs uppercase tracking-wide text-content-subtle">
+                      <tr
+                        class="border-b border-border text-left text-xs uppercase tracking-wide text-content-subtle"
+                      >
                         <th class="px-4 py-3 font-medium">Sección</th>
                         <th class="px-4 py-3 font-medium">Grado</th>
-                        <th class="px-4 py-3 font-medium text-right">Inasistencias</th>
-                        <th class="px-4 py-3 font-medium text-right">Matriculados</th>
-                        <th class="px-4 py-3 font-medium text-right">% inasistencia</th>
+                        <th class="px-4 py-3 text-right font-medium">Inasistencias</th>
+                        <th class="px-4 py-3 text-right font-medium">Matriculados</th>
+                        <th class="px-4 py-3 text-right font-medium">% inasistencia</th>
                       </tr>
                     </thead>
                     <tbody>
                       @for (row of topSections(); track row.sectionPublicUuid) {
-                        <tr class="border-b border-border last:border-b-0 hover:bg-surface-muted/50">
+                        <tr
+                          class="border-b border-border last:border-b-0 hover:bg-surface-muted/50"
+                        >
                           <td class="px-4 py-3 font-medium text-content">{{ row.sectionName }}</td>
                           <td class="px-4 py-3 text-content-muted">{{ row.gradeName ?? '—' }}</td>
-                          <td class="px-4 py-3 text-right tabular-nums font-semibold text-danger">
+                          <td class="px-4 py-3 text-right font-semibold tabular-nums text-danger">
                             {{ row.absentCount }}
                           </td>
                           <td class="px-4 py-3 text-right tabular-nums text-content-muted">
@@ -219,7 +202,7 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
             <div class="card-body p-0">
               @if (store.loading() && !overview()) {
                 <div class="flex items-center justify-center py-12 text-content-muted">
-                  <app-icon name="rotate-cw" [size]="20" class="animate-spin mr-2" />
+                  <app-icon name="rotate-cw" [size]="20" class="mr-2 animate-spin" />
                   <span class="text-sm">Cargando…</span>
                 </div>
               } @else if (recentSessions().length === 0) {
@@ -234,12 +217,10 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
                     <li>
                       <a
                         [routerLink]="sessionLink(s.sessionPublicUuid)"
-                        class="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-muted/50
-                               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
+                        class="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
                       >
                         <span
-                          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md
-                                 bg-primary-500/10 text-primary-700 dark:text-primary-300"
+                          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-500/10 text-primary-700 dark:text-primary-300"
                         >
                           <app-icon name="calendar-check" [size]="16" />
                         </span>
@@ -263,7 +244,7 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
                         <app-icon
                           name="chevron-right"
                           [size]="14"
-                          class="text-content-subtle mt-1.5"
+                          class="mt-1.5 text-content-subtle"
                         />
                       </a>
                     </li>
@@ -279,20 +260,15 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
         Teacher view — quick links only (no admin endpoint call)
       ==================================================================== -->
       <ng-template #teacherView>
-        <section
-          aria-label="Accesos rápidos"
-          class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-        >
+        <section aria-label="Accesos rápidos" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           @for (link of teacherLinks; track link.id) {
             <a
               [routerLink]="link.route"
-              class="card group transition-shadow hover:shadow-soft focus-visible:outline-none
-                     focus-visible:ring-2 focus-visible:ring-primary-500/30"
+              class="card group transition-shadow hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
             >
               <div class="card-body flex items-start gap-4">
                 <span
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg
-                         bg-primary-500/10 text-primary-700 dark:text-primary-300"
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-500/10 text-primary-700 dark:text-primary-300"
                 >
                   <app-icon [name]="link.icon" [size]="20" />
                 </span>
@@ -303,7 +279,7 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
                 <app-icon
                   name="chevron-right"
                   [size]="14"
-                  class="text-content-subtle mt-1 transition-transform group-hover:translate-x-0.5"
+                  class="mt-1 text-content-subtle transition-transform group-hover:translate-x-0.5"
                 />
               </div>
             </a>
@@ -311,7 +287,7 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
         </section>
       </ng-template>
     </app-page-container>
-  `
+  `,
 })
 export class DashboardHomeComponent implements OnInit {
   private readonly tenant = inject(TenantService);
@@ -324,16 +300,13 @@ export class DashboardHomeComponent implements OnInit {
   protected readonly greeting = computed(() => {
     const hour = new Date().getHours();
     const name = this.auth.user()?.firstName;
-    const prefix =
-      hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
+    const prefix = hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
     return name ? `${prefix}, ${name}` : prefix;
   });
 
   protected readonly subtitle = computed(() => {
     const tenantName = this.tenant.tenant()?.name;
-    return tenantName
-      ? `Resumen general de ${tenantName}.`
-      : 'Resumen general del tenant.';
+    return tenantName ? `Resumen general de ${tenantName}.` : 'Resumen general del tenant.';
   });
 
   /**
@@ -357,7 +330,7 @@ export class DashboardHomeComponent implements OnInit {
         delta: o.noClassToday
           ? 'Sin clase hoy'
           : `${o.enrollmentsConsidered} matriculados considerados`,
-        trend: 'flat' as const
+        trend: 'flat' as const,
       },
       {
         id: 'open',
@@ -365,7 +338,7 @@ export class DashboardHomeComponent implements OnInit {
         value: o.openSessions.toString(),
         icon: 'clock' as const,
         delta: null,
-        trend: 'flat' as const
+        trend: 'flat' as const,
       },
       {
         id: 'unique',
@@ -373,7 +346,7 @@ export class DashboardHomeComponent implements OnInit {
         value: o.uniqueStudentsRegisteredToday.toString(),
         icon: 'users' as const,
         delta: null,
-        trend: 'flat' as const
+        trend: 'flat' as const,
       },
       {
         id: 'absent',
@@ -381,17 +354,17 @@ export class DashboardHomeComponent implements OnInit {
         value: o.totalAbsencesToday.toString(),
         icon: 'alert-circle' as const,
         delta: null,
-        trend: 'flat' as const
-      }
+        trend: 'flat' as const,
+      },
     ];
   });
 
   protected readonly topSections = computed<readonly AttendanceTopSection[]>(
-    () => this.overview()?.topAbsentSections ?? []
+    () => this.overview()?.topAbsentSections ?? [],
   );
 
   protected readonly recentSessions = computed<readonly AttendanceRecentSession[]>(
-    () => this.overview()?.recentClosedSessions ?? []
+    () => this.overview()?.recentClosedSessions ?? [],
   );
 
   protected readonly lastUpdatedLabel = computed(() => {
@@ -413,22 +386,22 @@ export class DashboardHomeComponent implements OnInit {
       label: 'Escáner QR',
       icon: 'qr-code',
       route: ROUTES.ATTENDANCE.SCANNER,
-      description: 'Toma asistencia escaneando el QR del alumno.'
+      description: 'Toma asistencia escaneando el QR del alumno.',
     },
     {
       id: 'sessions',
       label: 'Sesiones de hoy',
       icon: 'calendar-check',
       route: ROUTES.ATTENDANCE.SESSIONS,
-      description: 'Abre, cierra o consulta tus sesiones del día.'
+      description: 'Abre, cierra o consulta tus sesiones del día.',
     },
     {
       id: 'rubrics',
       label: 'Rúbricas',
       icon: 'layers',
       route: ROUTES.RUBRICS.ROOT,
-      description: 'Catálogo de rúbricas para tus evaluaciones.'
-    }
+      description: 'Catálogo de rúbricas para tus evaluaciones.',
+    },
   ];
 
   ngOnInit(): void {
@@ -477,7 +450,7 @@ const EMPTY_KPIS = [
     value: '—',
     icon: 'calendar-check' as const,
     delta: null as string | null,
-    trend: 'flat' as const
+    trend: 'flat' as const,
   },
   {
     id: 'open',
@@ -485,7 +458,7 @@ const EMPTY_KPIS = [
     value: '—',
     icon: 'clock' as const,
     delta: null as string | null,
-    trend: 'flat' as const
+    trend: 'flat' as const,
   },
   {
     id: 'unique',
@@ -493,7 +466,7 @@ const EMPTY_KPIS = [
     value: '—',
     icon: 'users' as const,
     delta: null as string | null,
-    trend: 'flat' as const
+    trend: 'flat' as const,
   },
   {
     id: 'absent',
@@ -501,8 +474,8 @@ const EMPTY_KPIS = [
     value: '—',
     icon: 'alert-circle' as const,
     delta: null as string | null,
-    trend: 'flat' as const
-  }
+    trend: 'flat' as const,
+  },
 ];
 
 /**

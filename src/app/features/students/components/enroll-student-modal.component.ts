@@ -8,17 +8,13 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { AcademicApiService } from '@features/academic/services';
-import {
-  AcademicYearRow,
-  AcademicYearStatus,
-  SectionRow
-} from '@features/academic/models';
+import { AcademicYearRow, AcademicYearStatus, SectionRow } from '@features/academic/models';
 import { StudentDetail } from '../models';
 import { StudentsStore } from '../store';
 
@@ -53,14 +49,14 @@ import { StudentsStore } from '../store';
   imports: [CommonModule, FormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="enroll-title"
       (click)="onBackdropClick($event)"
     >
       <div
-        class="card w-full max-w-lg shadow-xl flex flex-col max-h-[90vh]"
+        class="card flex max-h-[90vh] w-full max-w-lg flex-col shadow-xl"
         (click)="$event.stopPropagation()"
       >
         <header class="card-header">
@@ -70,12 +66,10 @@ import { StudentsStore } from '../store';
             </h2>
             <p class="card-description">
               @if (isTransfer()) {
-                Mover a {{ student().fullName }} a otra sección. Se cerrará la
-                matrícula actual con estado <em>TRANSFERRED</em> y se creará
-                una nueva.
+                Mover a {{ student().fullName }} a otra sección. Se cerrará la matrícula actual con
+                estado <em>TRANSFERRED</em> y se creará una nueva.
               } @else {
-                Asignar a {{ student().fullName }} a una sección del año
-                académico activo.
+                Asignar a {{ student().fullName }} a una sección del año académico activo.
               }
             </p>
           </div>
@@ -105,16 +99,16 @@ import { StudentsStore } from '../store';
             <div class="alert alert-warning">
               <app-icon name="info" [size]="18" />
               <p class="flex-1 text-sm">
-                No hay un año académico <strong>activo</strong>. Activa uno
-                desde <em>Académico → Años</em> antes de matricular.
+                No hay un año académico <strong>activo</strong>. Activa uno desde
+                <em>Académico → Años</em> antes de matricular.
               </p>
             </div>
           } @else if (sections().length === 0) {
             <div class="alert alert-warning">
               <app-icon name="info" [size]="18" />
               <p class="flex-1 text-sm">
-                El año {{ activeYear()?.name }} no tiene secciones. Crea al
-                menos una desde <em>Académico → Secciones</em>.
+                El año {{ activeYear()?.name }} no tiene secciones. Crea al menos una desde
+                <em>Académico → Secciones</em>.
               </p>
             </div>
           } @else {
@@ -131,10 +125,7 @@ import { StudentsStore } from '../store';
               >
                 <option value="" disabled>Seleccionar sección…</option>
                 @for (s of sections(); track s.publicUuid) {
-                  <option
-                    [value]="s.publicUuid"
-                    [disabled]="s.publicUuid === currentSectionUuid()"
-                  >
+                  <option [value]="s.publicUuid" [disabled]="s.publicUuid === currentSectionUuid()">
                     {{ s.gradeName }} · {{ s.name }} ({{ s.levelCode }})
                     @if (s.publicUuid === currentSectionUuid()) {
                       — actual
@@ -158,7 +149,7 @@ import { StudentsStore } from '../store';
                 (ngModelChange)="enrolledAt.set($event)"
                 [disabled]="saving()"
               />
-              <p class="hint mt-1 text-content-muted text-xs">
+              <p class="hint mt-1 text-xs text-content-muted">
                 Debe estar dentro del rango del año
                 <strong>{{ activeYear()?.name }}</strong>
                 ({{ yearMinDate() }} → {{ yearMaxDate() }}).
@@ -167,7 +158,7 @@ import { StudentsStore } from '../store';
 
             <div class="field">
               <label class="label" for="enroll-notes">
-                Notas <span class="text-content-muted text-xs">(opcional)</span>
+                Notas <span class="text-xs text-content-muted">(opcional)</span>
               </label>
               <textarea
                 id="enroll-notes"
@@ -207,7 +198,7 @@ import { StudentsStore } from '../store';
         </footer>
       </div>
     </div>
-  `
+  `,
 })
 export class EnrollStudentModalComponent implements OnInit {
   private readonly academicApi = inject(AcademicApiService);
@@ -241,13 +232,11 @@ export class EnrollStudentModalComponent implements OnInit {
   protected readonly saving = this.store.savingEnrollment;
   protected readonly errorMessage = this.store.error;
 
-  protected readonly sectionUuid  = signal<string>('');
-  protected readonly enrolledAt   = signal<string>('');
-  protected readonly notes        = signal<string>('');
+  protected readonly sectionUuid = signal<string>('');
+  protected readonly enrolledAt = signal<string>('');
+  protected readonly notes = signal<string>('');
 
-  protected readonly isTransfer = computed<boolean>(
-    () => !!this.activeEnrollmentPublicUuid()
-  );
+  protected readonly isTransfer = computed<boolean>(() => !!this.activeEnrollmentPublicUuid());
 
   protected readonly yearMinDate = computed<string>(() => {
     const y = this.activeYear();
@@ -260,8 +249,7 @@ export class EnrollStudentModalComponent implements OnInit {
   });
 
   protected readonly canSubmit = computed<boolean>(() => {
-    if (!this.sectionUuid() || !this.enrolledAt() || !this.activeYear())
-      return false;
+    if (!this.sectionUuid() || !this.enrolledAt() || !this.activeYear()) return false;
     if (this.sectionUuid() === this.currentSectionUuid()) return false;
     const min = this.yearMinDate();
     const max = this.yearMaxDate();
@@ -275,9 +263,7 @@ export class EnrollStudentModalComponent implements OnInit {
     await this.fetchCatalogs();
     const today = this.toIsoDate(new Date());
     this.enrolledAt.set(
-      today >= this.yearMinDate() && today <= this.yearMaxDate()
-        ? today
-        : this.yearMinDate()
+      today >= this.yearMinDate() && today <= this.yearMaxDate() ? today : this.yearMinDate(),
     );
   }
 
@@ -304,7 +290,7 @@ export class EnrollStudentModalComponent implements OnInit {
       sectionPublicUuid: this.sectionUuid(),
       academicYearPublicUuid: year.publicUuid,
       enrolledAt: this.enrolledAt(),
-      notes: this.notes().trim() || undefined
+      notes: this.notes().trim() || undefined,
     };
 
     const activeUuid = this.activeEnrollmentPublicUuid();
@@ -314,13 +300,10 @@ export class EnrollStudentModalComponent implements OnInit {
         this.student().publicUuid,
         activeUuid,
         this.enrolledAt(),
-        create
+        create,
       );
     } else {
-      result = await this.store.enrollStudent(
-        this.student().publicUuid,
-        create
-      );
+      result = await this.store.enrollStudent(this.student().publicUuid, create);
     }
     if (result) this.enrolled.emit();
   }
@@ -329,24 +312,21 @@ export class EnrollStudentModalComponent implements OnInit {
     this.loadingCatalogs.set(true);
     try {
       const years = await firstValueFrom(this.academicApi.listYears());
-      const active =
-        years.find((y) => y.status === AcademicYearStatus.Active) ?? null;
+      const active = years.find((y) => y.status === AcademicYearStatus.Active) ?? null;
       this.activeYear.set(active);
 
       if (!active) return;
 
       const sections = await firstValueFrom(
         this.academicApi.listSections({
-          academicYearPublicUuid: active.publicUuid
-        })
+          academicYearPublicUuid: active.publicUuid,
+        }),
       );
       this.sections.set(sections);
-    }
-    catch {
+    } catch {
       this.activeYear.set(null);
       this.sections.set([]);
-    }
-    finally {
+    } finally {
       this.loadingCatalogs.set(false);
     }
   }

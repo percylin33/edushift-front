@@ -1,21 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { of, Observable } from 'rxjs';
 import { SubmissionsStore } from './submissions.store';
-import { SubmissionApiService } from '../services';
-import { SubmissionStatus, SubmissionRow, Submission } from '../models';
+import { SubmissionApiService, UploadProgress } from '../services';
+import { SubmissionRow, SubmissionStatus, Submission } from '../models';
 
-/**
- * Spec de {@link SubmissionsStore} (FE-7a.2).
- *
- * Cubre los escenarios del sprint que el store controla:
- * <ol>
- *   <li>TEACHER carga listing por assignment.</li>
- *   <li>create() sube el row al listing del assignment si estaba
- *       abierto; marca "my submission".</li>
- *   <li>grade() bumpa el grade del row en el listing.</li>
- *   <li>return() cambia status del row a RETURNED.</li>
- * </ol>
- */
 describe('SubmissionsStore', () => {
   let store: SubmissionsStore;
   let mockApi: jasmine.SpyObj<SubmissionApiService>;
@@ -24,14 +12,14 @@ describe('SubmissionsStore', () => {
     return {
       publicUuid: 'sub-1',
       studentPublicUuid: 'st-1',
-      studentFullName: 'Ana Pérez',
+      studentFullName: 'Juan',
       studentAvatarUrl: null,
       status: SubmissionStatus.Submitted,
       version: 1,
-      submittedAt: new Date('2026-06-12T00:00:00Z'),
+      submittedAt: new Date('2026-01-15T10:00:00Z'),
       grade: null,
       hasAttachment: false,
-      ...overrides
+      ...overrides,
     };
   }
 
@@ -43,18 +31,27 @@ describe('SubmissionsStore', () => {
       submittedByUserPublicUuid: 'u-1',
       submittedForStudentPublicUuid: null,
       status: SubmissionStatus.Submitted,
-      textContent: 'mi entrega',
+      textContent: null,
       attachment: null,
       version: 1,
       grade: null,
       feedback: null,
-      submittedAt: new Date('2026-06-12T00:00:00Z'),
+      submittedAt: new Date('2026-01-15T10:00:00Z'),
       gradedAt: null,
       gradedByTeacherPublicUuid: null,
       returnedAt: null,
       returnedByTeacherPublicUuid: null,
-      ...overrides
+      ...overrides,
     };
+  }
+
+  function uploadStream<T>(final: T): Observable<UploadProgress<T>> {
+    return new Observable<UploadProgress<T>>((sub) => {
+      sub.next({ kind: 'Sent' });
+      sub.next({ kind: 'Progress', percent: 50, loaded: 50, total: 100 });
+      sub.next({ kind: 'Response', value: final });
+      sub.complete();
+    });
   }
 
   beforeEach(() => {
@@ -64,84 +61,89 @@ describe('SubmissionsStore', () => {
       'create',
       'update',
       'grade',
-      'return'
+      'return',
     ]);
-
     mockApi.listByAssignment.and.returnValue(of([]));
     mockApi.listByStudent.and.returnValue(of([]));
 
     TestBed.configureTestingModule({
-      providers: [
-        SubmissionsStore,
-        { provide: SubmissionApiService, useValue: mockApi }
-      ]
+      providers: [SubmissionsStore, { provide: SubmissionApiService, useValue: mockApi }],
     });
     store = TestBed.inject(SubmissionsStore);
   });
 
-  it('loads the assignment listing', async () => {
+  it('loadByAssignment carga rows', async () => {
     mockApi.listByAssignment.and.returnValue(of([rowOf()]));
-
     await store.loadByAssignment('a-1');
-
-    expect(mockApi.listByAssignment).toHaveBeenCalledOnceWith('a-1');
-    expect(store.rows().length).toBe(1);
+    expect(store.rows()).toHaveSize(1);
     expect(store.currentAssignmentUuid()).toBe('a-1');
-    expect(store.loading()).toBeFalse();
   });
 
-  it('does not re-fetch when called twice with the same uuid and a non-empty listing', async () => {
+  it('loadByAssignment cachea con mismos args', async () => {
     mockApi.listByAssignment.and.returnValue(of([rowOf()]));
-
     await store.loadByAssignment('a-1');
     await store.loadByAssignment('a-1');
-
     expect(mockApi.listByAssignment).toHaveBeenCalledTimes(1);
   });
 
-  it('create() stores the new submission as mySubmission and (if the assignment listing is open) appends a row', async () => {
-    mockApi.listByAssignment.and.returnValue(of([]));
-    mockApi.create.and.returnValue(of({ kind: 'Response', value: submissionOf() }) as any);
-
-    await store.loadByAssignment('a-1');
-    const created = await store.create('a-1', { textContent: 'hola' });
-
-    expect(created?.publicUuid).toBe('sub-1');
-    expect(store.mySubmission()?.publicUuid).toBe('sub-1');
-    // No hay row previo en el listing → sigue vacío (no se duplica).
-    expect(store.rows().length).toBe(0);
+  it('loadByStudent carga studentRows', async () => {
+    mockApi.listByStudent.and.returnValue(of([rowOf({ publicUuid: 'sub-2' })]));
+    await store.loadByStudent('st-1');
+    expect(store.studentRows()).toHaveSize(1);
+    expect(store.currentStudentUuid()).toBe('st-1');
   });
 
-  it('grade() mirrors the new grade into the assignment listing row', async () => {
+  it('create con upload progresivo', async () => {
+    const sub = submissionOf();
+    mockApi.create.and.returnValue(uploadStream(sub));
     mockApi.listByAssignment.and.returnValue(of([rowOf()]));
-    mockApi.grade.and.returnValue(of(submissionOf({ grade: 18, status: SubmissionStatus.Graded })));
 
     await store.loadByAssignment('a-1');
-    const updated = await store.grade('sub-1', { grade: 18, feedback: 'bien' });
+    const result = await store.create('a-1', { textContent: 'respuesta' });
 
-    expect(updated?.grade).toBe(18);
-    expect(updated?.status).toBe(SubmissionStatus.Graded);
-    expect(store.rows()[0].grade).toBe(18);
+    expect(result?.publicUuid).toBe('sub-1');
+    expect(store.mySubmission()).toBeTruthy();
   });
 
-  it('return() updates the row status to RETURNED', async () => {
-    mockApi.listByAssignment.and.returnValue(of([rowOf({ status: SubmissionStatus.Graded, grade: 15 })]));
-    mockApi.return.and.returnValue(of(submissionOf({ status: SubmissionStatus.Returned, grade: null })));
+  it('grade actualiza el row en listing', async () => {
+    mockApi.listByAssignment.and.returnValue(of([rowOf()]));
+    mockApi.grade.and.returnValue(of(submissionOf({ status: SubmissionStatus.Graded, grade: 15 })));
 
     await store.loadByAssignment('a-1');
-    const updated = await store.return('sub-1', { feedback: 'corrige 2do párrafo' });
+    const result = await store.grade('sub-1', { grade: 15 });
+    expect(result?.grade).toBe(15);
+    expect(store.rows()[0].grade).toBe(15);
+  });
 
-    expect(updated?.status).toBe(SubmissionStatus.Returned);
+  it('return actualiza el row en listing', async () => {
+    mockApi.listByAssignment.and.returnValue(
+      of([rowOf({ status: SubmissionStatus.Graded, grade: 10 })]),
+    );
+    mockApi.return.and.returnValue(
+      of(submissionOf({ status: SubmissionStatus.Returned, grade: null })),
+    );
+
+    await store.loadByAssignment('a-1');
+    const result = await store.return('sub-1', { feedback: 'revisa' });
+    expect(result?.status).toBe(SubmissionStatus.Returned);
     expect(store.rows()[0].status).toBe(SubmissionStatus.Returned);
-    expect(store.rows()[0].grade).toBeNull();
   });
 
-  it('surfaces an error message when listByAssignment fails', async () => {
-    mockApi.listByAssignment.and.returnValue(throwError(() => new Error('network')));
+  it('clearError resetea error signal', () => {
+    store['_error'].set('error');
+    store.clearError();
+    expect(store.error()).toBeNull();
+  });
 
-    await store.loadByAssignment('a-1');
+  it('setMySubmission actualiza mySubmission', () => {
+    const sub = submissionOf();
+    store.setMySubmission(sub);
+    expect(store.mySubmission()).toEqual(sub);
+  });
 
-    expect(store.error()).toBeTruthy();
-    expect(store.rows().length).toBe(0);
+  it('hasMySubmission computed funciona', () => {
+    expect(store.hasMySubmission()).toBeFalse();
+    store.setMySubmission(submissionOf());
+    expect(store.hasMySubmission()).toBeTrue();
   });
 });

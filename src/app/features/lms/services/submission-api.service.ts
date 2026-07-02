@@ -13,7 +13,7 @@ import {
   SubmissionSummaryRaw,
   UpdateSubmissionRequest,
   toSubmission,
-  toSubmissionRow
+  toSubmissionRow,
 } from '../models';
 
 /**
@@ -45,17 +45,13 @@ export class SubmissionApiService {
 
   listByAssignment(assignmentPublicUuid: string): Observable<SubmissionRow[]> {
     return this.http
-      .get<SubmissionSummaryRaw[]>(
-        API.LMS.ASSIGNMENT_SUBMISSIONS_LIST(assignmentPublicUuid)
-      )
+      .get<SubmissionSummaryRaw[]>(API.LMS.ASSIGNMENT_SUBMISSIONS_LIST(assignmentPublicUuid))
       .pipe(map((rows) => rows.map(toSubmissionRow)));
   }
 
   listByStudent(studentPublicUuid: string): Observable<SubmissionRow[]> {
     return this.http
-      .get<SubmissionSummaryRaw[]>(
-        API.LMS.SUBMISSIONS_BY_STUDENT(studentPublicUuid)
-      )
+      .get<SubmissionSummaryRaw[]>(API.LMS.SUBMISSIONS_BY_STUDENT(studentPublicUuid))
       .pipe(map((rows) => rows.map(toSubmissionRow)));
   }
 
@@ -71,7 +67,7 @@ export class SubmissionApiService {
    */
   create(
     assignmentPublicUuid: string,
-    body: CreateSubmissionRequest
+    body: CreateSubmissionRequest,
   ): Observable<UploadProgress<Submission>> {
     if (body.attachment) {
       const fd = new FormData();
@@ -84,27 +80,27 @@ export class SubmissionApiService {
         this.http.post<ApiResponse<SubmissionResponseRaw>>(
           API.LMS.ASSIGNMENT_SUBMISSIONS(assignmentPublicUuid),
           fd,
-          { reportProgress: true, observe: 'events' }
-        )
+          { reportProgress: true, observe: 'events' },
+        ),
       );
     }
 
     const json = {
       textContent: body.textContent ?? null,
-      submittedForStudentPublicUuid: body.submittedForStudentPublicUuid ?? null
+      submittedForStudentPublicUuid: body.submittedForStudentPublicUuid ?? null,
     };
     return this.toUploadProgress(
       this.http.post<ApiResponse<SubmissionResponseRaw>>(
         API.LMS.ASSIGNMENT_SUBMISSIONS(assignmentPublicUuid),
         json,
-        { reportProgress: true, observe: 'events' }
-      )
+        { reportProgress: true, observe: 'events' },
+      ),
     );
   }
 
   update(
     submissionPublicUuid: string,
-    body: UpdateSubmissionRequest
+    body: UpdateSubmissionRequest,
   ): Observable<UploadProgress<Submission>> {
     if (body.attachment) {
       const fd = new FormData();
@@ -114,8 +110,8 @@ export class SubmissionApiService {
         this.http.patch<ApiResponse<SubmissionResponseRaw>>(
           API.LMS.SUBMISSION_PATCH(submissionPublicUuid),
           fd,
-          { reportProgress: true, observe: 'events' }
-        )
+          { reportProgress: true, observe: 'events' },
+        ),
       );
     }
 
@@ -124,8 +120,8 @@ export class SubmissionApiService {
       this.http.patch<ApiResponse<SubmissionResponseRaw>>(
         API.LMS.SUBMISSION_PATCH(submissionPublicUuid),
         json,
-        { reportProgress: true, observe: 'events' }
-      )
+        { reportProgress: true, observe: 'events' },
+      ),
     );
   }
 
@@ -133,26 +129,20 @@ export class SubmissionApiService {
   /* Lifecycle transitions                                                   */
   /* ------------------------------------------------------------------------ */
 
-  grade(
-    submissionPublicUuid: string,
-    body: GradeSubmissionRequest
-  ): Observable<Submission> {
+  grade(submissionPublicUuid: string, body: GradeSubmissionRequest): Observable<Submission> {
     return this.http
       .patch<ApiResponse<SubmissionResponseRaw>>(
         API.LMS.SUBMISSION_GRADE(submissionPublicUuid),
-        body
+        body,
       )
       .pipe(map((envelope) => toSubmission(envelope.data)));
   }
 
-  return(
-    submissionPublicUuid: string,
-    body: ReturnSubmissionRequest = {}
-  ): Observable<Submission> {
+  return(submissionPublicUuid: string, body: ReturnSubmissionRequest = {}): Observable<Submission> {
     return this.http
       .patch<ApiResponse<SubmissionResponseRaw>>(
         API.LMS.SUBMISSION_RETURN(submissionPublicUuid),
-        body
+        body,
       )
       .pipe(map((envelope) => toSubmission(envelope.data)));
   }
@@ -168,7 +158,7 @@ export class SubmissionApiService {
    * carries the parsed submission.
    */
   private toUploadProgress(
-    source: Observable<HttpEvent<ApiResponse<SubmissionResponseRaw>>>
+    source: Observable<HttpEvent<ApiResponse<SubmissionResponseRaw>>>,
   ): Observable<UploadProgress<Submission>> {
     return new Observable<UploadProgress<Submission>>((sub) => {
       source.subscribe({
@@ -190,7 +180,7 @@ export class SubmissionApiService {
           }
         },
         error: (err) => sub.error(err),
-        complete: () => sub.complete()
+        complete: () => sub.complete(),
       });
     });
   }

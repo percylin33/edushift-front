@@ -7,7 +7,7 @@ import {
   ViewChild,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
@@ -15,7 +15,7 @@ import {
   FormGroup,
   FormsModule,
   ReactiveFormsModule,
-  Validators
+  Validators,
 } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Subscription } from 'rxjs';
@@ -25,12 +25,9 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
-import {
-  CriterionEditorComponent,
-  RubricSystemBadgeComponent
-} from '../../components';
+import { CriterionEditorComponent, RubricSystemBadgeComponent } from '../../components';
 import { RubricsStore } from '../../store';
 import {
   CreateRubricRequest,
@@ -39,7 +36,7 @@ import {
   RUBRIC_DESCRIPTION_MAX_LENGTH,
   RUBRIC_NAME_MAX_LENGTH,
   RubricDetail,
-  UpdateRubricRequest
+  UpdateRubricRequest,
 } from '../../models';
 
 interface CriteriaLevels {
@@ -69,15 +66,11 @@ interface CriteriaLevels {
     PageContainerComponent,
     PageHeaderComponent,
     RubricSystemBadgeComponent,
-    SpinnerComponent
+    SpinnerComponent,
   ],
   template: `
     <app-page-container size="wide">
-      <app-page-header
-        eyebrow="Rúbricas"
-        [title]="title()"
-        [subtitle]="subtitle()"
-      >
+      <app-page-header eyebrow="Rúbricas" [title]="title()" [subtitle]="subtitle()">
         @if (existing(); as e) {
           <app-rubric-system-badge
             [isSystem]="e.isSystem"
@@ -105,16 +98,12 @@ interface CriteriaLevels {
             <app-icon name="lock" [size]="18" />
             <div class="flex-1">
               <p class="font-medium">Esta rúbrica es del catálogo MINEDU.</p>
-              <p class="text-sm mt-1 opacity-80">
-                Las rúbricas oficiales son de solo lectura. Para hacer
-                cambios, usa <strong>Forkear</strong> y edita el clon.
+              <p class="mt-1 text-sm opacity-80">
+                Las rúbricas oficiales son de solo lectura. Para hacer cambios, usa
+                <strong>Forkear</strong> y edita el clon.
               </p>
             </div>
-            <button
-              type="button"
-              class="btn btn-primary btn-sm"
-              (click)="goBackToList()"
-            >
+            <button type="button" class="btn btn-primary btn-sm" (click)="goBackToList()">
               Volver al listado
             </button>
           </div>
@@ -127,12 +116,7 @@ interface CriteriaLevels {
           </div>
         }
 
-        <form
-          [formGroup]="metaForm"
-          (ngSubmit)="onSubmit()"
-          class="grid gap-6"
-          autocomplete="off"
-        >
+        <form [formGroup]="metaForm" (ngSubmit)="onSubmit()" class="grid gap-6" autocomplete="off">
           <section class="card">
             <header class="card-header">
               <h3 class="card-title">Información general</h3>
@@ -178,9 +162,7 @@ interface CriteriaLevels {
           />
 
           <footer class="flex flex-wrap items-center justify-end gap-2">
-            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">
-              Cancelar
-            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">Cancelar</button>
             <button
               type="submit"
               class="btn btn-primary btn-sm"
@@ -198,7 +180,7 @@ interface CriteriaLevels {
         </form>
       }
     </app-page-container>
-  `
+  `,
 })
 export class RubricFormComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
@@ -223,26 +205,26 @@ export class RubricFormComponent implements OnInit, OnDestroy {
     return e ? `Editar: ${e.name}` : 'Nueva rúbrica';
   });
   protected readonly subtitle = computed(() => {
-    return this.existing()?.description ??
-      'Define los criterios, niveles y descriptores para evaluar cualitativamente.';
+    return (
+      this.existing()?.description ??
+      'Define los criterios, niveles y descriptores para evaluar cualitativamente.'
+    );
   });
 
   protected readonly submitLabel = computed(() =>
-    this.existing() ? 'Guardar cambios' : 'Crear rúbrica'
+    this.existing() ? 'Guardar cambios' : 'Crear rúbrica',
   );
 
-  protected readonly isReadonly = computed(
-    () => this.existing()?.isSystem === true
-  );
+  protected readonly isReadonly = computed(() => this.existing()?.isSystem === true);
 
   protected readonly metaForm: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(RUBRIC_NAME_MAX_LENGTH)]],
-    description: ['', [Validators.maxLength(RUBRIC_DESCRIPTION_MAX_LENGTH)]]
+    description: ['', [Validators.maxLength(RUBRIC_DESCRIPTION_MAX_LENGTH)]],
   });
 
   protected value: CriteriaLevels = {
     criteria: [],
-    levels: []
+    levels: [],
   };
 
   private readonly fieldErrors = signal<Record<string, string>>({});
@@ -275,7 +257,7 @@ export class RubricFormComponent implements OnInit, OnDestroy {
       this.existing.set(detail);
       this.metaForm.patchValue({
         name: detail.name,
-        description: detail.description ?? ''
+        description: detail.description ?? '',
       });
       this.value = {
         criteria: detail.criteria.map((c) => ({
@@ -283,13 +265,13 @@ export class RubricFormComponent implements OnInit, OnDestroy {
           name: c.name,
           description: c.description,
           weight: c.weight,
-          descriptors: c.descriptors.map((d) => ({ ...d }))
+          descriptors: c.descriptors.map((d) => ({ ...d })),
         })),
         levels: detail.levels.map((l) => ({
           code: l.code,
           name: l.name,
-          order: l.order
-        }))
+          order: l.order,
+        })),
       };
       if (detail.isSystem) {
         this.metaForm.disable();
@@ -323,7 +305,7 @@ export class RubricFormComponent implements OnInit, OnDestroy {
           name: (meta.name as string).trim(),
           description: ((meta.description as string) ?? '').trim() || undefined,
           criteria: editorValue.criteria,
-          levels: editorValue.levels
+          levels: editorValue.levels,
         };
         const updated = await this.store.update(e.publicUuid, patch);
         if (updated) {
@@ -334,7 +316,7 @@ export class RubricFormComponent implements OnInit, OnDestroy {
           name: (meta.name as string).trim(),
           description: ((meta.description as string) ?? '').trim() || undefined,
           criteria: editorValue.criteria,
-          levels: editorValue.levels
+          levels: editorValue.levels,
         };
         const created = await this.store.create(payload);
         if (created) {
@@ -382,8 +364,7 @@ export class RubricFormComponent implements OnInit, OnDestroy {
    */
   private applyServerErrors(err: unknown): void {
     if (!(err instanceof HttpErrorResponse)) return;
-    const apiErr = (err.error as { errors?: ApiError[] } | null | undefined)
-      ?.errors?.[0];
+    const apiErr = (err.error as { errors?: ApiError[] } | null | undefined)?.errors?.[0];
     if (!apiErr) return;
 
     const next: Record<string, string> = {};

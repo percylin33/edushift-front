@@ -5,7 +5,7 @@ import {
   computed,
   inject,
   output,
-  signal
+  signal,
 } from '@angular/core';
 import { BulkImportStatus } from '@core/enums';
 import { IconComponent, SpinnerComponent } from '@shared/components';
@@ -38,22 +38,20 @@ import { BulkImportStatusBadgeComponent } from './bulk-import-status-badge.compo
   imports: [IconComponent, SpinnerComponent, BulkImportStatusBadgeComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="bulk-import-title"
       (click)="onBackdropClick($event)"
     >
-      <div
-        class="card w-full max-w-2xl shadow-xl"
-        (click)="$event.stopPropagation()"
-      >
+      <div class="card w-full max-w-2xl shadow-xl" (click)="$event.stopPropagation()">
         <header class="card-header">
           <div>
             <h2 id="bulk-import-title" class="card-title">Importar estudiantes</h2>
             <p class="card-description">
               @if (job(); as j) {
-                Archivo <span class="font-medium text-content">{{ j.fileName }}</span>.
+                Archivo <span class="font-medium text-content">{{ j.fileName }}</span
+                >.
               } @else {
                 Carga un archivo .xlsx siguiendo la plantilla.
               }
@@ -129,7 +127,9 @@ import { BulkImportStatusBadgeComponent } from './bulk-import-status-badge.compo
 
             @if (j.errors.length > 0) {
               <div class="rounded-md border border-border-subtle">
-                <header class="flex items-center justify-between border-b border-border-subtle px-3 py-2">
+                <header
+                  class="flex items-center justify-between border-b border-border-subtle px-3 py-2"
+                >
                   <p class="text-sm font-medium text-content">
                     Errores por fila ({{ j.errors.length }})
                   </p>
@@ -151,11 +151,11 @@ import { BulkImportStatusBadgeComponent } from './bulk-import-status-badge.compo
             }
           } @else {
             <!-- Step 1: picker -->
-            <div class="rounded-md border border-dashed border-border-subtle bg-surface-muted/30 p-4 text-center">
+            <div
+              class="rounded-md border border-dashed border-border-subtle bg-surface-muted/30 p-4 text-center"
+            >
               <app-icon name="upload" [size]="28" class="mx-auto text-content-subtle" />
-              <p class="mt-2 text-sm font-medium text-content">
-                Arrastra un .xlsx o selecciónalo
-              </p>
+              <p class="mt-2 text-sm font-medium text-content">Arrastra un .xlsx o selecciónalo</p>
               <p class="text-xs text-content-muted">
                 Tamaño máximo según política del workspace. Solo extensiones .xlsx.
               </p>
@@ -212,18 +212,14 @@ import { BulkImportStatusBadgeComponent } from './bulk-import-status-badge.compo
             <button type="button" class="btn btn-ghost btn-sm" (click)="restart()">
               Importar otro
             </button>
-            <button type="button" class="btn btn-primary btn-sm" (click)="close()">
-              Cerrar
-            </button>
+            <button type="button" class="btn btn-primary btn-sm" (click)="close()">Cerrar</button>
           } @else {
-            <button type="button" class="btn btn-ghost btn-sm" (click)="close()">
-              Cancelar
-            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="close()">Cancelar</button>
           }
         </footer>
       </div>
     </div>
-  `
+  `,
 })
 export class BulkImportModalComponent {
   private readonly store = inject(StudentsStore);
@@ -289,8 +285,7 @@ export class BulkImportModalComponent {
       /* Clean up the object URL on the next tick so the download has
        * time to start; otherwise some browsers cancel it mid-flight. */
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }
-    finally {
+    } finally {
       this.downloadingTemplate.set(false);
     }
   }
@@ -318,7 +313,7 @@ export class BulkImportModalComponent {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 

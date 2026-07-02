@@ -17,9 +17,7 @@ export class AiUsageService {
 
   /** One-shot summary (current UTC month). */
   summary(): Observable<UsageSummary> {
-    return this.api
-      .get<ApiResponse<UsageSummary>>(API.AI.USAGE_SUMMARY)
-      .pipe(map((e) => e.data));
+    return this.api.get<ApiResponse<UsageSummary>>(API.AI.USAGE_SUMMARY).pipe(map((e) => e.data));
   }
 
   /** CSV URL for the "Exportar CSV" button. The user clicks and the

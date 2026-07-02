@@ -49,7 +49,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
         <ng-content select="[secondary]" />
       </div>
     </header>
-  `
+  `,
 })
 export class PageHeaderComponent {
   readonly title = input.required<string>();

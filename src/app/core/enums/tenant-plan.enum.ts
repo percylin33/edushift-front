@@ -12,5 +12,5 @@ export enum TenantPlan {
   Trial = 'TRIAL',
   Basic = 'BASIC',
   Pro = 'PRO',
-  Enterprise = 'ENTERPRISE'
+  Enterprise = 'ENTERPRISE',
 }

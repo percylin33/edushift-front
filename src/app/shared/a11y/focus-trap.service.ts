@@ -84,11 +84,11 @@ function getTabbables(root: HTMLElement): HTMLElement[] {
     'input:not([disabled]):not([type="hidden"])',
     'select:not([disabled])',
     'textarea:not([disabled])',
-    '[tabindex]:not([tabindex="-1"])'
+    '[tabindex]:not([tabindex="-1"])',
   ].join(',');
 
   return Array.from(root.querySelectorAll<HTMLElement>(selector)).filter(
-    (el) => !el.hasAttribute('disabled') && el.tabIndex !== -1 && isVisible(el)
+    (el) => !el.hasAttribute('disabled') && el.tabIndex !== -1 && isVisible(el),
   );
 }
 

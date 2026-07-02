@@ -4,7 +4,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -20,18 +20,11 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import { AttendanceStatusBadgeComponent, OpenSessionModalComponent } from '../../components';
-import {
-  AttendanceSessionListFilters,
-  AttendanceStore
-} from '../../store';
-import {
-  CreateSessionRequest,
-  AttendanceSessionStatus,
-  AttendanceSessionSlot
-} from '../../models';
+import { AttendanceSessionListFilters, AttendanceStore } from '../../store';
+import { CreateSessionRequest, AttendanceSessionStatus, AttendanceSessionSlot } from '../../models';
 
 /**
  * `/attendance/sessions` — list of attendance sessions for the
@@ -70,7 +63,7 @@ import {
     IconComponent,
     SpinnerComponent,
     AttendanceStatusBadgeComponent,
-    OpenSessionModalComponent
+    OpenSessionModalComponent,
   ],
   template: `
     <app-page-container>
@@ -78,18 +71,11 @@ import {
         title="Sesiones de asistencia"
         subtitle="Listado del año académico activo, filtrable por fecha, sección y slot."
       >
-        <a
-          [routerLink]="scannerRoute"
-          class="btn btn-outline btn-sm"
-        >
+        <a [routerLink]="scannerRoute" class="btn btn-outline btn-sm">
           <app-icon name="target" [size]="16" />
           <span class="hidden sm:inline">Ir al scanner</span>
         </a>
-        <button
-          type="button"
-          class="btn btn-primary btn-sm"
-          (click)="openModal()"
-        >
+        <button type="button" class="btn btn-primary btn-sm" (click)="openModal()">
           <app-icon name="plus" [size]="16" />
           <span class="hidden sm:inline">Nueva sesión</span>
         </button>
@@ -122,9 +108,7 @@ import {
             >
               <option [ngValue]="null">Todas</option>
               @for (s of sections(); track s.publicUuid) {
-                <option [ngValue]="s.publicUuid">
-                  {{ s.gradeName }} · {{ s.name }}
-                </option>
+                <option [ngValue]="s.publicUuid">{{ s.gradeName }} · {{ s.name }}</option>
               }
             </select>
           </div>
@@ -224,12 +208,9 @@ import {
     </app-page-container>
 
     @if (modalOpen()) {
-      <app-open-session-modal
-        (submitRequest)="onCreate($event)"
-        (cancelled)="closeModal()"
-      />
+      <app-open-session-modal (submitRequest)="onCreate($event)" (cancelled)="closeModal()" />
     }
-  `
+  `,
 })
 export class AttendanceSessionsListPageComponent implements OnInit {
   protected readonly store = inject(AttendanceStore);
@@ -299,7 +280,7 @@ export class AttendanceSessionsListPageComponent implements OnInit {
       date: this.date ?? undefined,
       sectionPublicUuid: this.sectionPublicUuid ?? undefined,
       slot: this.slot ?? undefined,
-      status: this.status ?? undefined
+      status: this.status ?? undefined,
     };
     await this.router.navigate([], {
       relativeTo: this.route,
@@ -307,10 +288,10 @@ export class AttendanceSessionsListPageComponent implements OnInit {
         date: filters.date ?? null,
         sectionPublicUuid: filters.sectionPublicUuid ?? null,
         slot: filters.slot ?? null,
-        status: filters.status ?? null
+        status: filters.status ?? null,
       },
       queryParamsHandling: 'merge',
-      replaceUrl: true
+      replaceUrl: true,
     });
     await this.store.applyListFilters(filters);
   }
@@ -330,7 +311,7 @@ export class AttendanceSessionsListPageComponent implements OnInit {
         return;
       }
       const sections = await firstValueFrom(
-        this.academicApi.listSections({ academicYearPublicUuid: active.publicUuid })
+        this.academicApi.listSections({ academicYearPublicUuid: active.publicUuid }),
       );
       this.sections.set(sections);
     } catch {

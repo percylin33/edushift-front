@@ -17,7 +17,7 @@ describe('QuizPlaceholderComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [QuizPlaceholderComponent, IconComponent]
+      imports: [QuizPlaceholderComponent, IconComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(QuizPlaceholderComponent);

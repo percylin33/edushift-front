@@ -1,14 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { firstValueFrom } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { AiAssistantService } from './ai-assistant.service';
 import { AiAssistantStatus } from '../models/ai-assistant.model';
 import { API } from '@core/constants/api.constants';
+import { ApiService } from '@core/services/api.service';
 
 describe('AiAssistantService (FE-7c.1 — wired against BE-7c.1)', () => {
   let service: AiAssistantService;
@@ -16,7 +14,7 @@ describe('AiAssistantService (FE-7c.1 — wired against BE-7c.1)', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()]
+      providers: [provideHttpClient(), provideHttpClientTesting(), ApiService],
     });
     service = TestBed.inject(AiAssistantService);
     http = TestBed.inject(HttpTestingController);
@@ -80,14 +78,14 @@ describe('AiAssistantService (FE-7c.1 — wired against BE-7c.1)', () => {
 
   it('POSTs the request body and unwraps the ApiResponse envelope (happy path)', async () => {
     const promise = firstValueFrom(
-      service.suggest({ topic: 'Suma de fracciones', count: 2, questionType: 'MC' }).pipe(take(1))
+      service.suggest({ topic: 'Suma de fracciones', count: 2, questionType: 'MC' }).pipe(take(1)),
     );
     const req = http.expectOne(API.LMS.AI_SUGGEST_QUESTIONS);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({
       topic: 'Suma de fracciones',
       count: 2,
-      questionType: 'MC'
+      questionType: 'MC',
     });
     req.flush({
       success: true,
@@ -100,16 +98,16 @@ describe('AiAssistantService (FE-7c.1 — wired against BE-7c.1)', () => {
             points: 5,
             options: [
               { label: '3/4', isCorrect: true, explanation: '1/2=2/4; 2/4+1/4=3/4' },
-              { label: '1/3', isCorrect: false, explanation: null }
+              { label: '1/3', isCorrect: false, explanation: null },
             ],
-            rationale: 'Suma de fracciones con denominador común.'
-          }
+            rationale: 'Suma de fracciones con denominador común.',
+          },
         ],
         model: 'mock-llm',
         provider: 'mock',
         promptVersion: 'v1',
-        generationUuids: ['gen-1']
-      }
+        generationUuids: ['gen-1'],
+      },
     });
     const list = await promise;
     expect(list.length).toBe(1);
@@ -120,18 +118,16 @@ describe('AiAssistantService (FE-7c.1 — wired against BE-7c.1)', () => {
   });
 
   it('omits questionType from the body when not provided', async () => {
-    const promise = firstValueFrom(
-      service.suggest({ topic: 'Capitales', count: 3 }).pipe(take(1))
-    );
+    const promise = firstValueFrom(service.suggest({ topic: 'Capitales', count: 3 }).pipe(take(1)));
     const req = http.expectOne(API.LMS.AI_SUGGEST_QUESTIONS);
     expect(req.request.body).toEqual({
       topic: 'Capitales',
       count: 3,
-      questionType: null
+      questionType: null,
     });
     req.flush({
       success: true,
-      data: { questions: [], model: 'm', provider: 'p', promptVersion: 'v1', generationUuids: [] }
+      data: { questions: [], model: 'm', provider: 'p', promptVersion: 'v1', generationUuids: [] },
     });
     const list = await promise;
     expect(list).toEqual([]);
@@ -139,9 +135,7 @@ describe('AiAssistantService (FE-7c.1 — wired against BE-7c.1)', () => {
 
   it('treats envelope.success=false as an error', async () => {
     let caught: { code: string } | null = null;
-    const promise = firstValueFrom(
-      service.suggest({ topic: 'Capitals', count: 1 }).pipe(take(1))
-    );
+    const promise = firstValueFrom(service.suggest({ topic: 'Capitals', count: 1 }).pipe(take(1)));
     const req = http.expectOne(API.LMS.AI_SUGGEST_QUESTIONS);
     req.flush({ success: false, data: null });
     try {
@@ -158,14 +152,9 @@ describe('AiAssistantService (FE-7c.1 — wired against BE-7c.1)', () => {
 
   it('maps 403 AI_DISABLED to the Spanish copy "La IA está deshabilitada…"', async () => {
     let caught: { code: string; message: string } | null = null;
-    const promise = firstValueFrom(
-      service.suggest({ topic: 'X', count: 1 }).pipe(take(1))
-    );
+    const promise = firstValueFrom(service.suggest({ topic: 'XY', count: 1 }).pipe(take(1)));
     const req = http.expectOne(API.LMS.AI_SUGGEST_QUESTIONS);
-    req.flush(
-      { error: { code: 'AI_DISABLED', message: 'AI is disabled' } },
-      { status: 403, statusText: 'Forbidden' }
-    );
+    req.flush({ error: { code: 'AI_DISABLED' } }, { status: 403, statusText: 'Forbidden' });
     try {
       await promise;
     } catch (e) {
@@ -177,14 +166,9 @@ describe('AiAssistantService (FE-7c.1 — wired against BE-7c.1)', () => {
 
   it('maps 403 ACCESS_DENIED (no LMS_AI_GENERATE) to the "no tienes permiso" copy', async () => {
     let caught: { code: string; message: string } | null = null;
-    const promise = firstValueFrom(
-      service.suggest({ topic: 'X', count: 1 }).pipe(take(1))
-    );
+    const promise = firstValueFrom(service.suggest({ topic: 'XY', count: 1 }).pipe(take(1)));
     const req = http.expectOne(API.LMS.AI_SUGGEST_QUESTIONS);
-    req.flush(
-      { error: { code: 'ACCESS_DENIED', message: 'Access Denied' } },
-      { status: 403, statusText: 'Forbidden' }
-    );
+    req.flush({ error: { code: 'ACCESS_DENIED' } }, { status: 403, statusText: 'Forbidden' });
     try {
       await promise;
     } catch (e) {
@@ -196,13 +180,11 @@ describe('AiAssistantService (FE-7c.1 — wired against BE-7c.1)', () => {
 
   it('maps 429 AI_QUOTA_EXCEEDED to the "alcanzado la cuota" copy', async () => {
     let caught: { code: string; message: string } | null = null;
-    const promise = firstValueFrom(
-      service.suggest({ topic: 'X', count: 1 }).pipe(take(1))
-    );
+    const promise = firstValueFrom(service.suggest({ topic: 'XY', count: 1 }).pipe(take(1)));
     const req = http.expectOne(API.LMS.AI_SUGGEST_QUESTIONS);
     req.flush(
-      { error: { code: 'AI_QUOTA_EXCEEDED', message: 'quota' } },
-      { status: 429, statusText: 'Too Many Requests' }
+      { error: { code: 'AI_QUOTA_EXCEEDED' } },
+      { status: 429, statusText: 'Too Many Requests' },
     );
     try {
       await promise;
@@ -215,14 +197,9 @@ describe('AiAssistantService (FE-7c.1 — wired against BE-7c.1)', () => {
 
   it('maps 502 AI_PARSE_ERROR to a Spanish "tuvo un problema" message', async () => {
     let caught: { code: string; message: string } | null = null;
-    const promise = firstValueFrom(
-      service.suggest({ topic: 'X', count: 1 }).pipe(take(1))
-    );
+    const promise = firstValueFrom(service.suggest({ topic: 'XY', count: 1 }).pipe(take(1)));
     const req = http.expectOne(API.LMS.AI_SUGGEST_QUESTIONS);
-    req.flush(
-      { error: { code: 'AI_PARSE_ERROR', message: 'bad json' } },
-      { status: 502, statusText: 'Bad Gateway' }
-    );
+    req.flush({ error: { code: 'AI_PARSE_ERROR' } }, { status: 502, statusText: 'Bad Gateway' });
     try {
       await promise;
     } catch (e) {
@@ -234,9 +211,7 @@ describe('AiAssistantService (FE-7c.1 — wired against BE-7c.1)', () => {
 
   it('maps network error (status 0) to a "sin conexión" message', async () => {
     let caught: { code: string; message: string } | null = null;
-    const promise = firstValueFrom(
-      service.suggest({ topic: 'X', count: 1 }).pipe(take(1))
-    );
+    const promise = firstValueFrom(service.suggest({ topic: 'XY', count: 1 }).pipe(take(1)));
     const req = http.expectOne(API.LMS.AI_SUGGEST_QUESTIONS);
     req.error(new ProgressEvent('error'), { status: 0, statusText: 'Unknown Error' });
     try {

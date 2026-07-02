@@ -6,3 +6,4 @@ export * from './stat-card/stat-card.component';
 export * from './empty-state/empty-state.component';
 export * from './tenant-logo/tenant-logo.component';
 export * from './chip-multi-select/chip-multi-select.component';
+export * from './file-upload/file-upload.component';

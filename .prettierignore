@@ -1,0 +1,17 @@
+# Build outputs
+dist/
+coverage/
+playwright-report/
+.angular/
+
+# Dependencies
+node_modules/
+
+# Generated files
+*.min.js
+*.min.css
+package-lock.json
+
+# Specific files / dirs
+e2e/
+src/environments/environment.production.ts

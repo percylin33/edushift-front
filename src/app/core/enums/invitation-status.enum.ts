@@ -9,8 +9,8 @@
  * {@code accept} (PENDING → ACCEPTED). EXPIRED is purely time-driven.
  */
 export enum InvitationStatus {
-  Pending   = 'PENDING',
-  Accepted  = 'ACCEPTED',
+  Pending = 'PENDING',
+  Accepted = 'ACCEPTED',
   Cancelled = 'CANCELLED',
-  Expired   = 'EXPIRED'
+  Expired = 'EXPIRED',
 }

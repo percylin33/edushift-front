@@ -5,7 +5,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -14,7 +14,7 @@ import {
   PageContainerComponent,
   PageHeaderComponent,
   IconComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import { RouterLink } from '@angular/router';
 import { SessionsApiService } from '../../services';
@@ -23,7 +23,7 @@ import {
   SessionStatus,
   SESSION_STATUS_LABELS,
   SESSION_STATUS_BADGE_CLASS,
-  LifecycleRequest
+  LifecycleRequest,
 } from '../../models';
 
 /**
@@ -46,7 +46,7 @@ import {
     PageContainerComponent,
     PageHeaderComponent,
     IconComponent,
-    SpinnerComponent
+    SpinnerComponent,
   ],
   template: `
     <app-page-container size="wide">
@@ -68,7 +68,13 @@ import {
         <app-page-header
           eyebrow="Sesiones de Aprendizaje"
           [title]="s!.title"
-          [subtitle]="s!.assignment.course.code + ' — ' + s!.assignment.section.name + ' · ' + formatDate(s!.scheduledDate)"
+          [subtitle]="
+            s!.assignment.course.code +
+            ' — ' +
+            s!.assignment.section.name +
+            ' · ' +
+            formatDate(s!.scheduledDate)
+          "
         >
           <a [routerLink]="ROUTES.SESSIONS.LIST" class="btn btn-ghost btn-sm">
             <app-icon name="arrow-left" [size]="16" />
@@ -91,7 +97,7 @@ import {
                 {{ getStatusLabel(s!.status) }}
               </span>
             </div>
-            
+
             @if (!isTerminal()) {
               <div class="flex flex-wrap gap-2">
                 @if (s!.status === 'PLANNED') {
@@ -127,7 +133,7 @@ import {
                 </button>
               </div>
             } @else {
-              <div class="text-sm text-content-muted italic">
+              <div class="text-sm italic text-content-muted">
                 @if (s!.status === 'COMPLETED') {
                   Completada el {{ formatDateTime(s!.endedAt) }}
                 } @else if (s!.status === 'CANCELLED') {
@@ -147,27 +153,34 @@ import {
             </header>
             <dl class="card-body grid grid-cols-1 gap-y-3 text-sm">
               <div>
-                <dt class="text-content-muted text-xs uppercase">Docente</dt>
-                <dd class="font-medium">{{ s!.assignment.teacher.firstName }} {{ s!.assignment.teacher.lastName }}</dd>
+                <dt class="text-xs uppercase text-content-muted">Docente</dt>
+                <dd class="font-medium">
+                  {{ s!.assignment.teacher.firstName }} {{ s!.assignment.teacher.lastName }}
+                </dd>
               </div>
               <div>
-                <dt class="text-content-muted text-xs uppercase">Curso</dt>
-                <dd class="font-medium">{{ s!.assignment.course.code }} — {{ s!.assignment.course.name }}</dd>
+                <dt class="text-xs uppercase text-content-muted">Curso</dt>
+                <dd class="font-medium">
+                  {{ s!.assignment.course.code }} — {{ s!.assignment.course.name }}
+                </dd>
               </div>
               <div>
-                <dt class="text-content-muted text-xs uppercase">Sección</dt>
+                <dt class="text-xs uppercase text-content-muted">Sección</dt>
                 <dd class="font-medium">{{ s!.assignment.section.name }}</dd>
               </div>
               <div>
-                <dt class="text-content-muted text-xs uppercase">Periodo</dt>
-                <dd class="font-medium">{{ s!.assignment.period.name }} ({{ s!.assignment.period.periodType }} {{ s!.assignment.period.ordinal }})</dd>
+                <dt class="text-xs uppercase text-content-muted">Periodo</dt>
+                <dd class="font-medium">
+                  {{ s!.assignment.period.name }} ({{ s!.assignment.period.periodType }}
+                  {{ s!.assignment.period.ordinal }})
+                </dd>
               </div>
               <div>
-                <dt class="text-content-muted text-xs uppercase">Unidad</dt>
+                <dt class="text-xs uppercase text-content-muted">Unidad</dt>
                 <dd class="font-medium">{{ s!.unit.displayOrder }}. {{ s!.unit.name }}</dd>
               </div>
               <div>
-                <dt class="text-content-muted text-xs uppercase">Duración</dt>
+                <dt class="text-xs uppercase text-content-muted">Duración</dt>
                 <dd class="font-medium">{{ s!.durationMinutes }} minutos</dd>
               </div>
             </dl>
@@ -180,23 +193,36 @@ import {
             </header>
             <div class="card-body space-y-6">
               <div>
-                <h4 class="text-sm font-semibold text-content-muted uppercase mb-2">Objetivo de Aprendizaje</h4>
-                <p class="text-sm text-content whitespace-pre-wrap">{{ s!.content.objective || '—' }}</p>
+                <h4 class="mb-2 text-sm font-semibold uppercase text-content-muted">
+                  Objetivo de Aprendizaje
+                </h4>
+                <p class="whitespace-pre-wrap text-sm text-content">
+                  {{ s!.content.objective || '—' }}
+                </p>
               </div>
 
               <div>
-                <h4 class="text-sm font-semibold text-content-muted uppercase mb-2">Competencias y Capacidades</h4>
+                <h4 class="mb-2 text-sm font-semibold uppercase text-content-muted">
+                  Competencias y Capacidades
+                </h4>
                 @if (s!.competencies.length === 0) {
-                  <p class="text-sm text-content-muted italic">No se seleccionaron competencias.</p>
+                  <p class="text-sm italic text-content-muted">No se seleccionaron competencias.</p>
                 } @else {
                   <ul class="space-y-2">
                     @for (comp of s!.competencies; track comp.publicUuid) {
                       <li class="rounded border border-border-subtle bg-surface-subtle p-2">
-                        <p class="font-medium text-sm text-content">{{ comp.code }} — {{ comp.name }}</p>
+                        <p class="text-sm font-medium text-content">
+                          {{ comp.code }} — {{ comp.name }}
+                        </p>
                         @if (getCapacitiesForCompetency(comp.publicUuid).length > 0) {
-                          <ul class="mt-1 ml-4 space-y-1 border-l-2 border-border-subtle pl-3">
-                            @for (cap of getCapacitiesForCompetency(comp.publicUuid); track cap.publicUuid) {
-                              <li class="text-xs text-content-muted">{{ cap.code }} — {{ cap.name }}</li>
+                          <ul class="ml-4 mt-1 space-y-1 border-l-2 border-border-subtle pl-3">
+                            @for (
+                              cap of getCapacitiesForCompetency(comp.publicUuid);
+                              track cap.publicUuid
+                            ) {
+                              <li class="text-xs text-content-muted">
+                                {{ cap.code }} — {{ cap.name }}
+                              </li>
                             }
                           </ul>
                         }
@@ -207,11 +233,11 @@ import {
               </div>
 
               <div>
-                <h4 class="text-sm font-semibold text-content-muted uppercase mb-2">Actividades</h4>
+                <h4 class="mb-2 text-sm font-semibold uppercase text-content-muted">Actividades</h4>
                 @if (s!.content.activities.length === 0) {
-                  <p class="text-sm text-content-muted italic">No se registraron actividades.</p>
+                  <p class="text-sm italic text-content-muted">No se registraron actividades.</p>
                 } @else {
-                  <ul class="list-disc pl-5 space-y-1 text-sm text-content">
+                  <ul class="list-disc space-y-1 pl-5 text-sm text-content">
                     @for (act of s!.content.activities; track act) {
                       <li>{{ act }}</li>
                     }
@@ -220,11 +246,13 @@ import {
               </div>
 
               <div>
-                <h4 class="text-sm font-semibold text-content-muted uppercase mb-2">Materiales y Recursos</h4>
+                <h4 class="mb-2 text-sm font-semibold uppercase text-content-muted">
+                  Materiales y Recursos
+                </h4>
                 @if (s!.content.materials.length === 0) {
-                  <p class="text-sm text-content-muted italic">No se registraron materiales.</p>
+                  <p class="text-sm italic text-content-muted">No se registraron materiales.</p>
                 } @else {
-                  <ul class="list-disc pl-5 space-y-1 text-sm text-content">
+                  <ul class="list-disc space-y-1 pl-5 text-sm text-content">
                     @for (mat of s!.content.materials; track mat) {
                       <li>{{ mat }}</li>
                     }
@@ -234,8 +262,12 @@ import {
 
               @if (s!.content.observations) {
                 <div>
-                  <h4 class="text-sm font-semibold text-content-muted uppercase mb-2">Observaciones</h4>
-                  <p class="text-sm text-content whitespace-pre-wrap rounded bg-surface-subtle p-3">{{ s!.content.observations }}</p>
+                  <h4 class="mb-2 text-sm font-semibold uppercase text-content-muted">
+                    Observaciones
+                  </h4>
+                  <p class="whitespace-pre-wrap rounded bg-surface-subtle p-3 text-sm text-content">
+                    {{ s!.content.observations }}
+                  </p>
                 </div>
               }
             </div>
@@ -246,9 +278,11 @@ import {
   `,
   styles: [
     `
-      :host { display: block; }
-    `
-  ]
+      :host {
+        display: block;
+      }
+    `,
+  ],
 })
 export class SessionsDetailComponent implements OnInit {
   private readonly api = inject(SessionsApiService);
@@ -307,7 +341,7 @@ export class SessionsDetailComponent implements OnInit {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 
@@ -318,12 +352,14 @@ export class SessionsDetailComponent implements OnInit {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 
   protected getCapacitiesForCompetency(competencyUuid: string) {
-    return this.session()?.capacities.filter((c) => c.competencyPublicUuid === competencyUuid) || [];
+    return (
+      this.session()?.capacities.filter((c) => c.competencyPublicUuid === competencyUuid) || []
+    );
   }
 
   // ===========================================================================
@@ -346,7 +382,10 @@ export class SessionsDetailComponent implements OnInit {
     await this.executeLifecycleAction('cancel', reason || undefined);
   }
 
-  private async executeLifecycleAction(action: 'start' | 'complete' | 'cancel', reason?: string): Promise<void> {
+  private async executeLifecycleAction(
+    action: 'start' | 'complete' | 'cancel',
+    reason?: string,
+  ): Promise<void> {
     const s = this.session();
     if (!s) return;
 

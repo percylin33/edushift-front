@@ -69,27 +69,27 @@ import { TokenRefreshService } from '@features/auth/services/token-refresh.servi
  * </ul>
  */
 export const tokenRefreshInterceptor: HttpInterceptorFn = (req, next) => {
-	if (!req.url.startsWith(environment.apiUrl)) return next(req);
-	if (isAuthFlowEndpoint(req.url)) return next(req);
+  if (!req.url.startsWith(environment.apiUrl)) return next(req);
+  if (isAuthFlowEndpoint(req.url)) return next(req);
 
-	const auth = inject(AuthService);
-	const refresher = inject(TokenRefreshService);
+  const auth = inject(AuthService);
+  const refresher = inject(TokenRefreshService);
 
-	return next(req).pipe(
-		catchError((error: HttpErrorResponse) => {
-			if (error.status !== HttpStatus.Unauthorized) {
-				return throwError(() => error);
-			}
-			if (!auth.refreshToken()) {
-				return throwError(() => error);
-			}
+  return next(req).pipe(
+    catchError((error: HttpErrorResponse) => {
+      if (error.status !== HttpStatus.Unauthorized) {
+        return throwError(() => error);
+      }
+      if (!auth.refreshToken()) {
+        return throwError(() => error);
+      }
 
-			return refresher.refresh().pipe(
-				switchMap((newAccessToken) => next(applyAuthHeader(req, newAccessToken))),
-				catchError(() => throwError(() => error))
-			);
-		})
-	);
+      return refresher.refresh().pipe(
+        switchMap((newAccessToken) => next(applyAuthHeader(req, newAccessToken))),
+        catchError(() => throwError(() => error)),
+      );
+    }),
+  );
 };
 
 /**
@@ -97,7 +97,7 @@ export const tokenRefreshInterceptor: HttpInterceptorFn = (req, next) => {
  * how to surface bad credentials, expired refresh, etc.
  */
 function isAuthFlowEndpoint(url: string): boolean {
-	return url === API.AUTH.LOGIN || url === API.AUTH.REFRESH || url === API.AUTH.LOGOUT;
+  return url === API.AUTH.LOGIN || url === API.AUTH.REFRESH || url === API.AUTH.LOGOUT;
 }
 
 /**
@@ -105,9 +105,12 @@ function isAuthFlowEndpoint(url: string): boolean {
  * retry. We mirror {@code authInterceptor} so the header naming and
  * scheme stay configured in a single place ({@code environment.auth}).
  */
-function applyAuthHeader(req: import('@angular/common/http').HttpRequest<unknown>, accessToken: string) {
-	const headerName = environment.auth.tokenHeaderName;
-	const scheme = environment.auth.tokenScheme;
-	const value = scheme ? `${scheme} ${accessToken}` : accessToken;
-	return req.clone({ setHeaders: { [headerName]: value } });
+function applyAuthHeader(
+  req: import('@angular/common/http').HttpRequest<unknown>,
+  accessToken: string,
+) {
+  const headerName = environment.auth.tokenHeaderName;
+  const scheme = environment.auth.tokenScheme;
+  const value = scheme ? `${scheme} ${accessToken}` : accessToken;
+  return req.clone({ setHeaders: { [headerName]: value } });
 }

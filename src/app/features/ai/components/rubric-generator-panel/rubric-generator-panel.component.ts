@@ -6,9 +6,15 @@ import {
   Input,
   Output,
   inject,
-  signal
+  signal,
 } from '@angular/core';
-import { ReactiveFormsModule, FormBuilder, Validators, FormArray, FormControl } from '@angular/forms';
+import {
+  ReactiveFormsModule,
+  FormBuilder,
+  Validators,
+  FormArray,
+  FormControl,
+} from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { RubricGeneratorService, RubricDraft } from '../../services/rubric-generator.service';
 import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
@@ -29,17 +35,26 @@ import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/co
   selector: 'app-rubric-generator-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, EmptyStateComponent, IconComponent, SpinnerComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    EmptyStateComponent,
+    IconComponent,
+    SpinnerComponent,
+  ],
   template: `
-    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+    <section
+      class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+    >
       <header class="mb-3 flex items-center gap-2">
         <app-icon name="list-checks" class="h-5 w-5 text-indigo-500"></app-icon>
         <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">
           Generar rúbrica con IA
         </h3>
         @if (seedRubricId) {
-          <span class="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800
-                       dark:bg-amber-900/30 dark:text-amber-300">
+          <span
+            class="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+          >
             Fork de rúbrica existente
           </span>
         }
@@ -47,14 +62,14 @@ import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/co
 
       <form [formGroup]="form" (ngSubmit)="onGenerate()" class="space-y-3">
         <label class="block">
-          <span class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Curso</span>
+          <span class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300"
+            >Curso</span
+          >
           <input
             type="text"
             formControlName="courseName"
             placeholder="Historia, Geografía..."
-            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                   focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500
-                   dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
           />
         </label>
 
@@ -68,19 +83,17 @@ import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/co
                 <input
                   [formControlName]="$index"
                   placeholder="p. ej. Análisis de fuentes primarias"
-                  class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                         focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500
-                         dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                  class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
                 />
                 <button
                   type="button"
                   (click)="removeCriterion($index)"
                   [disabled]="criteriaControls.length === 1"
-                  class="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700
-                         hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30
-                         dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+                  class="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
                   aria-label="Quitar criterio"
-                >×</button>
+                >
+                  ×
+                </button>
               </div>
             }
           </div>
@@ -88,16 +101,18 @@ import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/co
             type="button"
             (click)="addCriterion()"
             class="mt-2 text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-          >+ Añadir criterio</button>
+          >
+            + Añadir criterio
+          </button>
         </div>
 
         <label class="block">
-          <span class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Niveles</span>
+          <span class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300"
+            >Niveles</span
+          >
           <select
             formControlName="levelCount"
-            class="w-32 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                   focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500
-                   dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+            class="w-32 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
           >
             <option [ngValue]="3">3 niveles</option>
             <option [ngValue]="4">4 niveles</option>
@@ -112,22 +127,26 @@ import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/co
               <button
                 type="button"
                 (click)="onRegenerate()"
-                class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700
-                       hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
-              >Regenerar</button>
+                class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                Regenerar
+              </button>
               <button
                 type="button"
                 (click)="onAccept()"
                 class="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
-              >Aceptar borrador</button>
+              >
+                Aceptar borrador
+              </button>
             } @else {
               <button
                 type="submit"
                 [disabled]="form.invalid || loading()"
-                class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white
-                       hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                @if (loading()) { <app-spinner class="h-3 w-3"></app-spinner> }
+                @if (loading()) {
+                  <app-spinner class="h-3 w-3"></app-spinner>
+                }
                 Generar
               </button>
             }
@@ -140,8 +159,9 @@ import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/co
       }
 
       @if (draft(); as d) {
-        <article class="mt-4 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm
-                        dark:border-slate-700 dark:bg-slate-900">
+        <article
+          class="mt-4 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+        >
           <h4 class="font-semibold text-slate-900 dark:text-slate-100">{{ d.title }}</h4>
           @if (d.description) {
             <p class="text-xs text-slate-600 dark:text-slate-400">{{ d.description }}</p>
@@ -160,7 +180,9 @@ import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/co
               <tbody>
                 @for (c of d.criteria; track c.name) {
                   <tr class="border-t border-slate-200 dark:border-slate-700">
-                    <td class="px-2 py-1 font-medium text-slate-800 dark:text-slate-200">{{ c.name }}</td>
+                    <td class="px-2 py-1 font-medium text-slate-800 dark:text-slate-200">
+                      {{ c.name }}
+                    </td>
                     <td class="px-2 py-1 text-slate-700 dark:text-slate-300">{{ c.weight }}%</td>
                     @for (lvl of levelLabels(d); track lvl) {
                       <td class="px-2 py-1 text-slate-700 dark:text-slate-300">
@@ -181,7 +203,7 @@ import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/co
         ></app-empty-state>
       }
     </section>
-  `
+  `,
 })
 export class RubricGeneratorPanelComponent {
   private readonly fb = inject(FormBuilder);
@@ -195,9 +217,9 @@ export class RubricGeneratorPanelComponent {
     courseName: ['', Validators.required],
     criteria: this.fb.array<FormControl<string>>(
       [this.fb.nonNullable.control('', Validators.required)],
-      [Validators.required, Validators.minLength(1)]
+      [Validators.required, Validators.minLength(1)],
     ),
-    levelCount: [4, Validators.required]
+    levelCount: [4, Validators.required],
   });
 
   get criteriaControls(): FormArray<FormControl<string>> {
@@ -217,14 +239,14 @@ export class RubricGeneratorPanelComponent {
 
   statusLabel(): string {
     if (this.loading()) return 'Generando rúbrica…';
-    if (this.error())    return 'Error al generar';
-    if (this.draft())    return 'Borrador listo';
+    if (this.error()) return 'Error al generar';
+    if (this.draft()) return 'Borrador listo';
     return 'Listo';
   }
   statusClass(): string {
     if (this.loading()) return 'text-indigo-600 dark:text-indigo-400';
-    if (this.error())    return 'text-rose-600 dark:text-rose-400';
-    if (this.draft())    return 'text-emerald-600 dark:text-emerald-400';
+    if (this.error()) return 'text-rose-600 dark:text-rose-400';
+    if (this.draft()) return 'text-emerald-600 dark:text-emerald-400';
     return 'text-slate-500 dark:text-slate-400';
   }
 
@@ -239,19 +261,24 @@ export class RubricGeneratorPanelComponent {
         courseName: raw.courseName,
         criteria,
         seedRubricId: this.seedRubricId,
-        levelCount: raw.levelCount
+        levelCount: raw.levelCount,
       };
       const d = await firstValueFrom(this.service.generate(req));
       this.draft.set(d);
     } catch (e: any) {
-      this.error.set({ code: e?.code ?? 'AI_UNKNOWN', message: e?.message ?? 'Error desconocido.' });
+      this.error.set({
+        code: e?.code ?? 'AI_UNKNOWN',
+        message: e?.message ?? 'Error desconocido.',
+      });
       this.draft.set(null);
     } finally {
       this.loading.set(false);
     }
   }
 
-  onRegenerate(): void { void this.onGenerate(); }
+  onRegenerate(): void {
+    void this.onGenerate();
+  }
   onAccept(): void {
     const d = this.draft();
     if (d) this.accept.emit(d);
@@ -263,8 +290,9 @@ export class RubricGeneratorPanelComponent {
    * label set when descriptors are missing.
    */
   levelLabels(d: RubricDraft): string[] {
-    const firstWithDescriptors = d.criteria.find((c) =>
-      c.descriptors && Object.keys(c.descriptors).length > 0);
+    const firstWithDescriptors = d.criteria.find(
+      (c) => c.descriptors && Object.keys(c.descriptors).length > 0,
+    );
     if (firstWithDescriptors) {
       return Object.keys(firstWithDescriptors.descriptors);
     }

@@ -6,7 +6,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -15,12 +15,9 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
-import {
-  ForkRubricModalComponent,
-  RubricSystemBadgeComponent
-} from '../../components';
+import { ForkRubricModalComponent, RubricSystemBadgeComponent } from '../../components';
 import { RubricsStore } from '../../store';
 import { RubricRow } from '../../models';
 
@@ -40,15 +37,11 @@ import { RubricRow } from '../../models';
     PageContainerComponent,
     PageHeaderComponent,
     RubricSystemBadgeComponent,
-    SpinnerComponent
+    SpinnerComponent,
   ],
   template: `
     <app-page-container size="wide">
-      <app-page-header
-        eyebrow="Rúbricas"
-        [title]="title()"
-        [subtitle]="subtitle()"
-      >
+      <app-page-header eyebrow="Rúbricas" [title]="title()" [subtitle]="subtitle()">
         @if (rubric(); as r) {
           <app-rubric-system-badge
             [isSystem]="r.isSystem"
@@ -60,11 +53,7 @@ import { RubricRow } from '../../models';
           <span>Volver</span>
         </button>
         @if (rubric() && !rubric()!.isSystem) {
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            (click)="goToEdit()"
-          >
+          <button type="button" class="btn btn-ghost btn-sm" (click)="goToEdit()">
             <app-icon name="pencil" [size]="16" />
             <span>Editar</span>
           </button>
@@ -88,19 +77,13 @@ import { RubricRow } from '../../models';
         <div class="alert alert-danger">
           <app-icon name="alert-circle" [size]="18" />
           <p class="flex-1 text-sm">{{ errorBanner() }}</p>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            (click)="reload()"
-          >
-            Reintentar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">Reintentar</button>
         </div>
       }
 
       @if (!loading() && !errorBanner() && rubric(); as r) {
         @if (r.description) {
-          <p class="text-sm text-content-muted mb-6 max-w-3xl">
+          <p class="mb-6 max-w-3xl text-sm text-content-muted">
             {{ r.description }}
           </p>
         }
@@ -139,9 +122,7 @@ import { RubricRow } from '../../models';
           <header class="card-header">
             <div>
               <h3 class="card-title">Criterios ({{ r.criteria.length }})</h3>
-              <p class="card-description">
-                Pesos suman {{ totalWeight() | number: '1.0-2' }}.
-              </p>
+              <p class="card-description">Pesos suman {{ totalWeight() | number: '1.0-2' }}.</p>
             </div>
           </header>
           <div class="card-body">
@@ -156,7 +137,7 @@ import { RubricRow } from '../../models';
                       <th class="min-w-[140px]">
                         <span class="font-mono text-xs">{{ lvl.code }}</span>
                         <br />
-                        <span class="text-xs text-content-muted normal-case">
+                        <span class="text-xs normal-case text-content-muted">
                           {{ lvl.name }}
                         </span>
                       </th>
@@ -170,7 +151,7 @@ import { RubricRow } from '../../models';
                       <td>
                         <p class="font-medium">{{ c.name }}</p>
                         @if (c.description) {
-                          <p class="text-xs text-content-muted mt-1">
+                          <p class="mt-1 text-xs text-content-muted">
                             {{ c.description }}
                           </p>
                         }
@@ -194,27 +175,25 @@ import { RubricRow } from '../../models';
     </app-page-container>
 
     @if (forkOrigin(); as origin) {
-      <app-fork-rubric-modal
-        [origin]="origin"
-        (closed)="closeFork()"
-        (forked)="onForked($event)"
-      />
+      <app-fork-rubric-modal [origin]="origin" (closed)="closeFork()" (forked)="onForked($event)" />
     }
   `,
   styles: [
     `
-      :host { display: block; }
+      :host {
+        display: block;
+      }
       .table {
-        @apply w-full text-sm text-left;
+        @apply w-full text-left text-sm;
       }
       .table th {
-        @apply px-3 py-2 font-semibold text-content-muted uppercase text-xs tracking-wider border-b border-border-subtle bg-surface-subtle;
+        @apply border-b border-border-subtle bg-surface-subtle px-3 py-2 text-xs font-semibold uppercase tracking-wider text-content-muted;
       }
       .table td {
-        @apply px-3 py-2 border-b border-border-subtle;
+        @apply border-b border-border-subtle px-3 py-2;
       }
-    `
-  ]
+    `,
+  ],
 })
 export class RubricDetailComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
@@ -227,9 +206,7 @@ export class RubricDetailComponent implements OnInit, OnDestroy {
 
   protected readonly forkOrigin = signal<RubricRow | null>(null);
 
-  protected readonly title = computed(
-    () => this.rubric()?.name ?? 'Rúbrica'
-  );
+  protected readonly title = computed(() => this.rubric()?.name ?? 'Rúbrica');
   protected readonly subtitle = computed(() => {
     const r = this.rubric();
     if (!r) return '';
@@ -237,7 +214,7 @@ export class RubricDetailComponent implements OnInit, OnDestroy {
   });
 
   protected readonly totalWeight = computed(() =>
-    (this.rubric()?.criteria ?? []).reduce((acc, c) => acc + c.weight, 0)
+    (this.rubric()?.criteria ?? []).reduce((acc, c) => acc + c.weight, 0),
   );
 
   private routeSub?: Subscription;
@@ -263,7 +240,7 @@ export class RubricDetailComponent implements OnInit, OnDestroy {
 
   protected getDescriptor(
     descriptors: { level: string; text: string }[],
-    levelCode: string
+    levelCode: string,
   ): string {
     return descriptors.find((d) => d.level === levelCode)?.text ?? '';
   }
@@ -298,7 +275,7 @@ export class RubricDetailComponent implements OnInit, OnDestroy {
       criterionSummary: r.criteria.map((c) => `${c.weight}% ${c.name}`),
       isActive: r.isActive,
       createdAt: r.createdAt,
-      updatedAt: r.updatedAt
+      updatedAt: r.updatedAt,
     });
   }
 

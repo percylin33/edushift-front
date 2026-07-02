@@ -3,7 +3,7 @@ import { provideRouter, ActivatedRoute, convertToParamMap } from '@angular/route
 import { signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { of, throwError } from 'rxjs';
-import { QuizFormPage } from './quiz-form.page';
+import { QuizFormPageComponent } from './quiz-form.page';
 import { QuizzesStore } from '../../store/quizzes.store';
 import { AiAssistantService } from '../../services/ai-assistant.service';
 import { AuthService } from '@core/services/auth.service';
@@ -35,7 +35,7 @@ class FakeQuizzesStore {
       this.selected.set({
         ...current,
         questions: [...current.questions, this.addQuestionResult],
-        questionCount: current.questions.length + 1
+        questionCount: current.questions.length + 1,
       });
     }
     return this.addQuestionResult;
@@ -85,7 +85,7 @@ function makeQuestionRow(type: QuestionType): QuestionRow {
     correctText: null,
     expectedKeywords: null,
     correctBoolean: null,
-    options: []
+    options: [],
   };
 }
 
@@ -108,7 +108,7 @@ function makeDetail() {
     revealCorrectness: true,
     questions: [] as QuestionRow[],
     createdAt: new Date(),
-    updatedAt: null
+    updatedAt: null,
   };
 }
 
@@ -120,13 +120,13 @@ interface PageAccess {
   selected: () => ReturnType<typeof makeDetail> | null;
 }
 
-function access(p: QuizFormPage): PageAccess {
+function access(p: QuizFormPageComponent): PageAccess {
   return p as unknown as PageAccess;
 }
 
-describe('QuizFormPage — AI assistant panel integration (FE-7c.1)', () => {
-  let fixture: ComponentFixture<QuizFormPage>;
-  let component: QuizFormPage;
+describe('QuizFormPageComponent — AI assistant panel integration (FE-7c.1)', () => {
+  let fixture: ComponentFixture<QuizFormPageComponent>;
+  let component: QuizFormPageComponent;
   let fakeStore: FakeQuizzesStore;
   let fakeAi: FakeAiAssistantService;
   let fakeAuth: FakeAuthService;
@@ -135,16 +135,24 @@ describe('QuizFormPage — AI assistant panel integration (FE-7c.1)', () => {
    *  the loadDetail promise to resolve. */
   async function mountEditMode(): Promise<void> {
     TestBed.configureTestingModule({
-      imports: [QuizFormPage],
+      imports: [QuizFormPageComponent],
       providers: [
         provideRouter([]),
-        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap({}), paramMap: convertToParamMap({ uuid: 'q-1' }) } } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              queryParamMap: convertToParamMap({}),
+              paramMap: convertToParamMap({ uuid: 'q-1' }),
+            },
+          },
+        },
         { provide: QuizzesStore, useValue: fakeStore },
         { provide: AiAssistantService, useValue: fakeAi },
-        { provide: AuthService, useValue: fakeAuth }
-      ]
+        { provide: AuthService, useValue: fakeAuth },
+      ],
     });
-    fixture = TestBed.createComponent(QuizFormPage);
+    fixture = TestBed.createComponent(QuizFormPageComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
     // Espera a que `loadDetail` (llamado en `ngOnInit`) termine.
@@ -166,7 +174,7 @@ describe('QuizFormPage — AI assistant panel integration (FE-7c.1)', () => {
     fakeAuth.permissions.set([Permission.LmsAiGenerate]);
     await mountEditMode();
     const btn = fixture.nativeElement.querySelector(
-      '[data-testid="ai-toggle"]'
+      '[data-testid="ai-toggle"]',
     ) as HTMLButtonElement | null;
     expect(btn).toBeTruthy();
     expect(btn?.textContent ?? '').toContain('Sugerir con IA');
@@ -176,7 +184,7 @@ describe('QuizFormPage — AI assistant panel integration (FE-7c.1)', () => {
     fakeAuth.permissions.set([Permission.LmsQuizCreate]); // sin LmsAiGenerate
     await mountEditMode();
     const btn = fixture.nativeElement.querySelector(
-      '[data-testid="ai-toggle"]'
+      '[data-testid="ai-toggle"]',
     ) as HTMLButtonElement | null;
     expect(btn).toBeNull();
   });
@@ -210,9 +218,9 @@ describe('QuizFormPage — AI assistant panel integration (FE-7c.1)', () => {
       points: 5,
       options: [
         { label: 'París', isCorrect: true, explanation: 'es la capital' },
-        { label: 'Londres', isCorrect: false, explanation: 'capital del RU' }
+        { label: 'Londres', isCorrect: false, explanation: 'capital del RU' },
       ],
-      aiRationale: 'Geography basic'
+      aiRationale: 'Geography basic',
     };
     await a.onAiAccepted(req);
     expect(fakeStore.addQuestionCalls.length).toBe(1);
@@ -224,8 +232,8 @@ describe('QuizFormPage — AI assistant panel integration (FE-7c.1)', () => {
       points: 5,
       options: [
         { label: 'París', isCorrect: true, explanation: 'es la capital' },
-        { label: 'Londres', isCorrect: false, explanation: 'capital del RU' }
-      ]
+        { label: 'Londres', isCorrect: false, explanation: 'capital del RU' },
+      ],
     });
   });
 
@@ -239,9 +247,9 @@ describe('QuizFormPage — AI assistant panel integration (FE-7c.1)', () => {
       points: 3,
       options: [
         { label: 'Verdadero', isCorrect: true, explanation: null },
-        { label: 'Falso', isCorrect: false, explanation: null }
+        { label: 'Falso', isCorrect: false, explanation: null },
       ],
-      aiRationale: 'Concepto físico elemental'
+      aiRationale: 'Concepto físico elemental',
     };
     await a.onAiAccepted(req);
     const call = fakeStore.addQuestionCalls[0];
@@ -249,7 +257,7 @@ describe('QuizFormPage — AI assistant panel integration (FE-7c.1)', () => {
       type: 'TF',
       prompt: 'Verdadero o falso: el agua hierve a 100°C al nivel del mar.',
       points: 3,
-      correctBoolean: true
+      correctBoolean: true,
     });
   });
 
@@ -262,7 +270,7 @@ describe('QuizFormPage — AI assistant panel integration (FE-7c.1)', () => {
       type: 'SHORT_ANSWER',
       points: 5,
       options: [],
-      aiRationale: 'vertebrado, mamífero, cordado'
+      aiRationale: 'vertebrado, mamífero, cordado',
     };
     await a.onAiAccepted(req);
     const call = fakeStore.addQuestionCalls[0];
@@ -270,7 +278,7 @@ describe('QuizFormPage — AI assistant panel integration (FE-7c.1)', () => {
       type: 'SHORT_ANSWER',
       prompt: '¿Qué es un mamífero?',
       points: 5,
-      expectedKeywords: 'vertebrado, mamífero, cordado'
+      expectedKeywords: 'vertebrado, mamífero, cordado',
     });
   });
 
@@ -278,16 +286,21 @@ describe('QuizFormPage — AI assistant panel integration (FE-7c.1)', () => {
     fakeAuth.permissions.set([Permission.LmsAiGenerate]);
     // No montamos en edit mode → no hay quizUuid → addQuestion NO debe llamarse.
     TestBed.configureTestingModule({
-      imports: [QuizFormPage],
+      imports: [QuizFormPageComponent],
       providers: [
         provideRouter([]),
-        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap({}), paramMap: convertToParamMap({}) } } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { queryParamMap: convertToParamMap({}), paramMap: convertToParamMap({}) },
+          },
+        },
         { provide: QuizzesStore, useValue: fakeStore },
         { provide: AiAssistantService, useValue: fakeAi },
-        { provide: AuthService, useValue: fakeAuth }
-      ]
+        { provide: AuthService, useValue: fakeAuth },
+      ],
     });
-    fixture = TestBed.createComponent(QuizFormPage);
+    fixture = TestBed.createComponent(QuizFormPageComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
     await fixture.whenStable();
@@ -297,7 +310,7 @@ describe('QuizFormPage — AI assistant panel integration (FE-7c.1)', () => {
       type: 'MC',
       points: 1,
       options: [],
-      aiRationale: ''
+      aiRationale: '',
     });
     expect(fakeStore.addQuestionCalls.length).toBe(0);
   });

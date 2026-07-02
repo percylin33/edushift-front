@@ -164,7 +164,7 @@ export function toSubmission(raw: SubmissionResponseRaw): Submission {
     gradedAt: raw.gradedAt ? new Date(raw.gradedAt) : null,
     gradedByTeacherPublicUuid: raw.gradedByTeacherPublicUuid ?? null,
     returnedAt: raw.returnedAt ? new Date(raw.returnedAt) : null,
-    returnedByTeacherPublicUuid: raw.returnedByTeacherPublicUuid ?? null
+    returnedByTeacherPublicUuid: raw.returnedByTeacherPublicUuid ?? null,
   };
 }
 
@@ -174,7 +174,7 @@ export function toAttachment(raw: SubmissionAttachmentRaw): SubmissionAttachment
     filename: raw.filename,
     sizeBytes: raw.sizeBytes,
     contentType: raw.contentType,
-    downloadUrl: raw.downloadUrl
+    downloadUrl: raw.downloadUrl,
   };
 }
 
@@ -188,7 +188,7 @@ export function toSubmissionRow(raw: SubmissionSummaryRaw): SubmissionRow {
     version: raw.version,
     submittedAt: new Date(raw.submittedAt),
     grade: raw.grade ?? null,
-    hasAttachment: !!raw.hasAttachment
+    hasAttachment: !!raw.hasAttachment,
   };
 }
 
@@ -207,7 +207,7 @@ export const ALLOWED_ATTACHMENT_MIME: ReadonlyArray<string> = [
   'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'text/plain',
-  'text/markdown'
+  'text/markdown',
 ] as const;
 
 /** Max attachment size in bytes (25 MB). Mirrors backend's `lms.submission.max-file-size`. */

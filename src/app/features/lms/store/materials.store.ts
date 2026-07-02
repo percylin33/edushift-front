@@ -1,11 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom, Observable } from 'rxjs';
 import { MaterialApiService, MaterialUploadProgress } from '../services';
-import {
-  CreateMaterialRequest,
-  Material,
-  MaterialRow
-} from '../models';
+import { CreateMaterialRequest, Material, MaterialRow } from '../models';
 
 /**
  * Reactive store del feature {@code lms.materials} (FE-7a.3).
@@ -58,19 +54,14 @@ export class MaterialsStore {
 
   readonly error = this._error.asReadonly();
 
-  readonly isEmpty = computed(
-    () => !this._loading() && this._rows().length === 0
-  );
+  readonly isEmpty = computed(() => !this._loading() && this._rows().length === 0);
 
   // ===========================================================================
   // List by section
   // ===========================================================================
 
   async loadBySection(sectionUuid: string): Promise<void> {
-    if (
-      this._currentSectionUuid() === sectionUuid &&
-      this._rows().length > 0
-    ) {
+    if (this._currentSectionUuid() === sectionUuid && this._rows().length > 0) {
       return;
     }
     this._currentSectionUuid.set(sectionUuid);
@@ -115,10 +106,7 @@ export class MaterialsStore {
   // Upload
   // ===========================================================================
 
-  async upload(
-    sectionUuid: string,
-    request: CreateMaterialRequest
-  ): Promise<Material | null> {
+  async upload(sectionUuid: string, request: CreateMaterialRequest): Promise<Material | null> {
     this._uploading.set(true);
     this._uploadPercent.set(0);
     this._error.set(null);
@@ -191,7 +179,7 @@ export class MaterialsStore {
       url: material.url,
       uploadedByTeacherName: material.uploadedByTeacherName,
       sizeBytesDisplay: material.sizeBytes != null ? formatSize(material.sizeBytes) : null,
-      createdAt: material.createdAt
+      createdAt: material.createdAt,
     };
     this._rows.update((rows) => [row, ...rows]);
   }
@@ -204,7 +192,7 @@ export class MaterialsStore {
  */
 function drainMaterialUpload(
   stream: Observable<MaterialUploadProgress>,
-  onProgress: (percent: number) => void
+  onProgress: (percent: number) => void,
 ): Promise<Material> {
   return firstValueFrom(
     new Observable<Material>((sub) => {
@@ -217,10 +205,10 @@ function drainMaterialUpload(
           }
         },
         error: (err: unknown) => sub.error(err),
-        complete: () => sub.complete()
+        complete: () => sub.complete(),
       });
       return () => inner.unsubscribe();
-    })
+    }),
   );
 }
 

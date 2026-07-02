@@ -123,7 +123,9 @@ export class TenantThemeService {
     try {
       if (cache) localStorage.setItem(STORAGE_KEYS.TENANT_FAVICON, href);
       else localStorage.removeItem(STORAGE_KEYS.TENANT_FAVICON);
-    } catch { /* storage may be unavailable (private mode, quota) — non-fatal */ }
+    } catch {
+      /* storage may be unavailable (private mode, quota) — non-fatal */
+    }
   }
 
   private buildSvgFavicon(name: string, color: string): string {

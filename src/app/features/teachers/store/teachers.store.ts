@@ -10,7 +10,7 @@ import {
   TeacherListPagination,
   TeacherRow,
   UpdateTeacherRequest,
-  computeTeacherFullName
+  computeTeacherFullName,
 } from '../models';
 
 interface PaginationState {
@@ -52,7 +52,7 @@ export class TeachersStore {
     page: 0,
     size: 20,
     totalElements: 0,
-    totalPages: 0
+    totalPages: 0,
   });
   private readonly _loading = signal(false);
 
@@ -83,9 +83,7 @@ export class TeachersStore {
   readonly error = this._error.asReadonly();
 
   readonly hasItems = computed(() => this._items().length > 0);
-  readonly isEmpty = computed(
-    () => !this._loading() && this._items().length === 0
-  );
+  readonly isEmpty = computed(() => !this._loading() && this._items().length === 0);
 
   // ===========================================================================
   // List ops
@@ -99,10 +97,7 @@ export class TeachersStore {
 
   async goToPage(page: number): Promise<void> {
     const totalPages = this._pagination().totalPages;
-    const clamped = Math.max(
-      0,
-      totalPages > 0 ? Math.min(page, totalPages - 1) : 0
-    );
+    const clamped = Math.max(0, totalPages > 0 ? Math.min(page, totalPages - 1) : 0);
     this._pagination.update((p) => ({ ...p, page: clamped }));
     await this.loadList();
   }
@@ -120,22 +115,18 @@ export class TeachersStore {
     const pagination: TeacherListPagination = { page, size };
 
     try {
-      const result = await firstValueFrom(
-        this.api.list(this._filters(), pagination)
-      );
+      const result = await firstValueFrom(this.api.list(this._filters(), pagination));
       this._items.set(result.content);
       this._pagination.set({
         page: result.number,
         size: result.size,
         totalElements: result.totalElements,
-        totalPages: result.totalPages
+        totalPages: result.totalPages,
       });
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._items.set([]);
-    }
-    finally {
+    } finally {
       this._loading.set(false);
     }
   }
@@ -152,13 +143,11 @@ export class TeachersStore {
       const detail = await firstValueFrom(this.api.get(publicUuid));
       this._selected.set(detail);
       return detail;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._selected.set(null);
       return null;
-    }
-    finally {
+    } finally {
       this._loadingDetail.set(false);
     }
   }
@@ -172,20 +161,15 @@ export class TeachersStore {
       this._selected.set(created);
       this._items.update((rows) => [this.toRow(created), ...rows]);
       return created;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
 
-  async update(
-    publicUuid: string,
-    patch: UpdateTeacherRequest
-  ): Promise<TeacherDetail | null> {
+  async update(publicUuid: string, patch: UpdateTeacherRequest): Promise<TeacherDetail | null> {
     this._saving.set(true);
     this._error.set(null);
 
@@ -194,12 +178,10 @@ export class TeachersStore {
       this._selected.set(updated);
       this.upsertRow(updated);
       return updated;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
@@ -210,19 +192,15 @@ export class TeachersStore {
 
     try {
       await firstValueFrom(this.api.delete(publicUuid));
-      this._items.update((rows) =>
-        rows.filter((r) => r.publicUuid !== publicUuid)
-      );
+      this._items.update((rows) => rows.filter((r) => r.publicUuid !== publicUuid));
       if (this._selected()?.publicUuid === publicUuid) {
         this._selected.set(null);
       }
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return false;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
@@ -238,24 +216,20 @@ export class TeachersStore {
    */
   async linkUser(
     publicUuid: string,
-    request: LinkTeacherUserRequest
+    request: LinkTeacherUserRequest,
   ): Promise<TeacherDetail | null> {
     this._saving.set(true);
     this._error.set(null);
 
     try {
-      const updated = await firstValueFrom(
-        this.api.linkUser(publicUuid, request)
-      );
+      const updated = await firstValueFrom(this.api.linkUser(publicUuid, request));
       this._selected.set(updated);
       this.upsertRow(updated);
       return updated;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
@@ -277,12 +251,10 @@ export class TeachersStore {
       const result = await firstValueFrom(this.api.invite(publicUuid));
       this._lastInvitation.set(result);
       return result;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._inviting.set(false);
     }
   }
@@ -334,16 +306,12 @@ export class TeachersStore {
       firstName: detail.firstName,
       lastName: detail.lastName,
       secondLastName: detail.secondLastName,
-      fullName: computeTeacherFullName(
-        detail.firstName,
-        detail.lastName,
-        detail.secondLastName
-      ),
+      fullName: computeTeacherFullName(detail.firstName, detail.lastName, detail.secondLastName),
       email: detail.email,
       title: detail.title,
       specializations: detail.specializations,
       employmentStatus: detail.employmentStatus,
-      hasUserAccount: detail.hasUserAccount
+      hasUserAccount: detail.hasUserAccount,
     };
   }
 
@@ -354,8 +322,7 @@ export class TeachersStore {
         message?: unknown;
         error?: { message?: unknown };
       };
-      if (typeof anyErr.error?.message === 'string')
-        return anyErr.error.message;
+      if (typeof anyErr.error?.message === 'string') return anyErr.error.message;
       if (typeof anyErr.message === 'string') return anyErr.message;
     }
     return 'Ocurrió un error inesperado.';

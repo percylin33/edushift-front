@@ -5,20 +5,13 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import {
-  EmptyStateComponent,
-  IconComponent,
-  SpinnerComponent
-} from '@shared/components';
-import {
-  AcademicYearStatusBadgeComponent,
-  SectionFormModalComponent
-} from '../../components';
+import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import { AcademicYearStatusBadgeComponent, SectionFormModalComponent } from '../../components';
 import { AcademicStore } from '../../store';
 import {
   AcademicYearStatus,
@@ -26,7 +19,7 @@ import {
   SectionDetail,
   SectionListFilters,
   SectionRow,
-  isSectionMutable
+  isSectionMutable,
 } from '../../models';
 
 /**
@@ -67,7 +60,7 @@ import {
     IconComponent,
     SpinnerComponent,
     AcademicYearStatusBadgeComponent,
-    SectionFormModalComponent
+    SectionFormModalComponent,
   ],
   template: `
     <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -103,9 +96,7 @@ import {
           >
             <option [ngValue]="null">— Año activo —</option>
             @for (y of years(); track y.publicUuid) {
-              <option [ngValue]="y.publicUuid">
-                {{ y.name }} · {{ statusLabel(y.status) }}
-              </option>
+              <option [ngValue]="y.publicUuid">{{ y.name }} · {{ statusLabel(y.status) }}</option>
             }
           </select>
         </div>
@@ -166,9 +157,7 @@ import {
             <p class="font-medium">No pudimos cargar las secciones.</p>
             <p class="mt-1 text-xs opacity-80">{{ errorMessage() }}</p>
           </div>
-          <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">
-            Reintentar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">Reintentar</button>
         </div>
       } @else if (isEmpty()) {
         <app-empty-state
@@ -202,20 +191,17 @@ import {
             </thead>
             <tbody>
               @for (row of filteredRows(); track row.publicUuid) {
-                <tr
-                  class="cursor-pointer hover:bg-surface-hover"
-                  (click)="goToDetail(row)"
-                >
+                <tr class="hover:bg-surface-hover cursor-pointer" (click)="goToDetail(row)">
                   <td>
                     <p class="font-medium text-content">{{ row.name }}</p>
-                    <p class="md:hidden text-xs text-content-muted">
+                    <p class="text-xs text-content-muted md:hidden">
                       {{ row.gradeName }} · {{ row.levelCode }}
                     </p>
                   </td>
-                  <td class="hidden md:table-cell text-content-muted">
+                  <td class="hidden text-content-muted md:table-cell">
                     {{ row.gradeName }}
                   </td>
-                  <td class="hidden lg:table-cell text-content-muted">
+                  <td class="hidden text-content-muted lg:table-cell">
                     {{ row.levelCode }}
                   </td>
                   <td class="hidden md:table-cell">
@@ -224,7 +210,7 @@ import {
                       <app-academic-year-status-badge [status]="row.academicYearStatus" />
                     </div>
                   </td>
-                  <td class="hidden sm:table-cell text-content-muted">
+                  <td class="hidden text-content-muted sm:table-cell">
                     {{ row.capacity ?? '—' }}
                   </td>
                   <td class="text-right" (click)="$event.stopPropagation()">
@@ -252,7 +238,7 @@ import {
                         </button>
                       } @else {
                         <span
-                          class="text-xs text-content-muted italic"
+                          class="text-xs italic text-content-muted"
                           title="Año cerrado: las secciones quedan en modo lectura"
                         >
                           Solo lectura
@@ -278,7 +264,7 @@ import {
         (saved)="onSaved()"
       />
     }
-  `
+  `,
 })
 export class SectionsListComponent implements OnInit {
   private readonly store = inject(AcademicStore);
@@ -326,9 +312,7 @@ export class SectionsListComponent implements OnInit {
         .sort((a, b) => a.ordinal - b.ordinal)
         .map((g) => ({ ...g, label: g.name }));
     }
-    return all.flatMap((l) =>
-      l.grades.map((g) => ({ ...g, label: `${g.name} · ${l.code}` }))
-    );
+    return all.flatMap((l) => l.grades.map((g) => ({ ...g, label: `${g.name} · ${l.code}` })));
   });
 
   /**
@@ -399,9 +383,7 @@ export class SectionsListComponent implements OnInit {
     /* Si el grade impone un level, sincroniza el filtro de level
      * para que la toolbar muestre el contexto correcto. */
     if (value) {
-      const owner = this.levels().find((l) =>
-        l.grades.some((g) => g.publicUuid === value)
-      );
+      const owner = this.levels().find((l) => l.grades.some((g) => g.publicUuid === value));
       if (owner) this.levelFilter.set(owner.publicUuid);
     }
     void this.syncAndReload();
@@ -454,7 +436,7 @@ export class SectionsListComponent implements OnInit {
   protected async confirmDelete(row: SectionRow): Promise<void> {
     const ok = confirm(
       `¿Eliminar la sección "${row.gradeName} ${row.name}" del año "${row.academicYearName}"?\n\n` +
-        'Esta operación es reversible solo desde el backend.'
+        'Esta operación es reversible solo desde el backend.',
     );
     if (!ok) return;
     await this.store.deleteSection(row.publicUuid);
@@ -474,9 +456,12 @@ export class SectionsListComponent implements OnInit {
 
   protected statusLabel(status: AcademicYearStatus): string {
     switch (status) {
-      case AcademicYearStatus.Planning: return 'Planificación';
-      case AcademicYearStatus.Active:   return 'Activo';
-      case AcademicYearStatus.Closed:   return 'Cerrado';
+      case AcademicYearStatus.Planning:
+        return 'Planificación';
+      case AcademicYearStatus.Active:
+        return 'Activo';
+      case AcademicYearStatus.Closed:
+        return 'Cerrado';
     }
   }
 
@@ -489,7 +474,7 @@ export class SectionsListComponent implements OnInit {
       academicYearPublicUuid: this.yearFilter() ?? undefined,
       levelPublicUuid: this.levelFilter() ?? undefined,
       gradePublicUuid: this.gradeFilter() ?? undefined,
-      search: this.searchFilter() || undefined
+      search: this.searchFilter() || undefined,
     };
     await this.store.applySectionFilters(filters);
   }
@@ -508,13 +493,13 @@ export class SectionsListComponent implements OnInit {
       yearId: this.yearFilter() || null,
       levelId: this.levelFilter() || null,
       gradeId: this.gradeFilter() || null,
-      q: this.searchFilter() || null
+      q: this.searchFilter() || null,
     };
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams,
       queryParamsHandling: 'merge',
-      replaceUrl: true
+      replaceUrl: true,
     });
   }
 
@@ -533,12 +518,7 @@ export class SectionsListComponent implements OnInit {
       this.levelFilter.set(null);
     }
     const gradeId = this.gradeFilter();
-    if (
-      gradeId &&
-      !this.levels().some((l) =>
-        l.grades.some((g) => g.publicUuid === gradeId)
-      )
-    ) {
+    if (gradeId && !this.levels().some((l) => l.grades.some((g) => g.publicUuid === gradeId))) {
       this.gradeFilter.set(null);
     }
   }

@@ -4,5 +4,5 @@ export const APP = {
   NAME: environment.appName,
   VERSION: environment.appVersion,
   DEFAULT_LOCALE: environment.defaultLocale,
-  SUPPORTED_LOCALES: environment.supportedLocales
+  SUPPORTED_LOCALES: environment.supportedLocales,
 } as const;

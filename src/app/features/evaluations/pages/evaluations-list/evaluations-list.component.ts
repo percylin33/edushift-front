@@ -6,7 +6,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom, Subscription } from 'rxjs';
@@ -16,12 +16,12 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import {
   EvaluationFormModalComponent,
   EvaluationKindBadgeComponent,
-  EvaluationStatusBadgeComponent
+  EvaluationStatusBadgeComponent,
 } from '../../components';
 import { EvaluationsStore } from '../../store';
 import {
@@ -32,7 +32,7 @@ import {
   EvaluationStatus,
   isEvaluationDeletable,
   isEvaluationEditable,
-  legalNextStatuses
+  legalNextStatuses,
 } from '../../models';
 import { EvaluationsApiService } from '../../services';
 
@@ -70,36 +70,20 @@ import { EvaluationsApiService } from '../../services';
     IconComponent,
     PageContainerComponent,
     PageHeaderComponent,
-    SpinnerComponent
+    SpinnerComponent,
   ],
   template: `
     <app-page-container size="wide">
-      <app-page-header
-        eyebrow="Evaluaciones"
-        [title]="headerTitle()"
-        [subtitle]="headerSubtitle()"
-      >
-        <button
-          type="button"
-          class="btn btn-ghost btn-sm"
-          (click)="goBack()"
-        >
+      <app-page-header eyebrow="Evaluaciones" [title]="headerTitle()" [subtitle]="headerSubtitle()">
+        <button type="button" class="btn btn-ghost btn-sm" (click)="goBack()">
           <app-icon name="chevron-left" [size]="16" />
           <span>Volver</span>
         </button>
-        <button
-          type="button"
-          class="btn btn-ghost btn-sm"
-          (click)="goToGradeBook()"
-        >
+        <button type="button" class="btn btn-ghost btn-sm" (click)="goToGradeBook()">
           <app-icon name="bar-chart" [size]="16" />
           <span>Libro de calificaciones</span>
         </button>
-        <button
-          type="button"
-          class="btn btn-primary btn-sm"
-          (click)="openCreate()"
-        >
+        <button type="button" class="btn btn-primary btn-sm" (click)="openCreate()">
           <app-icon name="plus" [size]="16" />
           <span>Nueva evaluación</span>
         </button>
@@ -148,15 +132,13 @@ import { EvaluationsApiService } from '../../services';
                 type="checkbox"
                 class="form-checkbox"
                 [checked]="filters().isActive !== false"
-                (change)="onFilterChange('isActive', $any($event.target).checked ? undefined : false)"
+                (change)="
+                  onFilterChange('isActive', $any($event.target).checked ? undefined : false)
+                "
               />
               <span>Solo activas</span>
             </label>
-            <button
-              type="button"
-              class="btn btn-ghost btn-sm ml-auto"
-              (click)="clearFilters()"
-            >
+            <button type="button" class="btn btn-ghost btn-sm ml-auto" (click)="clearFilters()">
               <app-icon name="x" [size]="14" />
               <span>Limpiar</span>
             </button>
@@ -167,16 +149,13 @@ import { EvaluationsApiService } from '../../services';
       <!-- Weight summary -->
       @if (rows().length > 0) {
         <div
-          class="rounded-md border px-4 py-2 mb-4 text-sm flex items-center gap-3"
+          class="mb-4 flex items-center gap-3 rounded-md border px-4 py-2 text-sm"
           [class.border-warning-300]="weightTotal() !== 100 && weightTotal() > 0"
           [class.bg-warning-50]="weightTotal() !== 100 && weightTotal() > 0"
           [class.border-border-subtle]="weightTotal() === 100 || weightTotal() === 0"
           [class.bg-surface-subtle]="weightTotal() === 100 || weightTotal() === 0"
         >
-          <app-icon
-            [name]="weightTotal() === 100 ? 'check' : 'alert-circle'"
-            [size]="16"
-          />
+          <app-icon [name]="weightTotal() === 100 ? 'check' : 'alert-circle'" [size]="16" />
           <span class="text-content-muted">
             Peso total de evaluaciones publicadas / cerradas:
           </span>
@@ -184,9 +163,7 @@ import { EvaluationsApiService } from '../../services';
             {{ weightTotal() | number: '1.0-2' }}
           </span>
           @if (weightTotal() !== 100 && weightTotal() > 0) {
-            <span class="text-warning-700 text-xs">
-              (lo ideal es 100)
-            </span>
+            <span class="text-warning-700 text-xs"> (lo ideal es 100) </span>
           }
         </div>
       }
@@ -204,11 +181,7 @@ import { EvaluationsApiService } from '../../services';
               <p class="font-medium">No pudimos cargar las evaluaciones.</p>
               <p class="mt-1 text-xs opacity-80">{{ errorBanner() }}</p>
             </div>
-            <button
-              type="button"
-              class="btn btn-ghost btn-sm"
-              (click)="reload()"
-            >
+            <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">
               Reintentar
             </button>
           </div>
@@ -218,11 +191,7 @@ import { EvaluationsApiService } from '../../services';
             title="Aún no hay evaluaciones"
             description="Crea la primera evaluación para esta asignación. Empezará en estado borrador y podrás publicarla cuando esté lista."
           >
-            <button
-              type="button"
-              class="btn btn-primary btn-sm"
-              (click)="openCreate()"
-            >
+            <button type="button" class="btn btn-primary btn-sm" (click)="openCreate()">
               <app-icon name="plus" [size]="16" />
               <span>Crear evaluación</span>
             </button>
@@ -348,18 +317,20 @@ import { EvaluationsApiService } from '../../services';
   `,
   styles: [
     `
-      :host { display: block; }
+      :host {
+        display: block;
+      }
       .table {
-        @apply w-full text-sm text-left;
+        @apply w-full text-left text-sm;
       }
       .table th {
-        @apply px-4 py-3 font-semibold text-content-muted uppercase text-xs tracking-wider border-b border-border-subtle bg-surface-subtle;
+        @apply border-b border-border-subtle bg-surface-subtle px-4 py-3 text-xs font-semibold uppercase tracking-wider text-content-muted;
       }
       .table td {
-        @apply px-4 py-3 border-b border-border-subtle;
+        @apply border-b border-border-subtle px-4 py-3;
       }
-    `
-  ]
+    `,
+  ],
 })
 export class EvaluationsListComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
@@ -383,7 +354,7 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
   protected readonly statuses: EvaluationStatus[] = [
     EvaluationStatus.DRAFT,
     EvaluationStatus.PUBLISHED,
-    EvaluationStatus.CLOSED
+    EvaluationStatus.CLOSED,
   ];
 
   protected readonly headerTitle = computed(() => {
@@ -422,7 +393,7 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
 
   protected async onFilterChange<K extends keyof EvaluationFilters>(
     key: K,
-    value: EvaluationFilters[K] | undefined
+    value: EvaluationFilters[K] | undefined,
   ): Promise<void> {
     const next: EvaluationFilters = { ...this.filters(), [key]: value };
     this.syncUrl(next);
@@ -520,17 +491,14 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
     return isEvaluationDeletable(row.status) && row.gradeCount === 0;
   }
 
-  protected async onLifecycleHop(
-    row: EvaluationRow,
-    target: EvaluationStatus
-  ): Promise<void> {
+  protected async onLifecycleHop(row: EvaluationRow, target: EvaluationStatus): Promise<void> {
     const fromLabel = EVALUATION_STATUS_LABELS[row.status];
     const toLabel = EVALUATION_STATUS_LABELS[target];
     const ok = confirm(
       `¿Cambiar la evaluación "${row.name}" de ${fromLabel} a ${toLabel}?\n\n` +
         (target === EvaluationStatus.CLOSED
           ? 'Una vez cerrada NO se podrá reabrir.'
-          : 'Las evaluaciones publicadas son visibles para los estudiantes.')
+          : 'Las evaluaciones publicadas son visibles para los estudiantes.'),
     );
     if (!ok) return;
 
@@ -549,7 +517,7 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
   protected async onDelete(row: EvaluationRow): Promise<void> {
     const ok = confirm(
       `¿Eliminar la evaluación borrador "${row.name}"?\n\n` +
-        'Solo se permite eliminar borradores sin calificaciones registradas.'
+        'Solo se permite eliminar borradores sin calificaciones registradas.',
     );
     if (!ok) return;
 
@@ -569,7 +537,7 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
     return d.toLocaleDateString('es', {
       day: '2-digit',
       month: 'short',
-      year: 'numeric'
+      year: 'numeric',
     });
   }
 
@@ -593,7 +561,7 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
       status: status ?? undefined,
       from: qp.get('from') ?? undefined,
       to: qp.get('to') ?? undefined,
-      isActive: isActiveStr === null ? undefined : isActiveStr === 'true'
+      isActive: isActiveStr === null ? undefined : isActiveStr === 'true',
     };
   }
 
@@ -608,7 +576,7 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
       relativeTo: this.route,
       queryParams: cleanParams,
       queryParamsHandling: '',
-      replaceUrl: true
+      replaceUrl: true,
     });
   }
 

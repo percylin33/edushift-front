@@ -27,7 +27,7 @@ import { IconComponent, IconName } from '@shared/components';
   imports: [IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="card bg-base-100 shadow-sm border border-base-200">
+    <div class="card bg-base-100 border-base-200 border shadow-sm">
       <div class="card-body items-start gap-4">
         <div class="flex items-center gap-3">
           <div [class]="iconBgClass()">
@@ -53,7 +53,7 @@ import { IconComponent, IconName } from '@shared/components';
         </div>
       </div>
     </div>
-  `
+  `,
 })
 export class QuizPlaceholderComponent {
   /** Título principal del card. */

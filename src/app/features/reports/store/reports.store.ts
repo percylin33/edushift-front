@@ -13,12 +13,18 @@ export class ReportsStore {
 
   readonly readyCount = computed(() => this._items().filter((r) => r.status === 'ready').length);
   readonly pendingCount = computed(
-    () => this._items().filter((r) => r.status === 'pending' || r.status === 'generating').length
+    () => this._items().filter((r) => r.status === 'pending' || r.status === 'generating').length,
   );
 
-  setItems(items: Report[]): void { this._items.set(items); }
-  setGenerating(value: boolean): void { this._generating.set(value); }
-  setError(error: string | null): void { this._error.set(error); }
+  setItems(items: Report[]): void {
+    this._items.set(items);
+  }
+  setGenerating(value: boolean): void {
+    this._generating.set(value);
+  }
+  setError(error: string | null): void {
+    this._error.set(error);
+  }
 
   upsert(report: Report): void {
     this._items.update((list) => {

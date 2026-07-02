@@ -3,20 +3,14 @@ import { Observable, map } from 'rxjs';
 import { toAuthSession } from '@core/adapters';
 import { API } from '@core/constants';
 import { TenantStatus } from '@core/enums';
-import {
-  ApiResponse,
-  AuthResponseRaw,
-  AuthSession,
-  Tenant,
-  TenantBranding
-} from '@core/models';
+import { ApiResponse, AuthResponseRaw, AuthSession, Tenant, TenantBranding } from '@core/models';
 import { ApiService } from '@core/services';
 import {
   BrandingRaw,
   RegisterTenantRequest,
   TenantResponseRaw,
   TenantSummaryRaw,
-  UpdateTenantRequest
+  UpdateTenantRequest,
 } from '../models';
 
 /**
@@ -129,7 +123,7 @@ export class TenantApiService {
       name: raw.name,
       status: raw.status,
       isActive: raw.status === TenantStatus.Active,
-      branding: this.toBranding(raw.branding)
+      branding: this.toBranding(raw.branding),
     };
   }
 
@@ -147,7 +141,7 @@ export class TenantApiService {
       settings: raw.settings,
       featureFlags: raw.featureFlags,
       maxStudents: raw.maxStudents ?? undefined,
-      maxTeachers: raw.maxTeachers ?? undefined
+      maxTeachers: raw.maxTeachers ?? undefined,
     };
   }
 
@@ -166,8 +160,7 @@ export class TenantApiService {
    */
   private toBranding(raw: BrandingRaw | null | undefined): TenantBranding | undefined {
     if (!raw) return undefined;
-    const hasAnyField =
-      !!raw.primaryColor || !!raw.logoUrl || !!raw.faviconUrl || !!raw.loginBgUrl;
+    const hasAnyField = !!raw.primaryColor || !!raw.logoUrl || !!raw.faviconUrl || !!raw.loginBgUrl;
     if (!hasAnyField) return undefined;
 
     const branding: TenantBranding = {};

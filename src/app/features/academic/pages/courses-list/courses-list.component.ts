@@ -1,19 +1,9 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  inject,
-  signal
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import {
-  EmptyStateComponent,
-  IconComponent,
-  SpinnerComponent
-} from '@shared/components';
+import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
 import { CourseFormModalComponent } from '../../components';
 import { AcademicStore } from '../../store';
 import { CourseDetail, CourseRow } from '../../models';
@@ -53,15 +43,15 @@ import { CourseDetail, CourseRow } from '../../models';
     EmptyStateComponent,
     IconComponent,
     SpinnerComponent,
-    CourseFormModalComponent
+    CourseFormModalComponent,
   ],
   template: `
     <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div class="min-w-0">
         <h2 class="text-lg font-semibold text-content">Cursos</h2>
         <p class="text-sm text-content-muted">
-          Catálogo del workspace. Cada curso aplica a uno o más niveles
-          y se asigna a docentes en BE-4.7.
+          Catálogo del workspace. Cada curso aplica a uno o más niveles y se asigna a docentes en
+          BE-4.7.
         </p>
       </div>
       <button
@@ -131,9 +121,7 @@ import { CourseDetail, CourseRow } from '../../models';
             <p class="font-medium">No pudimos cargar los cursos.</p>
             <p class="mt-1 text-xs opacity-80">{{ errorMessage() }}</p>
           </div>
-          <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">
-            Reintentar
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="retry()">Reintentar</button>
         </div>
       } @else if (isEmpty()) {
         <app-empty-state
@@ -158,8 +146,8 @@ import { CourseDetail, CourseRow } from '../../models';
                 <th class="min-w-[110px]">Código</th>
                 <th class="min-w-[180px]">Nombre</th>
                 <th class="hidden md:table-cell">Niveles</th>
-                <th class="hidden sm:table-cell text-right">Hrs/sem</th>
-                <th class="hidden lg:table-cell text-right">Créditos</th>
+                <th class="hidden text-right sm:table-cell">Hrs/sem</th>
+                <th class="hidden text-right lg:table-cell">Créditos</th>
                 <th>Activo</th>
                 <th class="text-right" aria-label="Acciones"></th>
               </tr>
@@ -168,13 +156,13 @@ import { CourseDetail, CourseRow } from '../../models';
               @for (row of filteredRows(); track row.publicUuid) {
                 <tr>
                   <td>
-                    <span class="font-mono text-xs uppercase font-semibold">
+                    <span class="font-mono text-xs font-semibold uppercase">
                       {{ row.code }}
                     </span>
                   </td>
                   <td>
                     <p class="font-medium text-content">{{ row.name }}</p>
-                    <p class="md:hidden mt-0.5 flex flex-wrap gap-1">
+                    <p class="mt-0.5 flex flex-wrap gap-1 md:hidden">
                       @for (lv of row.levels; track lv.publicUuid) {
                         <span class="badge badge-neutral text-[10px]">
                           {{ lv.code }}
@@ -191,10 +179,10 @@ import { CourseDetail, CourseRow } from '../../models';
                       }
                     </div>
                   </td>
-                  <td class="hidden sm:table-cell text-right text-content-muted">
+                  <td class="hidden text-right text-content-muted sm:table-cell">
                     {{ row.hoursPerWeek ?? '—' }}
                   </td>
-                  <td class="hidden lg:table-cell text-right text-content-muted">
+                  <td class="hidden text-right text-content-muted lg:table-cell">
                     {{ row.credits ?? '—' }}
                   </td>
                   <td>
@@ -206,14 +194,12 @@ import { CourseDetail, CourseRow } from '../../models';
                       [class.toggle-on]="row.isActive"
                       [disabled]="isTogglingRow(row.publicUuid)"
                       (click)="toggleActive(row)"
-                      [attr.aria-label]="
-                        (row.isActive ? 'Desactivar ' : 'Activar ') + row.name
-                      "
+                      [attr.aria-label]="(row.isActive ? 'Desactivar ' : 'Activar ') + row.name"
                     >
                       <span class="toggle-track">
                         <span class="toggle-thumb"></span>
                       </span>
-                      <span class="text-xs ml-2 hidden sm:inline">
+                      <span class="ml-2 hidden text-xs sm:inline">
                         {{ row.isActive ? 'Activo' : 'Inactivo' }}
                       </span>
                     </button>
@@ -275,7 +261,10 @@ import { CourseDetail, CourseRow } from '../../models';
         background: transparent;
         border: 0;
       }
-      .toggle:disabled { cursor: wait; opacity: 0.6; }
+      .toggle:disabled {
+        cursor: wait;
+        opacity: 0.6;
+      }
       .toggle-track {
         position: relative;
         display: inline-block;
@@ -302,8 +291,8 @@ import { CourseDetail, CourseRow } from '../../models';
       .toggle-on .toggle-thumb {
         transform: translateX(1rem);
       }
-    `
-  ]
+    `,
+  ],
 })
 export class CoursesListComponent implements OnInit {
   private readonly store = inject(AcademicStore);
@@ -343,9 +332,7 @@ export class CoursesListComponent implements OnInit {
     const qp = this.route.snapshot.queryParamMap;
     this.levelFilter.set(qp.get('levelId'));
     const isActiveQp = qp.get('isActive');
-    this.activeFilter.set(
-      isActiveQp === 'true' ? true : isActiveQp === 'false' ? false : null
-    );
+    this.activeFilter.set(isActiveQp === 'true' ? true : isActiveQp === 'false' ? false : null);
     this.searchFilter.set(qp.get('q') ?? '');
 
     /* Saneamiento — si el levelId apunta a un nivel ya borrado,
@@ -417,7 +404,7 @@ export class CoursesListComponent implements OnInit {
     const ok = confirm(
       `¿Eliminar el curso "${row.code} — ${row.name}"?\n\n` +
         'Esta operación es reversible solo desde el backend. Si el curso\n' +
-        'tiene asignaciones de docentes, considera desactivarlo en su lugar.'
+        'tiene asignaciones de docentes, considera desactivarlo en su lugar.',
     );
     if (!ok) return;
     await this.store.deleteCourse(row.publicUuid);
@@ -428,8 +415,7 @@ export class CoursesListComponent implements OnInit {
     this.togglingIds.update((s) => new Set(s).add(row.publicUuid));
     try {
       await this.store.toggleCourseActive(row.publicUuid);
-    }
-    finally {
+    } finally {
       this.togglingIds.update((s) => {
         const n = new Set(s);
         n.delete(row.publicUuid);
@@ -450,7 +436,7 @@ export class CoursesListComponent implements OnInit {
     await this.store.applyCourseFilters({
       levelPublicUuid: this.levelFilter() ?? undefined,
       isActive: this.activeFilter() ?? undefined,
-      search: this.searchFilter() || undefined
+      search: this.searchFilter() || undefined,
     });
   }
 
@@ -463,13 +449,13 @@ export class CoursesListComponent implements OnInit {
     const queryParams: Record<string, string | null> = {
       levelId: this.levelFilter() || null,
       isActive: this.activeFilter() === null ? null : String(this.activeFilter()),
-      q: this.searchFilter() || null
+      q: this.searchFilter() || null,
     };
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams,
       queryParamsHandling: 'merge',
-      replaceUrl: true
+      replaceUrl: true,
     });
   }
 }

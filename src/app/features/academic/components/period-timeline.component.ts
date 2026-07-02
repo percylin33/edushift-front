@@ -1,16 +1,6 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  input,
-  output
-} from '@angular/core';
-import {
-  AcademicPeriodRow,
-  PERIOD_TYPE_LABELS,
-  PeriodType
-} from '../models';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { AcademicPeriodRow, PERIOD_TYPE_LABELS, PeriodType } from '../models';
 
 /** Item del preview pendiente de commit (bulk-generator o form). */
 export interface TimelinePreviewItem {
@@ -105,7 +95,9 @@ export interface TimelinePreviewItem {
   `,
   styles: [
     `
-      :host { display: block; }
+      :host {
+        display: block;
+      }
       .period-timeline {
         display: flex;
         flex-direction: column;
@@ -164,7 +156,9 @@ export interface TimelinePreviewItem {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        transition: filter 0.15s, transform 0.15s;
+        transition:
+          filter 0.15s,
+          transform 0.15s;
       }
       .period-timeline__block:hover:not(.period-timeline__block--preview) {
         filter: brightness(1.08);
@@ -195,11 +189,16 @@ export interface TimelinePreviewItem {
         animation: chipPulse 1.4s ease-in-out infinite;
       }
       @keyframes chipPulse {
-        0%, 100% { filter: brightness(1); }
-        50% { filter: brightness(1.15); }
+        0%,
+        100% {
+          filter: brightness(1);
+        }
+        50% {
+          filter: brightness(1.15);
+        }
       }
-    `
-  ]
+    `,
+  ],
 })
 export class PeriodTimelineComponent {
   readonly yearStart = input<Date | null>(null);
@@ -229,16 +228,11 @@ export class PeriodTimelineComponent {
       this.addBlock(buckets, p.periodType, {
         id: p.publicUuid,
         leftPct: clamp((p.startDate.getTime() - ys.getTime()) / total) * 100,
-        widthPct: Math.max(
-          1,
-          clamp(
-            (p.endDate.getTime() - p.startDate.getTime()) / total
-          ) * 100
-        ),
+        widthPct: Math.max(1, clamp((p.endDate.getTime() - p.startDate.getTime()) / total) * 100),
         shortLabel: shortLabel(p.name, p.ordinal),
         tooltip: `${p.name}\n${formatRange(p.startDate, p.endDate)}`,
         preview: false,
-        source: p
+        source: p,
       });
     }
 
@@ -246,23 +240,16 @@ export class PeriodTimelineComponent {
       this.addBlock(buckets, pv.periodType, {
         id: `preview-${pv.id}`,
         leftPct: clamp((pv.startDate.getTime() - ys.getTime()) / total) * 100,
-        widthPct: Math.max(
-          1,
-          clamp((pv.endDate.getTime() - pv.startDate.getTime()) / total) * 100
-        ),
+        widthPct: Math.max(1, clamp((pv.endDate.getTime() - pv.startDate.getTime()) / total) * 100),
         shortLabel: shortLabel(pv.name, pv.ordinal),
         tooltip: `${pv.name} (preview)\n${formatRange(pv.startDate, pv.endDate)}`,
         preview: true,
-        conflict: pv.conflict
+        conflict: pv.conflict,
       });
     }
 
     /* Orden de filas: solo las que tienen datos, en orden enum. */
-    const order: PeriodType[] = [
-      PeriodType.Bimestre,
-      PeriodType.Trimestre,
-      PeriodType.Anual
-    ];
+    const order: PeriodType[] = [PeriodType.Bimestre, PeriodType.Trimestre, PeriodType.Anual];
     const out: TimelineRow[] = [];
     for (const t of order) {
       const blocks = buckets.get(t);
@@ -270,7 +257,7 @@ export class PeriodTimelineComponent {
       out.push({
         type: t,
         label: PERIOD_TYPE_LABELS[t],
-        blocks: blocks.slice().sort((a, b) => a.leftPct - b.leftPct)
+        blocks: blocks.slice().sort((a, b) => a.leftPct - b.leftPct),
       });
     }
     return out;
@@ -278,9 +265,7 @@ export class PeriodTimelineComponent {
 
   protected readonly ariaLabel = computed(() => {
     const n = this.periods().length;
-    return `Línea de tiempo del año académico con ${n} ${
-      n === 1 ? 'periodo' : 'periodos'
-    }`;
+    return `Línea de tiempo del año académico con ${n} ${n === 1 ? 'periodo' : 'periodos'}`;
   });
 
   protected formatDate(d: Date | null): string {
@@ -288,14 +273,14 @@ export class PeriodTimelineComponent {
     return d.toLocaleDateString('es', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 
   private addBlock(
     buckets: Map<PeriodType, TimelineBlock[]>,
     type: PeriodType,
-    block: TimelineBlock
+    block: TimelineBlock,
   ): void {
     const list = buckets.get(type) ?? [];
     list.push(block);
@@ -344,8 +329,19 @@ function shortLabel(name: string, ordinal: number): string {
 }
 
 const ROMAN_FALLBACK = [
-  '', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
-  'XI', 'XII'
+  '',
+  'I',
+  'II',
+  'III',
+  'IV',
+  'V',
+  'VI',
+  'VII',
+  'VIII',
+  'IX',
+  'X',
+  'XI',
+  'XII',
 ];
 
 function romanFromOrdinal(n: number): string {
@@ -357,7 +353,7 @@ function formatRange(start: Date, end: Date): string {
     d.toLocaleDateString('es', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   return `${fmt(start)} → ${fmt(end)}`;
 }

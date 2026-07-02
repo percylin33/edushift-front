@@ -12,31 +12,29 @@ import { UserStatus } from '@core/enums';
   selector: 'app-user-status-badge',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <span [class]="badgeClass()">{{ label() }}</span>
-  `
+  template: ` <span [class]="badgeClass()">{{ label() }}</span> `,
 })
 export class UserStatusBadgeComponent {
   readonly status = input.required<UserStatus>();
 
   readonly label = computed(() => UserStatusBadgeComponent.LABELS[this.status()] ?? this.status());
   readonly badgeClass = computed(
-    () => `badge ${UserStatusBadgeComponent.TIER[this.status()] ?? 'badge-neutral'}`
+    () => `badge ${UserStatusBadgeComponent.TIER[this.status()] ?? 'badge-neutral'}`,
   );
 
   private static readonly LABELS: Readonly<Record<UserStatus, string>> = {
-    [UserStatus.Active]:              'Activo',
-    [UserStatus.Suspended]:           'Suspendido',
-    [UserStatus.Locked]:              'Bloqueado',
-    [UserStatus.Inactive]:            'Inactivo',
-    [UserStatus.PendingVerification]: 'Pendiente'
+    [UserStatus.Active]: 'Activo',
+    [UserStatus.Suspended]: 'Suspendido',
+    [UserStatus.Locked]: 'Bloqueado',
+    [UserStatus.Inactive]: 'Inactivo',
+    [UserStatus.PendingVerification]: 'Pendiente',
   };
 
   private static readonly TIER: Readonly<Record<UserStatus, string>> = {
-    [UserStatus.Active]:              'badge-success',
-    [UserStatus.Suspended]:           'badge-warning',
-    [UserStatus.Locked]:              'badge-danger',
-    [UserStatus.Inactive]:            'badge-neutral',
-    [UserStatus.PendingVerification]: 'badge-info'
+    [UserStatus.Active]: 'badge-success',
+    [UserStatus.Suspended]: 'badge-warning',
+    [UserStatus.Locked]: 'badge-danger',
+    [UserStatus.Inactive]: 'badge-neutral',
+    [UserStatus.PendingVerification]: 'badge-info',
   };
 }

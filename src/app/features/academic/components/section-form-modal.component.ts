@@ -9,14 +9,14 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
   FormsModule,
   ReactiveFormsModule,
-  Validators
+  Validators,
 } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApiError } from '@core/models';
@@ -28,7 +28,7 @@ import {
   AcademicYearStatus,
   Grade,
   SectionDetail,
-  isYearActivatable
+  isYearActivatable,
 } from '../models';
 
 /**
@@ -62,16 +62,10 @@ import {
   selector: 'app-section-form-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    IconComponent,
-    SpinnerComponent
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="section-form-title"
@@ -85,12 +79,7 @@ import {
               Una sección representa una "letra" (A, B, C…) dentro de un grado y año.
             </p>
           </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            aria-label="Cerrar"
-            (click)="cancel()"
-          >
+          <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
             <app-icon name="x" [size]="18" />
           </button>
         </header>
@@ -106,11 +95,7 @@ import {
           <div class="grid gap-4 sm:grid-cols-12">
             <div class="field sm:col-span-12">
               <label class="label" for="section-year">Año académico *</label>
-              <select
-                id="section-year"
-                class="select"
-                formControlName="academicYearPublicUuid"
-              >
+              <select id="section-year" class="select" formControlName="academicYearPublicUuid">
                 <option [ngValue]="null" disabled>Selecciona un año…</option>
                 @for (y of activatableYears(); track y.publicUuid) {
                   <option [ngValue]="y.publicUuid">
@@ -121,9 +106,7 @@ import {
               @if (showError('academicYearPublicUuid'); as msg) {
                 <p class="field-error">{{ msg }}</p>
               } @else if (editing()) {
-                <p class="field-hint">
-                  El año no se puede modificar después de crear la sección.
-                </p>
+                <p class="field-hint">El año no se puede modificar después de crear la sección.</p>
               } @else {
                 <p class="field-hint">
                   Solo se listan años en estado <code>PLANNING</code> o <code>ACTIVE</code>.
@@ -150,11 +133,7 @@ import {
 
             <div class="field sm:col-span-6">
               <label class="label" for="section-grade">Grado *</label>
-              <select
-                id="section-grade"
-                class="select"
-                formControlName="gradePublicUuid"
-              >
+              <select id="section-grade" class="select" formControlName="gradePublicUuid">
                 <option [ngValue]="null" disabled>Selecciona un grado…</option>
                 @for (g of gradesForSelectedLevel(); track g.publicUuid) {
                   <option [ngValue]="g.publicUuid">{{ g.name }}</option>
@@ -206,9 +185,7 @@ import {
           </div>
 
           <footer class="flex flex-wrap items-center justify-end gap-2 pt-2">
-            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">
-              Cancelar
-            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">Cancelar</button>
             <button
               type="submit"
               class="btn btn-primary btn-sm"
@@ -226,7 +203,7 @@ import {
         </form>
       </div>
     </div>
-  `
+  `,
 })
 export class SectionFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -247,11 +224,9 @@ export class SectionFormModalComponent implements OnInit {
   protected readonly errorBanner = this.store.error;
 
   protected readonly editing = computed(() => this.section() !== null);
-  protected readonly title = computed(() =>
-    this.editing() ? 'Editar sección' : 'Nueva sección'
-  );
+  protected readonly title = computed(() => (this.editing() ? 'Editar sección' : 'Nueva sección'));
   protected readonly submitLabel = computed(() =>
-    this.editing() ? 'Guardar cambios' : 'Crear sección'
+    this.editing() ? 'Guardar cambios' : 'Crear sección',
   );
 
   /**
@@ -265,9 +240,7 @@ export class SectionFormModalComponent implements OnInit {
     const sec = this.section();
     if (sec) {
       return list.filter(
-        (y) =>
-          isYearActivatable(y.status) ||
-          y.publicUuid === sec.academicYearPublicUuid
+        (y) => isYearActivatable(y.status) || y.publicUuid === sec.academicYearPublicUuid,
       );
     }
     return list.filter((y) => isYearActivatable(y.status));
@@ -293,7 +266,7 @@ export class SectionFormModalComponent implements OnInit {
     academicYearPublicUuid: [null as string | null, [Validators.required]],
     gradePublicUuid: [null as string | null, [Validators.required]],
     name: ['', [Validators.required, Validators.maxLength(40)]],
-    capacity: [null as number | null, [Validators.min(1)]]
+    capacity: [null as number | null, [Validators.min(1)]],
   });
 
   constructor() {
@@ -318,7 +291,7 @@ export class SectionFormModalComponent implements OnInit {
         academicYearPublicUuid: sec.academicYearPublicUuid,
         gradePublicUuid: sec.gradePublicUuid,
         name: sec.name,
-        capacity: sec.capacity ?? null
+        capacity: sec.capacity ?? null,
       });
       /* En edición, year y grade son inmutables: el backend rechaza
        * mover una sección entre tuplas (year, grade). Los dejamos
@@ -344,21 +317,19 @@ export class SectionFormModalComponent implements OnInit {
      * catálogo cargado en memoria. */
     let resolvedLevelId = levelId;
     if (gradeId && !resolvedLevelId) {
-      const owner = this.levels().find((l) =>
-        l.grades.some((g) => g.publicUuid === gradeId)
-      );
+      const owner = this.levels().find((l) => l.grades.some((g) => g.publicUuid === gradeId));
       resolvedLevelId = owner?.publicUuid ?? null;
     }
     this.selectedLevelId.set(resolvedLevelId);
 
     this.form.patchValue({
       academicYearPublicUuid: yearId,
-      gradePublicUuid: gradeId
+      gradePublicUuid: gradeId,
     });
 
     if (yearId && gradeId) {
       this.form.patchValue({
-        name: this.store.suggestSectionName(yearId, gradeId)
+        name: this.store.suggestSectionName(yearId, gradeId),
       });
     }
   }
@@ -394,7 +365,7 @@ export class SectionFormModalComponent implements OnInit {
       if (sec) {
         const updated = await this.store.updateSection(sec.publicUuid, {
           name: v.name?.trim(),
-          capacity
+          capacity,
         });
         if (updated) this.saved.emit(updated);
       } else {
@@ -402,12 +373,11 @@ export class SectionFormModalComponent implements OnInit {
           academicYearPublicUuid: v.academicYearPublicUuid as string,
           gradePublicUuid: v.gradePublicUuid as string,
           name: (v.name ?? '').trim(),
-          capacity
+          capacity,
         });
         if (created) this.saved.emit(created);
       }
-    }
-    catch (err) {
+    } catch (err) {
       this.applyServerErrors(err);
     }
   }
@@ -419,9 +389,12 @@ export class SectionFormModalComponent implements OnInit {
 
   protected statusLabel(status: AcademicYearStatus): string {
     switch (status) {
-      case AcademicYearStatus.Planning: return 'Planificación';
-      case AcademicYearStatus.Active:   return 'Activo';
-      case AcademicYearStatus.Closed:   return 'Cerrado';
+      case AcademicYearStatus.Planning:
+        return 'Planificación';
+      case AcademicYearStatus.Active:
+        return 'Activo';
+      case AcademicYearStatus.Closed:
+        return 'Cerrado';
     }
   }
 

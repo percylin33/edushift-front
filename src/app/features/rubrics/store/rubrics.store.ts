@@ -6,7 +6,7 @@ import {
   RubricDetail,
   RubricFilters,
   RubricRow,
-  UpdateRubricRequest
+  UpdateRubricRequest,
 } from '../models';
 
 /**
@@ -53,15 +53,9 @@ export class RubricsStore {
   readonly error = this._error.asReadonly();
 
   readonly hasRows = computed(() => this._rows().length > 0);
-  readonly hasSystemRubrics = computed(() =>
-    this._rows().some((r) => r.isSystem)
-  );
-  readonly hasUserRubrics = computed(() =>
-    this._rows().some((r) => !r.isSystem)
-  );
-  readonly isEmpty = computed(
-    () => !this._loading() && this._rows().length === 0
-  );
+  readonly hasSystemRubrics = computed(() => this._rows().some((r) => r.isSystem));
+  readonly hasUserRubrics = computed(() => this._rows().some((r) => !r.isSystem));
+  readonly isEmpty = computed(() => !this._loading() && this._rows().length === 0);
 
   // ===========================================================================
   // List
@@ -124,14 +118,12 @@ export class RubricsStore {
 
   async fork(
     publicUuid: string,
-    request?: Partial<CreateRubricRequest>
+    request?: Partial<CreateRubricRequest>,
   ): Promise<RubricDetail | null> {
     this._saving.set(true);
     this._error.set(null);
     try {
-      const forked = await firstValueFrom(
-        this.api.forkRubric(publicUuid, request)
-      );
+      const forked = await firstValueFrom(this.api.forkRubric(publicUuid, request));
       this._rows.update((rows) => [this.toRow(forked), ...rows]);
       return forked;
     } catch (err) {
@@ -158,18 +150,13 @@ export class RubricsStore {
     }
   }
 
-  async update(
-    publicUuid: string,
-    patch: UpdateRubricRequest
-  ): Promise<RubricDetail | null> {
+  async update(publicUuid: string, patch: UpdateRubricRequest): Promise<RubricDetail | null> {
     this._saving.set(true);
     this._error.set(null);
     try {
-      const updated = await firstValueFrom(
-        this.api.updateRubric(publicUuid, patch)
-      );
+      const updated = await firstValueFrom(this.api.updateRubric(publicUuid, patch));
       this._rows.update((rows) =>
-        rows.map((r) => (r.publicUuid === publicUuid ? this.toRow(updated) : r))
+        rows.map((r) => (r.publicUuid === publicUuid ? this.toRow(updated) : r)),
       );
       this._selected.set(updated);
       return updated;
@@ -233,12 +220,10 @@ export class RubricsStore {
       isSystem: detail.isSystem,
       parentRubricPublicUuid: detail.parentRubricPublicUuid,
       criterionCount: detail.criteria.length,
-      criterionSummary: detail.criteria.map(
-        (c) => `${c.weight}% ${c.name}`
-      ),
+      criterionSummary: detail.criteria.map((c) => `${c.weight}% ${c.name}`),
       isActive: detail.isActive,
       createdAt: detail.createdAt,
-      updatedAt: detail.updatedAt
+      updatedAt: detail.updatedAt,
     };
   }
 

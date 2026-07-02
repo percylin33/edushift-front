@@ -31,16 +31,14 @@ export class ThemeService {
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly _userTheme = signal<Theme | null>(
-    this.storage.get<Theme>(STORAGE_KEYS.THEME) ?? null
+    this.storage.get<Theme>(STORAGE_KEYS.THEME) ?? null,
   );
   private readonly _tenantTheme = signal<Theme | null>(null);
 
   readonly userTheme = this._userTheme.asReadonly();
   readonly tenantTheme = this._tenantTheme.asReadonly();
 
-  readonly theme = computed<Theme>(
-    () => this._userTheme() ?? this._tenantTheme() ?? Theme.System
-  );
+  readonly theme = computed<Theme>(() => this._userTheme() ?? this._tenantTheme() ?? Theme.System);
 
   /** `true` when dark is currently active (resolves `System` against media query). */
   readonly isDark = computed(() => this.resolveIsDark(this.theme()));

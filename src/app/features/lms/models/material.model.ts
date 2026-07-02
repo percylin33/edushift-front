@@ -30,7 +30,7 @@ export enum MaterialType {
   Image = 'IMAGE',
   Doc = 'DOC',
   Link = 'LINK',
-  Other = 'OTHER'
+  Other = 'OTHER',
 }
 
 /** {@code MaterialResponseRaw} — full payload (BE-7a.1). */
@@ -135,7 +135,7 @@ export function toMaterial(raw: MaterialResponseRaw): Material {
     uploadedByTeacherName: raw.uploadedByTeacherName,
     downloadUrl: raw.downloadUrl ?? null,
     createdAt: new Date(raw.createdAt),
-    updatedAt: raw.updatedAt ? new Date(raw.updatedAt) : null
+    updatedAt: raw.updatedAt ? new Date(raw.updatedAt) : null,
   };
 }
 
@@ -150,7 +150,7 @@ export function toMaterialRow(raw: MaterialSummaryRaw): MaterialRow {
     url: raw.url ?? null,
     uploadedByTeacherName: raw.uploadedByTeacherName,
     sizeBytesDisplay: raw.sizeBytesDisplay ?? null,
-    createdAt: new Date(raw.createdAt)
+    createdAt: new Date(raw.createdAt),
   };
 }
 
@@ -176,7 +176,7 @@ export const ALLOWED_FILE_MIME: ReadonlyArray<string> = [
   'application/vnd.ms-powerpoint',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   'text/plain',
-  'application/zip'
+  'application/zip',
 ] as const;
 
 /** Max upload size (50 MB) — mirrors backend `lms.material.max-file-size`. */
@@ -191,22 +191,32 @@ export const MAX_FILE_SIZE_LABEL = '50 MB';
  */
 export function materialTypeIcon(type: MaterialType): string {
   switch (type) {
-    case MaterialType.Pdf: return 'file-text';
-    case MaterialType.Image: return 'image';
-    case MaterialType.Doc: return 'file-text';
-    case MaterialType.Link: return 'globe';
-    case MaterialType.Other: return 'paperclip';
+    case MaterialType.Pdf:
+      return 'file-text';
+    case MaterialType.Image:
+      return 'image';
+    case MaterialType.Doc:
+      return 'file-text';
+    case MaterialType.Link:
+      return 'globe';
+    case MaterialType.Other:
+      return 'paperclip';
   }
 }
 
 /** Human-readable label per {@link MaterialType}. */
 export function materialTypeLabel(type: MaterialType): string {
   switch (type) {
-    case MaterialType.Pdf: return 'PDF';
-    case MaterialType.Image: return 'Imagen';
-    case MaterialType.Doc: return 'Documento';
-    case MaterialType.Link: return 'Enlace';
-    case MaterialType.Other: return 'Otro';
+    case MaterialType.Pdf:
+      return 'PDF';
+    case MaterialType.Image:
+      return 'Imagen';
+    case MaterialType.Doc:
+      return 'Documento';
+    case MaterialType.Link:
+      return 'Enlace';
+    case MaterialType.Other:
+      return 'Otro';
   }
 }
 

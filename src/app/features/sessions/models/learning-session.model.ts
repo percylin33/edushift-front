@@ -6,21 +6,21 @@ export enum SessionStatus {
   PLANNED = 'PLANNED',
   IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED'
+  CANCELLED = 'CANCELLED',
 }
 
 export const SESSION_STATUS_LABELS: Record<SessionStatus, string> = {
   [SessionStatus.PLANNED]: 'Planificada',
   [SessionStatus.IN_PROGRESS]: 'En Progreso',
   [SessionStatus.COMPLETED]: 'Completada',
-  [SessionStatus.CANCELLED]: 'Cancelada'
+  [SessionStatus.CANCELLED]: 'Cancelada',
 };
 
 export const SESSION_STATUS_BADGE_CLASS: Record<SessionStatus, string> = {
   [SessionStatus.PLANNED]: 'badge-neutral',
   [SessionStatus.IN_PROGRESS]: 'badge-primary',
   [SessionStatus.COMPLETED]: 'badge-success',
-  [SessionStatus.CANCELLED]: 'badge-danger'
+  [SessionStatus.CANCELLED]: 'badge-danger',
 };
 
 // =============================================================================
@@ -165,7 +165,14 @@ export interface LearningSessionDetail {
     teacher: { publicUuid: string; firstName: string; lastName: string };
     course: { publicUuid: string; code: string; name: string };
     section: { publicUuid: string; name: string };
-    period: { publicUuid: string; periodType: string; ordinal: number; name: string; startDate: Date; endDate: Date };
+    period: {
+      publicUuid: string;
+      periodType: string;
+      ordinal: number;
+      name: string;
+      startDate: Date;
+      endDate: Date;
+    };
   };
   unit: { publicUuid: string; name: string; displayOrder: number };
   title: string;
@@ -199,7 +206,7 @@ export interface LearningSessionFilters {
   periodUuid?: string;
   status?: SessionStatus;
   dateFrom?: string; // YYYY-MM-DD
-  dateTo?: string;   // YYYY-MM-DD
+  dateTo?: string; // YYYY-MM-DD
 }
 
 export interface CreateLearningSessionRequest {

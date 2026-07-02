@@ -22,7 +22,7 @@ export enum AttemptStatus {
   Submitted = 'SUBMITTED',
   AutoGraded = 'AUTO_GRADED',
   Graded = 'GRADED',
-  Expired = 'EXPIRED'
+  Expired = 'EXPIRED',
 }
 
 /**
@@ -42,7 +42,7 @@ export enum AnswerStatus {
   /** Auto-grader ran (MC/TF deterministic; SHORT_ANSWER keyword-seed). */
   AutoGraded = 'AUTO_GRADED',
   /** A teacher applied a manual grade (SHORT_ANSWER only). */
-  ManuallyGraded = 'MANUALLY_GRADED'
+  ManuallyGraded = 'MANUALLY_GRADED',
 }
 
 /**
@@ -285,9 +285,9 @@ function parseDate(value: string | null | undefined): Date | null {
 function deriveAnswerStatus(raw: AnswerResponseRaw): AnswerStatus {
   if (raw.pointsAwarded === null || raw.pointsAwarded === undefined) {
     const hasPayload =
-      raw.selectedOptionId !== null && raw.selectedOptionId !== undefined
-      || raw.selectedBoolean !== null && raw.selectedBoolean !== undefined
-      || raw.textAnswer !== null && raw.textAnswer !== undefined;
+      (raw.selectedOptionId !== null && raw.selectedOptionId !== undefined) ||
+      (raw.selectedBoolean !== null && raw.selectedBoolean !== undefined) ||
+      (raw.textAnswer !== null && raw.textAnswer !== undefined);
     return hasPayload ? AnswerStatus.Saved : AnswerStatus.Empty;
   }
   if (raw.gradedByUserId !== null && raw.gradedByUserId !== undefined) {
@@ -308,7 +308,7 @@ export function toAnswerRow(raw: AnswerResponseRaw): AnswerRow {
     gradedByUserId: raw.gradedByUserId ?? null,
     gradedAt: parseDate(raw.gradedAt),
     updatedAt: parseDate(raw.updatedAt),
-    status: deriveAnswerStatus(raw)
+    status: deriveAnswerStatus(raw),
   };
 }
 
@@ -334,7 +334,7 @@ export function toAttemptDetail(raw: AttemptResponseRaw): AttemptDetail {
     revealCorrectness: !!raw.revealCorrectness,
     answers: (raw.answers ?? []).map(toAnswerRow),
     createdAt: parseDate(raw.createdAt),
-    updatedAt: parseDate(raw.updatedAt)
+    updatedAt: parseDate(raw.updatedAt),
   };
 }
 
@@ -353,7 +353,7 @@ export function toAttemptSummaryRow(raw: AttemptSummaryRaw): AttemptSummaryRow {
     startedAt: parseDate(raw.startedAt) ?? new Date(0),
     submittedAt: parseDate(raw.submittedAt),
     gradedAt: parseDate(raw.gradedAt),
-    createdAt: parseDate(raw.createdAt)
+    createdAt: parseDate(raw.createdAt),
   };
 }
 
@@ -366,7 +366,7 @@ export function toGradingQueueItem(raw: GradingQueueItemRaw): GradingQueueItem {
     quizTitle: raw.quizTitle,
     questionPrompt: raw.questionPrompt,
     questionPoints: raw.questionPoints,
-    textAnswer: raw.textAnswer
+    textAnswer: raw.textAnswer,
   };
 }
 
@@ -391,7 +391,7 @@ export function isAttemptAwaitingManualGrade(detail: Pick<AttemptDetail, 'status
 
 /** True when the attempt is graded and the taker (or anyone with reveal) can see correctness. */
 export function canRevealCorrectnessFor(
-  detail: Pick<AttemptDetail, 'status' | 'revealCorrectness'>
+  detail: Pick<AttemptDetail, 'status' | 'revealCorrectness'>,
 ): boolean {
   return detail.revealCorrectness || detail.status === AttemptStatus.Graded;
 }
@@ -402,7 +402,7 @@ export const ATTEMPT_STATUS_LABEL: Record<AttemptStatus, string> = {
   [AttemptStatus.Submitted]: 'Enviado',
   [AttemptStatus.AutoGraded]: 'Auto-calificado (pendiente manual)',
   [AttemptStatus.Graded]: 'Calificado',
-  [AttemptStatus.Expired]: 'Expirado'
+  [AttemptStatus.Expired]: 'Expirado',
 };
 
 /** Tailwind color hint for an attempt status. */
@@ -411,7 +411,7 @@ export const ATTEMPT_STATUS_COLOR: Record<AttemptStatus, string> = {
   [AttemptStatus.Submitted]: 'text-amber-700 bg-amber-50 ring-amber-200',
   [AttemptStatus.AutoGraded]: 'text-violet-700 bg-violet-50 ring-violet-200',
   [AttemptStatus.Graded]: 'text-emerald-700 bg-emerald-50 ring-emerald-200',
-  [AttemptStatus.Expired]: 'text-slate-600 bg-slate-50 ring-slate-200'
+  [AttemptStatus.Expired]: 'text-slate-600 bg-slate-50 ring-slate-200',
 };
 
 /** Tailwind dot color for an attempt status. */
@@ -420,7 +420,7 @@ export const ATTEMPT_STATUS_DOT: Record<AttemptStatus, string> = {
   [AttemptStatus.Submitted]: 'bg-amber-500',
   [AttemptStatus.AutoGraded]: 'bg-violet-500',
   [AttemptStatus.Graded]: 'bg-emerald-500',
-  [AttemptStatus.Expired]: 'bg-slate-400'
+  [AttemptStatus.Expired]: 'bg-slate-400',
 };
 
 /** Label for an answer status. */
@@ -428,7 +428,7 @@ export const ANSWER_STATUS_LABEL: Record<AnswerStatus, string> = {
   [AnswerStatus.Empty]: 'Sin responder',
   [AnswerStatus.Saved]: 'Guardado',
   [AnswerStatus.AutoGraded]: 'Auto-calificado',
-  [AnswerStatus.ManuallyGraded]: 'Calificado'
+  [AnswerStatus.ManuallyGraded]: 'Calificado',
 };
 
 /** Tailwind color for an answer status. */
@@ -436,7 +436,7 @@ export const ANSWER_STATUS_COLOR: Record<AnswerStatus, string> = {
   [AnswerStatus.Empty]: 'text-slate-600 bg-slate-50 ring-slate-200',
   [AnswerStatus.Saved]: 'text-blue-700 bg-blue-50 ring-blue-200',
   [AnswerStatus.AutoGraded]: 'text-violet-700 bg-violet-50 ring-violet-200',
-  [AnswerStatus.ManuallyGraded]: 'text-emerald-700 bg-emerald-50 ring-emerald-200'
+  [AnswerStatus.ManuallyGraded]: 'text-emerald-700 bg-emerald-50 ring-emerald-200',
 };
 
 export const ALL_ATTEMPT_STATUSES: readonly AttemptStatus[] = [
@@ -444,5 +444,5 @@ export const ALL_ATTEMPT_STATUSES: readonly AttemptStatus[] = [
   AttemptStatus.Submitted,
   AttemptStatus.AutoGraded,
   AttemptStatus.Graded,
-  AttemptStatus.Expired
+  AttemptStatus.Expired,
 ];

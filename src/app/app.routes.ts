@@ -24,7 +24,7 @@ export const routes: Routes = [
   ...PRIVATE_ROUTES,
   {
     path: 'payments',
-    children: PAYMENTS_ROUTES
+    children: PAYMENTS_ROUTES,
   },
-  ...ERROR_ROUTES
+  ...ERROR_ROUTES,
 ];

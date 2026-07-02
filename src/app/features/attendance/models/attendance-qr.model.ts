@@ -1,5 +1,5 @@
 /**
- * Mirror of the backend `StudentAttendanceQr` aggregate (Sprint 6 / FE-6.1).
+ * Mirror of the backend `AttendanceQrInfo` record (Sprint 6 / FE-6.3).
  *
  * <h3>Where the JWT lives</h3>
  * The raw JWT token (`qrToken`) is **not** stored on this type: it
@@ -7,35 +7,29 @@
  * rendered directly by the print/export flow. The metadata below is
  * what the UI needs to drive the "rotate / reissue" CTA and to render
  * "QR emitido hace 3 días" hints in the credential card.
+ *
+ * <h3>Why no `publicUuid` / `version` / `active`</h3>
+ * The backend's `student_attendance_qr` table intentionally has no
+ * `public_uuid` (see V30 migration comments): the QR is not exposed
+ * as a REST resource with its own URL, only rendered as an image.
+ * Hence the read-only `/info` endpoint returns just the lifecycle
+ * timestamps + the revoked-reason of the previous row when relevant.
  */
 
-export type QrRevokedReason =
-  | 'STUDENT_REQUEST'
-  | 'ADMIN_ROTATION'
-  | 'COMPROMISED'
-  | 'GRADUATED'
-  | 'WITHDRAWN';
+export type QrRevokedReason = 'ROTATED' | 'LOST' | 'ADMIN_REVOKE';
 
 export interface AttendanceQrInfoResponseRaw {
-  publicUuid: string;
   studentPublicUuid: string;
-  version: number;
   issuedAt: string;
-  revokedAt?: string | null;
-  revokedReason?: QrRevokedReason | null;
-  lastRotatedAt?: string | null;
-  active: boolean;
+  previousRevokedAt?: string | null;
+  previousRevokedReason?: QrRevokedReason | null;
 }
 
 export interface AttendanceQrInfo {
-  publicUuid: string;
   studentPublicUuid: string;
-  version: number;
   issuedAt: Date;
-  revokedAt?: Date;
-  revokedReason?: QrRevokedReason;
-  lastRotatedAt?: Date;
-  active: boolean;
+  previousRevokedAt?: Date;
+  previousRevokedReason?: QrRevokedReason;
 }
 
 /** Body of `POST /v1/attendance/sessions/{id}/check-in`. */

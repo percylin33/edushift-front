@@ -6,8 +6,8 @@
  * metadata only — the platform never gates features on gender.
  */
 export enum Gender {
-  Male         = 'MALE',
-  Female       = 'FEMALE',
-  Other        = 'OTHER',
-  NotSpecified = 'NOT_SPECIFIED'
+  Male = 'MALE',
+  Female = 'FEMALE',
+  Other = 'OTHER',
+  NotSpecified = 'NOT_SPECIFIED',
 }

@@ -6,7 +6,7 @@ import {
   computed,
   inject,
   output,
-  signal
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -14,10 +14,7 @@ import { IconComponent } from '@shared/components';
 import { AcademicApiService } from '@features/academic/services';
 import { AcademicLevel, Grade, SectionRow } from '@features/academic/models';
 import { AttendanceApiService } from '../services';
-import {
-  AttendanceListResult,
-  AttendanceListPage
-} from '../services/attendance-api.service';
+import { AttendanceListResult, AttendanceListPage } from '../services/attendance-api.service';
 import { AttendanceStudentLookupItem } from '../models';
 
 /**
@@ -114,7 +111,7 @@ import { AttendanceStudentLookupItem } from '../models';
         <app-icon
           name="search"
           [size]="16"
-          class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+          class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
         />
         <input
           type="search"
@@ -130,13 +127,13 @@ import { AttendanceStudentLookupItem } from '../models';
 
       <!-- Results -->
       <div
-        class="rounded-md border bg-base-100 max-h-72 overflow-y-auto"
+        class="bg-base-100 max-h-72 overflow-y-auto rounded-md border"
         data-testid="picker-results"
       >
         @if (loadingResults()) {
           <ul class="divide-y" aria-busy="true" aria-live="polite">
             @for (_ of [1, 2, 3]; track $index) {
-              <li class="flex items-center gap-3 p-3 animate-pulse">
+              <li class="flex animate-pulse items-center gap-3 p-3">
                 <div class="h-9 w-9 rounded-full bg-slate-200"></div>
                 <div class="flex-1 space-y-2">
                   <div class="h-3 w-2/3 rounded bg-slate-200"></div>
@@ -146,19 +143,16 @@ import { AttendanceStudentLookupItem } from '../models';
             }
           </ul>
         } @else if (error()) {
-          <div
-            class="flex items-center gap-2 p-4 text-sm text-error"
-            role="alert"
-          >
+          <div class="text-error flex items-center gap-2 p-4 text-sm" role="alert">
             <app-icon name="alert-circle" [size]="18" />
             <span>{{ error() }}</span>
           </div>
         } @else if (!hasQueryOrFilter()) {
-          <div class="p-4 text-sm text-slate-500 text-center">
+          <div class="p-4 text-center text-sm text-slate-500">
             Empieza a escribir o aplica filtros para buscar.
           </div>
         } @else if (results().length === 0) {
-          <div class="p-4 text-sm text-slate-500 text-center">
+          <div class="p-4 text-center text-sm text-slate-500">
             Sin resultados para los filtros aplicados.
           </div>
         } @else {
@@ -167,32 +161,28 @@ import { AttendanceStudentLookupItem } from '../models';
               <li>
                 <button
                   type="button"
-                  class="w-full flex items-center gap-3 p-3 text-left hover:bg-base-200 focus:bg-base-200 focus:outline-none"
+                  class="hover:bg-base-200 focus:bg-base-200 flex w-full items-center gap-3 p-3 text-left focus:outline-none"
                   (click)="select(item)"
                   data-testid="picker-result"
                 >
                   <span
-                    class="h-9 w-9 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center text-sm"
+                    class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
                     aria-hidden="true"
                   >
                     {{ initials(item) }}
                   </span>
-                  <span class="flex-1 min-w-0">
-                    <span class="block font-medium truncate">
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate font-medium">
                       {{ item.fullName }}
                     </span>
-                    <span class="block text-xs text-slate-500 truncate">
+                    <span class="block truncate text-xs text-slate-500">
                       {{ item.gradeName }} · {{ item.sectionName }}
                       @if (item.documentNumber) {
                         · DNI {{ item.documentNumber }}
                       }
                     </span>
                   </span>
-                  <app-icon
-                    name="check"
-                    [size]="16"
-                    class="text-slate-400"
-                  />
+                  <app-icon name="check" [size]="16" class="text-slate-400" />
                 </button>
               </li>
             }
@@ -200,7 +190,7 @@ import { AttendanceStudentLookupItem } from '../models';
         }
       </div>
     </div>
-  `
+  `,
 })
 export class StudentSearchPickerComponent implements OnInit {
   /** Fires when the auxiliary picks a student from the list. */
@@ -239,7 +229,7 @@ export class StudentSearchPickerComponent implements OnInit {
       this.query().trim().length > 0 ||
       Boolean(this.levelUuid()) ||
       Boolean(this.gradeUuid()) ||
-      Boolean(this.sectionUuid())
+      Boolean(this.sectionUuid()),
   );
 
   /** Token used to ignore stale fetches when filters change rapidly. */
@@ -308,7 +298,7 @@ export class StudentSearchPickerComponent implements OnInit {
     this.loadingSections.set(true);
     try {
       const sections = await firstValueFrom(
-        this.academicApi.listSections({ gradePublicUuid: gradeUuid })
+        this.academicApi.listSections({ gradePublicUuid: gradeUuid }),
       );
       this.sections.set(sections);
     } catch {
@@ -345,18 +335,17 @@ export class StudentSearchPickerComponent implements OnInit {
     this.error.set(null);
     try {
       const page: AttendanceListPage = { page: 0, size: PAGE_SIZE };
-      const result: AttendanceListResult<AttendanceStudentLookupItem> =
-        await firstValueFrom(
-          this.attendanceApi.lookupStudents(
-            {
-              q: this.query().trim() || undefined,
-              levelPublicUuid: this.levelUuid() ?? undefined,
-              gradePublicUuid: this.gradeUuid() ?? undefined,
-              sectionPublicUuid: this.sectionUuid() ?? undefined
-            },
-            page
-          )
-        );
+      const result: AttendanceListResult<AttendanceStudentLookupItem> = await firstValueFrom(
+        this.attendanceApi.lookupStudents(
+          {
+            q: this.query().trim() || undefined,
+            levelPublicUuid: this.levelUuid() ?? undefined,
+            gradePublicUuid: this.gradeUuid() ?? undefined,
+            sectionPublicUuid: this.sectionUuid() ?? undefined,
+          },
+          page,
+        ),
+      );
       if (token !== this.fetchToken) {
         // Stale response — a newer fetch has been kicked off; discard.
         return;

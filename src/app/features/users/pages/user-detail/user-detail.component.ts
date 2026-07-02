@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
@@ -8,7 +15,7 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import { UserRoleBadgeComponent, UserStatusBadgeComponent } from '../../components';
 import { UpdateUserRequest, UserDetail } from '../../models';
@@ -52,7 +59,7 @@ import { UsersStore } from '../../store';
     IconComponent,
     SpinnerComponent,
     UserRoleBadgeComponent,
-    UserStatusBadgeComponent
+    UserStatusBadgeComponent,
   ],
   template: `
     <app-page-container size="default">
@@ -105,7 +112,9 @@ import { UsersStore } from '../../store';
               <p class="font-medium">No pudimos guardar los cambios.</p>
               <p class="mt-1 text-xs opacity-80">{{ err }}</p>
             </div>
-            <button type="button" class="btn btn-ghost btn-sm" (click)="store.clearError()">Cerrar</button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="store.clearError()">
+              Cerrar
+            </button>
           </div>
         }
 
@@ -135,21 +144,11 @@ import { UsersStore } from '../../store';
             <div class="card-body grid gap-4 sm:grid-cols-2">
               <div class="field">
                 <label class="label" for="user-firstName">Nombre</label>
-                <input
-                  id="user-firstName"
-                  type="text"
-                  class="input"
-                  [(ngModel)]="firstName"
-                />
+                <input id="user-firstName" type="text" class="input" [(ngModel)]="firstName" />
               </div>
               <div class="field">
                 <label class="label" for="user-lastName">Apellido</label>
-                <input
-                  id="user-lastName"
-                  type="text"
-                  class="input"
-                  [(ngModel)]="lastName"
-                />
+                <input id="user-lastName" type="text" class="input" [(ngModel)]="lastName" />
               </div>
               <div class="field">
                 <label class="label" for="user-email">Email</label>
@@ -304,17 +303,21 @@ import { UsersStore } from '../../store';
             <app-icon name="alert-circle" [size]="32" class="mx-auto text-danger" />
             <h2 class="mt-3 text-lg font-semibold text-content">No pudimos abrir el usuario</h2>
             <p class="mt-1 text-sm text-content-muted">
-              {{ loadError() ?? 'Es posible que ya no exista o que no tengas permisos para verlo.' }}
+              {{
+                loadError() ?? 'Es posible que ya no exista o que no tengas permisos para verlo.'
+              }}
             </p>
             <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
-              <button type="button" class="btn btn-outline btn-sm" (click)="retry()">Reintentar</button>
+              <button type="button" class="btn btn-outline btn-sm" (click)="retry()">
+                Reintentar
+              </button>
               <a [routerLink]="usersLink" class="btn btn-ghost btn-sm">Volver al listado</a>
             </div>
           </div>
         </div>
       }
     </app-page-container>
-  `
+  `,
 })
 export class UserDetailComponent implements OnInit {
   protected readonly store = inject(UsersStore);
@@ -332,7 +335,7 @@ export class UserDetailComponent implements OnInit {
 
   /** Distinguishes a fatal load error (no user yet) from a save error. */
   protected readonly loadError = computed(() =>
-    this.user() === null && !this.loading() ? this.saveError() : null
+    this.user() === null && !this.loading() ? this.saveError() : null,
   );
 
   // ---- profile form state ----
@@ -346,32 +349,36 @@ export class UserDetailComponent implements OnInit {
   protected readonly resetSent = signal(false);
 
   /** Manageable role catalog. SUPER_ADMIN / GUEST are intentionally hidden. */
-  protected readonly roleOptions: ReadonlyArray<{ value: UserRole; label: string; description: string }> = [
+  protected readonly roleOptions: ReadonlyArray<{
+    value: UserRole;
+    label: string;
+    description: string;
+  }> = [
     {
       value: UserRole.TenantAdmin,
       label: 'Administrador',
-      description: 'Acceso total al workspace y a la gestión de usuarios.'
+      description: 'Acceso total al workspace y a la gestión de usuarios.',
     },
     {
       value: UserRole.Staff,
       label: 'Staff',
-      description: 'Personal administrativo del colegio sin acceso de admin.'
+      description: 'Personal administrativo del colegio sin acceso de admin.',
     },
     {
       value: UserRole.Teacher,
       label: 'Profesor',
-      description: 'Carga académica, asistencia y notas.'
+      description: 'Carga académica, asistencia y notas.',
     },
     {
       value: UserRole.Student,
       label: 'Estudiante',
-      description: 'Acceso al portal del alumno (lectura).'
+      description: 'Acceso al portal del alumno (lectura).',
     },
     {
       value: UserRole.Guardian,
       label: 'Tutor',
-      description: 'Tutor o apoderado de uno o más estudiantes.'
-    }
+      description: 'Tutor o apoderado de uno o más estudiantes.',
+    },
   ];
 
   ngOnInit(): void {
@@ -409,10 +416,12 @@ export class UserDetailComponent implements OnInit {
     if (!u) return;
 
     const patch: UpdateUserRequest = {};
-    if (this.firstName !== (u.firstName ?? '')) patch.firstName = this.firstName.trim() || undefined;
-    if (this.lastName !== (u.lastName ?? ''))   patch.lastName  = this.lastName.trim() || undefined;
-    if (this.phone !== (u.phone ?? ''))         patch.phone     = this.phone.trim() || undefined;
-    if (this.avatarUrl !== (u.avatarUrl ?? '')) patch.avatarUrl = this.avatarUrl.trim() || undefined;
+    if (this.firstName !== (u.firstName ?? ''))
+      patch.firstName = this.firstName.trim() || undefined;
+    if (this.lastName !== (u.lastName ?? '')) patch.lastName = this.lastName.trim() || undefined;
+    if (this.phone !== (u.phone ?? '')) patch.phone = this.phone.trim() || undefined;
+    if (this.avatarUrl !== (u.avatarUrl ?? ''))
+      patch.avatarUrl = this.avatarUrl.trim() || undefined;
 
     if (Object.keys(patch).length === 0) return;
 
@@ -521,7 +530,7 @@ export class UserDetailComponent implements OnInit {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 
@@ -537,8 +546,8 @@ export class UserDetailComponent implements OnInit {
   /** Mirror the latest detail into the form fields + role checkboxes. */
   private hydrateProfile(detail: UserDetail): void {
     this.firstName = detail.firstName ?? '';
-    this.lastName  = detail.lastName ?? '';
-    this.phone     = detail.phone ?? '';
+    this.lastName = detail.lastName ?? '';
+    this.phone = detail.phone ?? '';
     this.avatarUrl = detail.avatarUrl ?? '';
     this.pendingRoles.set([...detail.roles]);
   }

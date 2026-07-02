@@ -5,7 +5,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ROUTES } from '@core/constants';
@@ -15,7 +15,7 @@ import {
   IconComponent,
   SpinnerComponent,
   PageContainerComponent,
-  PageHeaderComponent
+  PageHeaderComponent,
 } from '@shared/components';
 import { SessionsApiService } from '../../services';
 import {
@@ -23,7 +23,7 @@ import {
   LearningSessionFilters,
   SessionStatus,
   SESSION_STATUS_LABELS,
-  SESSION_STATUS_BADGE_CLASS
+  SESSION_STATUS_BADGE_CLASS,
 } from '../../models';
 
 /**
@@ -47,7 +47,7 @@ import {
     IconComponent,
     SpinnerComponent,
     PageContainerComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
   ],
   template: `
     <app-page-container size="wide">
@@ -56,11 +56,7 @@ import {
         title="Listado de Sesiones"
         subtitle="Planifica, ejecuta y da seguimiento a las sesiones de clase."
       >
-        <button
-          type="button"
-          class="btn btn-primary btn-sm"
-          (click)="onCreate()"
-        >
+        <button type="button" class="btn btn-primary btn-sm" (click)="onCreate()">
           <app-icon name="plus" [size]="16" />
           <span>Nueva Sesión</span>
         </button>
@@ -74,7 +70,7 @@ import {
             <select
               class="input"
               [value]="filters().status ?? ''"
-              (change)="onFilterChange('status', ($any($event.target).value) || undefined)"
+              (change)="onFilterChange('status', $any($event.target).value || undefined)"
             >
               <option value="">Todos</option>
               @for (s of statuses; track s) {
@@ -89,7 +85,7 @@ import {
               type="date"
               class="input"
               [value]="filters().dateFrom ?? ''"
-              (change)="onFilterChange('dateFrom', ($any($event.target).value) || undefined)"
+              (change)="onFilterChange('dateFrom', $any($event.target).value || undefined)"
             />
           </div>
 
@@ -99,16 +95,12 @@ import {
               type="date"
               class="input"
               [value]="filters().dateTo ?? ''"
-              (change)="onFilterChange('dateTo', ($any($event.target).value) || undefined)"
+              (change)="onFilterChange('dateTo', $any($event.target).value || undefined)"
             />
           </div>
 
           <div class="flex items-end">
-            <button
-              type="button"
-              class="btn btn-ghost btn-sm w-full"
-              (click)="clearFilters()"
-            >
+            <button type="button" class="btn btn-ghost btn-sm w-full" (click)="clearFilters()">
               <app-icon name="x" [size]="16" />
               <span>Limpiar filtros</span>
             </button>
@@ -118,7 +110,9 @@ import {
 
       <!-- Bulk Actions -->
       @if (selectedSessions().size > 0) {
-        <div class="flex items-center justify-between bg-primary-50 border border-primary-200 rounded-md p-3 mb-4">
+        <div
+          class="mb-4 flex items-center justify-between rounded-md border border-primary-200 bg-primary-50 p-3"
+        >
           <span class="text-sm font-medium text-primary-700">
             {{ selectedSessions().size }} sesión(es) seleccionada(s)
           </span>
@@ -202,11 +196,15 @@ import {
                         class="form-checkbox"
                         [checked]="selectedSessions().has(session.publicUuid)"
                         (change)="toggleSelection(session.publicUuid)"
-                        [disabled]="session.status !== 'PLANNED' && session.status !== 'IN_PROGRESS'"
+                        [disabled]="
+                          session.status !== 'PLANNED' && session.status !== 'IN_PROGRESS'
+                        "
                       />
                     </td>
                     <td>
-                      <p class="font-medium text-content">{{ formatDate(session.scheduledDate) }}</p>
+                      <p class="font-medium text-content">
+                        {{ formatDate(session.scheduledDate) }}
+                      </p>
                       <p class="text-xs text-content-muted">{{ session.durationMinutes }} min</p>
                     </td>
                     <td>
@@ -215,7 +213,9 @@ import {
                     </td>
                     <td class="text-content">{{ session.sectionName }}</td>
                     <td class="text-content">
-                      <span class="text-xs text-content-muted">{{ session.unitDisplayOrder }}.</span>
+                      <span class="text-xs text-content-muted"
+                        >{{ session.unitDisplayOrder }}.</span
+                      >
                       {{ session.unitName }}
                     </td>
                     <td>
@@ -279,18 +279,20 @@ import {
   `,
   styles: [
     `
-      :host { display: block; }
+      :host {
+        display: block;
+      }
       .table {
-        @apply w-full text-sm text-left;
+        @apply w-full text-left text-sm;
       }
       .table th {
-        @apply px-4 py-3 font-semibold text-content-muted uppercase text-xs tracking-wider border-b border-border-subtle bg-surface-subtle;
+        @apply border-b border-border-subtle bg-surface-subtle px-4 py-3 text-xs font-semibold uppercase tracking-wider text-content-muted;
       }
       .table td {
-        @apply px-4 py-3 border-b border-border-subtle;
+        @apply border-b border-border-subtle px-4 py-3;
       }
-    `
-  ]
+    `,
+  ],
 })
 export class SessionsListComponent implements OnInit {
   private readonly api = inject(SessionsApiService);
@@ -309,7 +311,7 @@ export class SessionsListComponent implements OnInit {
     return {
       status: (qp.get('status') as SessionStatus | null) || undefined,
       dateFrom: qp.get('dateFrom') || undefined,
-      dateTo: qp.get('dateTo') || undefined
+      dateTo: qp.get('dateTo') || undefined,
     };
   });
 
@@ -317,7 +319,7 @@ export class SessionsListComponent implements OnInit {
     SessionStatus.PLANNED,
     SessionStatus.IN_PROGRESS,
     SessionStatus.COMPLETED,
-    SessionStatus.CANCELLED
+    SessionStatus.CANCELLED,
   ];
 
   async ngOnInit(): Promise<void> {
@@ -341,7 +343,7 @@ export class SessionsListComponent implements OnInit {
   protected onFilterChange(key: keyof LearningSessionFilters, value: string | undefined): void {
     const current = this.filters();
     const next: LearningSessionFilters = { ...current, [key]: value };
-    
+
     // Limpiar valores undefined para no ensuciar la URL
     const cleanParams: Record<string, string> = {};
     if (next['status']) cleanParams['status'] = next['status'];
@@ -352,9 +354,9 @@ export class SessionsListComponent implements OnInit {
       relativeTo: this.route,
       queryParams: cleanParams,
       queryParamsHandling: '',
-      replaceUrl: true
+      replaceUrl: true,
     });
-    
+
     // Recargar datos
     this.loading.set(true);
     this.errorMessage.set(null);
@@ -367,7 +369,7 @@ export class SessionsListComponent implements OnInit {
       error: (err) => {
         this.errorMessage.set(err instanceof Error ? err.message : 'Error de red');
         this.loading.set(false);
-      }
+      },
     });
   }
 
@@ -375,7 +377,7 @@ export class SessionsListComponent implements OnInit {
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {},
-      replaceUrl: true
+      replaceUrl: true,
     });
     void this.loadSessions();
   }
@@ -393,7 +395,7 @@ export class SessionsListComponent implements OnInit {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 
@@ -418,24 +420,26 @@ export class SessionsListComponent implements OnInit {
   protected isAllSelected(): boolean {
     if (this.sessions().length === 0) return false;
     const selectable = this.sessions().filter(
-      (s) => s.status === SessionStatus.PLANNED || s.status === SessionStatus.IN_PROGRESS
+      (s) => s.status === SessionStatus.PLANNED || s.status === SessionStatus.IN_PROGRESS,
     );
-    return selectable.length > 0 && selectable.every((s) => this.selectedSessions().has(s.publicUuid));
+    return (
+      selectable.length > 0 && selectable.every((s) => this.selectedSessions().has(s.publicUuid))
+    );
   }
 
   protected isIndeterminate(): boolean {
     const selectable = this.sessions().filter(
-      (s) => s.status === SessionStatus.PLANNED || s.status === SessionStatus.IN_PROGRESS
+      (s) => s.status === SessionStatus.PLANNED || s.status === SessionStatus.IN_PROGRESS,
     );
     const selectedCount = Array.from(this.selectedSessions()).filter((uuid) =>
-      selectable.some((s) => s.publicUuid === uuid)
+      selectable.some((s) => s.publicUuid === uuid),
     ).length;
     return selectedCount > 0 && selectedCount < selectable.length;
   }
 
   protected toggleSelectAll(): void {
     const selectable = this.sessions().filter(
-      (s) => s.status === SessionStatus.PLANNED || s.status === SessionStatus.IN_PROGRESS
+      (s) => s.status === SessionStatus.PLANNED || s.status === SessionStatus.IN_PROGRESS,
     );
     if (this.isAllSelected()) {
       this.clearSelection();
@@ -456,14 +460,14 @@ export class SessionsListComponent implements OnInit {
           const session = this.sessions().find((s) => s.publicUuid === uuid);
           if (!session) return Promise.reject(new Error('Sesión no encontrada'));
           return firstValueFrom(this.api.completeSession(uuid, { version: session.version }));
-        })
+        }),
       );
 
       const failures = results.filter((r) => r.status === 'rejected');
       if (failures.length > 0) {
         this.errorMessage.set(`${failures.length} sesión(es) no pudieron completarse.`);
       }
-      
+
       await this.loadSessions();
     } catch (err) {
       this.errorMessage.set(err instanceof Error ? err.message : 'Error al procesar en lote');
@@ -493,7 +497,9 @@ export class SessionsListComponent implements OnInit {
     if (!confirm(`¿Marcar como completada la sesión "${session.title}"?`)) return;
     this.setActionLoading(session.publicUuid, true);
     try {
-      await firstValueFrom(this.api.completeSession(session.publicUuid, { version: session.version }));
+      await firstValueFrom(
+        this.api.completeSession(session.publicUuid, { version: session.version }),
+      );
       await this.loadSessions();
     } catch (err) {
       this.errorMessage.set(err instanceof Error ? err.message : 'Error al completar');
@@ -505,13 +511,15 @@ export class SessionsListComponent implements OnInit {
   protected async cancelSession(session: LearningSessionRow): Promise<void> {
     const reason = prompt('Motivo de cancelación (opcional):');
     if (reason === null) return; // Usuario canceló el prompt
-    
+
     this.setActionLoading(session.publicUuid, true);
     try {
-      await firstValueFrom(this.api.cancelSession(session.publicUuid, { 
-        version: session.version, 
-        reason: reason || undefined 
-      }));
+      await firstValueFrom(
+        this.api.cancelSession(session.publicUuid, {
+          version: session.version,
+          reason: reason || undefined,
+        }),
+      );
       await this.loadSessions();
     } catch (err) {
       this.errorMessage.set(err instanceof Error ? err.message : 'Error al cancelar');

@@ -11,14 +11,9 @@ import {
   SimpleChanges,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApiError } from '@core/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
@@ -31,10 +26,11 @@ import {
   CreateCapacityRequest,
   CreateCompetencyRequest,
   UpdateCapacityRequest,
-  UpdateCompetencyRequest
+  UpdateCompetencyRequest,
 } from '../models';
 
-export type FormMode = 'competency-create' | 'competency-edit' | 'capacity-create' | 'capacity-edit';
+export type FormMode =
+  'competency-create' | 'competency-edit' | 'capacity-create' | 'capacity-edit';
 
 /**
  * Modal reutilizable para crear/editar Competencies y Capacities.
@@ -61,7 +57,7 @@ export type FormMode = 'competency-create' | 'competency-edit' | 'capacity-creat
   imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="form-title"
@@ -73,12 +69,7 @@ export type FormMode = 'competency-create' | 'competency-edit' | 'capacity-creat
             <h2 id="form-title" class="card-title">{{ title() }}</h2>
             <p class="card-description">{{ subtitle() }}</p>
           </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            aria-label="Cerrar"
-            (click)="cancel()"
-          >
+          <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
             <app-icon name="x" [size]="18" />
           </button>
         </header>
@@ -145,14 +136,16 @@ export type FormMode = 'competency-create' | 'competency-edit' | 'capacity-creat
             <input type="checkbox" formControlName="isActive" />
             <span>Activo</span>
             <span class="text-xs text-content-muted">
-              {{ isCompetency ? 'Las inactivas no aparecen al crear sesiones.' : 'Las inactivas no aparecen al planificar sesiones.' }}
+              {{
+                isCompetency
+                  ? 'Las inactivas no aparecen al crear sesiones.'
+                  : 'Las inactivas no aparecen al planificar sesiones.'
+              }}
             </span>
           </label>
 
           <footer class="flex flex-wrap items-center justify-end gap-2 pt-2">
-            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">
-              Cancelar
-            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="cancel()">Cancelar</button>
             <button
               type="submit"
               class="btn btn-primary btn-sm"
@@ -173,12 +166,14 @@ export type FormMode = 'competency-create' | 'competency-edit' | 'capacity-creat
   `,
   styles: [
     `
-      :host { display: block; }
+      :host {
+        display: block;
+      }
       .field-error {
         @apply mt-1 text-xs text-red-600;
       }
-    `
-  ]
+    `,
+  ],
 })
 export class CompetencyCapacityFormModalComponent implements OnInit, OnChanges {
   private readonly fb = inject(FormBuilder);
@@ -202,8 +197,10 @@ export class CompetencyCapacityFormModalComponent implements OnInit, OnChanges {
   protected readonly saving = this.store.saving;
   protected readonly errorBanner = this.store.error;
 
-  protected readonly isCompetency = this.mode === 'competency-create' || this.mode === 'competency-edit';
-  protected readonly isCreate = this.mode === 'competency-create' || this.mode === 'capacity-create';
+  protected readonly isCompetency =
+    this.mode === 'competency-create' || this.mode === 'competency-edit';
+  protected readonly isCreate =
+    this.mode === 'competency-create' || this.mode === 'capacity-create';
 
   protected readonly title = computed(() => {
     if (this.mode === 'competency-create') return 'Nueva Competencia';
@@ -254,27 +251,40 @@ export class CompetencyCapacityFormModalComponent implements OnInit, OnChanges {
 
     this.form = this.fb.group({
       code: [
-        isEdit && this.isCompetency ? this.competency?.code : (isEdit && !this.isCompetency ? this.getTargetCapacity()?.code : ''),
+        isEdit && this.isCompetency
+          ? this.competency?.code
+          : isEdit && !this.isCompetency
+            ? this.getTargetCapacity()?.code
+            : '',
         [
           Validators.required,
           Validators.maxLength(this.COMPETENCY_CODE_MAX_LENGTH),
-          Validators.pattern(/^[A-Za-z][A-Za-z0-9_]*$/)
-        ]
+          Validators.pattern(/^[A-Za-z][A-Za-z0-9_]*$/),
+        ],
       ],
       name: [
-        isEdit && this.isCompetency ? this.competency?.name : (isEdit && !this.isCompetency ? this.getTargetCapacity()?.name : ''),
-        [
-          Validators.required,
-          Validators.maxLength(this.COMPETENCY_NAME_MAX_LENGTH)
-        ]
+        isEdit && this.isCompetency
+          ? this.competency?.name
+          : isEdit && !this.isCompetency
+            ? this.getTargetCapacity()?.name
+            : '',
+        [Validators.required, Validators.maxLength(this.COMPETENCY_NAME_MAX_LENGTH)],
       ],
       description: [
-        isEdit && this.isCompetency ? this.competency?.description : (isEdit && !this.isCompetency ? this.getTargetCapacity()?.description : ''),
-        [Validators.maxLength(this.COMPETENCY_DESCRIPTION_MAX_LENGTH)]
+        isEdit && this.isCompetency
+          ? this.competency?.description
+          : isEdit && !this.isCompetency
+            ? this.getTargetCapacity()?.description
+            : '',
+        [Validators.maxLength(this.COMPETENCY_DESCRIPTION_MAX_LENGTH)],
       ],
       isActive: [
-        isEdit && this.isCompetency ? this.competency?.isActive : (isEdit && !this.isCompetency ? this.getTargetCapacity()?.isActive : true)
-      ]
+        isEdit && this.isCompetency
+          ? this.competency?.isActive
+          : isEdit && !this.isCompetency
+            ? this.getTargetCapacity()?.isActive
+            : true,
+      ],
     });
   }
 
@@ -300,13 +310,13 @@ export class CompetencyCapacityFormModalComponent implements OnInit, OnChanges {
             code: raw.code!.trim(),
             name: raw.name!.trim(),
             description: raw.description?.trim() || undefined,
-            isActive: raw.isActive
+            isActive: raw.isActive,
           }
         : {
             code: raw.code?.trim() || undefined,
             name: raw.name?.trim() || undefined,
-            description: raw.description !== undefined ? (raw.description.trim() || null) : undefined,
-            isActive: raw.isActive
+            description: raw.description !== undefined ? raw.description.trim() || null : undefined,
+            isActive: raw.isActive,
           };
 
       if (this.isCreate && this.courseUuid) {
@@ -317,7 +327,10 @@ export class CompetencyCapacityFormModalComponent implements OnInit, OnChanges {
           this.applyServerErrors();
         }
       } else if (!this.isCreate && this.competency) {
-        const ok = await this.store.updateCompetency(this.competency.publicUuid, req as UpdateCompetencyRequest);
+        const ok = await this.store.updateCompetency(
+          this.competency.publicUuid,
+          req as UpdateCompetencyRequest,
+        );
         if (ok) {
           this.saved.emit();
         } else {
@@ -330,24 +343,30 @@ export class CompetencyCapacityFormModalComponent implements OnInit, OnChanges {
             code: raw.code!.trim(),
             name: raw.name!.trim(),
             description: raw.description?.trim() || undefined,
-            isActive: raw.isActive
+            isActive: raw.isActive,
           }
         : {
             code: raw.code?.trim() || undefined,
             name: raw.name?.trim() || undefined,
-            description: raw.description !== undefined ? (raw.description.trim() || null) : undefined,
-            isActive: raw.isActive
+            description: raw.description !== undefined ? raw.description.trim() || null : undefined,
+            isActive: raw.isActive,
           };
 
       if (this.isCreate && this.competency) {
-        const ok = await this.store.createCapacity(this.competency.publicUuid, req as CreateCapacityRequest);
+        const ok = await this.store.createCapacity(
+          this.competency.publicUuid,
+          req as CreateCapacityRequest,
+        );
         if (ok) {
           this.saved.emit();
         } else {
           this.applyServerErrors();
         }
       } else if (!this.isCreate && this.capacityPublicUuid) {
-        const ok = await this.store.updateCapacity(this.capacityPublicUuid, req as UpdateCapacityRequest);
+        const ok = await this.store.updateCapacity(
+          this.capacityPublicUuid,
+          req as UpdateCapacityRequest,
+        );
         if (ok) {
           this.saved.emit();
         } else {

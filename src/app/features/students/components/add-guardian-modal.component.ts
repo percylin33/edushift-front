@@ -8,14 +8,9 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DocumentType, RelationshipType } from '@core/enums';
 import { ApiError } from '@core/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
@@ -42,24 +37,16 @@ import { AddGuardianRequest } from '../models';
   selector: 'app-add-guardian-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    IconComponent,
-    SpinnerComponent
-  ],
+  imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-guardian-title"
       (click)="onBackdropClick($event)"
     >
-      <div
-        class="card w-full max-w-2xl shadow-xl"
-        (click)="$event.stopPropagation()"
-      >
+      <div class="card w-full max-w-2xl shadow-xl" (click)="$event.stopPropagation()">
         <header class="card-header">
           <div>
             <h2 id="add-guardian-title" class="card-title">Vincular tutor</h2>
@@ -173,19 +160,14 @@ import { AddGuardianRequest } from '../models';
 
             <div class="field sm:col-span-12">
               <label class="label" for="g-occupation">Ocupación</label>
-              <input
-                id="g-occupation"
-                type="text"
-                class="input"
-                formControlName="occupation"
-              />
+              <input id="g-occupation" type="text" class="input" formControlName="occupation" />
               @if (showError('occupation'); as err) {
                 <p class="error">{{ err }}</p>
               }
             </div>
           </fieldset>
 
-          <fieldset class="grid gap-4 sm:grid-cols-12 border-t border-border-subtle pt-4">
+          <fieldset class="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-12">
             <legend class="sr-only">Relación</legend>
 
             <div class="field sm:col-span-6">
@@ -197,7 +179,7 @@ import { AddGuardianRequest } from '../models';
               </select>
             </div>
 
-            <div class="sm:col-span-6 grid content-end gap-2">
+            <div class="grid content-end gap-2 sm:col-span-6">
               <label class="flex items-center gap-2 text-sm text-content">
                 <input type="checkbox" class="checkbox" formControlName="isPrimaryContact" />
                 <span>Contacto principal</span>
@@ -209,7 +191,9 @@ import { AddGuardianRequest } from '../models';
             </div>
           </fieldset>
 
-          <footer class="flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-4">
+          <footer
+            class="flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-4"
+          >
             <button type="button" class="btn btn-ghost btn-sm" (click)="close()">Cancelar</button>
             <button
               type="submit"
@@ -228,7 +212,7 @@ import { AddGuardianRequest } from '../models';
         </form>
       </div>
     </div>
-  `
+  `,
 })
 export class AddGuardianModalComponent {
   private readonly fb = inject(FormBuilder);
@@ -244,21 +228,21 @@ export class AddGuardianModalComponent {
   private readonly fieldErrors = signal<Record<string, string>>({});
 
   protected readonly documentTypeOptions: ReadonlyArray<{ value: DocumentType; label: string }> = [
-    { value: DocumentType.Dni,      label: 'DNI' },
-    { value: DocumentType.Ce,       label: 'CE' },
+    { value: DocumentType.Dni, label: 'DNI' },
+    { value: DocumentType.Ce, label: 'CE' },
     { value: DocumentType.Passport, label: 'Pasaporte' },
-    { value: DocumentType.Other,    label: 'Otro' }
+    { value: DocumentType.Other, label: 'Otro' },
   ];
 
   protected readonly relationshipOptions: ReadonlyArray<{
     value: RelationshipType;
     label: string;
   }> = [
-    { value: RelationshipType.Mother,      label: 'Madre' },
-    { value: RelationshipType.Father,      label: 'Padre' },
+    { value: RelationshipType.Mother, label: 'Madre' },
+    { value: RelationshipType.Father, label: 'Padre' },
     { value: RelationshipType.Grandparent, label: 'Abuelo/a' },
-    { value: RelationshipType.Guardian,    label: 'Tutor legal' },
-    { value: RelationshipType.Other,       label: 'Otro' }
+    { value: RelationshipType.Guardian, label: 'Tutor legal' },
+    { value: RelationshipType.Other, label: 'Otro' },
   ];
 
   protected readonly form: FormGroup = this.fb.group({
@@ -269,8 +253,8 @@ export class AddGuardianModalComponent {
         Validators.required,
         Validators.minLength(4),
         Validators.maxLength(20),
-        Validators.pattern(/^[A-Za-z0-9-]+$/)
-      ]
+        Validators.pattern(/^[A-Za-z0-9-]+$/),
+      ],
     ],
     firstName: ['', [Validators.required, Validators.maxLength(100)]],
     lastName: ['', [Validators.required, Validators.maxLength(100)]],
@@ -279,7 +263,7 @@ export class AddGuardianModalComponent {
     occupation: ['', [Validators.maxLength(100)]],
     relationship: [RelationshipType.Mother, [Validators.required]],
     isPrimaryContact: [false],
-    canPickupStudent: [false]
+    canPickupStudent: [false],
   });
 
   /**
@@ -287,9 +271,7 @@ export class AddGuardianModalComponent {
    * template branch on a single signal without retyping the rule
    * inline (and inadvertently de-syncing it from the form state).
    */
-  protected readonly canSubmit = computed(
-    () => this.form.valid && !this.saving()
-  );
+  protected readonly canSubmit = computed(() => this.form.valid && !this.saving());
 
   @HostListener('document:keydown.escape')
   protected onEscape(): void {
@@ -323,7 +305,7 @@ export class AddGuardianModalComponent {
       occupation: this.optionalString(v.occupation),
       relationship: v.relationship,
       isPrimaryContact: !!v.isPrimaryContact,
-      canPickupStudent: !!v.canPickupStudent
+      canPickupStudent: !!v.canPickupStudent,
     };
 
     try {
@@ -331,8 +313,7 @@ export class AddGuardianModalComponent {
       if (created) {
         this.closed.emit();
       }
-    }
-    catch (err) {
+    } catch (err) {
       this.applyServerErrors(err);
     }
   }

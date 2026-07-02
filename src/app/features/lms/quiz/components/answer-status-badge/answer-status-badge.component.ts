@@ -7,7 +7,7 @@ const DOT: Record<AnswerStatus, string> = {
   [AnswerStatus.Empty]: 'bg-slate-400',
   [AnswerStatus.Saved]: 'bg-blue-500',
   [AnswerStatus.AutoGraded]: 'bg-violet-500',
-  [AnswerStatus.ManuallyGraded]: 'bg-emerald-500'
+  [AnswerStatus.ManuallyGraded]: 'bg-emerald-500',
 };
 
 /**
@@ -27,7 +27,7 @@ const DOT: Record<AnswerStatus, string> = {
       <span aria-hidden="true" class="h-1.5 w-1.5 rounded-full" [class]="dot()"></span>
       {{ label() }}
     </span>
-  `
+  `,
 })
 export class AnswerStatusBadgeComponent {
   private readonly _status = signal<AnswerStatus>(AnswerStatus.Empty);

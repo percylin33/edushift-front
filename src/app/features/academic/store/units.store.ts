@@ -1,12 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AcademicApiService } from '../services';
-import {
-  CreateUnitRequest,
-  UnitDetail,
-  UnitRow,
-  UpdateUnitRequest
-} from '../models';
+import { CreateUnitRequest, UnitDetail, UnitRow, UpdateUnitRequest } from '../models';
 
 /**
  * Reactive façade sobre {@link AcademicApiService} dedicado al slice
@@ -70,9 +65,7 @@ export class UnitsStore {
   readonly error = this._error.asReadonly();
 
   readonly hasUnits = computed(() => this._units().length > 0);
-  readonly isEmpty = computed(
-    () => !this._loading() && this._units().length === 0
-  );
+  readonly isEmpty = computed(() => !this._loading() && this._units().length === 0);
 
   /**
    * Sugerencia de {@code displayOrder} para el próximo create
@@ -107,12 +100,10 @@ export class UnitsStore {
     try {
       const rows = await firstValueFrom(this.api.listUnits(courseUuid));
       this._units.set(rows);
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._units.set([]);
-    }
-    finally {
+    } finally {
       this._loading.set(false);
     }
   }
@@ -133,10 +124,7 @@ export class UnitsStore {
   // Mutations
   // ===========================================================================
 
-  async createUnit(
-    courseUuid: string,
-    request: CreateUnitRequest
-  ): Promise<UnitDetail | null> {
+  async createUnit(courseUuid: string, request: CreateUnitRequest): Promise<UnitDetail | null> {
     this._saving.set(true);
     this._error.set(null);
 
@@ -144,20 +132,15 @@ export class UnitsStore {
       const created = await firstValueFrom(this.api.createUnit(courseUuid, request));
       this.upsertFromDetail(created);
       return created;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
 
-  async updateUnit(
-    publicUuid: string,
-    patch: UpdateUnitRequest
-  ): Promise<UnitDetail | null> {
+  async updateUnit(publicUuid: string, patch: UpdateUnitRequest): Promise<UnitDetail | null> {
     this._saving.set(true);
     this._error.set(null);
 
@@ -165,12 +148,10 @@ export class UnitsStore {
       const updated = await firstValueFrom(this.api.updateUnit(publicUuid, patch));
       this.upsertFromDetail(updated);
       return updated;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
@@ -181,16 +162,12 @@ export class UnitsStore {
 
     try {
       await firstValueFrom(this.api.deleteUnit(publicUuid));
-      this._units.update((rows) =>
-        rows.filter((u) => u.publicUuid !== publicUuid)
-      );
+      this._units.update((rows) => rows.filter((u) => u.publicUuid !== publicUuid));
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return false;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
@@ -238,7 +215,7 @@ export class UnitsStore {
 
     const items = this._units().map((u, i) => ({
       publicUuid: u.publicUuid,
-      displayOrder: i + 1
+      displayOrder: i + 1,
     }));
     if (items.length === 0) return true;
 
@@ -246,24 +223,20 @@ export class UnitsStore {
     this._error.set(null);
 
     try {
-      const updated = await firstValueFrom(
-        this.api.reorderUnits(courseUuid, { items })
-      );
+      const updated = await firstValueFrom(this.api.reorderUnits(courseUuid, { items }));
       this._units.set(
         updated
           .slice()
           .sort((a, b) => a.displayOrder - b.displayOrder)
-          .map((u) => this.detailToRow(u))
+          .map((u) => this.detailToRow(u)),
       );
       this.orderSnapshot = null;
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this.rollbackReorder();
       return false;
-    }
-    finally {
+    } finally {
       this._saving.set(false);
     }
   }
@@ -292,9 +265,7 @@ export class UnitsStore {
     const row = this.detailToRow(detail);
     this._units.update((rows) => {
       const idx = rows.findIndex((u) => u.publicUuid === row.publicUuid);
-      const next = idx >= 0
-        ? [...rows.slice(0, idx), row, ...rows.slice(idx + 1)]
-        : [...rows, row];
+      const next = idx >= 0 ? [...rows.slice(0, idx), row, ...rows.slice(idx + 1)] : [...rows, row];
       return next.sort((a, b) => a.displayOrder - b.displayOrder);
     });
   }
@@ -307,7 +278,7 @@ export class UnitsStore {
       startDate: detail.startDate,
       endDate: detail.endDate,
       isActive: detail.isActive,
-      sessionCount: detail.sessionCount
+      sessionCount: detail.sessionCount,
     };
   }
 

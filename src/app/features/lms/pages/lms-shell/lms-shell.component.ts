@@ -20,6 +20,6 @@ import { RouterOutlet } from '@angular/router';
     <section class="mx-auto max-w-6xl p-6">
       <router-outlet />
     </section>
-  `
+  `,
 })
 export class LmsShellComponent {}

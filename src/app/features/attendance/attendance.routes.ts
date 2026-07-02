@@ -30,8 +30,8 @@ export const ATTENDANCE_ROUTES: Routes = [
     data: { permissions: [Permission.AttendanceRead] },
     loadComponent: () =>
       import('./pages/attendance-home/attendance-home.component').then(
-        (m) => m.AttendanceHomeComponent
-      )
+        (m) => m.AttendanceHomeComponent,
+      ),
   },
   {
     path: 'scanner',
@@ -39,8 +39,8 @@ export const ATTENDANCE_ROUTES: Routes = [
     data: { roles: [UserRole.Teacher, UserRole.TenantAdmin] },
     loadComponent: () =>
       import('./pages/attendance-scanner/attendance-scanner.page').then(
-        (m) => m.AttendanceScannerPageComponent
-      )
+        (m) => m.AttendanceScannerPageComponent,
+      ),
   },
   {
     path: 'sessions',
@@ -48,8 +48,8 @@ export const ATTENDANCE_ROUTES: Routes = [
     data: { roles: [UserRole.Teacher, UserRole.TenantAdmin] },
     loadComponent: () =>
       import('./pages/attendance-sessions-list/attendance-sessions-list.page').then(
-        (m) => m.AttendanceSessionsListPageComponent
-      )
+        (m) => m.AttendanceSessionsListPageComponent,
+      ),
   },
   {
     path: 'sessions/:uuid',
@@ -57,7 +57,7 @@ export const ATTENDANCE_ROUTES: Routes = [
     data: { roles: [UserRole.Teacher, UserRole.TenantAdmin] },
     loadComponent: () =>
       import('./pages/attendance-session-detail/attendance-session-detail.page').then(
-        (m) => m.AttendanceSessionDetailPageComponent
-      )
-  }
+        (m) => m.AttendanceSessionDetailPageComponent,
+      ),
+  },
 ];

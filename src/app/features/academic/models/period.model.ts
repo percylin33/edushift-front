@@ -10,23 +10,23 @@
  * el {@code name} auto-generado del periodo.</p>
  */
 export enum PeriodType {
-  Bimestre  = 'BIMESTRE',
+  Bimestre = 'BIMESTRE',
   Trimestre = 'TRIMESTRE',
-  Anual     = 'ANUAL'
+  Anual = 'ANUAL',
 }
 
 /** Cuántos periodos divide cada {@link PeriodType} en el bulk-generator. */
 export const PERIOD_TYPE_DIVISIONS: Readonly<Record<PeriodType, number>> = {
-  [PeriodType.Bimestre]:  4,
+  [PeriodType.Bimestre]: 4,
   [PeriodType.Trimestre]: 3,
-  [PeriodType.Anual]:     1
+  [PeriodType.Anual]: 1,
 };
 
 /** Label en español para el dropdown del form y la UI. */
 export const PERIOD_TYPE_LABELS: Readonly<Record<PeriodType, string>> = {
-  [PeriodType.Bimestre]:  'Bimestre',
+  [PeriodType.Bimestre]: 'Bimestre',
   [PeriodType.Trimestre]: 'Trimestre',
-  [PeriodType.Anual]:     'Anual'
+  [PeriodType.Anual]: 'Anual',
 };
 
 // =============================================================================
@@ -151,16 +151,8 @@ export function isDateRangeValid(start: Date, end: Date): boolean {
  * (espejo de {@code PERIOD_OUT_OF_YEAR_RANGE}). Compara <em>fechas</em>
  * (sin componente de hora), igual que el BE.
  */
-export function isWithinYear(
-  start: Date,
-  end: Date,
-  yearStart: Date,
-  yearEnd: Date
-): boolean {
-  return (
-    start.getTime() >= yearStart.getTime() &&
-    end.getTime() <= yearEnd.getTime()
-  );
+export function isWithinYear(start: Date, end: Date, yearStart: Date, yearEnd: Date): boolean {
+  return start.getTime() >= yearStart.getTime() && end.getTime() <= yearEnd.getTime();
 }
 
 /**
@@ -168,16 +160,8 @@ export function isWithinYear(
  * {@code aStart <= bEnd && aEnd >= bStart} (cierre cerrado-cerrado,
  * mismo criterio que el BE).
  */
-export function periodsOverlap(
-  aStart: Date,
-  aEnd: Date,
-  bStart: Date,
-  bEnd: Date
-): boolean {
-  return (
-    aStart.getTime() <= bEnd.getTime() &&
-    aEnd.getTime() >= bStart.getTime()
-  );
+export function periodsOverlap(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
+  return aStart.getTime() <= bEnd.getTime() && aEnd.getTime() >= bStart.getTime();
 }
 
 /**
@@ -192,7 +176,7 @@ export function findOverlappingPeriods(
   type: PeriodType,
   start: Date,
   end: Date,
-  excludePublicUuid?: string
+  excludePublicUuid?: string,
 ): AcademicPeriodRow[] {
   return periods.filter((p) => {
     if (p.academicYearPublicUuid !== yearUuid) return false;
@@ -207,8 +191,19 @@ export function findOverlappingPeriods(
 // =============================================================================
 
 const ROMAN: ReadonlyArray<string> = [
-  '', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
-  'XI', 'XII'
+  '',
+  'I',
+  'II',
+  'III',
+  'IV',
+  'V',
+  'VI',
+  'VII',
+  'VIII',
+  'IX',
+  'X',
+  'XI',
+  'XII',
 ];
 
 /**
@@ -257,37 +252,31 @@ export interface BulkPeriodPlan {
  * <p>Convención: las fechas son <em>locales</em> (sin tz) — el backend
  * trabaja con {@code LocalDate}. Se trunca a día (00:00 local).</p>
  */
-export function planBulkPeriods(
-  yearStart: Date,
-  yearEnd: Date,
-  type: PeriodType
-): BulkPeriodPlan {
+export function planBulkPeriods(yearStart: Date, yearEnd: Date, type: PeriodType): BulkPeriodPlan {
   const divisions = PERIOD_TYPE_DIVISIONS[type];
   const startMs = startOfDay(yearStart).getTime();
-  const endMs   = startOfDay(yearEnd).getTime();
+  const endMs = startOfDay(yearEnd).getTime();
   const totalDays = Math.max(1, Math.round((endMs - startMs) / DAY_MS) + 1);
 
   const baseDays = Math.floor(totalDays / divisions);
-  const extra    = totalDays - baseDays * divisions;
+  const extra = totalDays - baseDays * divisions;
 
   const parts: BulkPeriodPlan['parts'] = Array.from({ length: divisions }, (_, i) => {
     const ordinal = i + 1;
     /* Distribuye el remainder en los primeros `extra` slots para que
      * el cubrimiento sea exacto. Sin esto, la última parte podría
      * salirse del rango si los días no dividen exactamente. */
-    const offsetDays =
-      i * baseDays + Math.min(i, extra);
-    const lengthDays =
-      baseDays + (i < extra ? 1 : 0);
+    const offsetDays = i * baseDays + Math.min(i, extra);
+    const lengthDays = baseDays + (i < extra ? 1 : 0);
 
     const start = new Date(startMs + offsetDays * DAY_MS);
-    const end   = new Date(startMs + (offsetDays + lengthDays - 1) * DAY_MS);
+    const end = new Date(startMs + (offsetDays + lengthDays - 1) * DAY_MS);
 
     return {
       ordinal,
       name: defaultPeriodName(ordinal, type),
       startDate: start,
-      endDate: end
+      endDate: end,
     };
   });
 
@@ -295,7 +284,7 @@ export function planBulkPeriods(
     periodType: type,
     yearStart: startOfDay(yearStart),
     yearEnd: startOfDay(yearEnd),
-    parts
+    parts,
   };
 }
 

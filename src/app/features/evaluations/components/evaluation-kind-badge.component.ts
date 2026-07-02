@@ -1,9 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import {
-  EVALUATION_KIND_BADGE_CLASS,
-  EVALUATION_KIND_LABELS,
-  EvaluationKind
-} from '../models';
+import { EVALUATION_KIND_BADGE_CLASS, EVALUATION_KIND_LABELS, EvaluationKind } from '../models';
 
 /**
  * Pill-style badge para {@link EvaluationKind} (TASK / QUIZ / EXAM /
@@ -18,15 +14,11 @@ import {
     <span class="badge" [class]="badgeClass()">
       {{ label() }}
     </span>
-  `
+  `,
 })
 export class EvaluationKindBadgeComponent {
   readonly kind = input.required<EvaluationKind>();
 
-  protected readonly label = computed(
-    () => EVALUATION_KIND_LABELS[this.kind()]
-  );
-  protected readonly badgeClass = computed(
-    () => EVALUATION_KIND_BADGE_CLASS[this.kind()]
-  );
+  protected readonly label = computed(() => EVALUATION_KIND_LABELS[this.kind()]);
+  protected readonly badgeClass = computed(() => EVALUATION_KIND_BADGE_CLASS[this.kind()]);
 }

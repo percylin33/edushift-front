@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import {
   EVALUATION_STATUS_BADGE_CLASS,
   EVALUATION_STATUS_LABELS,
-  EvaluationStatus
+  EvaluationStatus,
 } from '../models';
 
 /**
@@ -17,15 +17,11 @@ import {
     <span class="badge" [class]="badgeClass()">
       {{ label() }}
     </span>
-  `
+  `,
 })
 export class EvaluationStatusBadgeComponent {
   readonly status = input.required<EvaluationStatus>();
 
-  protected readonly label = computed(
-    () => EVALUATION_STATUS_LABELS[this.status()]
-  );
-  protected readonly badgeClass = computed(
-    () => EVALUATION_STATUS_BADGE_CLASS[this.status()]
-  );
+  protected readonly label = computed(() => EVALUATION_STATUS_LABELS[this.status()]);
+  protected readonly badgeClass = computed(() => EVALUATION_STATUS_BADGE_CLASS[this.status()]);
 }

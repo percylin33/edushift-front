@@ -28,24 +28,24 @@ export const EVALUATIONS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin, UserRole.Teacher],
       breadcrumb: 'Libro de calificaciones',
-      title: 'Libro de calificaciones'
+      title: 'Libro de calificaciones',
     },
     loadComponent: () =>
-      import(
-        '@features/gradebook/pages/gradebook-page/gradebook-page.component'
-      ).then((m) => m.GradeBookPageComponent)
+      import('@features/gradebook/pages/gradebook-page/gradebook-page.component').then(
+        (m) => m.GradeBookPageComponent,
+      ),
   },
   {
     path: 'by-assignment/:assignmentUuid',
     canActivate: [roleGuard],
     data: {
       roles: [UserRole.TenantAdmin, UserRole.Teacher],
-      title: 'Evaluaciones'
+      title: 'Evaluaciones',
     },
     loadComponent: () =>
       import('./pages/evaluations-list/evaluations-list.component').then(
-        (m) => m.EvaluationsListComponent
-      )
+        (m) => m.EvaluationsListComponent,
+      ),
   },
   {
     path: ':publicUuid/grades',
@@ -53,12 +53,12 @@ export const EVALUATIONS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin, UserRole.Teacher],
       breadcrumb: 'Notas',
-      title: 'Calificaciones'
+      title: 'Calificaciones',
     },
     loadComponent: () =>
-      import(
-        '@features/grade-records/pages/grade-records-page/grade-records-page.component'
-      ).then((m) => m.GradeRecordsPageComponent)
+      import('@features/grade-records/pages/grade-records-page/grade-records-page.component').then(
+        (m) => m.GradeRecordsPageComponent,
+      ),
   },
   {
     path: ':publicUuid',
@@ -66,11 +66,11 @@ export const EVALUATIONS_ROUTES: Routes = [
     data: {
       roles: [UserRole.TenantAdmin, UserRole.Teacher],
       breadcrumb: 'Detalle',
-      title: 'Detalle de evaluación'
+      title: 'Detalle de evaluación',
     },
     loadComponent: () =>
       import('./pages/evaluation-detail/evaluation-detail.component').then(
-        (m) => m.EvaluationDetailComponent
-      )
-  }
+        (m) => m.EvaluationDetailComponent,
+      ),
+  },
 ];

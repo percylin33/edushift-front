@@ -5,14 +5,9 @@ import {
   OnInit,
   computed,
   inject,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -23,20 +18,12 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
-  SpinnerComponent
+  SpinnerComponent,
 } from '@shared/components';
 import { AcademicApiService } from '@features/academic/services';
-import {
-  AcademicYearRow,
-  AcademicYearStatus,
-  SectionRow
-} from '@features/academic/models';
+import { AcademicYearRow, AcademicYearStatus, SectionRow } from '@features/academic/models';
 import { StudentsStore } from '../../store';
-import {
-  CreateStudentRequest,
-  StudentDetail,
-  UpdateStudentRequest
-} from '../../models';
+import { CreateStudentRequest, StudentDetail, UpdateStudentRequest } from '../../models';
 
 /**
  * Shared form for {@code /students/new} and {@code /students/:id/edit}.
@@ -74,15 +61,11 @@ import {
     PageContainerComponent,
     PageHeaderComponent,
     IconComponent,
-    SpinnerComponent
+    SpinnerComponent,
   ],
   template: `
     <app-page-container size="default">
-      <app-page-header
-        [title]="title()"
-        [subtitle]="subtitle()"
-        eyebrow="Estudiantes"
-      >
+      <app-page-header [title]="title()" [subtitle]="subtitle()" eyebrow="Estudiantes">
         <a [routerLink]="listRoute" class="btn btn-ghost btn-sm">
           <app-icon name="arrow-left" [size]="16" />
           <span class="hidden sm:inline">Volver</span>
@@ -178,12 +161,7 @@ import {
 
               <div class="field sm:col-span-3">
                 <label class="label" for="birthDate">Nacimiento</label>
-                <input
-                  id="birthDate"
-                  type="date"
-                  class="input"
-                  formControlName="birthDate"
-                />
+                <input id="birthDate" type="date" class="input" formControlName="birthDate" />
               </div>
 
               <div class="field sm:col-span-3">
@@ -235,12 +213,7 @@ import {
 
               <div class="field sm:col-span-12">
                 <label class="label" for="address">Dirección</label>
-                <textarea
-                  id="address"
-                  class="input"
-                  rows="2"
-                  formControlName="address"
-                ></textarea>
+                <textarea id="address" class="input" rows="2" formControlName="address"></textarea>
                 @if (showError('address'); as err) {
                   <p class="error">{{ err }}</p>
                 }
@@ -259,11 +232,7 @@ import {
             <div class="card-body grid gap-4 sm:grid-cols-12">
               <div class="field sm:col-span-6">
                 <label class="label" for="enrollmentStatus">Estado</label>
-                <select
-                  id="enrollmentStatus"
-                  class="select"
-                  formControlName="enrollmentStatus"
-                >
+                <select id="enrollmentStatus" class="select" formControlName="enrollmentStatus">
                   <option [ngValue]="null">Sin definir</option>
                   @for (opt of statusOptions; track opt.value) {
                     <option [ngValue]="opt.value">{{ opt.label }}</option>
@@ -285,22 +254,19 @@ import {
                 <div class="field sm:col-span-12">
                   <label class="label" for="sectionPublicUuid">
                     Sección del año activo
-                    <span class="text-content-muted text-xs">(opcional)</span>
+                    <span class="text-xs text-content-muted">(opcional)</span>
                   </label>
                   @if (loadingSections()) {
-                    <p class="text-xs text-content-muted">
-                      Cargando secciones disponibles…
-                    </p>
+                    <p class="text-xs text-content-muted">Cargando secciones disponibles…</p>
                   } @else if (!activeYear()) {
                     <p class="text-xs text-content-muted">
                       No hay año académico activo. Crea y activa uno desde
-                      <em>Académico</em> para matricular en el momento de
-                      registrar al estudiante.
+                      <em>Académico</em> para matricular en el momento de registrar al estudiante.
                     </p>
                   } @else if (sections().length === 0) {
                     <p class="text-xs text-content-muted">
-                      El año {{ activeYear()?.name }} no tiene secciones.
-                      Crea al menos una desde <em>Académico → Secciones</em>
+                      El año {{ activeYear()?.name }} no tiene secciones. Crea al menos una desde
+                      <em>Académico → Secciones</em>
                       para usar este atajo.
                     </p>
                   } @else {
@@ -317,9 +283,8 @@ import {
                       }
                     </select>
                     <p class="hint mt-1 text-xs text-content-muted">
-                      Si seleccionas una sección, el sistema crea
-                      automáticamente la matrícula activa después del alta
-                      del estudiante.
+                      Si seleccionas una sección, el sistema crea automáticamente la matrícula
+                      activa después del alta del estudiante.
                     </p>
                   }
                 </div>
@@ -346,7 +311,7 @@ import {
         </form>
       }
     </app-page-container>
-  `
+  `,
 })
 export class StudentFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -379,37 +344,37 @@ export class StudentFormComponent implements OnInit {
   private readonly fieldErrors = signal<Record<string, string>>({});
 
   protected readonly title = computed(() =>
-    this.editing() ? 'Editar estudiante' : 'Nuevo estudiante'
+    this.editing() ? 'Editar estudiante' : 'Nuevo estudiante',
   );
   protected readonly subtitle = computed(() =>
     this.editing()
       ? 'Actualiza los datos del estudiante; los campos en blanco se mantienen.'
-      : 'Completa los datos básicos para registrarlo en el workspace.'
+      : 'Completa los datos básicos para registrarlo en el workspace.',
   );
   protected readonly submitLabel = computed(() =>
-    this.editing() ? 'Guardar cambios' : 'Crear estudiante'
+    this.editing() ? 'Guardar cambios' : 'Crear estudiante',
   );
 
   protected readonly documentTypeOptions: ReadonlyArray<{ value: DocumentType; label: string }> = [
-    { value: DocumentType.Dni,      label: 'DNI' },
-    { value: DocumentType.Ce,       label: 'CE' },
+    { value: DocumentType.Dni, label: 'DNI' },
+    { value: DocumentType.Ce, label: 'CE' },
     { value: DocumentType.Passport, label: 'Pasaporte' },
-    { value: DocumentType.Other,    label: 'Otro' }
+    { value: DocumentType.Other, label: 'Otro' },
   ];
 
   protected readonly genderOptions: ReadonlyArray<{ value: Gender; label: string }> = [
-    { value: Gender.Female,       label: 'Femenino' },
-    { value: Gender.Male,         label: 'Masculino' },
-    { value: Gender.Other,        label: 'Otro' },
-    { value: Gender.NotSpecified, label: 'Sin especificar' }
+    { value: Gender.Female, label: 'Femenino' },
+    { value: Gender.Male, label: 'Masculino' },
+    { value: Gender.Other, label: 'Otro' },
+    { value: Gender.NotSpecified, label: 'Sin especificar' },
   ];
 
   protected readonly statusOptions: ReadonlyArray<{ value: EnrollmentStatus; label: string }> = [
-    { value: EnrollmentStatus.Pending,     label: 'Pendiente' },
-    { value: EnrollmentStatus.Enrolled,    label: 'Matriculado' },
-    { value: EnrollmentStatus.Graduated,   label: 'Egresado' },
+    { value: EnrollmentStatus.Pending, label: 'Pendiente' },
+    { value: EnrollmentStatus.Enrolled, label: 'Matriculado' },
+    { value: EnrollmentStatus.Graduated, label: 'Egresado' },
     { value: EnrollmentStatus.Transferred, label: 'Trasladado' },
-    { value: EnrollmentStatus.Withdrawn,   label: 'Retirado' }
+    { value: EnrollmentStatus.Withdrawn, label: 'Retirado' },
   ];
 
   /**
@@ -426,8 +391,8 @@ export class StudentFormComponent implements OnInit {
         Validators.required,
         Validators.minLength(4),
         Validators.maxLength(20),
-        Validators.pattern(/^[A-Za-z0-9-]+$/)
-      ]
+        Validators.pattern(/^[A-Za-z0-9-]+$/),
+      ],
     ],
     firstName: ['', [Validators.required, Validators.maxLength(100)]],
     lastName: ['', [Validators.required, Validators.maxLength(100)]],
@@ -445,7 +410,7 @@ export class StudentFormComponent implements OnInit {
      * {@code create}; si esa segunda mutación falla, se navega al
      * detail con un toast manejado por el store.
      */
-    sectionPublicUuid: [null as string | null]
+    sectionPublicUuid: [null as string | null],
   });
 
   async ngOnInit(): Promise<void> {
@@ -504,8 +469,7 @@ export class StudentFormComponent implements OnInit {
           await this.router.navigate([ROUTES.STUDENTS.detail(created.publicUuid)]);
         }
       }
-    }
-    catch (err) {
+    } catch (err) {
       this.applyServerErrors(err);
     }
   }
@@ -549,7 +513,7 @@ export class StudentFormComponent implements OnInit {
       phone: detail.phone ?? '',
       address: detail.address ?? '',
       enrollmentStatus: detail.enrollmentStatus,
-      enrollmentDate: this.toDateInput(detail.enrollmentDate)
+      enrollmentDate: this.toDateInput(detail.enrollmentDate),
     });
   }
 
@@ -574,7 +538,7 @@ export class StudentFormComponent implements OnInit {
       phone: this.optionalString(v.phone),
       address: this.optionalString(v.address),
       enrollmentStatus: this.optionalEnum<EnrollmentStatus>(v.enrollmentStatus),
-      enrollmentDate: this.optionalString(v.enrollmentDate)
+      enrollmentDate: this.optionalString(v.enrollmentDate),
     };
   }
 
@@ -598,7 +562,7 @@ export class StudentFormComponent implements OnInit {
       phone: v.phone.trim(),
       address: v.address.trim(),
       enrollmentStatus: this.optionalEnum<EnrollmentStatus>(v.enrollmentStatus),
-      enrollmentDate: this.optionalString(v.enrollmentDate)
+      enrollmentDate: this.optionalString(v.enrollmentDate),
     };
   }
 
@@ -649,8 +613,7 @@ export class StudentFormComponent implements OnInit {
     const next: Record<string, string> = {};
     switch (apiErr.code) {
       case 'STUDENT_DOCUMENT_TAKEN':
-        next['documentNumber'] =
-          'Ya existe un estudiante con este documento en el workspace.';
+        next['documentNumber'] = 'Ya existe un estudiante con este documento en el workspace.';
         break;
       case 'STUDENT_EMAIL_TAKEN':
         next['email'] = 'Ya existe un estudiante con este email.';
@@ -671,8 +634,7 @@ export class StudentFormComponent implements OnInit {
     this.loadingSections.set(true);
     try {
       const years = await firstValueFrom(this.academicApi.listYears());
-      const active =
-        years.find((y) => y.status === AcademicYearStatus.Active) ?? null;
+      const active = years.find((y) => y.status === AcademicYearStatus.Active) ?? null;
       this.activeYear.set(active);
       if (!active) {
         this.sections.set([]);
@@ -680,16 +642,14 @@ export class StudentFormComponent implements OnInit {
       }
       const sections = await firstValueFrom(
         this.academicApi.listSections({
-          academicYearPublicUuid: active.publicUuid
-        })
+          academicYearPublicUuid: active.publicUuid,
+        }),
       );
       this.sections.set(sections);
-    }
-    catch {
+    } catch {
       this.activeYear.set(null);
       this.sections.set([]);
-    }
-    finally {
+    } finally {
       this.loadingSections.set(false);
     }
   }
@@ -702,9 +662,7 @@ export class StudentFormComponent implements OnInit {
    * el estudiante queda creado y el banner del store muestra el
    * error de matrícula.
    */
-  private async maybeEnrollAfterCreate(
-    studentPublicUuid: string
-  ): Promise<void> {
+  private async maybeEnrollAfterCreate(studentPublicUuid: string): Promise<void> {
     const sectionUuid = this.form.getRawValue().sectionPublicUuid;
     const year = this.activeYear();
     if (!sectionUuid || !year) return;
@@ -721,7 +679,7 @@ export class StudentFormComponent implements OnInit {
     await this.store.enrollStudent(studentPublicUuid, {
       sectionPublicUuid: sectionUuid,
       academicYearPublicUuid: year.publicUuid,
-      enrolledAt
+      enrolledAt,
     });
   }
 }

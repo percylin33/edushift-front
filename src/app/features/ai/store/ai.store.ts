@@ -20,10 +20,18 @@ export class AiStore {
   appendMessage(message: ChatMessage): void {
     this._messages.update((list) => [...list, message]);
   }
-  setMessages(messages: ChatMessage[]): void { this._messages.set(messages); }
-  setInsights(insights: AiInsight[]): void { this._insights.set(insights); }
-  setStreaming(value: boolean): void { this._streaming.set(value); }
-  setError(error: string | null): void { this._error.set(error); }
+  setMessages(messages: ChatMessage[]): void {
+    this._messages.set(messages);
+  }
+  setInsights(insights: AiInsight[]): void {
+    this._insights.set(insights);
+  }
+  setStreaming(value: boolean): void {
+    this._streaming.set(value);
+  }
+  setError(error: string | null): void {
+    this._error.set(error);
+  }
 
   reset(): void {
     this._messages.set([]);

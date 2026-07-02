@@ -12,14 +12,9 @@ import {
   SimpleChanges,
   ViewChild,
   inject,
-  signal
+  signal,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FocusTrap } from '@shared/a11y';
 import { IconComponent } from '@shared/components';
 import { GradeMode, GradeSubmissionRequest } from './grade-dialog.types';
@@ -56,32 +51,26 @@ import { GradeMode, GradeSubmissionRequest } from './grade-dialog.types';
         [attr.aria-labelledby]="dialogTitleId"
         (click)="onBackdrop($event)"
       >
-        <div
-          #dialog
-          class="card w-full max-w-md"
-          (click)="$event.stopPropagation()"
-        >
+        <div #dialog class="card w-full max-w-md" (click)="$event.stopPropagation()">
           <header class="card-header">
             <h2 [id]="dialogTitleId" class="card-title">
-              @if (mode === 'Grade') { Calificar entrega }
-              @else { Devolver para re-entrega }
+              @if (mode === 'Grade') {
+                Calificar entrega
+              } @else {
+                Devolver para re-entrega
+              }
             </h2>
             <p class="card-description">
               @if (mode === 'Grade') {
-                Ingresa la nota (0..{{ maxScore }}) y, opcionalmente,
-                feedback para el alumno.
+                Ingresa la nota (0..{{ maxScore }}) y, opcionalmente, feedback para el alumno.
               } @else {
-                Indica al alumno qué debe corregir. La entrega vuelve
-                a estado pendiente y podrá re-enviar.
+                Indica al alumno qué debe corregir. La entrega vuelve a estado pendiente y podrá
+                re-enviar.
               }
             </p>
           </header>
 
-          <form
-            [formGroup]="form"
-            (ngSubmit)="onSubmit()"
-            class="card-body grid gap-4"
-          >
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" class="card-body grid gap-4">
             @if (mode === 'Grade') {
               <div class="field">
                 <label class="label" for="grade-input">Calificación</label>
@@ -107,9 +96,7 @@ import { GradeMode, GradeSubmissionRequest } from './grade-dialog.types';
                 @if (showError('grade'); as msg) {
                   <p class="field-error">{{ msg }}</p>
                 } @else {
-                  <p class="field-hint">
-                    Decimal entre 0 y {{ maxScore }}.
-                  </p>
+                  <p class="field-hint">Decimal entre 0 y {{ maxScore }}.</p>
                 }
               </div>
             }
@@ -123,7 +110,11 @@ import { GradeMode, GradeSubmissionRequest } from './grade-dialog.types';
                 class="input min-h-[100px]"
                 rows="4"
                 formControlName="feedback"
-                [placeholder]="mode === 'Return' ? '¿Qué debe corregir el alumno?' : 'Comentarios para el alumno…'"
+                [placeholder]="
+                  mode === 'Return'
+                    ? '¿Qué debe corregir el alumno?'
+                    : 'Comentarios para el alumno…'
+                "
               ></textarea>
               @if (showError('feedback'); as msg) {
                 <p class="field-error">{{ msg }}</p>
@@ -146,13 +137,13 @@ import { GradeMode, GradeSubmissionRequest } from './grade-dialog.types';
                 [class.btn-danger]="mode === 'Return'"
                 [disabled]="form.invalid || saving"
               >
-                <app-icon
-                  [name]="mode === 'Grade' ? 'check' : 'rotate-ccw'"
-                  [size]="16"
-                />
+                <app-icon [name]="mode === 'Grade' ? 'check' : 'rotate-ccw'" [size]="16" />
                 <span>
-                  @if (mode === 'Grade') { Calificar }
-                  @else { Devolver }
+                  @if (mode === 'Grade') {
+                    Calificar
+                  } @else {
+                    Devolver
+                  }
                 </span>
               </button>
             </footer>
@@ -160,7 +151,7 @@ import { GradeMode, GradeSubmissionRequest } from './grade-dialog.types';
         </div>
       </div>
     }
-  `
+  `,
 })
 export class GradeDialogComponent implements OnChanges, OnInit, OnDestroy {
   @Input() open = false;
@@ -180,7 +171,7 @@ export class GradeDialogComponent implements OnChanges, OnInit, OnDestroy {
 
   protected readonly form: FormGroup = this.fb.group({
     grade: [0, [Validators.required, Validators.min(0), Validators.max(1000)]],
-    feedback: ['', [Validators.maxLength(2000)]]
+    feedback: ['', [Validators.maxLength(2000)]],
   });
 
   private previouslyFocused: HTMLElement | null = null;
@@ -206,17 +197,14 @@ export class GradeDialogComponent implements OnChanges, OnInit, OnDestroy {
         });
         this.form.reset({ grade: 0, feedback: '' });
         if (this.mode === 'Grade') {
-          this.form.get('grade')!.setValidators([
-            Validators.required,
-            Validators.min(0),
-            Validators.max(this.maxScore)
-          ]);
+          this.form
+            .get('grade')!
+            .setValidators([Validators.required, Validators.min(0), Validators.max(this.maxScore)]);
           this.form.get('grade')!.updateValueAndValidity();
         } else {
-          this.form.get('feedback')!.setValidators([
-            Validators.required,
-            Validators.maxLength(2000)
-          ]);
+          this.form
+            .get('feedback')!
+            .setValidators([Validators.required, Validators.maxLength(2000)]);
           this.form.get('feedback')!.updateValueAndValidity();
         }
       } else if (this.previouslyFocused) {
@@ -245,7 +233,7 @@ export class GradeDialogComponent implements OnChanges, OnInit, OnDestroy {
     if (this.mode === 'Grade') {
       this.grade.emit({
         grade: Number(v.grade),
-        feedback: (v.feedback ?? '').toString().trim() || null
+        feedback: (v.feedback ?? '').toString().trim() || null,
       });
     } else {
       this.return.emit({ feedback: (v.feedback ?? '').toString().trim() });

@@ -37,7 +37,7 @@ export interface ScheduleSlotItemRaw {
   assignmentPublicUuid: string;
   dayOfWeek: number;
   startTime: string; // "08:00:00"
-  endTime: string;   // "09:00:00"
+  endTime: string; // "09:00:00"
   classroom: string | null;
   teacher: ScheduleTeacherRefRaw | null;
   course: ScheduleCourseRefRaw;
@@ -91,7 +91,7 @@ export interface TimeSlotDetail {
 export interface CreateTimeSlotRequest {
   dayOfWeek: number;
   startTime: string; // "08:00"
-  endTime: string;   // "09:00"
+  endTime: string; // "09:00"
   classroom?: string;
 }
 
@@ -113,7 +113,7 @@ export const DAYS_OF_WEEK = [
   { value: 4, label: 'Jueves' },
   { value: 5, label: 'Viernes' },
   { value: 6, label: 'Sábado' },
-  { value: 7, label: 'Domingo' }
+  { value: 7, label: 'Domingo' },
 ];
 
 export function formatTime(time: string): string {

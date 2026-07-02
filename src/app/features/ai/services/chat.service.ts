@@ -83,7 +83,7 @@ export class ChatService {
    */
   sendMessage(
     sessionPublicUuid: string,
-    text: string
+    text: string,
   ): { chunks$: Observable<ChatChunk>; cancel: () => void } {
     const controller = new AbortController();
     const chunks$ = new Subject<ChatChunk>();
@@ -92,7 +92,7 @@ export class ChatService {
     void this.streamSse(url, text, controller, chunks$);
     return {
       chunks$: chunks$.asObservable(),
-      cancel: () => controller.abort()
+      cancel: () => controller.abort(),
     };
   }
 
@@ -100,22 +100,25 @@ export class ChatService {
     url: string,
     text: string,
     controller: AbortController,
-    chunks$: Subject<ChatChunk>
+    chunks$: Subject<ChatChunk>,
   ): Promise<void> {
     try {
       const res = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Accept: 'text/event-stream'
+          Accept: 'text/event-stream',
         },
         credentials: 'include',
         body: JSON.stringify({ text }),
-        signal: controller.signal
+        signal: controller.signal,
       });
       if (!res.ok || !res.body) {
         const errBody = await res.text().catch(() => '');
-        chunks$.next({ kind: 'error', message: `HTTP ${res.status}: ${errBody || res.statusText}` });
+        chunks$.next({
+          kind: 'error',
+          message: `HTTP ${res.status}: ${errBody || res.statusText}`,
+        });
         chunks$.complete();
         return;
       }
@@ -160,7 +163,11 @@ export class ChatService {
     } else if (event === 'done') {
       try {
         const parsed = JSON.parse(data) as { publicUuid: string; cancelled: boolean };
-        chunks$.next({ kind: 'done', publicUuid: parsed.publicUuid, cancelled: !!parsed.cancelled });
+        chunks$.next({
+          kind: 'done',
+          publicUuid: parsed.publicUuid,
+          cancelled: !!parsed.cancelled,
+        });
       } catch {
         chunks$.next({ kind: 'done' });
       }
@@ -201,7 +208,7 @@ function toChatSession(s: any): ChatSession {
     title: s.title ?? 'Nueva conversacion',
     status: s.status ?? 'ACTIVE',
     messageCount: s.messageCount ?? 0,
-    updatedAt: s.updatedAt ?? s.lastMessageAt ?? ''
+    updatedAt: s.updatedAt ?? s.lastMessageAt ?? '',
   };
 }
 
@@ -212,6 +219,6 @@ function toChatMessage(m: any): ChatMessage {
     role: m.role ?? 'ASSISTANT',
     content: m.content ?? '',
     status: m.status ?? 'COMPLETED',
-    createdAt: m.createdAt ?? ''
+    createdAt: m.createdAt ?? '',
   };
 }

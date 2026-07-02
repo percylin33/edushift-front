@@ -11,7 +11,7 @@ const BREAKPOINTS: Record<Breakpoint, number> = {
   md: 768,
   lg: 1024,
   xl: 1280,
-  '2xl': 1440
+  '2xl': 1440,
 };
 
 /**
@@ -32,9 +32,7 @@ const BREAKPOINTS: Record<Breakpoint, number> = {
 export class BreakpointService {
   private readonly destroyRef = inject(DestroyRef);
 
-  private readonly width = signal<number>(
-    typeof window !== 'undefined' ? window.innerWidth : 1024
-  );
+  private readonly width = signal<number>(typeof window !== 'undefined' ? window.innerWidth : 1024);
 
   /** Current Tailwind breakpoint key — largest one whose threshold is met. */
   readonly current = computed<Breakpoint | 'xs'>(() => {
@@ -52,7 +50,7 @@ export class BreakpointService {
 
   /** True when the viewport is between `md` and `lg`. */
   readonly isTablet = computed(
-    () => this.width() >= BREAKPOINTS.md && this.width() < BREAKPOINTS.lg
+    () => this.width() >= BREAKPOINTS.md && this.width() < BREAKPOINTS.lg,
   );
 
   /** True when the viewport is ≥ `lg`. */

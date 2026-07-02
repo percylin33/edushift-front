@@ -30,7 +30,7 @@ import {
   UpdateCourseLevelsRequest,
   UpdateCourseRequest,
   UpdateGradeRequest,
-  UpdateSectionRequest
+  UpdateSectionRequest,
 } from '../models';
 
 /**
@@ -131,13 +131,13 @@ export class AcademicStore {
   /** Grades del level seleccionado, ordenados por {@code ordinal asc}. */
   readonly selectedGrades = computed<Grade[]>(
     () =>
-      this.selectedLevel()?.grades.slice().sort((a, b) => a.ordinal - b.ordinal) ?? []
+      this.selectedLevel()
+        ?.grades.slice()
+        .sort((a, b) => a.ordinal - b.ordinal) ?? [],
   );
 
   readonly hasLevels = computed(() => this._levels().length > 0);
-  readonly isLevelsEmpty = computed(
-    () => !this._loadingLevels() && this._levels().length === 0
-  );
+  readonly isLevelsEmpty = computed(() => !this._loadingLevels() && this._levels().length === 0);
 
   readonly sections = this._sections.asReadonly();
   readonly sectionFilters = this._sectionFilters.asReadonly();
@@ -160,7 +160,7 @@ export class AcademicStore {
 
   readonly hasSections = computed(() => this._sections().length > 0);
   readonly isSectionsEmpty = computed(
-    () => !this._loadingSections() && this._sections().length === 0
+    () => !this._loadingSections() && this._sections().length === 0,
   );
 
   readonly courses = this._courses.asReadonly();
@@ -179,17 +179,11 @@ export class AcademicStore {
     const all = this._courses();
     const q = this._courseFilters().search?.trim().toLowerCase();
     if (!q) return all;
-    return all.filter(
-      (c) =>
-        c.code.toLowerCase().includes(q) ||
-        c.name.toLowerCase().includes(q)
-    );
+    return all.filter((c) => c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q));
   });
 
   readonly hasCourses = computed(() => this._courses().length > 0);
-  readonly isCoursesEmpty = computed(
-    () => !this._loadingCourses() && this._courses().length === 0
-  );
+  readonly isCoursesEmpty = computed(() => !this._loadingCourses() && this._courses().length === 0);
 
   readonly periods = this._periods.asReadonly();
   readonly periodFilters = this._periodFilters.asReadonly();
@@ -198,9 +192,7 @@ export class AcademicStore {
   readonly bulkProgress = this._bulkProgress.asReadonly();
 
   readonly hasPeriods = computed(() => this._periods().length > 0);
-  readonly isPeriodsEmpty = computed(
-    () => !this._loadingPeriods() && this._periods().length === 0
-  );
+  readonly isPeriodsEmpty = computed(() => !this._loadingPeriods() && this._periods().length === 0);
 
   readonly error = this._error.asReadonly();
 
@@ -210,13 +202,11 @@ export class AcademicStore {
    * {@code null} si no hay año activo todavía.
    */
   readonly currentActive = computed<AcademicYearRow | null>(
-    () => this._years().find((y) => y.status === AcademicYearStatus.Active) ?? null
+    () => this._years().find((y) => y.status === AcademicYearStatus.Active) ?? null,
   );
 
   readonly hasYears = computed(() => this._years().length > 0);
-  readonly isYearsEmpty = computed(
-    () => !this._loadingYears() && this._years().length === 0
-  );
+  readonly isYearsEmpty = computed(() => !this._loadingYears() && this._years().length === 0);
 
   // ===========================================================================
   // Years list ops
@@ -235,12 +225,10 @@ export class AcademicStore {
     try {
       const rows = await firstValueFrom(this.api.listYears(this._yearFilters()));
       this._years.set(rows);
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._years.set([]);
-    }
-    finally {
+    } finally {
       this._loadingYears.set(false);
     }
   }
@@ -257,20 +245,16 @@ export class AcademicStore {
       const detail = await firstValueFrom(this.api.getYear(publicUuid));
       this._selectedYear.set(detail);
       return detail;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._selectedYear.set(null);
       return null;
-    }
-    finally {
+    } finally {
       this._loadingYearDetail.set(false);
     }
   }
 
-  async createYear(
-    request: CreateAcademicYearRequest
-  ): Promise<AcademicYearDetail | null> {
+  async createYear(request: CreateAcademicYearRequest): Promise<AcademicYearDetail | null> {
     this._savingYear.set(true);
     this._error.set(null);
 
@@ -279,19 +263,17 @@ export class AcademicStore {
       this._selectedYear.set(created);
       this._years.update((rows) => this.sortRows([this.toYearRow(created), ...rows]));
       return created;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingYear.set(false);
     }
   }
 
   async updateYear(
     publicUuid: string,
-    patch: UpdateAcademicYearRequest
+    patch: UpdateAcademicYearRequest,
   ): Promise<AcademicYearDetail | null> {
     this._savingYear.set(true);
     this._error.set(null);
@@ -301,12 +283,10 @@ export class AcademicStore {
       this._selectedYear.set(updated);
       this.upsertYearRow(updated);
       return updated;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingYear.set(false);
     }
   }
@@ -334,16 +314,14 @@ export class AcademicStore {
               return { ...r, status: AcademicYearStatus.Closed };
             }
             return r;
-          })
-        )
+          }),
+        ),
       );
       return activated;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingYear.set(false);
     }
   }
@@ -359,12 +337,10 @@ export class AcademicStore {
         this._selectedYear.set(null);
       }
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return false;
-    }
-    finally {
+    } finally {
       this._savingYear.set(false);
     }
   }
@@ -387,12 +363,10 @@ export class AcademicStore {
       if (id && !rows.some((l) => l.publicUuid === id)) {
         this._selectedLevelId.set(rows[0]?.publicUuid ?? null);
       }
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._levels.set([]);
-    }
-    finally {
+    } finally {
       this._loadingLevels.set(false);
     }
   }
@@ -401,9 +375,7 @@ export class AcademicStore {
     this._selectedLevelId.set(publicUuid);
   }
 
-  async createLevel(
-    request: CreateAcademicLevelRequest
-  ): Promise<AcademicLevel | null> {
+  async createLevel(request: CreateAcademicLevelRequest): Promise<AcademicLevel | null> {
     this._savingLevel.set(true);
     this._error.set(null);
 
@@ -412,19 +384,17 @@ export class AcademicStore {
       this._levels.update((rows) => this.sortLevels([...rows, created]));
       this._selectedLevelId.set(created.publicUuid);
       return created;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingLevel.set(false);
     }
   }
 
   async updateLevel(
     publicUuid: string,
-    patch: UpdateAcademicLevelRequest
+    patch: UpdateAcademicLevelRequest,
   ): Promise<AcademicLevel | null> {
     this._savingLevel.set(true);
     this._error.set(null);
@@ -432,15 +402,13 @@ export class AcademicStore {
     try {
       const updated = await firstValueFrom(this.api.updateLevel(publicUuid, patch));
       this._levels.update((rows) =>
-        this.sortLevels(rows.map((l) => (l.publicUuid === publicUuid ? updated : l)))
+        this.sortLevels(rows.map((l) => (l.publicUuid === publicUuid ? updated : l))),
       );
       return updated;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingLevel.set(false);
     }
   }
@@ -456,20 +424,15 @@ export class AcademicStore {
         this._selectedLevelId.set(this._levels()[0]?.publicUuid ?? null);
       }
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return false;
-    }
-    finally {
+    } finally {
       this._savingLevel.set(false);
     }
   }
 
-  async createGrade(
-    levelUuid: string,
-    request: CreateGradeRequest
-  ): Promise<Grade | null> {
+  async createGrade(levelUuid: string, request: CreateGradeRequest): Promise<Grade | null> {
     this._savingGrade.set(true);
     this._error.set(null);
 
@@ -477,12 +440,10 @@ export class AcademicStore {
       const created = await firstValueFrom(this.api.createGrade(levelUuid, request));
       this.upsertGrade(levelUuid, created);
       return created;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingGrade.set(false);
     }
   }
@@ -490,23 +451,19 @@ export class AcademicStore {
   async updateGrade(
     levelUuid: string,
     gradeUuid: string,
-    patch: UpdateGradeRequest
+    patch: UpdateGradeRequest,
   ): Promise<Grade | null> {
     this._savingGrade.set(true);
     this._error.set(null);
 
     try {
-      const updated = await firstValueFrom(
-        this.api.updateGrade(levelUuid, gradeUuid, patch)
-      );
+      const updated = await firstValueFrom(this.api.updateGrade(levelUuid, gradeUuid, patch));
       this.upsertGrade(levelUuid, updated);
       return updated;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingGrade.set(false);
     }
   }
@@ -521,16 +478,14 @@ export class AcademicStore {
         rows.map((l) =>
           l.publicUuid === levelUuid
             ? { ...l, grades: l.grades.filter((g) => g.publicUuid !== gradeUuid) }
-            : l
-        )
+            : l,
+        ),
       );
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return false;
-    }
-    finally {
+    } finally {
       this._savingGrade.set(false);
     }
   }
@@ -556,9 +511,7 @@ export class AcademicStore {
     });
 
     this._levels.update((rows) =>
-      rows.map((l) =>
-        l.publicUuid === levelUuid ? { ...l, grades: reordered } : l
-      )
+      rows.map((l) => (l.publicUuid === levelUuid ? { ...l, grades: reordered } : l)),
     );
   }
 
@@ -572,30 +525,24 @@ export class AcademicStore {
 
     const items = level.grades.map((g, i) => ({
       publicUuid: g.publicUuid,
-      ordinal: i + 1
+      ordinal: i + 1,
     }));
 
     this._savingGrade.set(true);
     this._error.set(null);
 
     try {
-      const updated = await firstValueFrom(
-        this.api.reorderGrades(levelUuid, { items })
-      );
+      const updated = await firstValueFrom(this.api.reorderGrades(levelUuid, { items }));
       this._levels.update((rows) =>
-        rows.map((l) =>
-          l.publicUuid === levelUuid ? { ...l, grades: updated } : l
-        )
+        rows.map((l) => (l.publicUuid === levelUuid ? { ...l, grades: updated } : l)),
       );
       this.gradesSnapshot = null;
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this.rollbackGradeReorder(levelUuid);
       return false;
-    }
-    finally {
+    } finally {
       this._savingGrade.set(false);
     }
   }
@@ -609,9 +556,7 @@ export class AcademicStore {
     if (!this.gradesSnapshot) return;
     const snap = this.gradesSnapshot;
     this._levels.update((rows) =>
-      rows.map((l) =>
-        l.publicUuid === levelUuid ? { ...l, grades: snap } : l
-      )
+      rows.map((l) => (l.publicUuid === levelUuid ? { ...l, grades: snap } : l)),
     );
     this.gradesSnapshot = null;
   }
@@ -643,16 +588,14 @@ export class AcademicStore {
         this.api.listSections({
           academicYearPublicUuid: f.academicYearPublicUuid,
           gradePublicUuid: f.gradePublicUuid,
-          levelPublicUuid: f.levelPublicUuid
-        })
+          levelPublicUuid: f.levelPublicUuid,
+        }),
       );
       this._sections.set(this.sortSections(rows));
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._sections.set([]);
-    }
-    finally {
+    } finally {
       this._loadingSections.set(false);
     }
   }
@@ -665,20 +608,16 @@ export class AcademicStore {
       const detail = await firstValueFrom(this.api.getSection(publicUuid));
       this._selectedSection.set(detail);
       return detail;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._selectedSection.set(null);
       return null;
-    }
-    finally {
+    } finally {
       this._loadingSectionDetail.set(false);
     }
   }
 
-  async createSection(
-    request: CreateSectionRequest
-  ): Promise<SectionDetail | null> {
+  async createSection(request: CreateSectionRequest): Promise<SectionDetail | null> {
     this._savingSection.set(true);
     this._error.set(null);
 
@@ -687,42 +626,34 @@ export class AcademicStore {
       this._selectedSection.set(created);
       this._sections.update((rows) => this.sortSections([this.toSectionRow(created), ...rows]));
       return created;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingSection.set(false);
     }
   }
 
   async updateSection(
     publicUuid: string,
-    patch: UpdateSectionRequest
+    patch: UpdateSectionRequest,
   ): Promise<SectionDetail | null> {
     this._savingSection.set(true);
     this._error.set(null);
 
     try {
-      const updated = await firstValueFrom(
-        this.api.updateSection(publicUuid, patch)
-      );
+      const updated = await firstValueFrom(this.api.updateSection(publicUuid, patch));
       this._selectedSection.set(updated);
       this._sections.update((rows) =>
         this.sortSections(
-          rows.map((s) =>
-            s.publicUuid === publicUuid ? this.toSectionRow(updated) : s
-          )
-        )
+          rows.map((s) => (s.publicUuid === publicUuid ? this.toSectionRow(updated) : s)),
+        ),
       );
       return updated;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingSection.set(false);
     }
   }
@@ -733,19 +664,15 @@ export class AcademicStore {
 
     try {
       await firstValueFrom(this.api.deleteSection(publicUuid));
-      this._sections.update((rows) =>
-        rows.filter((s) => s.publicUuid !== publicUuid)
-      );
+      this._sections.update((rows) => rows.filter((s) => s.publicUuid !== publicUuid));
       if (this._selectedSection()?.publicUuid === publicUuid) {
         this._selectedSection.set(null);
       }
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return false;
-    }
-    finally {
+    } finally {
       this._savingSection.set(false);
     }
   }
@@ -758,12 +685,8 @@ export class AcademicStore {
   suggestSectionName(yearUuid: string, gradeUuid: string): string {
     const taken = new Set(
       this._sections()
-        .filter(
-          (s) =>
-            s.academicYearPublicUuid === yearUuid &&
-            s.gradePublicUuid === gradeUuid
-        )
-        .map((s) => s.name.trim().toUpperCase())
+        .filter((s) => s.academicYearPublicUuid === yearUuid && s.gradePublicUuid === gradeUuid)
+        .map((s) => s.name.trim().toUpperCase()),
     );
     for (let i = 0; i < 26; i++) {
       const letter = String.fromCharCode(65 + i);
@@ -799,16 +722,14 @@ export class AcademicStore {
       const rows = await firstValueFrom(
         this.api.listCourses({
           levelPublicUuid: f.levelPublicUuid,
-          isActive: f.isActive
-        })
+          isActive: f.isActive,
+        }),
       );
       this._courses.set(rows);
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._courses.set([]);
-    }
-    finally {
+    } finally {
       this._loadingCourses.set(false);
     }
   }
@@ -821,36 +742,28 @@ export class AcademicStore {
       const detail = await firstValueFrom(this.api.getCourse(publicUuid));
       this._selectedCourse.set(detail);
       return detail;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._selectedCourse.set(null);
       return null;
-    }
-    finally {
+    } finally {
       this._loadingCourseDetail.set(false);
     }
   }
 
-  async createCourse(
-    request: CreateCourseRequest
-  ): Promise<CourseDetail | null> {
+  async createCourse(request: CreateCourseRequest): Promise<CourseDetail | null> {
     this._savingCourse.set(true);
     this._error.set(null);
 
     try {
       const created = await firstValueFrom(this.api.createCourse(request));
       this._selectedCourse.set(created);
-      this._courses.update((rows) =>
-        this.sortCourses([this.toCourseRow(created), ...rows])
-      );
+      this._courses.update((rows) => this.sortCourses([this.toCourseRow(created), ...rows]));
       return created;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingCourse.set(false);
     }
   }
@@ -867,7 +780,7 @@ export class AcademicStore {
    */
   async updateCourse(
     publicUuid: string,
-    request: { patch?: UpdateCourseRequest; levels?: UpdateCourseLevelsRequest }
+    request: { patch?: UpdateCourseRequest; levels?: UpdateCourseLevelsRequest },
   ): Promise<CourseDetail | null> {
     this._savingCourse.set(true);
     this._error.set(null);
@@ -875,14 +788,10 @@ export class AcademicStore {
     try {
       let result: CourseDetail | null = null;
       if (request.patch && this.hasAnyValue(request.patch)) {
-        result = await firstValueFrom(
-          this.api.updateCourse(publicUuid, request.patch)
-        );
+        result = await firstValueFrom(this.api.updateCourse(publicUuid, request.patch));
       }
       if (request.levels) {
-        result = await firstValueFrom(
-          this.api.replaceCourseLevels(publicUuid, request.levels)
-        );
+        result = await firstValueFrom(this.api.replaceCourseLevels(publicUuid, request.levels));
       }
       if (!result) {
         /* No-op call (sin patch + sin levels). Devolvemos el detail
@@ -893,19 +802,15 @@ export class AcademicStore {
         this._selectedCourse.set(result);
         this._courses.update((rows) =>
           this.sortCourses(
-            rows.map((c) =>
-              c.publicUuid === publicUuid ? this.toCourseRow(result!) : c
-            )
-          )
+            rows.map((c) => (c.publicUuid === publicUuid ? this.toCourseRow(result!) : c)),
+          ),
         );
       }
       return result;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingCourse.set(false);
     }
   }
@@ -922,31 +827,22 @@ export class AcademicStore {
 
     /* Optimistic update. */
     this._courses.update((rows) =>
-      rows.map((c) =>
-        c.publicUuid === publicUuid ? { ...c, isActive: next } : c
-      )
+      rows.map((c) => (c.publicUuid === publicUuid ? { ...c, isActive: next } : c)),
     );
 
     try {
-      const updated = await firstValueFrom(
-        this.api.updateCourse(publicUuid, { isActive: next })
-      );
+      const updated = await firstValueFrom(this.api.updateCourse(publicUuid, { isActive: next }));
       this._courses.update((rows) =>
-        rows.map((c) =>
-          c.publicUuid === publicUuid ? this.toCourseRow(updated) : c
-        )
+        rows.map((c) => (c.publicUuid === publicUuid ? this.toCourseRow(updated) : c)),
       );
       if (this._selectedCourse()?.publicUuid === publicUuid) {
         this._selectedCourse.set(updated);
       }
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       /* Rollback. */
       this._courses.update((rows) =>
-        rows.map((c) =>
-          c.publicUuid === publicUuid ? { ...c, isActive: before.isActive } : c
-        )
+        rows.map((c) => (c.publicUuid === publicUuid ? { ...c, isActive: before.isActive } : c)),
       );
       this._error.set(this.toErrorMessage(err));
       return false;
@@ -959,19 +855,15 @@ export class AcademicStore {
 
     try {
       await firstValueFrom(this.api.deleteCourse(publicUuid));
-      this._courses.update((rows) =>
-        rows.filter((c) => c.publicUuid !== publicUuid)
-      );
+      this._courses.update((rows) => rows.filter((c) => c.publicUuid !== publicUuid));
       if (this._selectedCourse()?.publicUuid === publicUuid) {
         this._selectedCourse.set(null);
       }
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return false;
-    }
-    finally {
+    } finally {
       this._savingCourse.set(false);
     }
   }
@@ -993,63 +885,49 @@ export class AcademicStore {
       const f = this._periodFilters();
       const rows = await firstValueFrom(this.api.listPeriods(f));
       this._periods.set(this.sortPeriods(rows));
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._periods.set([]);
-    }
-    finally {
+    } finally {
       this._loadingPeriods.set(false);
     }
   }
 
-  async createPeriod(
-    request: CreateAcademicPeriodRequest
-  ): Promise<AcademicPeriodDetail | null> {
+  async createPeriod(request: CreateAcademicPeriodRequest): Promise<AcademicPeriodDetail | null> {
     this._savingPeriod.set(true);
     this._error.set(null);
 
     try {
       const created = await firstValueFrom(this.api.createPeriod(request));
-      this._periods.update((rows) =>
-        this.sortPeriods([this.toPeriodRow(created), ...rows])
-      );
+      this._periods.update((rows) => this.sortPeriods([this.toPeriodRow(created), ...rows]));
       return created;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingPeriod.set(false);
     }
   }
 
   async updatePeriod(
     publicUuid: string,
-    patch: UpdateAcademicPeriodRequest
+    patch: UpdateAcademicPeriodRequest,
   ): Promise<AcademicPeriodDetail | null> {
     this._savingPeriod.set(true);
     this._error.set(null);
 
     try {
-      const updated = await firstValueFrom(
-        this.api.updatePeriod(publicUuid, patch)
-      );
+      const updated = await firstValueFrom(this.api.updatePeriod(publicUuid, patch));
       this._periods.update((rows) =>
         this.sortPeriods(
-          rows.map((p) =>
-            p.publicUuid === publicUuid ? this.toPeriodRow(updated) : p
-          )
-        )
+          rows.map((p) => (p.publicUuid === publicUuid ? this.toPeriodRow(updated) : p)),
+        ),
       );
       return updated;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
-    }
-    finally {
+    } finally {
       this._savingPeriod.set(false);
     }
   }
@@ -1060,16 +938,12 @@ export class AcademicStore {
 
     try {
       await firstValueFrom(this.api.deletePeriod(publicUuid));
-      this._periods.update((rows) =>
-        rows.filter((p) => p.publicUuid !== publicUuid)
-      );
+      this._periods.update((rows) => rows.filter((p) => p.publicUuid !== publicUuid));
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return false;
-    }
-    finally {
+    } finally {
       this._savingPeriod.set(false);
     }
   }
@@ -1092,7 +966,7 @@ export class AcademicStore {
       startDate: string;
       endDate: string;
       periodType: PeriodType;
-    }>
+    }>,
   ): Promise<{ success: boolean; failedAt?: number }> {
     if (plan.length === 0) return { success: true };
 
@@ -1110,22 +984,18 @@ export class AcademicStore {
               ordinal: part.ordinal,
               name: part.name,
               startDate: part.startDate,
-              endDate: part.endDate
-            })
+              endDate: part.endDate,
+            }),
           );
-          this._periods.update((rows) =>
-            this.sortPeriods([...rows, this.toPeriodRow(created)])
-          );
-        }
-        catch (err) {
+          this._periods.update((rows) => this.sortPeriods([...rows, this.toPeriodRow(created)]));
+        } catch (err) {
           this._error.set(this.toErrorMessage(err));
           return { success: false, failedAt: i + 1 };
         }
         this._bulkProgress.set({ current: i + 1, total: plan.length });
       }
       return { success: true };
-    }
-    finally {
+    } finally {
       this._bulkProgress.set(null);
     }
   }
@@ -1138,10 +1008,7 @@ export class AcademicStore {
    */
   suggestPeriodOrdinal(yearUuid: string, type: PeriodType): number {
     const max = this._periods()
-      .filter(
-        (p) =>
-          p.academicYearPublicUuid === yearUuid && p.periodType === type
-      )
+      .filter((p) => p.academicYearPublicUuid === yearUuid && p.periodType === type)
       .reduce((acc, p) => Math.max(acc, p.ordinal), 0);
     return max + 1;
   }
@@ -1207,7 +1074,7 @@ export class AcademicStore {
       name: detail.name,
       status: detail.status,
       startDate: detail.startDate,
-      endDate: detail.endDate
+      endDate: detail.endDate,
     };
   }
 
@@ -1216,9 +1083,10 @@ export class AcademicStore {
       rows.map((l) => {
         if (l.publicUuid !== levelUuid) return l;
         const idx = l.grades.findIndex((g) => g.publicUuid === grade.publicUuid);
-        const grades = idx < 0 ? [...l.grades, grade] : l.grades.map((g, i) => (i === idx ? grade : g));
+        const grades =
+          idx < 0 ? [...l.grades, grade] : l.grades.map((g, i) => (i === idx ? grade : g));
         return { ...l, grades: grades.sort((a, b) => a.ordinal - b.ordinal) };
-      })
+      }),
     );
   }
 
@@ -1242,7 +1110,7 @@ export class AcademicStore {
       levelCode: detail.levelCode,
       name: detail.name,
       capacity: detail.capacity,
-      displayOrder: detail.displayOrder
+      displayOrder: detail.displayOrder,
     };
   }
 
@@ -1268,7 +1136,7 @@ export class AcademicStore {
       credits: detail.credits,
       hoursPerWeek: detail.hoursPerWeek,
       isActive: detail.isActive,
-      levels: detail.levels
+      levels: detail.levels,
     };
   }
 
@@ -1293,7 +1161,7 @@ export class AcademicStore {
       ordinal: detail.ordinal,
       name: detail.name,
       startDate: detail.startDate,
-      endDate: detail.endDate
+      endDate: detail.endDate,
     };
   }
 
@@ -1305,9 +1173,9 @@ export class AcademicStore {
    */
   private sortPeriods(rows: AcademicPeriodRow[]): AcademicPeriodRow[] {
     const typeOrder: Record<PeriodType, number> = {
-      [PeriodType.Bimestre]:  0,
+      [PeriodType.Bimestre]: 0,
       [PeriodType.Trimestre]: 1,
-      [PeriodType.Anual]:     2
+      [PeriodType.Anual]: 2,
     };
     return rows.slice().sort((a, b) => {
       const t = typeOrder[a.periodType] - typeOrder[b.periodType];
@@ -1324,9 +1192,12 @@ export class AcademicStore {
   private sortRows(rows: AcademicYearRow[]): AcademicYearRow[] {
     const rank = (s: AcademicYearStatus): number => {
       switch (s) {
-        case AcademicYearStatus.Active:   return 0;
-        case AcademicYearStatus.Planning: return 1;
-        case AcademicYearStatus.Closed:   return 2;
+        case AcademicYearStatus.Active:
+          return 0;
+        case AcademicYearStatus.Planning:
+          return 1;
+        case AcademicYearStatus.Closed:
+          return 2;
       }
     };
     return rows.slice().sort((a, b) => {
