@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { NavbarComponent, SidebarComponent } from '../components';
+import { NavbarComponent, SidebarComponent, UatBannerComponent } from '../components';
 
 /**
  * Authenticated app shell.
@@ -15,13 +15,14 @@ import { NavbarComponent, SidebarComponent } from '../components';
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [RouterOutlet, SidebarComponent, NavbarComponent],
+  imports: [RouterOutlet, SidebarComponent, NavbarComponent, UatBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex min-h-screen bg-surface-subtle text-content">
       <app-sidebar />
 
       <div class="flex min-w-0 flex-1 flex-col">
+        <app-uat-banner />
         <app-navbar />
         <!-- No inner container: each routed page declares its own gutters via
              <app-page-container>. This keeps data-heavy / full-bleed pages

@@ -46,7 +46,14 @@ import { firstValueFrom } from 'rxjs';
         <div class="flex items-center gap-2 text-sm text-slate-500">
           <app-spinner class="h-4 w-4"></app-spinner> Cargando…
         </div>
-      } @else if (summary(); as s) {
+      }
+
+      @if (!loading() && error()) {
+        @let e = error();
+        <p class="text-sm text-rose-600 dark:text-rose-400">{{ e }}</p>
+      }
+
+      @if (summary(); as s) {
         <!-- Quota meter -->
         <section class="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div
@@ -133,7 +140,7 @@ import { firstValueFrom } from 'rxjs';
           class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800"
         >
           <h2 class="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Por feature</h2>
-          @if (s.byFeature?.length) {
+          @if (s.byFeature.length) {
             <ul class="space-y-2">
               @for (f of s.byFeature; track f.feature) {
                 <li>
@@ -168,7 +175,7 @@ import { firstValueFrom } from 'rxjs';
           <h2 class="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
             Historico diario
           </h2>
-          @if (s.daily?.length) {
+          @if (s.daily.length) {
             <div class="overflow-x-auto">
               <table class="min-w-full text-xs">
                 <thead>
@@ -203,8 +210,6 @@ import { firstValueFrom } from 'rxjs';
             <p class="text-sm text-slate-500">Sin historial este mes.</p>
           }
         </section>
-      } @else if (error(); as e) {
-        <p class="text-sm text-rose-600 dark:text-rose-400">{{ e }}</p>
       }
     </div>
   `,

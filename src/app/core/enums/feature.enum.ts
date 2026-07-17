@@ -20,10 +20,11 @@ export enum FeatureKey {
   Ai = 'ai',
   Reports = 'reports',
   Notifications = 'notifications',
+  Announcements = 'announcements',
   Settings = 'settings',
-  // LMS (Sprint 7a). Owns Materials, Tasks and Submissions. Granular
-  // authorities are declared in `Permission.Lms*`; the `FeatureKey.Lms`
-  // flag is the build-time / plan-level on/off switch that gates the
-  // whole `/lms/*` route tree via `featureFlagGuard`.
   Lms = 'lms',
+  // Sprint 15 — super-admin platform console. Gated by SUPER_ADMIN role
+  // (not by feature flag); the constant is declared so `featureFlagGuard`
+  // can be used if ever needed for environment-level gating.
+  Admin = 'admin',
 }

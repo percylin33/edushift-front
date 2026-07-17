@@ -78,6 +78,20 @@ import { IconComponent } from '@shared/components';
                   Institución
                 </a>
               </li>
+              <li>
+                <a
+                  [routerLink]="permissionsLink"
+                  routerLinkActive
+                  #rlaP="routerLinkActive"
+                  [attr.aria-current]="rlaP.isActive ? 'page' : null"
+                  class="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-content hover:bg-surface-muted"
+                  [class.bg-surface-muted]="rlaP.isActive"
+                  data-testid="sidebar-permissions"
+                >
+                  <app-icon name="lock" [size]="16" />
+                  Permisos
+                </a>
+              </li>
             }
           </ul>
         </nav>
@@ -98,6 +112,7 @@ export class SettingsShellComponent {
   protected readonly userLink = ['/settings'];
   protected readonly securityLink = ['/settings', 'security'];
   protected readonly tenantLink = ['/settings', 'tenant'];
+  protected readonly permissionsLink = ['/settings', 'permissions'];
 
   protected readonly isAdmin = computed(
     () => this.auth.hasRole(UserRole.TenantAdmin) || this.auth.hasRole(UserRole.SuperAdmin),

@@ -13,7 +13,7 @@ import {
 import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ChatService, ChatSession, ChatMessage, ChatChunk } from '../../services/chat.service';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import { EmptyStateComponent, IconComponent } from '@shared/components';
 import { firstValueFrom } from 'rxjs';
 
 /**
@@ -41,7 +41,6 @@ import { firstValueFrom } from 'rxjs';
     RouterModule,
     EmptyStateComponent,
     IconComponent,
-    SpinnerComponent,
   ],
   template: `
     <div class="flex h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-900">

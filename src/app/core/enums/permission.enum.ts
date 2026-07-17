@@ -78,6 +78,16 @@ export enum Permission {
   LmsAiGenerate = 'LMS_AI_GENERATE',
 
   // -------------------------------------------------------------------------
+  // AI usage visibility (Sprint 7c / BE-7c.2). Mirrors
+  // `LmsAuthorities.LMS_AI_USAGE` on the backend. Granted to
+  // TENANT_ADMIN + SUPER_ADMIN (see `LmsRoleAuthorityMapper`). Gates the
+  // `/ai/usage` surface (own-tenant token consumption breakdown, quotas).
+  // DEBT-QA-2 (QA plan 2026-07-02): added to keep FE enum in sync with BE
+  // so the `permissionGuard` can resolve `LMS_AI_USAGE`.
+  // -------------------------------------------------------------------------
+  LmsAiUsage = 'LMS_AI_USAGE',
+
+  // -------------------------------------------------------------------------
   // Payments admin (Sprint 11 / BE-11.7). Authority name mirrors
   // `LmsAuthorities.LMS_PAYMENT_ADMIN` on the backend. Granted to
   // TENANT_ADMIN + STAFF (see `LmsRoleAuthorityMapper`). Gates the

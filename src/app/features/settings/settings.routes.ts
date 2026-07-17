@@ -3,7 +3,7 @@ import { roleGuard } from '@core/guards';
 import { UserRole } from '@core/enums';
 
 /**
- * Settings feature routes (Sprint 17 / FE-17.4).
+ * Settings feature routes (Sprint 17 / FE-17.4, extended with F0.5 / D1).
  *
  * <p>The shell component owns the left-side navigation and renders the
  * active sub-page via {@code <router-outlet/>}. All sub-pages live
@@ -20,6 +20,7 @@ import { UserRole } from '@core/enums';
  *   <li>{@code /settings}                  — user account overview (FE-17.4)</li>
  *   <li>{@code /settings/security}        — security / MFA / password (FE-17.4)</li>
  *   <li>{@code /settings/tenant}         — tenant branding (TENANT_ADMIN, FE-17.4)</li>
+ *   <li>{@code /settings/permissions}     — D1 custom role permissions (F0.5 / TENANT_ADMIN)</li>
  * </ul>
  *
  * The shell itself is hidden for non-ADMIN, but the home page
@@ -59,6 +60,15 @@ export const SETTINGS_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/tenant-settings/tenant-settings.component').then(
             (m) => m.TenantSettingsComponent,
+          ),
+      },
+      {
+        path: 'permissions',
+        canActivate: [roleGuard],
+        data: { roles: [UserRole.TenantAdmin] },
+        loadComponent: () =>
+          import('./pages/permissions-settings/permissions-settings.page').then(
+            (m) => m.PermissionsSettingsPageComponent,
           ),
       },
     ],

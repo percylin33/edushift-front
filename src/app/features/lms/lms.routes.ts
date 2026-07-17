@@ -45,11 +45,11 @@ export const LMS_ROUTES: Routes = [
   {
     path: '',
     canMatch: [roleGuard],
-    data: {
-      roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Student, UserRole.Guardian],
-      title: 'LMS',
-      breadcrumb: 'LMS',
-    },
+data: {
+       roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Student, UserRole.Parent],
+       title: 'Aula virtual',
+       breadcrumb: 'Aula virtual',
+     },
     loadComponent: () =>
       import('./pages/lms-shell/lms-shell.component').then((m) => m.LmsShellComponent),
     children: [

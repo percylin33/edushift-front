@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { SecurityContext } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AnnouncementsApiService } from '../../services/announcements-api.service';
@@ -65,7 +66,7 @@ import { AnnouncementAudience } from '../../models/announcement.model';
                 type="text"
                 formControlName="audienceIdsCsv"
                 class="mt-1 w-full rounded-lg border-slate-200 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800"
-                placeholder="e.g. 1A, 1B"
+                placeholder="Ej. 1A, 1B"
               />
             </div>
           }
@@ -183,7 +184,7 @@ export class AnnouncementComposerPageComponent {
   readonly safeBody = computed<SafeHtml>(
     () =>
       this.sanitizer.sanitize(
-        this.sanitizer.SECURITY_CONTEXT,
+        SecurityContext.HTML,
         this.form.controls.bodyHtml.value ?? '',
       ) ?? '',
   );

@@ -1,16 +1,18 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   OnDestroy,
   OnInit,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { BarcodeFormat } from '@zxing/library';
-import { ZXingScannerModule } from '@zxing/ngx-scanner';
+import { ZXingScannerModule, ZXingScannerComponent } from '@zxing/ngx-scanner';
 import { environment } from '@env/environment';
 import { IconName } from '@shared/components/icon/icons.registry';
 import { IconComponent, PageContainerComponent, PageHeaderComponent } from '@shared/components';
@@ -18,6 +20,8 @@ import { StudentSearchPickerComponent } from '../../components/student-search-pi
 import { AttendanceStudentLookupItem } from '../../models';
 import { AttendanceStore } from '../../store';
 import { ScanOutcome } from '../../store/attendance.store';
+
+const STORE_KEY_CAMERA_DEVICE_ID = 'edushift_scanner_deviceId';
 
 /**
  * Camera state machine (FE-6.1).
@@ -127,21 +131,50 @@ type CameraState =
                   data-testid="scanner-viewport"
                 >
                   <zxing-scanner
+                    #scanner
                     class="block h-full w-full"
                     [enable]="!isOffline()"
                     [autostart]="true"
                     [formats]="qrFormats"
                     [tryHarder]="false"
-                    [videoConstraints]="videoConstraints"
+                    [videoConstraints]="effectiveVideoConstraints"
+                    (camerasFound)="onCamerasFound($event)"
                     (scanSuccess)="handleScan($event)"
                     (scanError)="onCameraError($event)"
                     (permissionResponse)="onPermissionResponse($event)"
                   />
                 </div>
-                <p class="mt-3 text-xs text-slate-500">
-                  Apunta la cámara al QR del alumno. Si no trae credencial, búscalo por nombre
-                  debajo.
-                </p>
+                <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
+                  <p class="text-xs text-slate-500">
+                    Apunta la cámara al QR del alumno. Si no trae credencial, búscalo por nombre
+                    debajo.
+                  </p>
+                  <div class="flex items-center gap-2">
+                    @if (devices().length > 1) {
+                      <select
+                        class="select select-xs max-w-[160px]"
+                        [ngModel]="selectedDeviceId()"
+                        (ngModelChange)="onDeviceChange($event)"
+                        aria-label="Cámara"
+                      >
+                        @for (d of devices(); track d.deviceId) {
+                          <option [value]="d.deviceId">{{ d.label || 'Cámara ' + $index }}</option>
+                        }
+                      </select>
+                    }
+                    @if (torchSupported()) {
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-icon btn-xs"
+                        [class.text-yellow-500]="torchEnabled()"
+                        aria-label="Linterna"
+                        (click)="toggleTorch()"
+                      >
+                        <app-icon name="sun" [size]="16" />
+                      </button>
+                    }
+                  </div>
+                </div>
               }
               @case ('denied') {
                 <div class="flex flex-col items-center px-4 py-8 text-center">
@@ -364,6 +397,10 @@ type CameraState =
 export class AttendanceScannerPageComponent implements OnInit, OnDestroy {
   protected readonly store = inject(AttendanceStore);
   protected readonly environment = environment;
+  private readonly elementRef = inject(ElementRef);
+
+  /** Reference to the zxing-scanner for device enumeration. */
+  private readonly scannerRef = viewChild<ZXingScannerComponent>('scanner');
 
   /** Current camera state (drives the viewport + CTA). */
   protected readonly cameraState = signal<CameraState>({ kind: 'unknown' });
@@ -371,6 +408,12 @@ export class AttendanceScannerPageComponent implements OnInit, OnDestroy {
   protected readonly isOffline = signal(!navigator.onLine);
   /** Current feedback chip payload (or null). */
   protected readonly feedback = signal<FeedbackChip | null>(null);
+  /** Available video input devices. */
+  protected readonly devices = signal<MediaDeviceInfo[]>([]);
+  /** Whether torch is currently enabled. */
+  protected readonly torchEnabled = signal(false);
+  /** Whether torch is supported on the active camera. */
+  protected readonly torchSupported = signal(false);
 
   protected readonly offlineCopy = environment.attendance.offlineBannerCopy;
 
@@ -798,6 +841,91 @@ export class AttendanceScannerPageComponent implements OnInit, OnDestroy {
         };
       case 'unknown':
         return { tone: 'error', icon: 'alert-circle', title: 'Error', subtitle: outcome.reason };
+    }
+  }
+
+  /* ───── DEBT-ATT-PERF-6: Torch + deviceId persistence ───── */
+
+  /** Persisted deviceId from localStorage, or null. */
+  private readonly savedDeviceId = signal<string | null>(
+    (() => {
+      try {
+        return localStorage.getItem(STORE_KEY_CAMERA_DEVICE_ID);
+      } catch {
+        return null;
+      }
+    })(),
+  );
+
+  /** Active deviceId used in video constraints. */
+  protected readonly selectedDeviceId = signal<string | null>(this.savedDeviceId());
+
+  /** Full video constraints including persisted deviceId. */
+  protected get effectiveVideoConstraints(): MediaTrackConstraints {
+    const devId = this.selectedDeviceId();
+    return devId ? { ...this.videoConstraints, deviceId: { exact: devId } } : this.videoConstraints;
+  }
+
+  protected async onCamerasFound(devices: MediaDeviceInfo[]): Promise<void> {
+    this.devices.set(devices);
+    const saved = this.savedDeviceId();
+    if (saved && devices.some((d) => d.deviceId === saved)) {
+      this.selectedDeviceId.set(saved);
+    }
+    await this.checkTorchSupport();
+  }
+
+  protected async onDeviceChange(deviceId: string): Promise<void> {
+    this.selectedDeviceId.set(deviceId);
+    this.torchEnabled.set(false);
+    try {
+      localStorage.setItem(STORE_KEY_CAMERA_DEVICE_ID, deviceId);
+    } catch {
+      /* localStorage not available — ignore */
+    }
+    await this.checkTorchSupport();
+  }
+
+  protected async toggleTorch(): Promise<void> {
+    const next = !this.torchEnabled();
+    try {
+      const video = this.elementRef.nativeElement.querySelector('video');
+      if (!video || !video.srcObject) {
+        this.torchEnabled.set(false);
+        return;
+      }
+      const track = (video.srcObject as MediaStream).getVideoTracks()[0];
+      if (!track || !track.applyConstraints) {
+        this.torchEnabled.set(false);
+        return;
+      }
+      await track.applyConstraints({
+        advanced: [{ torch: next }],
+      } as unknown as MediaTrackConstraints);
+      this.torchEnabled.set(next);
+    } catch {
+      this.torchEnabled.set(false);
+      this.torchSupported.set(false);
+    }
+  }
+
+  private async checkTorchSupport(): Promise<void> {
+    try {
+      const video = this.elementRef.nativeElement.querySelector('video');
+      if (!video || !video.srcObject) {
+        this.torchSupported.set(false);
+        return;
+      }
+      const track = (video.srcObject as MediaStream).getVideoTracks()[0];
+      if (!track || !track.applyConstraints) {
+        this.torchSupported.set(false);
+        return;
+      }
+      const capabilities = track.getCapabilities?.();
+      const supported = capabilities ? (capabilities as Record<string, unknown>)['torch'] === true : false;
+      this.torchSupported.set(supported);
+    } catch {
+      this.torchSupported.set(false);
     }
   }
 }

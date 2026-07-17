@@ -86,7 +86,7 @@ test.describe('Admin payments — /payments/admin/payments', () => {
     // Independent API check: prove the new Sprint 12 endpoint works
     // with the dev seed and returns a well-formed empty page.
     const api = await apiContextFor({ user: TENANT_ADMIN });
-    const res = await api.get('/v1/admin/payments?page=0&size=20');
+    const res = await api.get('/api/v1/admin/payments?page=0&size=20');
     expect(res.ok(), 'admin list endpoint must respond 2xx').toBe(true);
     const body = await res.json();
     expect(body).toHaveProperty('success', true);
@@ -105,10 +105,11 @@ test.describe('Admin payments — /payments/admin/payments', () => {
     const ctx = await pwRequest.newContext({
       baseURL: process.env['API_URL'] ?? 'http://localhost:8080/api',
     });
-    const res = await ctx.get('/v1/admin/payments', {
+    const res = await ctx.get('/api/v1/admin/payments', {
       headers: { 'X-Tenant-Slug': TENANT_ADMIN.tenantSlug },
     });
     expect(res.status(), 'unauthenticated must be 401').toBe(401);
     await ctx.dispose();
   });
 });
+

@@ -17,6 +17,7 @@ export interface GoogleLoginRequest {
 
 export interface ForgotPasswordRequest {
   email: string;
+  tenantSlug: string;
 }
 
 export interface ResetPasswordRequest {

@@ -1,4 +1,4 @@
-import { Permission, UserRole } from '@core/enums';
+import { Permission, UserRole, UserStatus } from '@core/enums';
 import {
   AuthResponseRaw,
   AuthSession,
@@ -7,6 +7,7 @@ import {
   UserSummary,
   UserSummaryRaw,
 } from '@core/models';
+import { AdminLoginResponseRaw } from '@features/admin/models/admin-login-response.model';
 
 /**
  * Wire ⇒ UI adapters for the shared `AuthResponse` / `UserResponse`
@@ -32,6 +33,63 @@ import {
 export function toAuthSession(raw: AuthResponseRaw): AuthSession {
   return {
     user: toUserSummary(raw.user),
+    accessToken: raw.accessToken,
+    refreshToken: raw.refreshToken,
+    expiresAt: new Date(Date.now() + raw.expiresInSec * 1000),
+  };
+}
+
+/**
+ * Build an {@link AuthSession} from the SUPER_ADMIN wire shape returned
+ * by `POST /v1/admin/login`.
+ *
+ * <p>The admin endpoint returns a slightly richer `user` (firstName +
+ * lastName + a flat roles array) but skips the concatenated
+ * {@code fullName}. This adapter:</p>
+ * <ol>
+ *   <li>Computes {@code expiresAt = Date.now() + expiresInSec * 1000}
+ *       so the silent-refresh scheduler can use the same primitive as
+ *       the regular login flow. Without this step the consumer would
+ *       build {@code new Date(undefined)} and crash on
+ *       {@code Date.toISOString()} inside {@code AuthService.setSession}.</li>
+ *   <li>Concatenates firstName + lastName into a {@code fullName} the
+ *       rest of the app can display (sidebar avatar tooltip, header menu).</li>
+ *   <li>Promotes the raw roles string[] into a typed {@link UserRole}[]
+ *       via {@link toRoles} so {@code AuthService.hasRole} resolves
+ *       correctly and the {@code roleGuard([SuperAdmin])} gate of the
+ *       admin console lets the SUPER_ADMIN through. Skipping this step
+ *       would persist a session with {@code roles = undefined} and
+ *       silently fall through to the regular workspace layout.</li>
+ *   <li>Builds the user payload as the richer {@link User} shape
+ *       (which extends {@link UserSummary}) so the rest of the app —
+ *       which casts to {@code User} inside {@code setSession} — has
+ *       the authorization data it needs.</li>
+ * </ol>
+ */
+export function toAdminAuthSession(raw: AdminLoginResponseRaw): AuthSession {
+  const fullName = raw.user.fullName?.trim()
+    || [raw.user.firstName, raw.user.lastName].filter(Boolean).join(' ').trim()
+    || raw.user.email;
+
+  const adminUser: User = {
+    publicUuid: raw.user.publicUuid,
+    fullName,
+    email: raw.user.email,
+    // The admin endpoint enforces ACTIVE in the service layer
+    // (AdminAuthService.login — see `if (user.getStatus() != ACTIVE)`),
+    // so any session that reaches this adapter is by definition active.
+    // We hard-code the enum value rather than threading it through the
+    // wire because the admin login response intentionally omits `status`
+    // — the contract is "if you got a 200, the user is ACTIVE".
+    status: UserStatus.Active,
+    firstName: raw.user.firstName,
+    lastName: raw.user.lastName,
+    roles: toRoles(raw.user.roles),
+    permissions: [],
+  };
+
+  return {
+    user: adminUser,
     accessToken: raw.accessToken,
     refreshToken: raw.refreshToken,
     expiresAt: new Date(Date.now() + raw.expiresInSec * 1000),

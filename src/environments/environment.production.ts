@@ -2,6 +2,7 @@ import type { AppEnvironment } from './environment.model';
 
 export const environment: AppEnvironment = {
   production: true,
+  uatMode: false,
   appName: 'EduShift',
   appVersion: '0.0.0',
   apiUrl: 'https://api.edushift.app/api',
@@ -27,6 +28,11 @@ export const environment: AppEnvironment = {
     clientId: '',
     scopes: ['openid', 'profile', 'email']
   },
+  // Dev-only MFA enrolment bypass is intentionally NOT defined in
+  // production. Leaving the field undefined means the FE will surface
+  // a clear "MFA enrolment required" error instead of attempting an
+  // auto-bypass against an endpoint that does not exist in prod.
+  devMfaBypassCode: undefined,
   features: {
     dashboard: true,
     auth: true,

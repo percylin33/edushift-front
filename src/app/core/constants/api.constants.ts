@@ -32,6 +32,8 @@ export const API = {
     ROOT: `${BASE}/tenants`,
     /** Authenticated `GET` returns the caller's tenant; `PATCH` updates it (TENANT_ADMIN). */
     ME: `${BASE}/tenants/me`,
+    /** D1 / F0.5 — TENANT_ADMIN customises LMS_* authorities per role for the tenant. */
+    PERMISSION_OVERRIDES: `${BASE}/tenants/me/permission-overrides`,
     /** Public lookup used by the login screen to fetch branding before authentication. */
     BY_SLUG: (slug: string) => `${BASE}/tenants/by-slug/${encodeURIComponent(slug)}`,
     /** Public self-signup: creates a tenant + admin and returns an auth session. */
@@ -395,122 +397,234 @@ export const API = {
      */
     STUDENT_LOOKUP: `${BASE}/attendance/students/lookup`,
   },
+  // Sprint 15 — super-admin platform console (under /v1/admin/*).
+  // All endpoints are gated by `hasRole('SUPER_ADMIN')` on the BE.
+  ADMIN: {
+    AUTH: {
+      /** `POST /v1/admin/login` — super-admin authentication (3 req/min rate-limited). */
+      LOGIN: `${BASE}/admin/login`,
+      /**
+       * `POST /v1/admin/dev/complete-mfa` — dev-only MFA enrolment bypass.
+       * Bean-gated to {dev,local} profiles on the BE; in prod this URL
+       * returns 404 and the FE should never call it. The admin login
+       * service transparently calls this when the FE is running with a
+       * non-prod environment and `devMfaBypassCode` is configured.
+       */
+      DEV_COMPLETE_MFA: `${BASE}/admin/dev/complete-mfa`,
+    },
+    /** `GET /v1/admin/dashboard/kpis` — 6 KPI cards. */
+    KPIS: `${BASE}/admin/dashboard/kpis`,
+    /** `GET /v1/admin/dashboard/revenue-trend?months=12` — revenue line chart. */
+    REVENUE_TREND: `${BASE}/admin/dashboard/revenue-trend`,
+    /** `GET /v1/admin/dashboard/active-tenants` — active tenant count over time. */
+    ACTIVE_TENANTS: `${BASE}/admin/dashboard/active-tenants`,
+    /** `GET /v1/admin/dashboard/plan-distribution` — pie chart. */
+    PLAN_DISTRIBUTION: `${BASE}/admin/dashboard/plan-distribution`,
+    /** `GET /v1/admin/dashboard/top-tenants?limit=10` — top 10 by revenue. */
+    TOP_TENANTS: `${BASE}/admin/dashboard/top-tenants`,
+    /** `GET /v1/admin/dashboard/collection-vs-overdue` — bar chart. */
+    COLLECTION_VS_OVERDUE: `${BASE}/admin/dashboard/collection-vs-overdue`,
+    /** `GET /v1/admin/dashboard/students-by-plan` — bar chart. */
+    STUDENTS_BY_PLAN: `${BASE}/admin/dashboard/students-by-plan`,
+    /** `GET /v1/admin/tenants` — paginated tenant listing (super-admin). */
+    TENANTS_ROOT: `${BASE}/admin/tenants`,
+    /** `GET|PATCH /v1/admin/tenants/{publicUuid}` — detail / suspend. */
+    TENANTS_BY_ID: (publicUuid: string) =>
+      `${BASE}/admin/tenants/${encodeURIComponent(publicUuid)}`,
+    /** `POST /v1/admin/tenants/{publicUuid}/suspend` — suspend tenant. */
+    TENANTS_SUSPEND: (publicUuid: string) =>
+      `${BASE}/admin/tenants/${encodeURIComponent(publicUuid)}/suspend`,
+    /** `POST /v1/admin/tenants/{publicUuid}/reactivate` — reactivate tenant. */
+    TENANTS_REACTIVATE: (publicUuid: string) =>
+      `${BASE}/admin/tenants/${encodeURIComponent(publicUuid)}/reactivate`,
+    /** `GET|POST /v1/admin/plans` — platform plan CRUD. */
+    PLANS_ROOT: `${BASE}/admin/plans`,
+    /** `GET|PUT|DELETE /v1/admin/plans/{publicUuid}` — single plan CRUD. */
+    PLANS_BY_ID: (publicUuid: string) =>
+      `${BASE}/admin/plans/${encodeURIComponent(publicUuid)}`,
+    /** `POST /v1/admin/tenants/{tenantUuid}/subscription` — assign / change plan. */
+    ASSIGN_SUBSCRIPTION: (tenantUuid: string) =>
+      `${BASE}/admin/tenants/${encodeURIComponent(tenantUuid)}/subscription`,
+    /** `POST /v1/admin/tenants/{tenantUuid}/subscription/cancel` — cancel subscription. */
+    CANCEL_SUBSCRIPTION: (tenantUuid: string) =>
+      `${BASE}/admin/tenants/${encodeURIComponent(tenantUuid)}/subscription/cancel`,
+    /** `POST /v1/admin/tenants/{tenantUuid}/subscription/reactivate` — reactivate. */
+    REACTIVATE_SUBSCRIPTION: (tenantUuid: string) =>
+      `${BASE}/admin/tenants/${encodeURIComponent(tenantUuid)}/subscription/reactivate`,
+    /** `GET /v1/admin/invoices` — paginated invoice listing. */
+    INVOICES_ROOT: `${BASE}/admin/invoices`,
+    /** `GET|POST /v1/admin/invoices/{publicUuid}/payments` — payments on invoice. */
+    INVOICE_PAYMENTS: (publicUuid: string) =>
+      `${BASE}/admin/invoices/${encodeURIComponent(publicUuid)}/payments`,
+    /** `POST /v1/admin/invoices/{publicUuid}/mark-paid` — manual PAID. */
+    INVOICE_MARK_PAID: (publicUuid: string) =>
+      `${BASE}/admin/invoices/${encodeURIComponent(publicUuid)}/mark-paid`,
+    /** `GET /v1/admin/payments` — paginated payment listing. */
+    PAYMENTS_ROOT: `${BASE}/admin/payments`,
+    /** `POST /v1/admin/payments/{publicUuid}/refund` — refund a payment. */
+    PAYMENTS_REFUND: (publicUuid: string) =>
+      `${BASE}/admin/payments/${encodeURIComponent(publicUuid)}/refund`,
+    /** `GET /v1/admin/metrics/students?tenantUuid=` — student count per tenant. */
+    METRICS_STUDENTS: `${BASE}/admin/metrics/students`,
+    /** `GET /v1/admin/metrics/teachers?tenantUuid=` — teacher count per tenant. */
+    METRICS_TEACHERS: `${BASE}/admin/metrics/teachers`,
+    /** `GET /v1/admin/metrics/storage?tenantUuid=` — storage usage per tenant. */
+    METRICS_STORAGE: `${BASE}/admin/metrics/storage`,
+    /** `GET /v1/admin/metrics/ai?tenantUuid=` — AI usage per tenant. */
+    METRICS_AI: `${BASE}/admin/metrics/ai`,
+    /** Impersonation: `POST /v1/admin/impersonate` — obtain impersonation token. */
+    IMPERSONATE: `${BASE}/admin/impersonate`,
+    /** Impersonation: `POST /v1/admin/impersonate/stop` — stop impersonating. */
+    IMPERSONATE_STOP: `${BASE}/admin/impersonate/stop`,
+  },
   LMS: {
     ROOT: `${BASE}/lms`,
-    /** {@code POST /v1/lms/assignments} (BE-7a.2) — crear. */
-    ASSIGNMENTS_ROOT: `${BASE}/lms/assignments`,
-    /** {@code GET /v1/lms/assignments/{uuid}} (BE-7a.2) — detalle. */
+    // ---------------------------------------------------------------------
+    // DEBT-FE-LMS-1 (2026-07-17): the FE used to call `/v1/lms/...` paths
+    // (legacy mockup prefix). The BE mounts LMS endpoints directly under
+    // `/sections/{uuid}/...`, `/tasks/...`, `/quizzes/...` (no `/lms/`
+    // prefix). The constants below were rewritten to match the BE so the
+    // doc comments describe the actual wire path. See
+    // edushift-back/.../tasks/controller/TaskController.java,
+    // .../materials/controller/MaterialController.java,
+    // .../quizzes/controller/QuizController.java,
+    // .../quizzes/controller/QuizAttemptController.java.
+    // ---------------------------------------------------------------------
+    /** {@code POST /sections/{uuid}/tasks} (BE-7a.2) — crear task en sección. */
+    ASSIGNMENTS_ROOT: (sectionUuid: string) =>
+      `${BASE}/sections/${encodeURIComponent(sectionUuid)}/tasks`,
+    /** {@code GET /tasks/{uuid}} (BE-7a.2) — detalle de task. */
     ASSIGNMENT_BY_UUID: (publicUuid: string) =>
-      `${BASE}/lms/assignments/${encodeURIComponent(publicUuid)}`,
-    /** {@code PATCH /v1/lms/assignments/{uuid}} (BE-7a.2) — editar (DRAFT). */
+      `${BASE}/tasks/${encodeURIComponent(publicUuid)}`,
+    /** {@code PATCH /tasks/{uuid}} (BE-7a.2) — editar task (DRAFT / before dueAt). */
     ASSIGNMENT_PATCH: (publicUuid: string) =>
-      `${BASE}/lms/assignments/${encodeURIComponent(publicUuid)}`,
-    /** {@code POST /v1/lms/assignments/{uuid}/publish} (BE-7a.2) — DRAFT → PUBLISHED. */
+      `${BASE}/tasks/${encodeURIComponent(publicUuid)}`,
+    // DEBT-FE-LMS-1: no publish/close endpoints on BE for tasks — lifecycle
+    // transitions are done via PATCH on the status field. The constants
+    // stay as no-ops so callers compile but they 404 if hit; remove once
+    // the FE stops referencing them.
+    /** @deprecated No BE endpoint — tasks have no dedicated publish/close. */
     ASSIGNMENT_PUBLISH: (publicUuid: string) =>
-      `${BASE}/lms/assignments/${encodeURIComponent(publicUuid)}/publish`,
-    /** {@code POST /v1/lms/assignments/{uuid}/close} (BE-7a.2) — PUBLISHED → CLOSED. */
+      `${BASE}/tasks/${encodeURIComponent(publicUuid)}/publish`,
+    /** @deprecated No BE endpoint — tasks have no dedicated publish/close. */
     ASSIGNMENT_CLOSE: (publicUuid: string) =>
-      `${BASE}/lms/assignments/${encodeURIComponent(publicUuid)}/close`,
-    /** {@code GET /v1/lms/sections/{uuid}/assignments} (BE-7a.2) — paginated listing (TEACHER). */
+      `${BASE}/tasks/${encodeURIComponent(publicUuid)}/close`,
+    /** {@code GET /sections/{uuid}/tasks} (BE-7a.2) — paginated listing (TEACHER/TA). */
     ASSIGNMENTS_BY_SECTION: (sectionUuid: string) =>
-      `${BASE}/lms/sections/${encodeURIComponent(sectionUuid)}/assignments`,
-    /** {@code GET /v1/lms/students/{uuid}/assignments} (BE-7a.2) — paginated listing (STUDENT/PARENT). */
+      `${BASE}/sections/${encodeURIComponent(sectionUuid)}/tasks`,
+    // DEBT-FE-LMS-1: no `/students/{uuid}/assignments` on BE. STUDENT-side
+    // tasks come from `/sections/{uuid}/tasks?student=me` (TODO) or via the
+    // own course detail. Keeping the constant as a no-op for now.
+    /** @deprecated No BE endpoint — see BE-7a.2 followup. */
     ASSIGNMENTS_BY_STUDENT: (studentUuid: string) =>
-      `${BASE}/lms/students/${encodeURIComponent(studentUuid)}/assignments`,
-    /** {@code POST /v1/lms/assignments/{uuid}/submissions} (BE-7a.2) — entregar. */
-    ASSIGNMENT_SUBMISSIONS: (assignmentUuid: string) =>
-      `${BASE}/lms/assignments/${encodeURIComponent(assignmentUuid)}/submissions`,
-    /** {@code GET /v1/lms/assignments/{uuid}/submissions} (BE-7a.2) — listing (TEACHER). */
-    ASSIGNMENT_SUBMISSIONS_LIST: (assignmentUuid: string) =>
-      `${BASE}/lms/assignments/${encodeURIComponent(assignmentUuid)}/submissions`,
-    /** {@code GET /v1/lms/students/{uuid}/submissions} (BE-7a.2) — listing (STUDENT/PARENT). */
+      `${BASE}/students/${encodeURIComponent(studentUuid)}/tasks`,
+    /** {@code POST /tasks/{uuid}/submissions} (BE-7a.2) — entregar. */
+    ASSIGNMENT_SUBMISSIONS: (taskPublicUuid: string) =>
+      `${BASE}/tasks/${encodeURIComponent(taskPublicUuid)}/submissions`,
+    /** {@code GET /tasks/{uuid}/submissions} (BE-7a.2) — listing (TEACHER). */
+    ASSIGNMENT_SUBMISSIONS_LIST: (taskPublicUuid: string) =>
+      `${BASE}/tasks/${encodeURIComponent(taskPublicUuid)}/submissions`,
+    // DEBT-FE-LMS-1: no `/students/{uuid}/submissions` on BE. Students
+    // call `GET /tasks/{uuid}/submissions/me` for their own submission.
+    /** @deprecated Use `TASK_SUBMISSION_MINE(taskUuid)` instead. */
     SUBMISSIONS_BY_STUDENT: (studentUuid: string) =>
-      `${BASE}/lms/students/${encodeURIComponent(studentUuid)}/submissions`,
-    /** {@code PATCH /v1/lms/submissions/{uuid}} (BE-7a.2) — editar entrega. */
+      `${BASE}/students/${encodeURIComponent(studentUuid)}/submissions`,
+    /** {@code GET /tasks/{uuid}/submissions/me} (BE-7a.2) — submission propia del STUDENT. */
+    TASK_SUBMISSION_MINE: (taskPublicUuid: string) =>
+      `${BASE}/tasks/${encodeURIComponent(taskPublicUuid)}/submissions/me`,
+    /** {@code PATCH /submissions/{uuid}} (BE-7a.2) — editar entrega. */
     SUBMISSION_PATCH: (submissionUuid: string) =>
-      `${BASE}/lms/submissions/${encodeURIComponent(submissionUuid)}`,
-    /** {@code PATCH /v1/lms/submissions/{uuid}/grade} (BE-7a.2) — calificar. */
+      `${BASE}/submissions/${encodeURIComponent(submissionUuid)}`,
+    /** {@code PATCH /submissions/{uuid}/grade} (BE-7a.2) — calificar. */
     SUBMISSION_GRADE: (submissionUuid: string) =>
-      `${BASE}/lms/submissions/${encodeURIComponent(submissionUuid)}/grade`,
-    /** {@code PATCH /v1/lms/submissions/{uuid}/return} (BE-7a.2) — devolver. */
+      `${BASE}/submissions/${encodeURIComponent(submissionUuid)}/grade`,
+    // DEBT-FE-LMS-1: no `/submissions/{uuid}/return` on BE (return is a
+    // subset of patch with status=RETURNED).
+    /** @deprecated Use PATCH on the submission with `status=RETURNED`. */
     SUBMISSION_RETURN: (submissionUuid: string) =>
-      `${BASE}/lms/submissions/${encodeURIComponent(submissionUuid)}/return`,
-    /** {@code POST /v1/lms/sections/{uuid}/materials} (BE-7a.1) — upload multipart. */
+      `${BASE}/submissions/${encodeURIComponent(submissionUuid)}/return`,
+    /** {@code POST /sections/{uuid}/materials} (BE-7a.1) — upload multipart. */
     SECTION_MATERIALS: (sectionUuid: string) =>
-      `${BASE}/lms/sections/${encodeURIComponent(sectionUuid)}/materials`,
-    /** {@code GET /v1/lms/sections/{uuid}/materials} (BE-7a.1) — listing. */
+      `${BASE}/sections/${encodeURIComponent(sectionUuid)}/materials`,
+    /** {@code GET /sections/{uuid}/materials} (BE-7a.1) — listing. */
     SECTION_MATERIALS_LIST: (sectionUuid: string) =>
-      `${BASE}/lms/sections/${encodeURIComponent(sectionUuid)}/materials`,
-    /** {@code GET|DELETE /v1/lms/materials/{uuid}} (BE-7a.1) — detalle / soft-delete. */
+      `${BASE}/sections/${encodeURIComponent(sectionUuid)}/materials`,
+    /** {@code GET|PATCH|DELETE /materials/{uuid}} (BE-7a.1) — detalle / patch / soft-delete. */
     MATERIAL_BY_UUID: (publicUuid: string) =>
-      `${BASE}/lms/materials/${encodeURIComponent(publicUuid)}`,
-    /** {@code GET /v1/lms/materials/{uuid}/download} (BE-7a.1) — 302 al signed URL de Firebase. */
+      `${BASE}/materials/${encodeURIComponent(publicUuid)}`,
+    // DEBT-FE-LMS-1: no `/materials/{uuid}/download` on BE — downloads
+    // go through the FileObjectService (`/files/{uuid}/download`).
+    /** @deprecated Use `/files/{uuid}/download` instead. */
     MATERIAL_DOWNLOAD: (publicUuid: string) =>
-      `${BASE}/lms/materials/${encodeURIComponent(publicUuid)}/download`,
+      `${BASE}/materials/${encodeURIComponent(publicUuid)}/download`,
 
     // -------------------------------------------------------------------------
-    // Quizzes (Sprint 7b, BE-7b.0). Backend endpoints are not yet implemented;
-    // these constants are placeholders so the FE can wire its API service and
-    // the route guards in FE-7b.0/7b.1/7b.2/7b.3 without waiting for BE.
+    // Quizzes (Sprint 7b, BE-7b.0/7b.1). BE mounts quiz endpoints under
+    // `/sections/{uuid}/quizzes`, `/quizzes/{uuid}/...`, `/attempts/{uuid}`,
+    // and `/questions/{uuid}/options` (no `/lms/` prefix). See
+    // edushift-back/.../quizzes/controller/QuizController.java and
+    // QuizAttemptController.java.
     // -------------------------------------------------------------------------
-    /** `GET /v1/lms/sections/{uuid}/quizzes` (BE-7b.0) — listado de quizzes de la sección. */
+    /** {@code GET /sections/{uuid}/quizzes} (BE-7b.0) — listado de quizzes de la sección. */
     SECTION_QUIZZES: (sectionPublicUuid: string) =>
-      `${BASE}/lms/sections/${encodeURIComponent(sectionPublicUuid)}/quizzes`,
-    /** `POST /v1/lms/sections/{uuid}/quizzes` (BE-7b.0) — crear quiz. */
+      `${BASE}/sections/${encodeURIComponent(sectionPublicUuid)}/quizzes`,
+    /** {@code POST /sections/{uuid}/quizzes} (BE-7b.0) — crear quiz. */
     SECTION_QUIZZES_CREATE: (sectionPublicUuid: string) =>
-      `${BASE}/lms/sections/${encodeURIComponent(sectionPublicUuid)}/quizzes`,
-    /** `GET /v1/lms/quizzes/{uuid}` (BE-7b.0) — detalle de quiz. */
-    QUIZ_BY_UUID: (publicUuid: string) => `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}`,
-    /** `PATCH /v1/lms/quizzes/{uuid}` (BE-7b.0) — editar quiz (DRAFT). */
-    QUIZ_PATCH: (publicUuid: string) => `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}`,
-    /** `DELETE /v1/lms/quizzes/{uuid}` (BE-7b.0) — eliminar quiz. */
-    QUIZ_DELETE: (publicUuid: string) => `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}`,
-    /** `POST /v1/lms/quizzes/{uuid}/publish` (BE-7b.0) — publicar quiz. */
+      `${BASE}/sections/${encodeURIComponent(sectionPublicUuid)}/quizzes`,
+    /** {@code GET /quizzes/{uuid}} (BE-7b.0) — detalle de quiz. */
+    QUIZ_BY_UUID: (publicUuid: string) => `${BASE}/quizzes/${encodeURIComponent(publicUuid)}`,
+    /** {@code PATCH /quizzes/{uuid}} (BE-7b.0) — editar quiz (DRAFT). */
+    QUIZ_PATCH: (publicUuid: string) => `${BASE}/quizzes/${encodeURIComponent(publicUuid)}`,
+    /** {@code DELETE /quizzes/{uuid}} (BE-7b.0) — eliminar quiz. */
+    QUIZ_DELETE: (publicUuid: string) => `${BASE}/quizzes/${encodeURIComponent(publicUuid)}`,
+    /** {@code POST /quizzes/{uuid}/publish} (BE-7b.0) — publicar quiz. */
     QUIZ_PUBLISH: (publicUuid: string) =>
-      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}/publish`,
-    /** `POST /v1/lms/quizzes/{uuid}/close` (BE-7b.1) — cerrar quiz. */
+      `${BASE}/quizzes/${encodeURIComponent(publicUuid)}/publish`,
+    /** {@code POST /quizzes/{uuid}/close} (BE-7b.1) — cerrar quiz. */
     QUIZ_CLOSE: (publicUuid: string) =>
-      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}/close`,
-    /** `POST /v1/lms/quizzes/{uuid}/questions` (BE-7b.1) — añadir pregunta. */
+      `${BASE}/quizzes/${encodeURIComponent(publicUuid)}/close`,
+    /** {@code POST /quizzes/{uuid}/questions} (BE-7b.1) — añadir pregunta. */
     QUIZ_ADD_QUESTION: (publicUuid: string) =>
-      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}/questions`,
-    /** `POST /v1/lms/questions/{uuid}/options` (BE-7b.1) — añadir opción MC. */
+      `${BASE}/quizzes/${encodeURIComponent(publicUuid)}/questions`,
+    /** {@code POST /questions/{uuid}/options} (BE-7b.1) — añadir opción MC. */
     QUESTION_ADD_OPTION: (publicUuid: string) =>
-      `${BASE}/lms/questions/${encodeURIComponent(publicUuid)}/options`,
-    /** `POST /v1/lms/quizzes/{uuid}/attempts` (BE-7b.1) — iniciar intento. */
+      `${BASE}/questions/${encodeURIComponent(publicUuid)}/options`,
+    /** {@code POST /quizzes/{uuid}/attempts} (BE-7b.1) — iniciar intento. */
     QUIZ_ATTEMPT_START: (publicUuid: string) =>
-      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}/attempts`,
-    /** `GET /v1/lms/attempts/{uuid}` (BE-7b.1) — detalle del intento. */
+      `${BASE}/quizzes/${encodeURIComponent(publicUuid)}/attempts`,
+    /** {@code GET /attempts/{uuid}} (BE-7b.1) — detalle del intento. */
     QUIZ_ATTEMPT_BY_UUID: (attemptPublicUuid: string) =>
-      `${BASE}/lms/attempts/${encodeURIComponent(attemptPublicUuid)}`,
-    /** `PATCH /v1/lms/attempts/{uuid}` (BE-7b.1) — autosave de respuestas. */
+      `${BASE}/attempts/${encodeURIComponent(attemptPublicUuid)}`,
+    /** {@code PATCH /attempts/{uuid}} (BE-7b.1) — autosave de respuestas. */
     QUIZ_ATTEMPT_PATCH: (attemptPublicUuid: string) =>
-      `${BASE}/lms/attempts/${encodeURIComponent(attemptPublicUuid)}`,
-    /** `POST /v1/lms/attempts/{uuid}/submit` (BE-7b.1) — submit final. */
+      `${BASE}/attempts/${encodeURIComponent(attemptPublicUuid)}`,
+    /** {@code POST /attempts/{uuid}/submit} (BE-7b.1) — submit final. */
     QUIZ_ATTEMPT_SUBMIT: (attemptPublicUuid: string) =>
-      `${BASE}/lms/attempts/${encodeURIComponent(attemptPublicUuid)}/submit`,
-    /** `GET /v1/lms/quizzes/{uuid}/attempts` (BE-7b.1) — listado de intentos (TEACHER). */
+      `${BASE}/attempts/${encodeURIComponent(attemptPublicUuid)}/submit`,
+    /** {@code GET /quizzes/{uuid}/attempts} (BE-7b.1) — listado de intentos (TEACHER). */
     QUIZ_ATTEMPTS_LIST: (publicUuid: string) =>
-      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}/attempts`,
-    /** `POST /v1/lms/attempts/{uuid}/grade` (BE-7b.1) — calificar short-answers (TEACHER). */
+      `${BASE}/quizzes/${encodeURIComponent(publicUuid)}/attempts`,
+    /** {@code POST /attempts/{uuid}/grade} (BE-7b.1) — calificar short-answers (TEACHER). */
     QUIZ_ATTEMPT_GRADE: (attemptPublicUuid: string) =>
-      `${BASE}/lms/attempts/${encodeURIComponent(attemptPublicUuid)}/grade`,
-    /** `GET /v1/lms/quizzes/{uuid}/grading-queue` (BE-7b.2) — cola de SHORT_ANSWER pendientes. */
+      `${BASE}/attempts/${encodeURIComponent(attemptPublicUuid)}/grade`,
+    /** {@code GET /quizzes/{uuid}/grading-queue} (BE-7b.2) — cola de SHORT_ANSWER pendientes. */
     QUIZ_GRADING_QUEUE: (publicUuid: string) =>
-      `${BASE}/lms/quizzes/${encodeURIComponent(publicUuid)}/grading-queue`,
-    /** `PATCH /v1/lms/quizzes/{quizUuid}/attempts/{attemptUuid}/answers/{answerUuid}` (BE-7b.2) — override single-answer. */
+      `${BASE}/quizzes/${encodeURIComponent(publicUuid)}/grading-queue`,
+    /** {@code PATCH /quizzes/{quizUuid}/attempts/{attemptUuid}/answers/{answerUuid}} (BE-7b.2) — override single-answer. */
     QUIZ_ANSWER_GRADE: (
       quizPublicUuid: string,
       attemptPublicUuid: string,
       answerPublicUuid: string,
     ) =>
-      `${BASE}/lms/quizzes/${encodeURIComponent(quizPublicUuid)}/attempts/${encodeURIComponent(attemptPublicUuid)}/answers/${encodeURIComponent(answerPublicUuid)}`,
+      `${BASE}/quizzes/${encodeURIComponent(quizPublicUuid)}/attempts/${encodeURIComponent(attemptPublicUuid)}/answers/${encodeURIComponent(answerPublicUuid)}`,
 
     // -------------------------------------------------------------------------
     // AI assistant (Sprint 7c, BE-7c.1). Gated by `LMS_AI_GENERATE`
-    // (TENANT_ADMIN + TEACHER). See `docs/modules/ai.md` §3.
+    // (TENANT_ADMIN + TEACHER). See `docs/modules/ai.md` §3. The BE mounts
+    // AI quiz-suggest under `/lms/ai/...` (literal `/lms/` prefix, not the
+    // legacy FE convention — see AiController.java).
     // -------------------------------------------------------------------------
-    /** `POST /v1/lms/ai/quiz-questions` (BE-7c.1) — ask the LLM to suggest
+    /** {@code POST /lms/ai/quiz-questions} (BE-7c.1) — ask the LLM to suggest
      * N questions (MC/TF/SHORT_ANSWER) for the given topic. Synchronous;
      * 1-3s typical latency. Subject to the tenant's daily/monthly quota. */
     AI_SUGGEST_QUESTIONS: `${BASE}/lms/ai/quiz-questions`,

@@ -125,7 +125,7 @@ import { Permission } from '@core/enums';
                       <th>Estudiante</th>
                     }
                     <th>Intento</th>
-                    <th>Status</th>
+                    <th>Estado</th>
                     <th class="text-right">Auto</th>
                     <th class="text-right">Manual</th>
                     <th class="text-right">Final</th>

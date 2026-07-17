@@ -37,7 +37,7 @@ export class ChatService {
   /** List the caller's active chat sessions, newest first. */
   listSessions(limit = 20): Observable<ChatSession[]> {
     return this.api
-      .get<ApiResponse<ChatSession[]>>(`${API.AI.CHAT}/sessions`, { params: { limit } })
+      .get<ApiResponse<ChatSession[]>>(`${API.AI.CHAT}/sessions`, { limit })
       .pipe(map((e) => (e.data ?? []).map(toChatSession)));
   }
 

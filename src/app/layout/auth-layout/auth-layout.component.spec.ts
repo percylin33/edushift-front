@@ -37,7 +37,7 @@ describe('AuthLayoutComponent', () => {
   });
 
   it('tenantName devuelve Workspace cuando no hay tenant', () => {
-    expect(component.tenantName()).toBe('Workspace');
+    expect(component.tenantName()).toBe('Espacio de trabajo');
   });
 
   it('tenantName devuelve el nombre del tenant cuando existe', () => {

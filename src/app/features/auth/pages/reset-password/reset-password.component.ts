@@ -2,13 +2,14 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
-  computed,
+  DestroyRef,
   effect,
   inject,
   signal,
 } from '@angular/core';
 import {
   FormBuilder,
+  FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators,
@@ -17,11 +18,17 @@ import {
 } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, finalize, of } from 'rxjs';
 
 import { AuthApiService } from '../../services/auth-api.service';
-import { IconComponent, SpinnerComponent } from '@shared/components';
-import { ApiError } from '@core/models';
+import {
+  AlertComponent,
+  IconComponent,
+  PasswordFieldComponent,
+  SubmitButtonComponent,
+} from '@shared/components';
+import { mapHttpError } from '@shared/utils';
 
 /**
  * Reset-password screen.
@@ -39,25 +46,19 @@ import { ApiError } from '@core/models';
  *       is revoked, so the user lands logged-out (intentional — they
  *       log in again with the new password).</li>
  * </ol>
- *
- * <h3>Why we validate up front</h3>
- * The validate endpoint is a read-only {@code GET} that the user can
- * reach by clicking the email link. We use it to surface a friendly
- * error copy before the user has typed anything — otherwise the only
- * signal that the link is expired is the POST failing on submit, by
- * which point the user has already invested in the form.
- *
- * <h3>Why we don't auto-login after reset</h3>
- * The backend intentionally revokes all active refresh tokens on a
- * successful reset (anti-hijack). So even if we wanted to keep the
- * session alive, the only safe move is to bounce the user to the login
- * screen.
  */
 @Component({
   selector: 'app-reset-password',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, IconComponent, SpinnerComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    AlertComponent,
+    IconComponent,
+    PasswordFieldComponent,
+    SubmitButtonComponent,
+  ],
   template: `
     <div class="space-y-6">
       <header class="space-y-1.5">
@@ -67,13 +68,7 @@ import { ApiError } from '@core/models';
 
       @if (validationState() === 'invalid') {
         <div class="space-y-4">
-          <div
-            role="alert"
-            class="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
-          >
-            <app-icon name="alert-circle" [size]="18" class="mt-0.5 shrink-0" />
-            <span>{{ validationError() }}</span>
-          </div>
+          <app-alert variant="error" [message]="validationError()" />
           <a
             routerLink="/auth/forgot-password"
             class="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
@@ -84,19 +79,15 @@ import { ApiError } from '@core/models';
         </div>
       } @else if (validationState() === 'validating') {
         <div class="flex items-center gap-2 text-sm text-content-muted">
-          <app-spinner [size]="14" />
+          <app-icon name="refresh" [size]="14" class="animate-spin" />
           Validando enlace…
         </div>
       } @else if (success()) {
         <div class="space-y-4">
-          <div
-            role="status"
-            aria-live="polite"
-            class="flex items-start gap-2 rounded-md border border-success/30 bg-success/10 p-3 text-sm text-success"
-          >
-            <app-icon name="check" [size]="18" class="mt-0.5 shrink-0" />
-            <span>Tu contraseña fue actualizada. Inicia sesión con tu nueva contraseña.</span>
-          </div>
+          <app-alert
+            variant="success"
+            message="Tu contraseña fue actualizada. Inicia sesión con tu nueva contraseña."
+          />
           <a
             routerLink="/auth/login"
             class="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
@@ -107,90 +98,34 @@ import { ApiError } from '@core/models';
         </div>
       } @else {
         @if (errorMessage(); as message) {
-          <div
-            role="alert"
-            class="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
-          >
-            <app-icon name="alert-circle" [size]="18" class="mt-0.5 shrink-0" />
-            <span>{{ message }}</span>
-          </div>
+          <app-alert variant="error" [message]="message" />
         }
 
         <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
-          <div class="space-y-1.5">
-            <label for="password" class="block text-sm font-medium text-content"
-              >Nueva contraseña</label
-            >
-            <div class="relative">
-              <span
-                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-content-subtle"
-              >
-                <app-icon name="lock" [size]="16" />
-              </span>
-              <input
-                id="password"
-                [type]="showPassword() ? 'text' : 'password'"
-                autocomplete="new-password"
-                formControlName="password"
-                [attr.aria-invalid]="passwordInvalid()"
-                [attr.aria-describedby]="passwordInvalid() ? 'password-error' : 'password-help'"
-                class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-10 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
-              />
-              <button
-                type="button"
-                (click)="togglePasswordVisibility()"
-                [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-                class="absolute inset-y-0 right-0 flex items-center pr-3 text-content-subtle hover:text-content"
-              >
-                <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" [size]="16" />
-              </button>
-            </div>
-            @if (passwordInvalid()) {
-              <p id="password-error" class="text-xs text-danger">{{ passwordError() }}</p>
-            } @else {
-              <p id="password-help" class="text-xs text-content-subtle">Mínimo 8 caracteres.</p>
-            }
-          </div>
+          <app-password-field
+            fieldId="password"
+            [control]="passwordCtrl"
+            label="Nueva contraseña"
+            autocomplete="new-password"
+            placeholder="••••••••"
+            [error]="passwordError()"
+            hint="Mínimo 8 caracteres."
+          />
 
-          <div class="space-y-1.5">
-            <label for="passwordConfirmation" class="block text-sm font-medium text-content"
-              >Confirmar contraseña</label
-            >
-            <div class="relative">
-              <span
-                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-content-subtle"
-              >
-                <app-icon name="lock" [size]="16" />
-              </span>
-              <input
-                id="passwordConfirmation"
-                [type]="showPassword() ? 'text' : 'password'"
-                autocomplete="new-password"
-                formControlName="passwordConfirmation"
-                [attr.aria-invalid]="confirmationInvalid()"
-                [attr.aria-describedby]="confirmationInvalid() ? 'confirmation-error' : null"
-                class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
-              />
-            </div>
-            @if (confirmationInvalid()) {
-              <p id="confirmation-error" class="text-xs text-danger">
-                Las contraseñas no coinciden.
-              </p>
-            }
-          </div>
+          <app-password-field
+            fieldId="passwordConfirmation"
+            [control]="confirmationCtrl"
+            label="Confirmar contraseña"
+            autocomplete="new-password"
+            [error]="confirmationError()"
+          />
 
-          <button
-            type="submit"
-            [disabled]="submitting() || form.invalid"
-            class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            @if (submitting()) {
-              <app-spinner [size]="14" />
-              Actualizando…
-            } @else {
-              Restablecer contraseña
-            }
-          </button>
+          <app-submit-button
+            [loading]="submitting()"
+            [showArrow]="false"
+            label="Restablecer contraseña"
+            loadingLabel="Actualizando…"
+          />
         </form>
 
         <p class="text-center text-sm text-content-muted">
@@ -210,18 +145,12 @@ export class ResetPasswordComponent implements OnInit {
   private readonly authApi = inject(AuthApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly submitting = signal(false);
   protected readonly success = signal(false);
-  protected readonly showPassword = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
-  /**
-   * Lifecycle of the validate-only check at mount time.
-   * - `validating` — request in flight (also the initial state)
-   * - `valid`     — token is usable, render the form
-   * - `invalid`   — token is expired / used / missing / cross-tenant
-   */
   protected readonly validationState = signal<'validating' | 'valid' | 'invalid'>('validating');
   protected readonly validationError = signal<string>('El enlace no es válido o ha caducado.');
   protected readonly token = signal<string | null>(null);
@@ -234,14 +163,25 @@ export class ResetPasswordComponent implements OnInit {
     { validators: [this.passwordsMatch] },
   );
 
-  // Re-validate the form whenever the password fields change so the
-  // "passwords must match" check updates on keystroke.
-  private readonly _revalidate = effect(() => {
-    this.form.get('password')?.valueChanges.subscribe(() => this.form.updateValueAndValidity());
-    this.form
-      .get('passwordConfirmation')
-      ?.valueChanges.subscribe(() => this.form.updateValueAndValidity());
-  });
+  protected readonly passwordCtrl = this.form.get('password') as FormControl<string>;
+  protected readonly confirmationCtrl = this.form.get('passwordConfirmation') as FormControl<string>;
+
+  /** Whether the form-level "passwords must match" validator is currently failing. */
+  private readonly _mismatch = signal(false);
+  private readonly _confirmationTouched = signal(false);
+
+  constructor() {
+    this.passwordCtrl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.form.updateValueAndValidity({ emitEvent: false }));
+    this.confirmationCtrl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.form.updateValueAndValidity({ emitEvent: false }));
+
+    effect(() => {
+      this._mismatch.set(!!this.form.errors?.['passwordsMismatch']);
+    });
+  }
 
   ngOnInit(): void {
     const token = this.route.snapshot.queryParamMap.get('token');
@@ -262,7 +202,7 @@ export class ResetPasswordComponent implements OnInit {
         }),
       )
       .subscribe((res) => {
-        if (res === null) return; // already handled
+        if (res === null) return;
         if (res.valid) {
           this.validationState.set('valid');
         } else {
@@ -272,40 +212,32 @@ export class ResetPasswordComponent implements OnInit {
       });
   }
 
-  protected togglePasswordVisibility(): void {
-    this.showPassword.update((v) => !v);
-  }
-
-  protected passwordInvalid(): boolean {
-    const ctrl = this.form.get('password');
-    return !!ctrl && ctrl.invalid && (ctrl.dirty || ctrl.touched);
-  }
-
   protected passwordError(): string | null {
-    const ctrl = this.form.get('password');
-    if (!ctrl || !ctrl.errors) return null;
+    const ctrl = this.passwordCtrl;
+    if (!ctrl.errors || (!ctrl.dirty && !ctrl.touched)) return null;
     if (ctrl.errors['required']) return 'La contraseña es obligatoria.';
     if (ctrl.errors['minlength']) return 'La contraseña debe tener al menos 8 caracteres.';
     if (ctrl.errors['maxlength']) return 'La contraseña es demasiado larga.';
     return null;
   }
 
-  protected confirmationInvalid(): boolean {
-    const ctrl = this.form.get('passwordConfirmation');
-    if (!ctrl || (!ctrl.dirty && !ctrl.touched)) return false;
-    if (ctrl.errors?.['required']) return true;
-    const matchError = this.form.errors?.['passwordsMismatch'];
-    return !!matchError;
+  protected confirmationError(): string | null {
+    if (!this._confirmationTouched()) return null;
+    if (this.confirmationCtrl.errors?.['required']) return 'Confirma tu nueva contraseña.';
+    if (this._mismatch()) return 'Las contraseñas no coinciden.';
+    return null;
   }
 
   protected onSubmit(): void {
     if (this.form.invalid || this.submitting() || this.token() === null) {
       this.form.markAllAsTouched();
+      this._confirmationTouched.set(true);
       return;
     }
     const { password, passwordConfirmation } = this.form.getRawValue();
     if (password !== passwordConfirmation) {
-      return; // re-validation handles the message
+      this._confirmationTouched.set(true);
+      return;
     }
     this.errorMessage.set(null);
     this.submitting.set(true);
@@ -323,8 +255,7 @@ export class ResetPasswordComponent implements OnInit {
       });
   }
 
-  // Form-level validator: passwords must match. We use a custom key so
-  // the message is friendly (`passwordsMismatch`).
+  // Form-level validator: passwords must match.
   private passwordsMatch(group: AbstractControl): ValidationErrors | null {
     const p = group.get('password')?.value;
     const c = group.get('passwordConfirmation')?.value;
@@ -342,7 +273,7 @@ export class ResetPasswordComponent implements OnInit {
       return 'El enlace ha caducado o ya fue utilizado.';
     }
     if (err.status === 400) {
-      const body = err.error as ApiError | null | undefined;
+      const body = err.error as { code?: string; message?: string } | null | undefined;
       if (body?.code === 'PASSWORD_CONFIRM_MISMATCH') {
         return 'Las contraseñas no coinciden.';
       }
@@ -354,13 +285,11 @@ export class ResetPasswordComponent implements OnInit {
     if (err.status >= 500) {
       return 'Ocurrió un error inesperado. Intenta nuevamente en unos minutos.';
     }
-    return 'No se pudo restablecer la contraseña.';
+    return mapHttpError(err, { fallback: 'No se pudo restablecer la contraseña.' });
   }
 
   private toValidationMessage(err: HttpErrorResponse): string {
-    const body = err.error as ApiError | null | undefined;
-    // The validate endpoint always returns 200 with `valid: false` for
-    // bad tokens; we only land here for transport errors.
+    const body = err.error as { message?: string } | null | undefined;
     return body?.message ?? 'No se pudo validar el enlace. Intenta nuevamente.';
   }
 

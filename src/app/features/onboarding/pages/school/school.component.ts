@@ -9,12 +9,13 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { HttpErrorResponse } from '@angular/common/http';
-import { finalize } from 'rxjs/operators';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { catchError, finalize, of, switchMap } from 'rxjs';
 
 import { TenantService } from '@core/services';
 import { ApiError, ApiResponse } from '@core/models';
-import { IconComponent, SpinnerComponent } from '@shared/components';
+import { environment } from '@env/environment';
+import { FileUploadComponent, IconComponent, SpinnerComponent } from '@shared/components';
 import { OnboardingService } from '@layout/services';
 
 import { TenantApiService, UpdateTenantRequest } from '@features/tenants';
@@ -23,8 +24,23 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
 
 /**
  * School step — the single data-entry page in the onboarding wizard.
- * Sends a {@code PATCH /v1/tenants/me} with the tenant's display name
- * and branding (primary color, logo URL).
+ * Sends a {@code PATCH /v1/tenants/me} with the tenant's display name,
+ * branding color, and logo image.
+ *
+ * <h3>Logo upload flow (Firebase via signed URL)</h3>
+ * <ol>
+ *   <li>{@link FileUploadComponent} runs the standard
+ *       {@code POST /v1/files/upload-requests} → signed PUT → confirm
+ *       dance (V50, see docs/infra/firebase.md). The storage provider is
+ *       FIREBASE in prod and LOCAL_FS in dev; both yield a
+ *       {@code FileMetadata} carrying a {@code publicUuid} + {@code url}.</li>
+ *   <li>On {@code uploaded} we PATCH the tenant with
+ *       {@code branding.logoUrl = <download-url>}; the backend merges
+ *       {@code branding} field-by-field so {@code primaryColor} survives.</li>
+ *   <li>To "remove the logo" we PATCH with {@code logoUrl: null}, which the
+ *       mapper interprets as "delete the key", then issue a best-effort
+ *       {@code DELETE /v1/files/{publicUuid}} to drop the bytes.</li>
+ * </ol>
  *
  * <h3>Pre-fill strategy</h3>
  * The form is hydrated from {@link TenantService} on init: the user
@@ -32,25 +48,12 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
  * the backend may have inferred (none today, but a future "starter
  * theme by industry" feature can populate it). The user only types
  * what they want to override.
- *
- * <h3>What we send vs what we leave alone</h3>
- * The PATCH body uses {@link UpdateTenantRequest}'s field-level merge
- * semantics for {@code branding}: sending {@code logoUrl: null} would
- * clear an existing logo. To avoid surprises we only include keys for
- * which the user actually provided a value — empty strings become
- * {@code undefined} and the backend keeps the prior value.
- *
- * <h3>Why not activate here</h3>
- * Activation is the {@code complete} step's job. Splitting them keeps
- * the contract explicit (PATCH = data, POST /activate = lifecycle) and
- * leaves room for future branching (e.g. a "review billing plan" step
- * between school and complete).
  */
 @Component({
   selector: 'app-onboarding-school',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, IconComponent, SpinnerComponent],
+  imports: [ReactiveFormsModule, IconComponent, SpinnerComponent, FileUploadComponent],
   template: `
     <header class="mb-6">
       <h1 class="text-2xl font-semibold tracking-tight">Datos de la institución</h1>
@@ -112,31 +115,52 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
       </div>
 
       <div class="field sm:col-span-2">
-        <label class="label" for="ob-logo">URL del logo (opcional)</label>
-        <input
-          id="ob-logo"
-          class="input"
-          type="url"
-          spellcheck="false"
-          formControlName="logoUrl"
-          [attr.aria-invalid]="invalid('logoUrl')"
-          placeholder="https://cdn.tu-dominio.com/logo.svg"
-        />
-        @if (invalid('logoUrl')) {
-          <p class="hint text-danger">{{ errorOf('logoUrl') }}</p>
-        } @else {
-          <p class="hint">
-            Recomendado: SVG o PNG transparente, mínimo 256×256. Lo podrás cambiar luego.
-          </p>
-        }
+        <label class="label">Logo de la institución</label>
+        <div class="flex items-start gap-4">
+          <div
+            class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-surface-2"
+            [attr.aria-label]="currentLogoUrl() ? 'Logo actual' : 'Sin logo'"
+          >
+            @if (currentLogoUrl(); as logo) {
+              <img [src]="logo" alt="Logo actual" class="h-full w-full object-contain" />
+            } @else {
+              <app-icon name="image" [size]="32" class="text-content-muted" />
+            }
+          </div>
+          <div class="flex-1 space-y-2">
+            <app-file-upload
+              module="branding"
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              [maxSizeMb]="5"
+              (uploaded)="onLogoUploaded($event)"
+              (uploadError)="onLogoUploadError($event)"
+            />
+            <p class="hint">
+              PNG, JPEG, WebP o SVG transparente. Recomendado mínimo 256×256. Tamaño máx. 5 MB.
+            </p>
+            @if (logoBusy()) {
+              <p class="hint text-content-muted">Guardando logo en la institución…</p>
+            }
+            @if (currentLogoUrl()) {
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                [disabled]="logoBusy() || saving()"
+                (click)="removeLogo()"
+              >
+                Quitar logo
+              </button>
+            }
+          </div>
+        </div>
       </div>
 
       <div class="card-footer -mx-5 -mb-5 mt-2 px-5 sm:col-span-2">
-        <button type="button" class="btn btn-ghost" [disabled]="loading()" (click)="back()">
+        <button type="button" class="btn btn-ghost" [disabled]="saving()" (click)="back()">
           Atrás
         </button>
-        <button type="submit" class="btn btn-primary" [disabled]="loading() || form.invalid">
-          @if (loading()) {
+        <button type="submit" class="btn btn-primary" [disabled]="saving() || form.invalid">
+          @if (saving()) {
             <app-spinner [size]="16" label="Guardando…" />
             <span>Guardando…</span>
           } @else {
@@ -155,15 +179,17 @@ export class OnboardingSchoolComponent implements OnInit {
   private readonly store = inject(OnboardingStore);
   private readonly onboarding = inject(OnboardingService);
   private readonly router = inject(Router);
+  private readonly http = inject(HttpClient);
 
-  readonly loading = this.store.loading;
+  readonly saving = this.store.loading;
   readonly errorMessage = this.store.error;
+  readonly logoBusy = signal(false);
+  readonly currentLogoUrl = signal<string | null>(null);
 
   /**
    * Validators here are slightly more forgiving than the backend's
    * {@code BrandingDto}: we accept either 3-digit ({@code #fff}) or
-   * 6-digit hex on the color field, and we let the URL field be empty
-   * (the backend treats null as "leave alone").
+   * 6-digit hex on the color field.
    */
   readonly form: FormGroup = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]],
@@ -171,7 +197,6 @@ export class OnboardingSchoolComponent implements OnInit {
       '',
       [Validators.required, Validators.pattern(/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/)],
     ],
-    logoUrl: ['', [Validators.maxLength(2048), Validators.pattern(/^(https?:\/\/.+)?$/)]],
   });
 
   /**
@@ -182,8 +207,12 @@ export class OnboardingSchoolComponent implements OnInit {
    */
   private readonly _hydrated = signal(false);
 
-  /** Live-preview the chosen color in the right side of the form (as a small swatch). */
-  readonly currentColor = computed(() => this.form.controls['primaryColor'].value || '#0F62FE');
+  /**
+   * PublicUuid of the currently rendered logo (if any), kept around so
+   * {@link #removeLogo} can issue the matching {@code DELETE /v1/files/{uuid}}
+   * after the tenant PATCH clears the {@code branding.logoUrl} key.
+   */
+  private currentLogoPublicUuid: string | null = null;
 
   constructor() {
     /* Hydrate the form when (and only when) we first see a real tenant.
@@ -197,10 +226,11 @@ export class OnboardingSchoolComponent implements OnInit {
         {
           name: tenant.name,
           primaryColor: tenant.branding?.primaryColor ?? '#0F62FE',
-          logoUrl: tenant.branding?.logo?.light ?? '',
         },
         { emitEvent: false },
       );
+      const logoLight = tenant.branding?.logo?.light ?? null;
+      this.currentLogoUrl.set(logoLight);
       this._hydrated.set(true);
     });
   }
@@ -227,7 +257,6 @@ export class OnboardingSchoolComponent implements OnInit {
     }
     if (ctrl.hasError('pattern')) {
       if (name === 'primaryColor') return 'Usa un valor hex como #0F62FE.';
-      if (name === 'logoUrl') return 'Debe ser una URL https válida.';
       return 'Formato inválido.';
     }
     return '';
@@ -237,8 +266,83 @@ export class OnboardingSchoolComponent implements OnInit {
     void this.router.navigate(['/onboarding/welcome']);
   }
 
+  // -------------------------------------------------------------------------
+  // Logo upload
+  // -------------------------------------------------------------------------
+
+  /**
+   * Invoked by {@link FileUploadComponent} after a successful upload.
+   * The metadata's {@code url} is the absolute Firebase/LOCAL_FS path —
+   * the BE serves that path through {@code TenantMapper} as the
+   * {@code branding.logoUrl}. We also remember the publicUuid so a later
+   * {@link #removeLogo} can drop the bytes from storage.
+   */
+  onLogoUploaded(meta: { publicUuid: string; url: string; contentType?: string }): void {
+    this.currentLogoPublicUuid = meta.publicUuid;
+    this.logoBusy.set(true);
+    this.store.setError(null);
+
+    const payload: UpdateTenantRequest = {
+      branding: { logoUrl: meta.url },
+    };
+
+    this.tenantApi
+      .updateCurrent(payload)
+      .pipe(finalize(() => this.logoBusy.set(false)))
+      .subscribe({
+        next: (tenant) => {
+          this.tenantService.setTenant(tenant, 'header');
+          this.currentLogoUrl.set(tenant.branding?.logo?.light ?? meta.url);
+        },
+        error: (err: HttpErrorResponse) => {
+          // Surface the error but keep the uploaded bytes — the user
+          // can retry the PATCH without re-uploading.
+          this.store.setError(this.toMessage(err));
+        },
+      });
+  }
+
+  onLogoUploadError(message: string): void {
+    this.store.setError(message || 'No se pudo subir el logo.');
+  }
+
+  removeLogo(): void {
+    if (this.logoBusy()) return;
+    this.logoBusy.set(true);
+    this.store.setError(null);
+
+    const payload: UpdateTenantRequest = {
+      branding: { logoUrl: null },
+    };
+
+    this.tenantApi
+      .updateCurrent(payload)
+      .pipe(
+        switchMap((tenant) => {
+          this.tenantService.setTenant(tenant, 'header');
+          this.currentLogoUrl.set(null);
+          const uuidToDelete = this.currentLogoPublicUuid;
+          this.currentLogoPublicUuid = null;
+          if (!uuidToDelete) return of(null);
+          // Best-effort: drop the bytes from storage. If the BE
+          // 404s (e.g. the file was already cleaned up) swallow it —
+          // the tenant row is already cleared.
+          const base = `${environment.apiUrl}/${environment.apiVersion}/files/${uuidToDelete}`;
+          return this.http.delete(base).pipe(catchError(() => of(null)));
+        }),
+        finalize(() => this.logoBusy.set(false)),
+      )
+      .subscribe({
+        error: (err: HttpErrorResponse) => this.store.setError(this.toMessage(err)),
+      });
+  }
+
+  // -------------------------------------------------------------------------
+  // Submit (name + color only)
+  // -------------------------------------------------------------------------
+
   onSubmit(): void {
-    if (this.loading()) return;
+    if (this.saving()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -246,17 +350,12 @@ export class OnboardingSchoolComponent implements OnInit {
 
     const raw = this.form.getRawValue();
     /* Field-level merge semantics: only include the keys we actually
-     * want to write. An empty logo URL becomes "undefined", not "null",
-     * so the backend keeps the existing value (see UpdateTenantRequest). */
-    const branding: UpdateTenantRequest['branding'] = {
-      primaryColor: raw.primaryColor.trim(),
-    };
-    const logo = (raw.logoUrl ?? '').trim();
-    if (logo) branding.logoUrl = logo;
-
+     * want to write. primaryColor is always sent; logoUrl is managed
+     * by the upload widget above and never sent from here, so the BE
+     * keeps the current value (see UpdateTenantRequest). */
     const payload: UpdateTenantRequest = {
       name: raw.name.trim(),
-      branding,
+      branding: { primaryColor: raw.primaryColor.trim() },
     };
 
     this.store.setLoading(true);
@@ -277,6 +376,10 @@ export class OnboardingSchoolComponent implements OnInit {
       });
   }
 
+  // -------------------------------------------------------------------------
+  // Error mapping
+  // -------------------------------------------------------------------------
+
   private toMessage(err: HttpErrorResponse): string {
     if (err.status === 0) {
       return 'No se pudo conectar con el servidor. Verifica tu conexión.';
@@ -284,6 +387,12 @@ export class OnboardingSchoolComponent implements OnInit {
     const apiError = this.firstApiError(err);
     if (err.status === 403) {
       return 'No tienes permisos para editar esta institución.';
+    }
+    if (err.status === 413) {
+      return 'La imagen excede el tamaño máximo permitido (5 MB).';
+    }
+    if (err.status === 415) {
+      return 'Formato no soportado. Usa PNG, JPEG, WebP o SVG.';
     }
     if (err.status >= 500) {
       return 'Ocurrió un error inesperado. Intenta nuevamente en unos minutos.';

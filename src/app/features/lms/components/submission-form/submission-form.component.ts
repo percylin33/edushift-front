@@ -189,7 +189,7 @@ export class SubmissionFormComponent implements OnChanges {
     submittedForStudentPublicUuid: ['', []],
   });
 
-  protected readonly isParent = computed(() => this.auth.hasRole(UserRole.Guardian));
+  protected readonly isParent = computed(() => this.auth.hasRole(UserRole.Parent));
 
   protected readonly canResubmitNow = computed(() => {
     const e = this.existingSig();

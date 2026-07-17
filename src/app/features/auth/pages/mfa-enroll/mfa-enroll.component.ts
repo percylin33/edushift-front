@@ -1,13 +1,18 @@
 import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import * as QRCode from 'qrcode';
 
-import { ApiError } from '@core/models';
 import { AuthService } from '@core/services';
 import { ROUTES } from '@core/constants';
-import { IconComponent, SpinnerComponent } from '@shared/components';
+import {
+  AlertComponent,
+  FormFieldComponent,
+  IconComponent,
+  SubmitButtonComponent,
+} from '@shared/components';
 
 import { AuthApiService } from '../../services/auth-api.service';
 
@@ -17,30 +22,27 @@ import { AuthApiService } from '../../services/auth-api.service';
  * <h3>Flow</h3>
  * <ol>
  *   <li>Mount → {@code GET /auth/mfa/enroll/start} → BE returns
- *       {@link MfaEnrollmentStart} with a base32 secret, the
- *       {@code otpauth://} URI, and a placeholder for the QR code
- *       data URL. We render the QR with the {@code qrcode} package
- *       client-side (small, zero-dep, offline-capable).</li>
+ *       a base32 secret + the {@code otpauth://} URI. We render the QR
+ *       with the {@code qrcode} package client-side.</li>
  *   <li>User scans the QR with Google Authenticator / Authy / 1Password
- *       and types the 6-digit code.</li>
+ *       and types the 6-digit code into a {@code FormControl}.</li>
  *   <li>{@code POST /auth/mfa/enroll/verify} with the code + the secret
  *       → BE returns 10 recovery codes (plaintext, shown once).</li>
  *   <li>User saves the codes (copy-to-clipboard button) → confirm →
- *       redirect to the profile page (or wherever they came from).</li>
+ *       redirect to the profile page.</li>
  * </ol>
- *
- * <h3>Why we render the QR client-side</h3>
- * The BE returns the {@code otpauth://} URI (not a data URL) so the
- * payload size stays small and the BE doesn't need a QR library. The
- * SPA turns it into a data URL on the client. Keeping the QR
- * generation out of the BE also means we can swap the rendering
- * library (e.g. a server-rendered SVG) without a server change.
  */
 @Component({
   selector: 'app-mfa-enroll',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, SpinnerComponent],
+  imports: [
+    ReactiveFormsModule,
+    AlertComponent,
+    FormFieldComponent,
+    IconComponent,
+    SubmitButtonComponent,
+  ],
   template: `
     <div class="space-y-6">
       <header class="space-y-1.5">
@@ -55,7 +57,7 @@ import { AuthApiService } from '../../services/auth-api.service';
 
       @if (stage() === 'loading') {
         <div class="flex items-center gap-2 text-sm text-content-muted">
-          <app-spinner [size]="14" />
+          <app-icon name="refresh" [size]="14" class="animate-spin" />
           Generando código QR…
         </div>
       } @else if (stage() === 'scan') {
@@ -80,38 +82,28 @@ import { AuthApiService } from '../../services/auth-api.service';
               </p>
             </div>
             <div class="space-y-3">
-              <div class="space-y-1.5">
-                <label for="code" class="block text-sm font-medium text-content"
-                  >Código de 6 dígitos</label
-                >
-                <input
-                  id="code"
-                  type="text"
-                  inputmode="numeric"
-                  autocomplete="one-time-code"
-                  [value]="code()"
-                  (input)="onCodeInput($event)"
-                  placeholder="123 456"
-                  maxlength="6"
-                  class="w-full rounded-md border border-border bg-surface px-3 py-2 text-center font-mono text-2xl tracking-[0.3em] text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
-                />
-              </div>
+              <app-form-field
+                fieldId="code"
+                [control]="codeCtrl"
+                label="Código de 6 dígitos"
+                placeholder="123 456"
+                autocomplete="one-time-code"
+                inputmode="numeric"
+                [maxlength]="6"
+                [error]="codeError()"
+                extraInputClass="text-center font-mono text-2xl tracking-[0.3em]"
+              />
+
               @if (errorMessage(); as msg) {
-                <p role="alert" class="text-sm text-danger">{{ msg }}</p>
+                <app-alert variant="error" [message]="msg" />
               }
-              <button
-                type="button"
-                (click)="onVerify()"
-                [disabled]="verifying() || code().length !== 6"
-                class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                @if (verifying()) {
-                  <app-spinner [size]="14" />
-                  Verificando…
-                } @else {
-                  Activar
-                }
-              </button>
+              <app-submit-button
+                [loading]="verifying()"
+                [disabled]="form.invalid"
+                [showArrow]="false"
+                label="Activar"
+                loadingLabel="Verificando…"
+              />
               <details class="rounded-md border border-border-subtle bg-surface-muted p-3 text-sm">
                 <summary class="cursor-pointer text-content">
                   ¿No puedes escanear? Ingresa el código manualmente
@@ -163,26 +155,27 @@ import { AuthApiService } from '../../services/auth-api.service';
   `,
 })
 export class MfaEnrollComponent implements OnInit {
+  private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
 
   protected readonly profileRoute = ROUTES.PROFILE.ROOT;
 
-  // ---------------------------------------------------------------------
-  // Stage machine: loading → scan → codes
-  // ---------------------------------------------------------------------
   protected readonly stage = signal<'loading' | 'scan' | 'codes'>('loading');
   protected readonly enrollment = signal<{ secretBase32: string } | null>(null);
   protected readonly qrDataUrl = signal<string | null>(null);
-  protected readonly code = signal('');
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly verifying = signal(false);
   protected readonly recoveryCodes = signal<string[]>([]);
   protected readonly copyLabel = signal('Copiar códigos');
 
-  // Refresh the cached user when MFA flips on, so the profile page
-  // (and the user menu) show the new state without a hard reload.
+  protected readonly form: FormGroup = this.fb.nonNullable.group({
+    code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
+  });
+
+  protected readonly codeCtrl = this.form.get('code') as FormControl<string>;
+
   private readonly _syncMfaEnabledToAuth = effect(() => {
     const u = this.auth.user();
     if (u && this.stage() === 'codes') {
@@ -199,8 +192,6 @@ export class MfaEnrollComponent implements OnInit {
     this.authApi.startMfaEnrollment().subscribe({
       next: async (res) => {
         this.enrollment.set({ secretBase32: res.secretBase32 });
-        // Render QR client-side from the otpauth:// URI. We use a
-        // 256-px PNG so it stays crisp on retina screens.
         try {
           const dataUrl = await QRCode.toDataURL(res.otpauthUri, {
             width: 256,
@@ -209,8 +200,6 @@ export class MfaEnrollComponent implements OnInit {
           });
           this.qrDataUrl.set(dataUrl);
         } catch {
-          // Fallback to whatever the BE sent (also useful when the
-          // qrcode library isn't available, e.g. SSR).
           this.qrDataUrl.set(res.qrCodeDataUrl);
         }
         this.stage.set('scan');
@@ -221,16 +210,22 @@ export class MfaEnrollComponent implements OnInit {
     });
   }
 
-  protected onCodeInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.code.set(input.value.replace(/\D/g, '').slice(0, 6));
-    input.value = this.code();
+  protected codeError(): string | null {
+    const ctrl = this.codeCtrl;
+    if (!ctrl.errors || (!ctrl.dirty && !ctrl.touched)) return null;
+    if (ctrl.errors['required']) return 'Ingresa el código.';
+    if (ctrl.errors['pattern']) return 'El código debe tener exactamente 6 dígitos.';
+    return null;
   }
 
   protected onVerify(): void {
-    const code = this.code();
+    if (this.form.invalid || this.verifying()) {
+      this.form.markAllAsTouched();
+      return;
+    }
     const enrollment = this.enrollment();
-    if (!enrollment || code.length !== 6 || this.verifying()) return;
+    if (!enrollment) return;
+    const code = this.codeCtrl.value;
 
     this.errorMessage.set(null);
     this.verifying.set(true);
@@ -262,8 +257,6 @@ export class MfaEnrollComponent implements OnInit {
   }
 
   protected onConfirmCodes(): void {
-    // Caller decides where to go next. We default to /profile so the
-    // user can see the new MFA status reflected in the security card.
     this.router.navigateByUrl(this.profileRoute);
   }
 
@@ -272,7 +265,7 @@ export class MfaEnrollComponent implements OnInit {
       return 'No se pudo conectar con el servidor. Verifica tu conexión.';
     }
     if (err.status === 400) {
-      const body = err.error as ApiError | null | undefined;
+      const body = err.error as { code?: string; message?: string } | null | undefined;
       if (body?.code === 'MFA_ALREADY_ENABLED') {
         return 'MFA ya está activado. Recarga la página.';
       }

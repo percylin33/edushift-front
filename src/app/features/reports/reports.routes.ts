@@ -19,4 +19,13 @@ export const REPORTS_ROUTES: Routes = [
     loadComponent: () =>
       import('./pages/reports-home/reports-home.component').then((m) => m.ReportsHomeComponent),
   },
+  {
+    path: 'wizard',
+    canActivate: [roleGuard],
+    data: { roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Staff] },
+    loadComponent: () =>
+      import('./pages/reports-wizard-page/reports-wizard-page.component').then(
+        (m) => m.ReportsWizardPageComponent,
+      ),
+  },
 ];

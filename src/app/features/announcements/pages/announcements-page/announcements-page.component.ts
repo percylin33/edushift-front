@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { SecurityContext } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AnnouncementsApiService } from '../../services/announcements-api.service';
 import { Announcement } from '../../models/announcement.model';
@@ -120,7 +121,7 @@ export class AnnouncementsPageComponent implements OnInit {
    * again at render. Defense in depth.
    */
   safeBody(html: string | null | undefined): SafeHtml {
-    return this.sanitizer.sanitize(this.sanitizer.SECURITY_CONTEXT, html ?? '') ?? '';
+    return this.sanitizer.sanitize(SecurityContext.HTML, html ?? '') ?? '';
   }
 
   ngOnInit(): void {

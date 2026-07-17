@@ -120,7 +120,7 @@ export class SidebarComponent {
   readonly mobileOpen = this.layout.sidebarOpen;
   readonly width = computed(() => (this.collapsed() ? 72 : 256));
 
-  readonly tenantName = computed(() => this.tenant.tenant()?.name ?? 'Workspace');
+  readonly tenantName = computed(() => this.tenant.tenant()?.name ?? 'Espacio de trabajo');
 
   readonly appName = APP.NAME;
   readonly dashboardLink = '/dashboard';

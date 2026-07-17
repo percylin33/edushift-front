@@ -375,7 +375,7 @@ export class UserDetailComponent implements OnInit {
       description: 'Acceso al portal del alumno (lectura).',
     },
     {
-      value: UserRole.Guardian,
+      value: UserRole.Parent,
       label: 'Tutor',
       description: 'Tutor o apoderado de uno o más estudiantes.',
     },

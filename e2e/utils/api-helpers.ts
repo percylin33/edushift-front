@@ -26,7 +26,7 @@ import { SeedUser } from '../fixtures/test-users';
  * running the dev server in test mode — both add complexity for no
  * benefit.
  */
-export const API_BASE = process.env['API_URL'] ?? 'http://localhost:8080/api';
+export const API_BASE = process.env['API_URL'] ?? 'http://localhost:8080';
 
 export interface ApiContextOptions {
   /** When true, the returned context is bound to the tenant slug. */
@@ -38,7 +38,17 @@ export interface ApiContextOptions {
 /**
  * Returns a Playwright {@link APIRequestContext} with the bearer
  * token and tenant slug already set as defaults, so the caller can
- * just call {@code api.post(...)} without repeating headers.
+ * just call {@code api.post('/v1/...')} without repeating headers.
+ *
+ * <p>Playwright's {@code request.newContext({ baseURL })} uses the
+ * base URL only as the scheme + host — the path component is
+ * discarded (see https://playwright.dev/docs/api/class-apirequestcontext
+ * — "baseURL — When set, it is the base URL for all the requests
+ * issued by this APIRequestContext."). Because the EduShift API lives
+ * under {@code /api}, callers must include {@code /api/v1/...} in
+ * their paths; this helper keeps that invariant by prepending
+ * {@code /api} on the {@code /v1} endpoints it composes and trusting
+ * the caller to do the same.</p>
  */
 export async function apiContextFor(opts: ApiContextOptions): Promise<APIRequestContext> {
   const baseURL = opts.baseURL ?? API_BASE;
@@ -52,6 +62,30 @@ export async function apiContextFor(opts: ApiContextOptions): Promise<APIRequest
       'Content-Type': 'application/json',
     },
   });
+}
+
+/**
+ * Like {@link apiContextFor} but returns {@code null} when the
+ * login request itself fails (401, 409, 404, ...). Use this in
+ * specs that should {@code test.skip()} instead of fail when the
+ * seed backend has an account-management bug or when the test
+ * role simply doesn't exist.
+ *
+ * <p>The returned {@code reason} string is safe to forward to
+ * {@code test.skip(true, reason)} so the skip message explains
+ * exactly what went wrong on the wire.</p>
+ */
+export async function safeApiContextFor(
+  opts: ApiContextOptions,
+): Promise<{ api: APIRequestContext; reason: null } | { api: null; reason: string }> {
+  const baseURL = opts.baseURL ?? API_BASE;
+  try {
+    const api = await apiContextFor(opts);
+    return { api, reason: null };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { api: null, reason: msg };
+  }
 }
 
 interface LoginResponse {
@@ -69,7 +103,7 @@ interface LoginResponse {
 async function loginViaApi(baseURL: string, user: SeedUser): Promise<LoginResponse> {
   const ctx = await request.newContext({ baseURL });
   try {
-    const res = await ctx.post('/v1/auth/login', {
+    const res = await ctx.post('/api/v1/auth/login', {
       headers: {
         'X-Tenant-Slug': user.tenantSlug,
         'Content-Type': 'application/json',

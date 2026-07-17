@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AuthStore } from './auth.store';
 
 describe('AuthStore', () => {
@@ -41,5 +42,36 @@ describe('AuthStore', () => {
     expect(store.loading()).toBeFalse();
     expect(store.error()).toBeNull();
     expect(store.hasError()).toBeFalse();
+  });
+
+  it('beginSubmit pone loading=true y limpia error', () => {
+    store.setError('previo');
+    store.beginSubmit();
+    expect(store.loading()).toBeTrue();
+    expect(store.error()).toBeNull();
+  });
+
+  it('failSubmit pone loading=false y mapea el error HTTP a mensaje', () => {
+    store.beginSubmit();
+    const err = new HttpErrorResponse({
+      status: 401,
+      error: { code: 'BAD_CREDENTIALS' },
+    });
+    store.failSubmit(err);
+    expect(store.loading()).toBeFalse();
+    expect(store.error()).toBe('Correo o contraseña incorrectos.');
+  });
+
+  it('failSubmit respeta opts.fallback', () => {
+    store.beginSubmit();
+    const err = new HttpErrorResponse({ status: 418 });
+    store.failSubmit(err, { fallback: 'teapot' });
+    expect(store.error()).toBe('teapot');
+  });
+
+  it('failSubmit mapea status 0 a mensaje de red', () => {
+    store.beginSubmit();
+    store.failSubmit(new HttpErrorResponse({ status: 0 }));
+    expect(store.error()).toContain('conexión');
   });
 });

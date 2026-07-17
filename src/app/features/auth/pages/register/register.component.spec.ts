@@ -73,10 +73,9 @@ describe('RegisterComponent', () => {
     expect(component.form.invalid).toBeTrue();
   });
 
-  it('slugPreview refleja el valor del campo en lowercase', () => {
-    const ctrl = component.form.get('tenantSlug')!;
-    ctrl.setValue('Mi-Colegio');
-    expect(ctrl.value).toBe('Mi-Colegio');
+  it('slugHint refleja el valor del campo en lowercase', () => {
+    component.tenantSlugCtrl.setValue('Mi-Colegio');
+    expect(component.slugHint()).toContain('mi-colegio');
   });
 
   it('validación: tenantName required', () => {
@@ -174,12 +173,15 @@ describe('RegisterComponent', () => {
     expect(store.error()).toContain('error inesperado');
   });
 
-  it('toSlug normaliza nombre a slug', () => {
-    const slug = (component as any).toSlug('Colegio San José');
-    expect(slug).toBe('colegio-san-jose');
+  it('toSlug normaliza nombre a slug (vía slugify)', () => {
+    // slugify now lives in @shared/utils; we exercise it indirectly by
+    // typing into tenantName and observing the auto-derived slug.
+    component.tenantNameCtrl.setValue('Colegio San José');
+    expect(component.tenantSlugCtrl.value).toBe('colegio-san-jose');
   });
 
   it('toSlug retorna vacío para input vacío', () => {
-    expect((component as any).toSlug('')).toBe('');
+    component.tenantNameCtrl.setValue('');
+    expect(component.tenantSlugCtrl.value).toBe('');
   });
 });

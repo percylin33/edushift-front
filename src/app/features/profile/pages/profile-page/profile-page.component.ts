@@ -15,7 +15,7 @@ import { finalize } from 'rxjs/operators';
 import { AuthService } from '@core/services';
 import { ROUTES } from '@core/constants';
 import { ApiError, User } from '@core/models';
-import { IconComponent, SpinnerComponent } from '@shared/components';
+import { IconComponent, SpinnerComponent, PromptDialogService } from '@shared/components';
 import { InitialsPipe } from '@shared/pipes';
 
 import { ProfileService } from '../../services/profile.service';
@@ -296,6 +296,7 @@ export class ProfilePageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly profileService = inject(ProfileService);
+  private readonly promptDialog = inject(PromptDialogService);
   private readonly router = inject(Router);
 
   protected readonly forgotPasswordRoute = ROUTES.AUTH.FORGOT_PASSWORD;
@@ -387,8 +388,18 @@ export class ProfilePageComponent implements OnInit {
    * in the MVP we only ask for the current password; the user can
    * always re-enroll if they really need to drop MFA.
    */
-  protected onDisableMfa(): void {
-    const pwd = window.prompt('Confirma tu contraseña para desactivar MFA:');
+  protected async onDisableMfa(): Promise<void> {
+    const pwd = await this.promptDialog.open({
+      title: 'Desactivar verificación en dos pasos',
+      message: 'Confirma tu contraseña para desactivar MFA.',
+      inputLabel: 'Contraseña actual',
+      inputPlaceholder: 'Ingresa tu contraseña',
+      inputType: 'password',
+      confirmLabel: 'Desactivar',
+      cancelLabel: 'Cancelar',
+      variant: 'danger',
+      icon: 'alert-circle',
+    });
     if (!pwd) return;
     this.disablingMfa.set(true);
     this.profileService

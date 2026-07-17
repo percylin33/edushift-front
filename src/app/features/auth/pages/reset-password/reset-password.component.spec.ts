@@ -119,6 +119,7 @@ describe('ResetPasswordComponent', () => {
       password: 'newpassword123',
       passwordConfirmation: 'DIFFERENT',
     });
+    (component as any)._confirmationTouched.set(true);
     component.onSubmit();
 
     httpMock.expectNone((r) => r.url.endsWith('/auth/reset-password'));

@@ -8,7 +8,7 @@ describe('Breadcrumb', () => {
   });
 
   it('url puede ser null para la página actual', () => {
-    const crumb: Breadcrumb = { label: 'Dashboard', url: null };
+    const crumb: Breadcrumb = { label: 'Panel', url: null };
     expect(crumb.url).toBeNull();
   });
 });

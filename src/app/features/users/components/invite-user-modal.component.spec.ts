@@ -86,14 +86,14 @@ describe('InviteUserModalComponent', () => {
     configureModule();
     (component as any).selectedRoles.set([UserRole.Teacher, UserRole.Staff]);
     expect((component as any).hasRole(UserRole.Teacher)).toBeTrue();
-    expect((component as any).hasRole(UserRole.Guardian)).toBeFalse();
+    expect((component as any).hasRole(UserRole.Parent)).toBeFalse();
   });
 
   it('toggleRole agrega y quita roles', () => {
     configureModule();
     const evtTrue = { target: { checked: true } } as any;
-    (component as any).toggleRole(UserRole.Guardian, evtTrue);
-    expect((component as any).selectedRoles()).toContain(UserRole.Guardian);
+    (component as any).toggleRole(UserRole.Parent, evtTrue);
+    expect((component as any).selectedRoles()).toContain(UserRole.Parent);
     const evtFalse = { target: { checked: false } } as any;
     (component as any).toggleRole(UserRole.Teacher, evtFalse);
     expect((component as any).selectedRoles()).not.toContain(UserRole.Teacher);

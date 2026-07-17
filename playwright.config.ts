@@ -41,10 +41,20 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 2 : 0,
-  workers: process.env['CI'] ? 2 : undefined,
+  // Local default dropped from `undefined` (which lets Playwright use all
+  // cores) to a fixed 2 workers. With 4+ workers the dev BE hits
+  // connection-pool contention and the suite turns flaky. Override with
+  // PWTEST_WORKERS env var when you need a clean parallel run.
+  workers: process.env['CI'] ? 2 : (process.env['PWTEST_WORKERS'] ? Number(process.env['PWTEST_WORKERS']) : 2),
   reporter: process.env['CI']
     ? [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]]
     : 'list',
+
+  timeout: 30_000,
+  expect: {
+    timeout: 10_000,
+    toHaveScreenshot: { maxDiffPixels: 50 },
+  },
 
   use: {
     baseURL: process.env['BASE_URL'] ?? 'http://localhost:4200',
@@ -56,12 +66,10 @@ export default defineConfig({
     // We forward it explicitly in api-helpers.ts; nothing to do here.
   },
 
-  // Auth state files are produced by e2e/auth.setup.ts.
-  // Playwright re-uses them across the suite to skip the login form.
-  expect: {
-    timeout: 5_000,
-    toHaveScreenshot: { maxDiffPixels: 50 },
-  },
+  // Auth state files are produced by e2e/auth.setup.ts (tenant admin,
+  // teacher, staff, parent, student) and e2e/auth.admin.setup.ts (super
+  // admin). Playwright re-uses them across the suite to skip the login
+  // form. STUDENT was added in Phase 0 / V74.
 
   projects: [
     {
@@ -69,8 +77,13 @@ export default defineConfig({
       testMatch: /.*\.setup\.ts/,
     },
     {
+      name: 'admin-setup',
+      testMatch: /.*\.admin\.setup\.ts/,
+    },
+    {
       name: 'chromium-desktop',
       testMatch: /.*\.spec\.ts/,
+      testIgnore: /admin-smoke\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1280, height: 800 },
@@ -81,8 +94,19 @@ export default defineConfig({
       dependencies: ['setup'],
     },
     {
+      name: 'chromium-admin',
+      testMatch: /admin-smoke\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 800 },
+        storageState: 'e2e/.auth/super-admin.json',
+      },
+      dependencies: ['admin-setup'],
+    },
+    {
       name: 'mobile-pixel-7',
       testMatch: /.*\.spec\.ts/,
+      testIgnore: /admin-smoke\.spec\.ts/,
       use: {
         ...devices['Pixel 7'],
         storageState: 'e2e/.auth/tenant-admin.json',

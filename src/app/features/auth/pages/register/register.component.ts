@@ -1,13 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, finalize, of, switchMap, tap } from 'rxjs';
 
 import { AuthService, TenantService } from '@core/services';
 import { ROUTES } from '@core/constants';
-import { ApiError, ApiResponse } from '@core/models';
-import { IconComponent, SpinnerComponent } from '@shared/components';
+import {
+  AlertComponent,
+  FormFieldComponent,
+  PasswordFieldComponent,
+  SubmitButtonComponent,
+} from '@shared/components';
+import { slugify } from '@shared/utils';
 
 import { RegisterTenantRequest, TenantApiService } from '@features/tenants';
 import { AuthApiService } from '../../services/auth-api.service';
@@ -19,41 +24,25 @@ import { AuthStore } from '../../store/auth.store';
  * with {@link AuthService#setSession}, hydrates the tenant context, and
  * drops the new owner into the onboarding flow.
  *
- * <h3>Why one component, not a feature</h3>
- * Same rationale as {@code LoginComponent}: small surface, no
- * persistence beyond the session that already lands in {@code AuthService},
- * shared layout shell ({@code AuthLayoutComponent}). Nesting it under
- * a dedicated feature would inflate the file tree without buying any
- * test seam — the only branching is field-level error mapping, which
- * is already centralized in {@link #toFieldError} / {@link #toMessage}.
- *
  * <h3>Slug auto-derivation</h3>
  * Typing the tenant name is enough to populate the slug field too, until
  * the user manually edits the slug — {@link #_slugTouchedByUser} flips
  * once and we then leave the slug alone. This keeps the form fast for
  * 95% of signups while still letting power users pick a vanity slug
  * (e.g. {@code colegio-san-jose-2026}) different from the display name.
- *
- * <h3>What happens after success</h3>
- * The backend's {@code TenantService.register} returns an
- * {@code AuthResponse} (mirrors {@code /auth/login}) so we can:
- * <ol>
- *   <li>Persist the session immediately ({@code AuthService#setSession}).
- *   <li>Re-fetch the freshly-created tenant via {@code GET /tenants/me}
- *       to hydrate {@code TenantService} with authoritative data
- *       (status, plan, branding) — the register response intentionally
- *       does not include the tenant payload, mirroring {@code /login}'s
- *       slim shape.</li>
- *   <li>Navigate to {@code /onboarding/welcome}. A failure during the
- *       hydration step is non-fatal — guards will retry on the next
- *       request — so we log it and proceed.</li>
- * </ol>
  */
 @Component({
   selector: 'app-register',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, IconComponent, SpinnerComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    AlertComponent,
+    FormFieldComponent,
+    PasswordFieldComponent,
+    SubmitButtonComponent,
+  ],
   template: `
     <div class="space-y-6">
       <header class="space-y-1.5">
@@ -64,199 +53,78 @@ import { AuthStore } from '../../store/auth.store';
       </header>
 
       @if (errorMessage(); as message) {
-        <div
-          role="alert"
-          class="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
-        >
-          <app-icon name="alert-circle" [size]="18" class="mt-0.5 shrink-0" />
-          <span>{{ message }}</span>
-        </div>
+        <app-alert variant="error" [message]="message" />
       }
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
-        <!-- Nombre de la institución -->
-        <div class="space-y-1.5">
-          <label for="tenantName" class="block text-sm font-medium text-content"
-            >Nombre de la institución</label
-          >
-          <input
-            id="tenantName"
-            type="text"
-            autocomplete="organization"
-            formControlName="tenantName"
-            [attr.aria-invalid]="invalid('tenantName')"
-            [attr.aria-describedby]="invalid('tenantName') ? 'tenantName-error' : null"
-            placeholder="Colegio San José"
-            class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
-          />
-          @if (invalid('tenantName')) {
-            <p id="tenantName-error" class="text-xs text-danger">{{ errorOf('tenantName') }}</p>
-          }
-        </div>
+        <app-form-field
+          fieldId="tenantName"
+          [control]="tenantNameCtrl"
+          label="Nombre de la institución"
+          placeholder="Colegio San José"
+          autocomplete="organization"
+          [error]="errorOf('tenantName')"
+        />
 
-        <!-- Slug -->
-        <div class="space-y-1.5">
-          <label for="tenantSlug" class="block text-sm font-medium text-content"
-            >Identificador de tu workspace</label
-          >
-          <div class="relative">
-            <span
-              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-content-subtle"
-            >
-              <app-icon name="globe" [size]="16" />
-            </span>
-            <input
-              id="tenantSlug"
-              type="text"
-              autocomplete="off"
-              spellcheck="false"
-              formControlName="tenantSlug"
-              (input)="markSlugAsTouched()"
-              [attr.aria-invalid]="invalid('tenantSlug')"
-              [attr.aria-describedby]="
-                invalid('tenantSlug') ? 'tenantSlug-error' : 'tenantSlug-hint'
-              "
-              placeholder="colegio-san-jose"
-              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
-            />
-          </div>
-          @if (invalid('tenantSlug')) {
-            <p id="tenantSlug-error" class="text-xs text-danger">{{ errorOf('tenantSlug') }}</p>
-          } @else {
-            <p id="tenantSlug-hint" class="text-xs text-content-muted">
-              Solo minúsculas, números y guiones. Ejemplo:
-              <span class="font-mono">{{ slugPreview() || 'colegio-san-jose' }}</span>
-            </p>
-          }
-        </div>
+        <app-form-field
+          fieldId="tenantSlug"
+          [control]="tenantSlugCtrl"
+          label="Identificador de tu workspace"
+          icon="globe"
+          placeholder="colegio-san-jose"
+          autocomplete="off"
+          [spellcheck]="false"
+          (input)="markSlugAsTouched()"
+          [error]="errorOf('tenantSlug')"
+          [hint]="slugHint()"
+        />
 
-        <!-- Nombre + Apellido del admin -->
         <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
-            <label for="adminFirstName" class="block text-sm font-medium text-content"
-              >Tu nombre</label
-            >
-            <input
-              id="adminFirstName"
-              type="text"
-              autocomplete="given-name"
-              formControlName="adminFirstName"
-              [attr.aria-invalid]="invalid('adminFirstName')"
-              [attr.aria-describedby]="invalid('adminFirstName') ? 'adminFirstName-error' : null"
-              placeholder="María"
-              class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
-            />
-            @if (invalid('adminFirstName')) {
-              <p id="adminFirstName-error" class="text-xs text-danger">
-                {{ errorOf('adminFirstName') }}
-              </p>
-            }
-          </div>
-          <div class="space-y-1.5">
-            <label for="adminLastName" class="block text-sm font-medium text-content"
-              >Apellido</label
-            >
-            <input
-              id="adminLastName"
-              type="text"
-              autocomplete="family-name"
-              formControlName="adminLastName"
-              [attr.aria-invalid]="invalid('adminLastName')"
-              [attr.aria-describedby]="invalid('adminLastName') ? 'adminLastName-error' : null"
-              placeholder="García"
-              class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
-            />
-            @if (invalid('adminLastName')) {
-              <p id="adminLastName-error" class="text-xs text-danger">
-                {{ errorOf('adminLastName') }}
-              </p>
-            }
-          </div>
+          <app-form-field
+            fieldId="adminFirstName"
+            [control]="adminFirstNameCtrl"
+            label="Tu nombre"
+            placeholder="María"
+            autocomplete="given-name"
+            [error]="errorOf('adminFirstName')"
+          />
+          <app-form-field
+            fieldId="adminLastName"
+            [control]="adminLastNameCtrl"
+            label="Apellido"
+            placeholder="García"
+            autocomplete="family-name"
+            [error]="errorOf('adminLastName')"
+          />
         </div>
 
-        <!-- Email -->
-        <div class="space-y-1.5">
-          <label for="adminEmail" class="block text-sm font-medium text-content">Correo</label>
-          <div class="relative">
-            <span
-              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-content-subtle"
-            >
-              <app-icon name="mail" [size]="16" />
-            </span>
-            <input
-              id="adminEmail"
-              type="email"
-              autocomplete="email"
-              spellcheck="false"
-              formControlName="adminEmail"
-              [attr.aria-invalid]="invalid('adminEmail')"
-              [attr.aria-describedby]="invalid('adminEmail') ? 'adminEmail-error' : null"
-              placeholder="tu@institucion.edu"
-              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
-            />
-          </div>
-          @if (invalid('adminEmail')) {
-            <p id="adminEmail-error" class="text-xs text-danger">{{ errorOf('adminEmail') }}</p>
-          }
-        </div>
+        <app-form-field
+          fieldId="adminEmail"
+          [control]="adminEmailCtrl"
+          label="Correo"
+          icon="mail"
+          type="email"
+          placeholder="tu@institucion.edu"
+          autocomplete="email"
+          [spellcheck]="false"
+          [error]="errorOf('adminEmail')"
+        />
 
-        <!-- Password -->
-        <div class="space-y-1.5">
-          <label for="adminPassword" class="block text-sm font-medium text-content"
-            >Contraseña</label
-          >
-          <div class="relative">
-            <span
-              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-content-subtle"
-            >
-              <app-icon name="lock" [size]="16" />
-            </span>
-            <input
-              id="adminPassword"
-              [type]="passwordVisible() ? 'text' : 'password'"
-              autocomplete="new-password"
-              formControlName="adminPassword"
-              [attr.aria-invalid]="invalid('adminPassword')"
-              [attr.aria-describedby]="
-                invalid('adminPassword') ? 'adminPassword-error' : 'adminPassword-hint'
-              "
-              placeholder="Mínimo 8 caracteres"
-              class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-10 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
-            />
-            <button
-              type="button"
-              class="absolute inset-y-0 right-0 flex items-center pr-3 text-content-subtle hover:text-content focus:outline-none"
-              [attr.aria-label]="passwordVisible() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-              (click)="togglePasswordVisibility()"
-            >
-              <app-icon [name]="passwordVisible() ? 'eye-off' : 'eye'" [size]="16" />
-            </button>
-          </div>
-          @if (invalid('adminPassword')) {
-            <p id="adminPassword-error" class="text-xs text-danger">
-              {{ errorOf('adminPassword') }}
-            </p>
-          } @else {
-            <p id="adminPassword-hint" class="text-xs text-content-muted">
-              Entre 8 y 128 caracteres.
-            </p>
-          }
-        </div>
+        <app-password-field
+          fieldId="adminPassword"
+          [control]="adminPasswordCtrl"
+          label="Contraseña"
+          autocomplete="new-password"
+          placeholder="Mínimo 8 caracteres"
+          [error]="errorOf('adminPassword')"
+          hint="Entre 8 y 128 caracteres."
+        />
 
-        <!-- Submit -->
-        <button
-          type="submit"
-          [disabled]="loading() || form.invalid"
-          class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          @if (loading()) {
-            <app-spinner [size]="16" label="Creando…" />
-            <span>Creando institución…</span>
-          } @else {
-            <span>Crear institución</span>
-            <app-icon name="arrow-right" [size]="16" />
-          }
-        </button>
+        <app-submit-button
+          [loading]="loading()"
+          label="Crear institución"
+          loadingLabel="Creando institución…"
+        />
 
         <p class="pt-1 text-center text-xs text-content-muted">
           ¿Ya tienes una cuenta?
@@ -282,14 +150,6 @@ export class RegisterComponent {
 
   readonly loginRoute = ROUTES.AUTH.LOGIN;
 
-  /**
-   * Validators mirror the backend constraints in
-   * {@code RegisterTenantRequest.java} / {@code Tenant.java}. Sources of truth:
-   * <ul>
-   *   <li>Slug regex: V4__create_tenants_table.sql {@code chk_tenants_slug_format}.</li>
-   *   <li>Length bounds: bean validation annotations on the record.</li>
-   * </ul>
-   */
   readonly form: FormGroup = this.fb.nonNullable.group({
     tenantName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]],
     tenantSlug: [
@@ -307,39 +167,32 @@ export class RegisterComponent {
     adminPassword: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
   });
 
-  private readonly _passwordVisible = signal(false);
-  readonly passwordVisible = this._passwordVisible.asReadonly();
+  readonly tenantNameCtrl = this.form.get('tenantName') as FormControl<string>;
+  readonly tenantSlugCtrl = this.form.get('tenantSlug') as FormControl<string>;
+  readonly adminFirstNameCtrl = this.form.get('adminFirstName') as FormControl<string>;
+  readonly adminLastNameCtrl = this.form.get('adminLastName') as FormControl<string>;
+  readonly adminEmailCtrl = this.form.get('adminEmail') as FormControl<string>;
+  readonly adminPasswordCtrl = this.form.get('adminPassword') as FormControl<string>;
 
   /**
    * Tracks whether the user has manually typed in the slug field. Once
-   * true, name → slug syncing is suspended for the lifetime of the form
-   * — even if the user re-edits the name afterwards. Avoids the classic
-   * "I customized my slug and you reverted it" frustration.
+   * true, name → slug syncing is suspended for the lifetime of the form.
    */
   private _slugTouchedByUser = false;
 
   readonly loading = this.store.loading;
   readonly errorMessage = this.store.error;
 
-  /** Live preview of what the user is typing once it normalizes. Same algorithm as backend slug check (lower / strip). */
-  readonly slugPreview = computed(() => {
-    const value = (this.form.controls['tenantSlug'].value ?? '').trim();
-    return value.toLowerCase();
-  });
+  readonly slugHint = computed(
+    () =>
+      `Solo minúsculas, números y guiones. Ejemplo: ${(this.tenantSlugCtrl.value || '').trim().toLowerCase() || 'colegio-san-jose'}`,
+  );
 
   constructor() {
-    /* Keep the slug in lockstep with the tenant name until the user
-     * decides otherwise. We do this via valueChanges (not effect) so
-     * the slug field's own valueChanges don't loop. */
-    this.form.controls['tenantName'].valueChanges.subscribe((name: string) => {
+    this.tenantNameCtrl.valueChanges.subscribe((name: string) => {
       if (this._slugTouchedByUser) return;
-      const generated = this.toSlug(name);
-      this.form.controls['tenantSlug'].setValue(generated, { emitEvent: false });
+      this.tenantSlugCtrl.setValue(slugify(name).slice(0, 80), { emitEvent: false });
     });
-  }
-
-  togglePasswordVisibility(): void {
-    this._passwordVisible.update((v) => !v);
   }
 
   markSlugAsTouched(): void {
@@ -351,9 +204,9 @@ export class RegisterComponent {
     return !!ctrl && ctrl.touched && ctrl.invalid;
   }
 
-  errorOf(name: string): string {
+  errorOf(name: string): string | null {
     const ctrl = this.form.get(name);
-    if (!ctrl) return '';
+    if (!ctrl || !ctrl.touched || !ctrl.errors) return null;
     if (ctrl.hasError('required')) return 'Este campo es obligatorio.';
     if (ctrl.hasError('email')) return 'Ingresa un correo válido.';
     if (ctrl.hasError('minlength')) {
@@ -373,7 +226,7 @@ export class RegisterComponent {
     if (ctrl.hasError('serverField')) {
       return ctrl.getError('serverField') as string;
     }
-    return '';
+    return null;
   }
 
   onSubmit(): void {
@@ -393,21 +246,12 @@ export class RegisterComponent {
       adminLastName: raw.adminLastName.trim(),
     };
 
-    this.store.setLoading(true);
-    this.store.setError(null);
+    this.store.beginSubmit();
 
-    /* Two-step flow:
-     *   register  → AuthSession (auth state hydrated, bearer ready)
-     *   findCurrent → Tenant (theme + layout sourced from authoritative DTO)
-     * Hydrating the tenant is best-effort: if it fails we still log the
-     * user in and let route guards / interceptors retry on the next call. */
     this.tenantApi
       .register(payload)
       .pipe(
         tap((session) => this.auth.setSession(session)),
-        /* `register` returns a lean {@code UserSummary}; chain {@code /auth/me}
-         * so role-gated guards see the freshly-minted {@code TENANT_ADMIN}
-         * instead of an empty role set. */
         switchMap(() =>
           this.authApi.me().pipe(
             tap((user) => this.auth.setUser(user)),
@@ -416,7 +260,7 @@ export class RegisterComponent {
         ),
         switchMap(() =>
           this.tenantApi.findCurrent().pipe(
-            tap((tenant) => this.tenant.setTenant(tenant, 'header')),
+            tap((t) => this.tenant.setTenant(t, 'header')),
             catchError(() => of(null)),
           ),
         ),
@@ -432,22 +276,17 @@ export class RegisterComponent {
       });
   }
 
-  /** Lower-case, ASCII-fold, replace runs of non-alphanumerics with `-`, trim leading/trailing dashes. */
-  private toSlug(name: string): string {
-    if (!name) return '';
-    return name
-      .normalize('NFKD') // decomposed accents
-      .replace(/[\u0300-\u036f]/g, '') // strip combining marks
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 80);
-  }
-
   /**
    * Map backend errors to either field-level form errors or a top-level
    * banner. Codes mirror {@code TenantServiceImpl.register} +
    * Spring's standard {@code VALIDATION_ERROR} envelope.
+   *
+   * <p>The Spring {@code ApiError} envelope returns a list of
+   * {@code FieldError { field, code, message }} under {@code errors[]}.
+   * Each entry is bound to the matching {@link FormControl} via
+   * {@code serverField}, so the same code path that renders
+   * client-side validation messages in {@link #errorOf} also surfaces
+   * server-side rules like {@code WEAK_PASSWORD}.
    */
   private applyServerErrors(err: HttpErrorResponse): void {
     if (err.status === 0) {
@@ -455,16 +294,44 @@ export class RegisterComponent {
       return;
     }
 
-    const apiError = this.firstApiError(err);
-    const code = apiError?.code;
-    const fallback = apiError?.message;
+    const body = err.error as
+      | {
+          code?: string;
+          message?: string;
+          errors?: Array<{ field?: string; code?: string; message?: string }>;
+        }
+      | null
+      | undefined;
+    const fallback = body?.message;
 
-    switch (code) {
+    // 1) Map every FieldError from the envelope onto the matching control.
+    const fieldErrors = body?.errors ?? [];
+    if (fieldErrors.length > 0) {
+      const messages: string[] = [];
+      for (const fe of fieldErrors) {
+        const ctrl = fe.field ? this.form.get(fe.field) : null;
+        const msg = this.translateServerFieldError(fe.field ?? '', fe.code, fe.message);
+        if (ctrl) {
+          ctrl.setErrors({ serverField: msg });
+          ctrl.markAsTouched();
+        }
+        if (msg) messages.push(msg);
+      }
+      this.store.setError(
+        messages.length === 1
+          ? messages[0]
+          : 'Hay datos inválidos en el formulario. Revisa los campos marcados.',
+      );
+      return;
+    }
+
+    // 2) Top-level business codes (slug taken, email taken, etc.).
+    switch (body?.code) {
       case 'TENANT_SLUG_TAKEN':
-        this.form.controls['tenantSlug'].setErrors({
+        this.tenantSlugCtrl.setErrors({
           serverField: 'Este identificador ya está en uso. Elige otro.',
         });
-        this.form.controls['tenantSlug'].markAsTouched();
+        this.tenantSlugCtrl.markAsTouched();
         this.store.setError('Revisa el identificador del workspace.');
         return;
       case 'CUSTOM_DOMAIN_TAKEN':
@@ -472,10 +339,10 @@ export class RegisterComponent {
         return;
       case 'EMAIL_TAKEN':
       case 'USER_EMAIL_TAKEN':
-        this.form.controls['adminEmail'].setErrors({
+        this.adminEmailCtrl.setErrors({
           serverField: 'Ya existe una cuenta con este correo.',
         });
-        this.form.controls['adminEmail'].markAsTouched();
+        this.adminEmailCtrl.markAsTouched();
         this.store.setError('Revisa el correo.');
         return;
       case 'VALIDATION_ERROR':
@@ -499,17 +366,31 @@ export class RegisterComponent {
     this.store.setError(fallback ?? 'No se pudo crear la institución.');
   }
 
-  private firstApiError(err: HttpErrorResponse): ApiError | null {
-    const body = err.error as
-      (ApiResponse<unknown> & { errors?: ApiError[] }) | ApiError | null | undefined;
-    if (body && typeof body === 'object') {
-      if ('errors' in body && Array.isArray(body.errors) && body.errors.length > 0) {
-        return body.errors[0];
-      }
-      if ('code' in body || 'message' in body) {
-        return body as ApiError;
-      }
+  /**
+   * Translate a backend {@code FieldError} into a user-facing Spanish
+   * string. Falls back to the raw {@code message} when no known mapping
+   * exists so the UI still surfaces server detail instead of swallowing it.
+   */
+  private translateServerFieldError(
+    field: string,
+    code: string | undefined,
+    message: string | undefined,
+  ): string {
+    if (code === 'WEAK_PASSWORD') {
+      return 'Debe tener 8-72 caracteres con mayúscula, minúscula, dígito y carácter especial.';
     }
-    return null;
+    if (code === 'NotBlank' || code === 'NotNull') {
+      return 'Este campo es obligatorio.';
+    }
+    if (code === 'Email') {
+      return 'Ingresa un correo válido.';
+    }
+    if (code === 'Size' || code === 'Length') {
+      return message ?? 'Longitud fuera del rango permitido.';
+    }
+    if (code === 'Pattern' && field === 'tenantSlug') {
+      return 'Solo letras minúsculas, números y guiones (sin espacios ni acentos).';
+    }
+    return message ?? 'Valor inválido.';
   }
 }

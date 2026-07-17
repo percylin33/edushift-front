@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from './auth.service';
 import { StorageService } from './storage.service';
+import { TenantService } from './tenant.service';
+import { TenantThemeService } from '@core/theming';
+import { ThemeService } from './theme.service';
 import { AuthSession, User } from '@core/models';
 import { STORAGE_KEYS } from '@core/constants';
 import { Permission, UserRole, UserStatus } from '@core/enums';
@@ -8,13 +11,14 @@ import { Permission, UserRole, UserStatus } from '@core/enums';
 describe('AuthService', () => {
   let service: AuthService;
   let storage: jasmine.SpyObj<StorageService>;
+  let tenantService: TenantService;
 
   const mockUser: User = {
     publicUuid: 'u-1',
     email: 'test@test.com',
     fullName: 'Test User',
     status: UserStatus.Active,
-    roles: [UserRole.Guardian],
+    roles: [UserRole.Parent],
     permissions: [Permission.StudentsRead],
   };
 
@@ -29,10 +33,20 @@ describe('AuthService', () => {
     storage = jasmine.createSpyObj<StorageService>('StorageService', ['get', 'set', 'remove']);
     storage.get.and.returnValue(null);
 
+    const tenantThemeSpy = jasmine.createSpyObj('TenantThemeService', ['apply', 'reset']);
+    const themeSpy = jasmine.createSpyObj('ThemeService', ['applyTenantDefault']);
+
     TestBed.configureTestingModule({
-      providers: [AuthService, { provide: StorageService, useValue: storage }],
+      providers: [
+        AuthService,
+        TenantService,
+        { provide: StorageService, useValue: storage },
+        { provide: TenantThemeService, useValue: tenantThemeSpy },
+        { provide: ThemeService, useValue: themeSpy },
+      ],
     });
     service = TestBed.inject(AuthService);
+    tenantService = TestBed.inject(TenantService);
   });
 
   it('inicia desautenticado', () => {
@@ -101,9 +115,43 @@ describe('AuthService', () => {
     expect(storage.remove).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_EXPIRES_AT);
   });
 
+  it('clearSession también limpia tenant (signals + storage)', () => {
+    tenantService.setSlug('tecnosur');
+    expect(tenantService.tenantSlug()).toBe('tecnosur');
+    service.setSession(mockSession);
+
+    service.clearSession();
+
+    expect(tenantService.tenantSlug()).toBeNull();
+    expect(tenantService.tenant()).toBeNull();
+    expect(storage.remove).toHaveBeenCalledWith(STORAGE_KEYS.CURRENT_TENANT);
+  });
+
+  it('clearSession deja el tenant context en resolvedFrom unknown', () => {
+    tenantService.setSlug('tecnosur');
+    service.setSession(mockSession);
+
+    service.clearSession();
+
+    expect(tenantService.context().resolvedFrom).toBe('unknown');
+    expect(tenantService.context().tenant).toBeNull();
+  });
+
+  it('clearSession no rompe el flujo de auth (no-regresión)', () => {
+    tenantService.setSlug('tecnosur');
+    service.setSession(mockSession);
+
+    service.clearSession();
+
+    expect(service.user()).toBeNull();
+    expect(service.accessToken()).toBeNull();
+    expect(service.refreshToken()).toBeNull();
+    expect(service.isAuthenticated()).toBeFalse();
+  });
+
   it('hasRole retorna true si el user tiene el rol', () => {
     service.setSession(mockSession);
-    expect(service.hasRole(UserRole.Guardian)).toBeTrue();
+    expect(service.hasRole(UserRole.Parent)).toBeTrue();
     expect(service.hasRole(UserRole.Teacher)).toBeFalse();
   });
 

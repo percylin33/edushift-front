@@ -8,12 +8,17 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
-import { ApiError } from '@core/models';
 import { AuthService } from '@core/services';
-import { IconComponent, SpinnerComponent } from '@shared/components';
+import {
+  AlertComponent,
+  IconComponent,
+  PasswordFieldComponent,
+  SpinnerComponent,
+  SubmitButtonComponent,
+} from '@shared/components';
 import { AuthApiService } from '@features/auth/services/auth-api.service';
 import { UsersApiService } from '../../services';
 import { InvitationPreflight } from '../../models';
@@ -24,33 +29,32 @@ import { InvitationPreflight } from '../../models';
  * <h3>Lifecycle</h3>
  * <ol>
  *   <li>On mount, read {@code :token} from the URL and call
- *       {@link UsersApiService#previewInvitation}. The response carries
- *       the recipient's name + tenant name so the greeting is
- *       personalized before the password is set.</li>
+ *       {@link UsersApiService#previewInvitation}.</li>
  *   <li>Map error responses to actionable copy:
  *     <ul>
  *       <li><b>404</b> → "Enlace inválido"</li>
- *       <li><b>410</b> → "El enlace ya no es válido" with a sub-reason
- *           inferred from the error code (ACCEPTED / CANCELLED /
- *           EXPIRED).</li>
+ *       <li><b>410</b> → "El enlace ya no es válido" with a sub-reason.</li>
  *     </ul>
  *   </li>
  *   <li>Once the password form is submitted, call
  *       {@link UsersApiService#acceptInvitation}, persist the resulting
  *       session via {@link AuthService}, and navigate to the
- *       dashboard. The user is now signed in inside the right tenant.</li>
+ *       dashboard.</li>
  * </ol>
- *
- * <h3>Why this lives under the {@code users} feature</h3>
- * The endpoint family is {@code /v1/users/invitations/**} and the
- * {@link UsersApiService} already owns the boundary. Hosting the
- * accept page anywhere else would duplicate the wire layer.
  */
 @Component({
   selector: 'app-invitation-accept',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, IconComponent, SpinnerComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    AlertComponent,
+    IconComponent,
+    PasswordFieldComponent,
+    SpinnerComponent,
+    SubmitButtonComponent,
+  ],
   template: `
     <div class="space-y-6">
       @if (preflight(); as p) {
@@ -67,91 +71,46 @@ import { InvitationPreflight } from '../../models';
         </header>
 
         @if (errorMessage(); as err) {
-          <div
-            role="alert"
-            class="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
-          >
-            <app-icon name="alert-circle" [size]="18" class="mt-0.5 shrink-0" />
-            <span>{{ err }}</span>
-          </div>
+          <app-alert variant="error" [message]="err" />
         }
 
-        <form class="space-y-4" (ngSubmit)="onSubmit()">
-          <div class="field">
-            <label class="label" for="invitation-email">Correo</label>
+        <form class="space-y-4" [formGroup]="form" (ngSubmit)="onSubmit()">
+          <div class="space-y-1.5">
+            <label for="invitation-email" class="block text-sm font-medium text-content">Correo</label>
             <input
               id="invitation-email"
               type="email"
-              class="input"
               [value]="p.email"
               disabled
               autocomplete="username"
+              class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content disabled:cursor-not-allowed disabled:opacity-70"
             />
           </div>
 
-          <div class="field">
-            <label class="label" for="invitation-password">Contraseña</label>
-            <div class="relative">
-              <span
-                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-content-subtle"
-              >
-                <app-icon name="lock" [size]="16" />
-              </span>
-              <input
-                id="invitation-password"
-                [type]="passwordVisible() ? 'text' : 'password'"
-                class="input pl-9 pr-10"
-                placeholder="Mínimo 8 caracteres"
-                autocomplete="new-password"
-                minlength="8"
-                maxlength="128"
-                required
-                [ngModel]="password()"
-                (ngModelChange)="password.set($event)"
-                name="password"
-              />
-              <button
-                type="button"
-                class="absolute inset-y-0 right-0 flex items-center pr-3 text-content-subtle hover:text-content"
-                [attr.aria-label]="passwordVisible() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-                (click)="togglePasswordVisibility()"
-              >
-                <app-icon [name]="passwordVisible() ? 'eye-off' : 'eye'" [size]="16" />
-              </button>
-            </div>
-            <p class="hint">Al menos 8 caracteres. Recomendamos una frase larga.</p>
-          </div>
+          <app-password-field
+            fieldId="invitation-password"
+            [control]="passwordCtrl"
+            label="Contraseña"
+            autocomplete="new-password"
+            placeholder="Mínimo 8 caracteres"
+            [maxlength]="128"
+            hint="Al menos 8 caracteres. Recomendamos una frase larga."
+          />
 
-          <div class="field">
-            <label class="label" for="invitation-password-confirm">Confirmar contraseña</label>
-            <input
-              id="invitation-password-confirm"
-              [type]="passwordVisible() ? 'text' : 'password'"
-              class="input"
-              autocomplete="new-password"
-              required
-              [ngModel]="passwordConfirm()"
-              (ngModelChange)="passwordConfirm.set($event)"
-              name="passwordConfirm"
-            />
-            @if (passwordsMismatch()) {
-              <p class="error">Las contraseñas no coinciden.</p>
-            }
-          </div>
+          <app-password-field
+            fieldId="invitation-password-confirm"
+            [control]="confirmCtrl"
+            label="Confirmar contraseña"
+            autocomplete="new-password"
+            [error]="confirmError()"
+          />
 
-          <button
-            type="submit"
-            class="btn btn-primary w-full"
-            [disabled]="!canSubmit() || saving()"
-          >
-            @if (saving()) {
-              <app-spinner [size]="16" label="Activando…" />
-              <span>Activando…</span>
-            } @else {
-              <span>Activar cuenta</span>
-              <app-icon name="arrow-right" [size]="16" />
-            }
-          </button>
+          <app-submit-button
+            [loading]="saving()"
+            [disabled]="!canSubmit()"
+            label="Activar cuenta"
+            loadingLabel="Activando…"
+          />
         </form>
 
         <p class="text-center text-xs text-content-muted">
@@ -176,13 +135,19 @@ import { InvitationPreflight } from '../../models';
             </h1>
             <p class="text-sm text-content-muted">{{ blockerMessage() }}</p>
           </header>
-          <a [routerLink]="loginRoute" class="btn btn-outline btn-sm"> Ir al inicio de sesión </a>
+          <a
+            [routerLink]="loginRoute"
+            class="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-content hover:bg-surface-muted"
+          >
+            Ir al inicio de sesión
+          </a>
         </div>
       }
     </div>
   `,
 })
 export class InvitationAcceptComponent implements OnInit {
+  private readonly fb = inject(FormBuilder);
   private readonly api = inject(UsersApiService);
   private readonly authApi = inject(AuthApiService);
   private readonly authService = inject(AuthService);
@@ -191,45 +156,32 @@ export class InvitationAcceptComponent implements OnInit {
 
   protected readonly loginRoute = ROUTES.AUTH.LOGIN;
 
-  /*
-   * Signals (not plain strings) so {@link #canSubmit} and
-   * {@link #passwordsMismatch} actually re-evaluate on every keystroke.
-   * Mirrors the rationale in {@link InviteUserModalComponent}: a
-   * {@code computed()} only invalidates when its tracked signal deps
-   * change, so plain string fields would leave the submit button
-   * permanently disabled.
-   */
-  protected readonly password = signal('');
-  protected readonly passwordConfirm = signal('');
+  protected readonly form: FormGroup = this.fb.nonNullable.group(
+    {
+      password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
+      passwordConfirm: ['', [Validators.required]],
+    },
+    { validators: [this.passwordsMatch] },
+  );
+
+  protected readonly passwordCtrl = this.form.get('password') as FormControl<string>;
+  protected readonly confirmCtrl = this.form.get('passwordConfirm') as FormControl<string>;
 
   protected readonly preflight = signal<InvitationPreflight | null>(null);
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
-  /** Title shown when preflight failed (404 / 410 / network error). */
   protected readonly blockerTitle = signal('Enlace inválido');
-  /** Sub-message shown next to the title when preflight failed. */
   protected readonly blockerMessage = signal(
     'No pudimos validar tu invitación. Pídele al administrador un enlace nuevo.',
   );
 
-  private readonly _passwordVisible = signal(false);
-  protected readonly passwordVisible = this._passwordVisible.asReadonly();
+  protected readonly passwordsMismatch = computed(() => !!this.form.errors?.['passwordsMismatch']);
+  protected readonly canSubmit = computed(
+    () => !!this.preflight() && this.passwordCtrl.value.length >= 8 && !this.passwordsMismatch(),
+  );
 
-  protected readonly passwordsMismatch = computed(() => {
-    return this.passwordConfirm().length > 0 && this.password() !== this.passwordConfirm();
-  });
-
-  protected readonly canSubmit = computed(() => {
-    return (
-      this.password().length >= 8 &&
-      this.password() === this.passwordConfirm() &&
-      !!this.preflight()
-    );
-  });
-
-  /** Token captured at load time so we can resubmit without re-reading the URL. */
   private token: string | null = null;
 
   async ngOnInit(): Promise<void> {
@@ -251,36 +203,31 @@ export class InvitationAcceptComponent implements OnInit {
     }
   }
 
-  protected togglePasswordVisibility(): void {
-    this._passwordVisible.update((v) => !v);
+  protected confirmError(): string | null {
+    if (!this.confirmCtrl.touched && !this.confirmCtrl.dirty) return null;
+    if (this.confirmCtrl.errors?.['required']) return 'Confirma tu nueva contraseña.';
+    if (this.passwordsMismatch()) return 'Las contraseñas no coinciden.';
+    return null;
   }
 
   protected async onSubmit(): Promise<void> {
     if (!this.canSubmit() || !this.token) return;
+    this.confirmCtrl.markAsTouched();
 
     this.saving.set(true);
     this.errorMessage.set(null);
 
     try {
       const session = await firstValueFrom(
-        this.api.acceptInvitation({ token: this.token, password: this.password() }),
+        this.api.acceptInvitation({ token: this.token, password: this.passwordCtrl.value }),
       );
       this.authService.setSession(session);
-      /* `accept` returns a lean {@code UserSummary} (mirrors `/auth/login`).
-       * Chain {@code /auth/me} so the freshly-onboarded user lands on the
-       * dashboard with the correct role set already hydrated; otherwise
-       * role-gated guards (e.g. {@code TENANT_ADMIN}) would bounce them.
-       * Best-effort: a failure here just defers role hydration to the
-       * boot initializer on the next reload. */
       try {
         const user = await firstValueFrom(this.authApi.me());
         this.authService.setUser(user);
       } catch {
-        /* Swallow on purpose — see comment above. */
+        /* best-effort role hydration */
       }
-      /* The freshly created session already carries the correct tenant
-       * (the backend stamps it from the invitation row); navigate
-       * straight to the authenticated landing page. */
       await this.router.navigate([ROUTES.DASHBOARD.ROOT]);
     } catch (err) {
       this.errorMessage.set(this.toErrorMessage(err));
@@ -289,16 +236,9 @@ export class InvitationAcceptComponent implements OnInit {
     }
   }
 
-  /**
-   * Map the backend error envelope (or a transport-level fallback) to
-   * a user-facing copy. The two semantically meaningful failure modes
-   * are 404 (token never existed) and 410 (token existed but is no
-   * longer redeemable — accepted / cancelled / expired). Everything
-   * else falls back to a generic message.
-   */
   private applyPreflightError(err: unknown): void {
     if (err instanceof HttpErrorResponse) {
-      const apiErr = (err.error as { error?: ApiError } | null | undefined)?.error;
+      const apiErr = (err.error as { error?: { code?: string } } | null | undefined)?.error;
       const code = apiErr?.code ?? '';
 
       if (err.status === 404) {
@@ -309,9 +249,8 @@ export class InvitationAcceptComponent implements OnInit {
         return;
       }
       if (err.status === 410) {
-        const reason = this.goneReason(code);
         this.blockerTitle.set('Enlace no disponible');
-        this.blockerMessage.set(reason);
+        this.blockerMessage.set(this.goneReason(code));
         return;
       }
     }
@@ -337,7 +276,7 @@ export class InvitationAcceptComponent implements OnInit {
 
   private toErrorMessage(err: unknown): string {
     if (err instanceof HttpErrorResponse) {
-      const apiErr = (err.error as { error?: ApiError } | null | undefined)?.error;
+      const apiErr = (err.error as { error?: { message?: string } } | null | undefined)?.error;
       if (apiErr?.message) return apiErr.message;
       if (err.status === 0) return 'No pudimos contactar al servidor. Revisa tu conexión.';
     }
@@ -346,5 +285,12 @@ export class InvitationAcceptComponent implements OnInit {
       if (typeof msg === 'string') return msg;
     }
     return 'No pudimos activar tu cuenta. Inténtalo de nuevo.';
+  }
+
+  private passwordsMatch(group: AbstractControl): ValidationErrors | null {
+    const p = group.get('password')?.value;
+    const c = group.get('passwordConfirm')?.value;
+    if (p && c && p !== c) return { passwordsMismatch: true };
+    return null;
   }
 }

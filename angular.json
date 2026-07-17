@@ -83,7 +83,8 @@
               "buildTarget": "edushift-front:build:production"
             },
             "development": {
-              "buildTarget": "edushift-front:build:development"
+              "buildTarget": "edushift-front:build:development",
+              "port": 4201
             }
           },
           "defaultConfiguration": "development"

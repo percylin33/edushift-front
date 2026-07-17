@@ -2,12 +2,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  EventEmitter,
-  Output,
   ViewChild,
   computed,
   inject,
   input,
+  output,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -229,9 +228,9 @@ export class FileUploadComponent {
   readonly compact = input<boolean>(false);
   readonly disabled = input<boolean>(false);
 
-  readonly uploaded = new EventEmitter<FileMetadata | ModuleUploadResponse>();
-  readonly uploadError = new EventEmitter<string>();
-  readonly fileSelected = new EventEmitter<File>();
+  readonly uploaded = output<FileMetadata | ModuleUploadResponse>();
+  readonly uploadError = output<string>();
+  readonly fileSelected = output<File>();
 
   readonly uploading = signal(false);
   readonly progress = signal(0);

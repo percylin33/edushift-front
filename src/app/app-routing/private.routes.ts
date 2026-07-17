@@ -23,7 +23,7 @@ export const PRIVATE_ROUTES: Routes = [
       {
         path: 'dashboard',
         canActivate: [featureFlagGuard],
-        data: { feature: FeatureKey.Dashboard, breadcrumb: 'Dashboard', title: 'Dashboard' },
+        data: { feature: FeatureKey.Dashboard, breadcrumb: 'Panel', title: 'Panel' },
         loadChildren: () =>
           import('@features/dashboard/dashboard.routes').then((m) => m.DASHBOARD_ROUTES),
       },
@@ -125,6 +125,19 @@ export const PRIVATE_ROUTES: Routes = [
         loadChildren: () =>
           import('@features/notifications/notifications.routes').then(
             (m) => m.NOTIFICATIONS_ROUTES,
+          ),
+      },
+      {
+        path: 'announcements',
+        canActivate: [featureFlagGuard],
+        data: {
+          feature: FeatureKey.Announcements,
+          breadcrumb: 'Anuncios',
+          title: 'Anuncios',
+        },
+        loadChildren: () =>
+          import('@features/announcements/announcements.routes').then(
+            (m) => m.ANNOUNCEMENTS_ROUTES,
           ),
       },
       {

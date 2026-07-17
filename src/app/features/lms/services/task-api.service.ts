@@ -87,8 +87,13 @@ export class TaskApiService {
    * de pasarla en UTC.
    */
   createTask(request: CreateTaskRequest): Observable<TaskDetail> {
+    // BE endpoint is POST /sections/{uuid}/tasks — the sectionUuid
+    // comes from the request body (required field).
     return this.api
-      .post<ApiResponse<TaskResponseRaw>, CreateTaskRequest>(API.LMS.ASSIGNMENTS_ROOT, request)
+      .post<ApiResponse<TaskResponseRaw>, CreateTaskRequest>(
+        API.LMS.ASSIGNMENTS_ROOT(request.sectionPublicUuid),
+        request,
+      )
       .pipe(map((envelope) => toTaskDetail(envelope.data)));
   }
 

@@ -124,7 +124,7 @@ import { TenantApiService as TenantsApiService } from '@features/tenants/service
                 id="logoUrl"
                 type="url"
                 formControlName="logoUrl"
-                placeholder="https://cdn.example.com/logo.svg"
+                placeholder="https://cdn.ejemplo.com/logo.svg"
                 class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-subtle"
               />
               <p class="text-xs text-content-subtle">

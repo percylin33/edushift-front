@@ -153,7 +153,7 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
                 <tr>
                   <th>Alumno</th>
                   <th class="hidden md:table-cell">Documento</th>
-                  <th>Status</th>
+                  <th>Estado</th>
                   <th class="hidden lg:table-cell">Hora</th>
                   <th class="hidden lg:table-cell">Escaneado por</th>
                   <th class="text-right" aria-label="Acciones"></th>

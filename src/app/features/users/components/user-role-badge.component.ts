@@ -29,7 +29,7 @@ export class UserRoleBadgeComponent {
     [UserRole.Staff]: 'Staff',
     [UserRole.Teacher]: 'Profesor',
     [UserRole.Student]: 'Estudiante',
-    [UserRole.Guardian]: 'Tutor',
+    [UserRole.Parent]: 'Tutor',
     [UserRole.Guest]: 'Invitado',
   };
 
@@ -39,7 +39,7 @@ export class UserRoleBadgeComponent {
     [UserRole.Staff]: 'badge-info',
     [UserRole.Teacher]: 'badge-success',
     [UserRole.Student]: 'badge-neutral',
-    [UserRole.Guardian]: 'badge-warning',
+    [UserRole.Parent]: 'badge-warning',
     [UserRole.Guest]: 'badge-neutral',
   };
 }

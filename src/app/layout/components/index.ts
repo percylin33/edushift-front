@@ -4,3 +4,4 @@ export * from './breadcrumbs/breadcrumbs.component';
 export * from './theme-toggle/theme-toggle.component';
 export * from './notifications-bell/notifications-bell.component';
 export * from './user-menu/user-menu.component';
+export * from './uat-banner/uat-banner.component';

@@ -1,13 +1,19 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
-import { ApiError } from '@core/models';
-import { IconComponent, SpinnerComponent } from '@shared/components';
+import {
+  AlertComponent,
+  FormFieldComponent,
+  IconComponent,
+  SubmitButtonComponent,
+} from '@shared/components';
+import { mapHttpError } from '@shared/utils';
 
 import { AuthApiService } from '../../services/auth-api.service';
+import { TenantService } from '@core/services';
 
 /**
  * Forgot-password screen.
@@ -20,22 +26,23 @@ import { AuthApiService } from '../../services/auth-api.service';
  * after a non-error response, regardless of whether the user actually
  * had an account.
  *
- * <h3>What the user does next</h3>
- * After a successful request, the email is queued server-side and the
- * user is told to check their inbox. They click the link in the email,
- * which lands on {@code /auth/reset-password?token=...}. This component
- * never navigates there itself — the link is in the email.
- *
- * <h3>Errors</h3>
- * The form only surfaces the technical errors: rate-limit (429) and
- * "no se pudo conectar con el servidor" (status 0). The
- * "email-not-found" case is intentionally hidden (see above).
+ * <h3>Why a tenant-slug field</h3>
+ * The reset link is routed by tenant (each tenant has its own
+ * password-reset emails). Without the slug the BE cannot locate the
+ * user, so we collect it here the same way the login form does.
  */
 @Component({
   selector: 'app-forgot-password',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, IconComponent, SpinnerComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    AlertComponent,
+    FormFieldComponent,
+    IconComponent,
+    SubmitButtonComponent,
+  ],
   template: `
     <div class="space-y-6">
       <header class="space-y-1.5">
@@ -47,17 +54,10 @@ import { AuthApiService } from '../../services/auth-api.service';
 
       @if (sent()) {
         <div class="space-y-4">
-          <div
-            role="status"
-            aria-live="polite"
-            class="flex items-start gap-2 rounded-md border border-success/30 bg-success/10 p-3 text-sm text-success"
-          >
-            <app-icon name="check" [size]="18" class="mt-0.5 shrink-0" />
-            <span
-              >Si la cuenta existe, enviaremos un correo con instrucciones para restablecer la
-              contraseña.</span
-            >
-          </div>
+          <app-alert
+            variant="success"
+            message="Si la cuenta existe, enviaremos un correo con instrucciones para restablecer la contraseña."
+          />
           <p class="text-sm text-content-muted">
             Revisa tu bandeja de entrada y sigue el enlace. El enlace caduca en
             <strong>1 hora</strong>.
@@ -72,56 +72,41 @@ import { AuthApiService } from '../../services/auth-api.service';
         </div>
       } @else {
         @if (errorMessage(); as message) {
-          <div
-            role="alert"
-            class="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
-          >
-            <app-icon name="alert-circle" [size]="18" class="mt-0.5 shrink-0" />
-            <span>{{ message }}</span>
-          </div>
+          <app-alert variant="error" [message]="message" />
         }
 
         <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
-          <div class="space-y-1.5">
-            <label for="email" class="block text-sm font-medium text-content">Correo</label>
-            <div class="relative">
-              <span
-                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-content-subtle"
-              >
-                <app-icon name="mail" [size]="16" />
-              </span>
-              <input
-                id="email"
-                type="email"
-                autocomplete="email"
-                formControlName="email"
-                placeholder="tu@correo.com"
-                [attr.aria-invalid]="emailInvalid()"
-                [attr.aria-describedby]="emailInvalid() ? 'email-error' : 'email-help'"
-                class="w-full rounded-md border border-border bg-surface py-2 pl-9 pr-3 text-sm text-content placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
-              />
-            </div>
-            @if (emailInvalid()) {
-              <p id="email-error" class="text-xs text-danger">{{ emailError() }}</p>
-            } @else {
-              <p id="email-help" class="text-xs text-content-subtle">
-                Te enviaremos un enlace al correo asociado a tu cuenta.
-              </p>
-            }
-          </div>
+          <app-form-field
+            fieldId="tenantSlug"
+            [control]="tenantSlugCtrl"
+            label="Institución"
+            icon="graduation-cap"
+            placeholder="tecnosur"
+            autocomplete="organization"
+            [spellcheck]="false"
+            autocapitalize="off"
+            [error]="tenantSlugError()"
+            hint="Identificador de tu colegio (slug). Ej: tecnosur, demo."
+          />
 
-          <button
-            type="submit"
-            [disabled]="submitting() || form.invalid"
-            class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            @if (submitting()) {
-              <app-spinner [size]="14" />
-              Enviando…
-            } @else {
-              Enviar enlace
-            }
-          </button>
+          <app-form-field
+            fieldId="email"
+            [control]="emailCtrl"
+            label="Correo"
+            icon="mail"
+            type="email"
+            placeholder="tu@correo.com"
+            autocomplete="email"
+            [error]="emailError()"
+            hint="Te enviaremos un enlace al correo asociado a tu cuenta."
+          />
+
+          <app-submit-button
+            [loading]="submitting()"
+            [showArrow]="false"
+            label="Enviar enlace"
+            loadingLabel="Enviando…"
+          />
         </form>
 
         <p class="text-center text-sm text-content-muted">
@@ -139,23 +124,36 @@ import { AuthApiService } from '../../services/auth-api.service';
 export class ForgotPasswordComponent {
   private readonly fb = inject(FormBuilder);
   private readonly authApi = inject(AuthApiService);
+  private readonly tenant = inject(TenantService);
 
   protected readonly submitting = signal(false);
   protected readonly sent = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
   protected readonly form: FormGroup = this.fb.nonNullable.group({
+    tenantSlug: ['', [
+      Validators.required,
+      Validators.maxLength(64),
+      Validators.pattern(/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/i),
+    ]],
     email: ['', [Validators.required, Validators.email, Validators.maxLength(255)]],
   });
 
-  protected emailInvalid(): boolean {
-    const ctrl = this.form.get('email');
-    return !!ctrl && ctrl.invalid && (ctrl.dirty || ctrl.touched);
+  protected readonly tenantSlugCtrl = this.form.get('tenantSlug') as FormControl<string>;
+  protected readonly emailCtrl = this.form.get('email') as FormControl<string>;
+
+  tenantSlugError(): string | null {
+    const ctrl = this.tenantSlugCtrl;
+    if (!ctrl.touched || !ctrl.errors) return null;
+    if (ctrl.hasError('required')) return 'Ingresa el identificador de tu institución.';
+    if (ctrl.hasError('pattern')) return 'Solo letras, números y guiones (3-64 caracteres).';
+    if (ctrl.hasError('maxlength')) return 'El identificador es demasiado largo.';
+    return null;
   }
 
-  protected emailError(): string | null {
-    const ctrl = this.form.get('email');
-    if (!ctrl || !ctrl.errors) return null;
+  emailError(): string | null {
+    const ctrl = this.emailCtrl;
+    if (!ctrl.errors || (!ctrl.dirty && !ctrl.touched)) return null;
     if (ctrl.errors['required']) return 'El correo es obligatorio.';
     if (ctrl.errors['email']) return 'Ingresa un correo válido.';
     if (ctrl.errors['maxlength']) return 'El correo es demasiado largo.';
@@ -167,41 +165,26 @@ export class ForgotPasswordComponent {
       this.form.markAllAsTouched();
       return;
     }
-    const { email } = this.form.getRawValue();
+    const { tenantSlug, email } = this.form.getRawValue();
+    this.tenant.setSlug(tenantSlug.trim().toLowerCase());
     this.errorMessage.set(null);
     this.submitting.set(true);
 
     this.authApi
-      .forgotPassword({ email })
+      .forgotPassword({ tenantSlug: tenantSlug.trim().toLowerCase(), email })
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: () => {
-          // Per ADR-17.3 we always show the success state, even if
-          // the email does not exist on the backend. The user's
-          // inbox is the only place they get a definitive answer.
           this.sent.set(true);
         },
         error: (err: HttpErrorResponse) => {
-          this.errorMessage.set(this.toMessage(err));
+          this.errorMessage.set(
+            mapHttpError(err, {
+              rateLimit: 'Has solicitado muchos enlaces. Espera unos minutos antes de intentar de nuevo.',
+              fallback: 'No se pudo enviar el enlace. Intenta nuevamente.',
+            }),
+          );
         },
       });
-  }
-
-  private toMessage(err: HttpErrorResponse): string {
-    if (err.status === 0) {
-      return 'No se pudo conectar con el servidor. Verifica tu conexión.';
-    }
-    if (err.status === 429) {
-      return 'Has solicitado muchos enlaces. Espera unos minutos antes de intentar de nuevo.';
-    }
-    if (err.status >= 500) {
-      return 'Ocurrió un error inesperado. Intenta nuevamente en unos minutos.';
-    }
-
-    const body = err.error as ApiError | null | undefined;
-    if (body?.code === 'VALIDATION_ERROR') {
-      return body.message ?? 'Verifica el correo ingresado.';
-    }
-    return 'No se pudo enviar el enlace. Intenta nuevamente.';
   }
 }

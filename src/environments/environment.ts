@@ -6,9 +6,10 @@ import type { AppEnvironment } from './environment.model';
  */
 export const environment: AppEnvironment = {
   production: false,
+  uatMode: true,
   appName: 'EduShift',
   appVersion: '0.0.0',
-  apiUrl: 'https://3vmchk6t-8080.brs.devtunnels.ms/api',
+  apiUrl: 'https://3vmchk6t-8081.brs.devtunnels.ms/api',
   apiVersion: 'v1',
   defaultLocale: 'es',
   supportedLocales: ['es', 'en'],

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { apiContextFor } from '../utils/api-helpers';
 import { TENANT_ADMIN } from '../fixtures/test-users';
-import { tenantAdminStorageState } from '../auth.setup';
+import { TENANT_ADMIN_STORAGE_STATE } from '../fixtures/storage-state-paths';
 
 /**
  * Reports wizard end-to-end spec (Sprint 13 / FE-13.2).
@@ -34,7 +34,7 @@ import { tenantAdminStorageState } from '../auth.setup';
  * green — that's the backend's IT (BE-9.2) job.</p>
  */
 test.describe('Reports — wizard backend lifecycle (FE-13.2)', () => {
-  test.use({ storageState: tenantAdminStorageState });
+  test.use({ storageState: TENANT_ADMIN_STORAGE_STATE });
 
   // ----------------------------------------------------------------- tests
 
@@ -42,7 +42,7 @@ test.describe('Reports — wizard backend lifecycle (FE-13.2)', () => {
     const api = await apiContextFor({ user: TENANT_ADMIN });
     try {
       const idemKey = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const response = await api.post('/v1/reports', {
+      const response = await api.post('/api/v1/reports', {
         data: {
           reportType: 'STUDENT_TRANSCRIPT',
           format: 'PDF',
@@ -67,7 +67,7 @@ test.describe('Reports — wizard backend lifecycle (FE-13.2)', () => {
     const api = await apiContextFor({ user: TENANT_ADMIN });
     try {
       // 1. Create a job
-      const create = await api.post('/v1/reports', {
+      const create = await api.post('/api/v1/reports', {
         data: {
           reportType: 'ATTENDANCE_SUMMARY',
           format: 'CSV',
@@ -86,7 +86,7 @@ test.describe('Reports — wizard backend lifecycle (FE-13.2)', () => {
       const statuses: string[] = [];
       for (let i = 0; i < 2; i++) {
         await new Promise((r) => setTimeout(r, i === 0 ? 2000 : 4000));
-        const get = await api.get(`/v1/reports/${publicUuid}`);
+        const get = await api.get(`/api/v1/reports/${publicUuid}`);
         expect(get.ok(), `poll #${i + 1} must succeed (got ${get.status()})`)
             .toBe(true);
         const body = await get.json();
@@ -109,7 +109,7 @@ test.describe('Reports — wizard backend lifecycle (FE-13.2)', () => {
   test('GET /v1/reports/{uuid}/download returns 4xx when the job is not DONE', async () => {
     const api = await apiContextFor({ user: TENANT_ADMIN });
     try {
-      const create = await api.post('/v1/reports', {
+      const create = await api.post('/api/v1/reports', {
         data: {
           reportType: 'PERIOD_CLOSE',
           format: 'PDF',
@@ -122,14 +122,14 @@ test.describe('Reports — wizard backend lifecycle (FE-13.2)', () => {
 
       // Wait a short while so the job is at least picked up.
       await new Promise((r) => setTimeout(r, 1500));
-      const get = await api.get(`/v1/reports/${publicUuid}`);
+      const get = await api.get(`/api/v1/reports/${publicUuid}`);
       const body = await get.json();
 
       if (body.status !== 'DONE') {
         // If not done, the download endpoint must return a 4xx with a
         // REPORT_NOT_READY code (or REPORT_OUTPUT_EXPIRED if the cache
         // had already been cleared — unlikely after 1.5s but possible).
-        const download = await api.get(`/v1/reports/${publicUuid}/download`);
+        const download = await api.get(`/api/v1/reports/${publicUuid}/download`);
         expect([404, 409]).toContain(download.status());
         const errBody = await download.text();
         expect(errBody).toMatch(/REPORT_NOT_READY|REPORT_OUTPUT_EXPIRED/);
@@ -138,7 +138,7 @@ test.describe('Reports — wizard backend lifecycle (FE-13.2)', () => {
       // with application/pdf (or whichever Content-Type the job chose).
       // We don't assert the body bytes — only the surface contract.
       else {
-        const download = await api.get(`/v1/reports/${publicUuid}/download`);
+        const download = await api.get(`/api/v1/reports/${publicUuid}/download`);
         expect(download.ok(), `download must be 2xx for DONE job`)
             .toBe(true);
         const ct = download.headers()['content-type'] ?? '';
@@ -154,10 +154,10 @@ test.describe('Reports — wizard backend lifecycle (FE-13.2)', () => {
     try {
       const idemKey = `e2e-idem-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-      const first = await api.post('/v1/reports', {
+      const first = await api.post('/api/v1/reports', {
         data: { reportType: 'GRADE_BOOK', format: 'CSV', params: '{}', idemKey },
       });
-      const second = await api.post('/v1/reports', {
+      const second = await api.post('/api/v1/reports', {
         data: { reportType: 'GRADE_BOOK', format: 'CSV', params: '{}', idemKey },
       });
 
@@ -188,3 +188,4 @@ test.describe('Reports — wizard backend lifecycle (FE-13.2)', () => {
     ).toBeVisible({ timeout: 5_000 });
   });
 });
+

@@ -1,22 +1,50 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  NavigationCancel,
+  NavigationEnd,
+  NavigationError,
+  Router,
+  RouterOutlet,
+} from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { TenantService } from '@core/services';
 import { APP } from '@core/constants';
-import { TenantLogoComponent } from '@shared/components';
+import { AlertComponent, SpinnerComponent, TenantLogoComponent } from '@shared/components';
 import { ThemeToggleComponent } from '../components';
 
 /**
  * Public auth shell (login, forgot password, etc.).
  *
- * Desktop: two-pane — left side hosts tenant branding + value props on the
- *          brand gradient; right side hosts the form card.
- * Mobile:  single column, form fills the viewport. The branding column is
- *          hidden to keep the surface focused.
+ * <h3>Loading / error boundary</h3>
+ * The right panel renders the child route inside a {@code <router-outlet>}.
+ * If a lazy chunk fails to load, or the route resolves to nothing, the
+ * outlet would otherwise render an empty box with zero feedback. We
+ * subscribe to {@code Router.events} and surface:
+ * <ul>
+ *   <li>{@code NavigationError} → red alert with the underlying error</li>
+ *   <li>{@code RouteConfigLoadStart} → spinner</li>
+ *   <li>{@code RouteConfigLoadEnd} → clear spinner</li>
+ *   <li>{@code NavigationEnd} with empty outlet → warning "Pantalla no disponible"</li>
+ * </ul>
  */
 @Component({
   selector: 'app-auth-layout',
   standalone: true,
-  imports: [RouterOutlet, ThemeToggleComponent, TenantLogoComponent],
+  imports: [
+    RouterOutlet,
+    ThemeToggleComponent,
+    TenantLogoComponent,
+    AlertComponent,
+    SpinnerComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="grid min-h-screen lg:grid-cols-2">
@@ -74,7 +102,15 @@ import { ThemeToggleComponent } from '../components';
             <span class="text-lg font-semibold tracking-tight">{{ tenantName() }}</span>
           </header>
 
-          <router-outlet />
+          @if (loadError(); as message) {
+            <app-alert variant="error" [message]="message" />
+          } @else if (showLoadingState()) {
+            <div class="flex items-center justify-center py-12">
+              <app-spinner [size]="28" label="Cargando…" />
+            </div>
+          } @else {
+            <router-outlet />
+          }
         </div>
       </section>
     </div>
@@ -82,8 +118,60 @@ import { ThemeToggleComponent } from '../components';
 })
 export class AuthLayoutComponent {
   private readonly tenant = inject(TenantService);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly appName = APP.NAME;
   readonly year = new Date().getFullYear();
   readonly tenantName = computed(() => this.tenant.tenant()?.name ?? 'Workspace');
+
+  private readonly _routeLoading = signal(false);
+  private readonly _loadError = signal<string | null>(null);
+  /** Counter of lazy chunk loads since the last NavigationEnd. >0 means we're mid-load. */
+  private loadCount = 0;
+
+  readonly showLoadingState = computed(() => this._routeLoading() && !this._loadError());
+  readonly loadError = this._loadError.asReadonly();
+
+  constructor() {
+    this.router.events
+      .pipe(
+        filter(
+          (e): e is NavigationError | NavigationEnd | NavigationCancel =>
+            e instanceof NavigationError ||
+            e instanceof NavigationEnd ||
+            e instanceof NavigationCancel,
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((event) => {
+        if (event instanceof NavigationError) {
+          this._routeLoading.set(false);
+          this._loadError.set('No se pudo cargar la página. Recarga e inténtalo de nuevo.');
+          return;
+        }
+        if (event instanceof NavigationEnd) {
+          this._routeLoading.set(false);
+          this._loadError.set(null);
+          this.loadCount = 0;
+          return;
+        }
+        if (event instanceof NavigationCancel) {
+          this._routeLoading.set(false);
+        }
+      });
+
+    this.router.events
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((event) => {
+        const e = event as unknown as { constructor: { name: string } };
+        if (e?.constructor?.name === 'RouteConfigLoadStart') {
+          this.loadCount++;
+          this._routeLoading.set(true);
+        } else if (e?.constructor?.name === 'RouteConfigLoadEnd') {
+          this.loadCount = Math.max(0, this.loadCount - 1);
+          if (this.loadCount === 0) this._routeLoading.set(false);
+        }
+      });
+  }
 }

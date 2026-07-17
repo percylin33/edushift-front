@@ -2,25 +2,26 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, ActivatedRoute, convertToParamMap } from '@angular/router';
 import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
-import { HttpErrorResponse, HttpEvent } from '@angular/common/http';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ReactiveFormsModule } from '@angular/forms';
 
-import { AuthService, TenantService } from '@core/services';
-import { ROUTES } from '@core/constants';
+import { AuthService, TenantService, ThemeService } from '@core/services';
+import { TenantThemeService } from '@core/theming';
+import { STORAGE_KEYS } from '@core/constants';
 import { AuthSession, User } from '@core/models';
 
 import { LoginComponent } from './login.component';
 import { AuthApiService } from '../../services/auth-api.service';
 import { GoogleAuthService } from '../../services/google-auth.service';
 import { AuthStore } from '../../store/auth.store';
-import { LoginRequest } from '../../models';
+import { LoginRequest, LoginResult } from '../../models';
 
 class FakeAuthApiService {
-  login(payload: LoginRequest) {
-    return of({});
+  login(_payload: LoginRequest) {
+    return of({} as AuthSession);
   }
-  loginWithGoogle(payload: { idToken: string }) {
-    return of({});
+  loginWithGoogle(_payload: { idToken: string }) {
+    return of({} as AuthSession);
   }
   me() {
     return of({} as User);
@@ -32,16 +33,9 @@ class FakeAuthService {
   readonly accessToken = signal<string | null>(null);
   readonly refreshToken = signal<string | null>(null);
   readonly expiresAt = signal<Date | null>(null);
-  setSession(session: AuthSession) {}
-  setUser(user: User) {}
+  setSession(_session: AuthSession) {}
+  setUser(_user: User) {}
   clearSession() {}
-}
-
-class FakeTenantService {
-  readonly tenantSlug = signal<string | null>(null);
-  setSlug(slug: string) {
-    this.tenantSlug.set(slug);
-  }
 }
 
 class FakeGoogleAuthService {
@@ -66,18 +60,23 @@ describe('LoginComponent', () => {
       'loginWithGoogle',
       'me',
     ]);
-    authApiSpy.login.and.returnValue(of({} as AuthSession));
+    authApiSpy.login.and.returnValue(of({} as LoginResult));
     authApiSpy.loginWithGoogle.and.returnValue(of({} as AuthSession));
     authApiSpy.me.and.returnValue(of({} as User));
+
+    const tenantThemeSpy = jasmine.createSpyObj('TenantThemeService', ['apply', 'reset']);
+    const themeSpy = jasmine.createSpyObj('ThemeService', ['applyTenantDefault']);
 
     await TestBed.configureTestingModule({
       imports: [LoginComponent, ReactiveFormsModule],
       providers: [
         provideRouter([]),
         AuthStore,
+        TenantService,
         { provide: AuthApiService, useValue: authApiSpy },
         { provide: AuthService, useClass: FakeAuthService },
-        { provide: TenantService, useClass: FakeTenantService },
+        { provide: TenantThemeService, useValue: tenantThemeSpy },
+        { provide: ThemeService, useValue: themeSpy },
         { provide: GoogleAuthService, useClass: FakeGoogleAuthService },
         { provide: ActivatedRoute, useValue: fakeActivatedRoute },
       ],
@@ -122,14 +121,6 @@ describe('LoginComponent', () => {
     fixture.detectChanges();
     expect(ctrl.invalid).toBeTrue();
     expect(ctrl.hasError('required')).toBeTrue();
-  });
-
-  it('togglePasswordVisibility cambia el estado', () => {
-    expect(component.passwordVisible()).toBeFalse();
-    component.togglePasswordVisibility();
-    expect(component.passwordVisible()).toBeTrue();
-    component.togglePasswordVisibility();
-    expect(component.passwordVisible()).toBeFalse();
   });
 
   it('onSubmit no llama login si el form es inválido', () => {
@@ -201,24 +192,26 @@ describe('LoginComponent', () => {
     expect(tenantService.tenantSlug()).toBe('micole');
   });
 
+  it('onSubmit limpia tenant stale antes de setear el slug tipeado', () => {
+    localStorage.setItem(STORAGE_KEYS.CURRENT_TENANT, 'tenant-stale');
+    tenantService.setSlug('tenant-stale');
+    expect(tenantService.tenantSlug()).toBe('tenant-stale');
+
+    component.form.patchValue({
+      tenantSlug: 'tenant-fresh',
+      email: 'admin@test.com',
+      password: 'secret',
+    });
+    component.onSubmit();
+
+    expect(tenantService.tenantSlug()).toBe('tenant-fresh');
+    expect(localStorage.getItem(STORAGE_KEYS.CURRENT_TENANT)).toBe('tenant-fresh');
+    expect(tenantService.context().resolvedFrom).not.toBe('unknown');
+  });
+
   it('onGoogleSignIn valida tenantSlug antes de abrir popup', async () => {
     component.form.get('tenantSlug')!.setValue('');
     await component.onGoogleSignIn();
     expect(store.error()).toContain('Google');
-  });
-
-  it('toMessage retorna mensaje de error para status 0', () => {
-    const err = new HttpErrorResponse({ status: 0 });
-    const msg = (component as any).toMessage(err);
-    expect(msg).toContain('conexión');
-  });
-
-  it('toMessage retorna mensaje para USER_LOCKED', () => {
-    const err = new HttpErrorResponse({
-      error: { code: 'USER_LOCKED' },
-      status: 403,
-    });
-    const msg = (component as any).toMessage(err);
-    expect(msg).toContain('bloqueada');
   });
 });

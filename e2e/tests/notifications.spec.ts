@@ -1,7 +1,7 @@
 import { test, expect, request as pwRequest } from '@playwright/test';
 import { apiContextFor } from '../utils/api-helpers';
 import { TENANT_ADMIN } from '../fixtures/test-users';
-import { tenantAdminStorageState } from '../auth.setup';
+import { TENANT_ADMIN_STORAGE_STATE } from '../fixtures/storage-state-paths';
 
 /**
  * Notifications end-to-end spec (Sprint 13 / FE-13.1).
@@ -26,7 +26,7 @@ import { tenantAdminStorageState } from '../auth.setup';
  * ({@code demo} profile) is wiped on backend restart.</p>
  */
 test.describe('Notifications — bell + unread count + mark-read', () => {
-  test.use({ storageState: tenantAdminStorageState });
+  test.use({ storageState: TENANT_ADMIN_STORAGE_STATE });
 
   // ----------------------------------------------------------------- helpers
 
@@ -42,7 +42,7 @@ test.describe('Notifications — bell + unread count + mark-read', () => {
       // use the admin /announcements publish flow as the realistic path:
       // create a DRAFT and then publish. The publish step materializes
       // AnnouncementRecipient rows + dispatches in-app notifications.
-      const create = await api.post('/v1/announcements', {
+      const create = await api.post('/api/v1/announcements', {
         data: {
           title,
           bodyHtml: `<p>${body}</p>`,
@@ -57,7 +57,7 @@ test.describe('Notifications — bell + unread count + mark-read', () => {
       if (!create.ok()) {
         // Fallback: hit the dev-only seed endpoint that the dev profile
         // exposes. In production, the endpoint is removed by @Profile.
-        const seed = await api.post('/v1/notifications/seed', {
+        const seed = await api.post('/api/v1/notifications/seed', {
           data: { title, body, category },
         });
         expect(seed.ok(), `seed notification failed: ${seed.status()}`).toBe(true);
@@ -145,3 +145,4 @@ test.describe('Notifications — bell + unread count + mark-read', () => {
     await expect(page.getByText(tag)).toBeVisible({ timeout: 10_000 });
   });
 });
+

@@ -3,6 +3,7 @@ import { STORAGE_KEYS } from '@core/constants';
 import { Permission, UserRole } from '@core/enums';
 import { AuthSession, User, UserSummary } from '@core/models';
 import { StorageService } from './storage.service';
+import { TenantService } from './tenant.service';
 
 /**
  * Storage key for the short-lived {@code mfaToken} returned by
@@ -43,6 +44,7 @@ const MFA_TOKEN_EXPIRES_AT_KEY = 'edushift.mfaTokenExpiresAt';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly storage = inject(StorageService);
+  private readonly tenantService = inject(TenantService);
 
   private readonly _user = signal<User | null>(this.storage.get<User>(STORAGE_KEYS.CURRENT_USER));
   private readonly _accessToken = signal<string | null>(
@@ -139,6 +141,7 @@ export class AuthService {
     this.storage.remove(STORAGE_KEYS.AUTH_TOKEN);
     this.storage.remove(STORAGE_KEYS.REFRESH_TOKEN);
     this.storage.remove(STORAGE_KEYS.AUTH_EXPIRES_AT);
+    this.tenantService.clear();
   }
 
   /**

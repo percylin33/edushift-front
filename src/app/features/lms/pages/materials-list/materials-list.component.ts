@@ -43,7 +43,7 @@ import { MaterialUploadDialogComponent } from '../../components';
     <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div class="min-w-0">
         <p class="text-xs uppercase tracking-wide text-content-muted">
-          <a [routerLink]="listRoute()" class="hover:underline">LMS</a>
+          <a [routerLink]="listRoute()" class="hover:underline">Aula virtual</a>
         </p>
         <h1 class="text-2xl font-semibold text-content">Materiales</h1>
         <p class="text-sm text-content-muted">Recursos compartidos con la sección.</p>

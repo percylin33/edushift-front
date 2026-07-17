@@ -203,7 +203,12 @@ export class TasksListComponent implements OnInit {
 
   ngOnInit(): void {
     const sectionUuid = this.route.snapshot.paramMap.get('sectionUuid');
-    if (!sectionUuid) {
+    // The route is also matched by the empty-state redirect
+    // (`/lms/sections/_/assignments` in lms.routes.ts). Treat `_`
+    // and missing values the same as "no section selected" and
+    // bounce to the dashboard rather than firing an HTTP call with
+    // a literal placeholder UUID.
+    if (!sectionUuid || sectionUuid === '_') {
       void this.router.navigate([ROUTES.DASHBOARD.ROOT]);
       return;
     }

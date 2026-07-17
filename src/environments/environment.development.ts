@@ -2,9 +2,10 @@ import type { AppEnvironment } from './environment.model';
 
 export const environment: AppEnvironment = {
   production: false,
+  uatMode: true,
   appName: 'EduShift',
   appVersion: '0.0.0-dev',
-  apiUrl: 'http://localhost:8080/api',
+  apiUrl: 'http://localhost:8081/api',
   apiVersion: 'v1',
   defaultLocale: 'es',
   supportedLocales: ['es', 'en'],
@@ -34,6 +35,11 @@ export const environment: AppEnvironment = {
       // PR-2 adds the gmail.send scope here.
     ],
   },
+  // Dev-only MFA enrolment bypass. The BE controller is @Profile-gated
+  // to {dev,local}; the value here MUST match the BE property
+  // `edushift.admin.dev-bypass.code` (default "dev-bypass"). Empty
+  // string disables the auto-bypass path.
+  devMfaBypassCode: 'dev-bypass',
   features: {
     dashboard: true,
     auth: true,

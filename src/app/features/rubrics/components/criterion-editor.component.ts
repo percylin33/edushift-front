@@ -193,7 +193,7 @@ interface CriteriaLevelsValue {
             <article class="grid gap-3 rounded-lg border border-border-subtle p-4">
               <div class="grid gap-3 sm:grid-cols-[160px_1fr_120px_auto]">
                 <div class="field">
-                  <label class="label text-xs">Key (snake_case)</label>
+                  <label class="label text-xs">Clave (snake_case)</label>
                   <input
                     type="text"
                     class="input font-mono"

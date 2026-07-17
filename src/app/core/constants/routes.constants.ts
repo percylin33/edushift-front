@@ -43,6 +43,18 @@ export const ROUTES = {
      */
     ROOT: '/profile',
   },
+  HELP: {
+    /**
+     * Help / manuals feature. Public list at {@code /help}; viewer at
+     * {@code /help/:role(/onboarding|flujos|autoevaluacion)}.
+     * Reached from the user-menu dropdown in the navbar.
+     */
+    ROOT: '/help',
+    detail: (role: string) => `/help/${role}`,
+    onboarding: (role: string) => `/help/${role}/onboarding`,
+    flujos: (role: string) => `/help/${role}/flujos`,
+    autoevaluacion: (role: string) => `/help/${role}/autoevaluacion`,
+  },
   STUDENTS: {
     ROOT: '/students',
     LIST: '/students',
@@ -137,6 +149,10 @@ export const ROUTES = {
     ROOT: '/notifications',
     PREFERENCES: '/notifications/preferences',
   },
+  ANNOUNCEMENTS: {
+    ROOT: '/announcements',
+    NEW: '/announcements/new',
+  },
   SETTINGS: {
     ROOT: '/settings',
     GENERAL: '/settings/general',
@@ -176,6 +192,24 @@ export const ROUTES = {
     quizResults: (uuid: string) => `/lms/quizzes/${uuid}/results`,
     /** {@code /lms/quizzes/{uuid}/grade} — cola de grading (TEACHER). (FE-7b.3) */
     quizGrade: (uuid: string) => `/lms/quizzes/${uuid}/grade`,
+  },
+  // Sprint 15 — super-admin platform console. Top-level routes (not under
+  // MainLayoutComponent) because the admin shell has no tenant context.
+  ADMIN: {
+    ROOT: '/admin',
+    LOGIN: '/admin/login',
+    DASHBOARD: '/admin/dashboard',
+    TENANTS: '/admin/tenants',
+    TENANT_DETAIL: (uuid: string) => `/admin/tenants/${uuid}`,
+    PLANS: '/admin/plans',
+    PLAN_DETAIL: (uuid: string) => `/admin/plans/${uuid}`,
+    PLAN_NEW: '/admin/plans/new',
+    INVOICES: '/admin/invoices',
+    INVOICE_DETAIL: (uuid: string) => `/admin/invoices/${uuid}`,
+    PAYMENTS: '/admin/payments',
+    METRICS: '/admin/metrics',
+    METRICS_TENANT: (uuid: string) => `/admin/metrics/${uuid}`,
+    AUDIT: '/admin/audit',
   },
   ERRORS: {
     NOT_FOUND: '/404',

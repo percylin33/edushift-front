@@ -68,6 +68,15 @@ import { AuthApiService } from '@features/auth/services/auth-api.service';
             Perfil
           </a>
           <a
+            [routerLink]="helpRoute"
+            role="menuitem"
+            class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-content hover:bg-surface-muted"
+            (click)="close()"
+          >
+            <app-icon name="help-circle" [size]="16" class="text-content-subtle" />
+            Manuales de usuario
+          </a>
+          <a
             [routerLink]="['/settings']"
             role="menuitem"
             class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-content hover:bg-surface-muted"
@@ -123,6 +132,8 @@ export class UserMenuComponent {
     return user.fullName?.trim() || user.email;
   });
   readonly subtitle = computed(() => this.auth.user()?.roles?.[0] ?? null);
+  /** Help manuals index — public route, accessible from the user menu. */
+  protected readonly helpRoute = ROUTES.HELP.ROOT;
   readonly email = computed(() => this.auth.user()?.email ?? null);
 
   readonly loginRoute = ROUTES.AUTH.LOGIN;

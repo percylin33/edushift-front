@@ -18,11 +18,11 @@ import { NavigationGroup } from '../models';
 export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
   {
     id: 'workspace',
-    label: 'Workspace',
+    label: 'Espacio de trabajo',
     items: [
       {
         id: 'dashboard',
-        label: 'Dashboard',
+        label: 'Panel',
         icon: 'home',
         route: ROUTES.DASHBOARD.ROOT,
         exactMatch: true,
@@ -123,6 +123,51 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
       },
       {
         /*
+         * Sprint 5 (FE-5.x) — sesiones de aprendizaje. Para el TEACHER
+         * son su herramienta diaria de planificación de clases (ver
+         * `docs/manuales/docente/02-flujos-esenciales.md` Flujo 1:
+         * "crea la sesión antes de iniciar la asistencia"). TENANT_ADMIN
+         * también las ve para soporte. Role-gated hasta que la security
+         * sprint popule `User.permissions`.
+         */
+        id: 'learning-sessions',
+        label: 'Sesiones de clase',
+        icon: 'calendar',
+        route: ROUTES.SESSIONS.ROOT,
+        feature: FeatureKey.Sessions,
+        roles: [UserRole.TenantAdmin, UserRole.Teacher],
+      },
+      {
+        /*
+         * Sprint 5B (FE-5B.1) — evaluaciones. Requieren
+         * `LMS_QUIZ_CREATE` / `LMS_TASK_CREATE` para crear, pero el listing
+         * es legible por el TEACHER para su propia operación. Mismo
+         * trade-off de role-gating que el resto del árbol.
+         */
+        id: 'evaluations',
+        label: 'Evaluaciones',
+        icon: 'clipboard-check',
+        route: ROUTES.EVALUATIONS.ROOT,
+        feature: FeatureKey.Evaluations,
+        roles: [UserRole.TenantAdmin, UserRole.Teacher],
+      },
+      {
+        /*
+         * Sprint 7A (FE-7a.x) — LMS: materiales + quizzes + assignments
+         * del docente. El docente los necesita a diario (Flujo 5 del
+         * manual del docente: "Publicar material"; Flujo 3: "Crear
+         * evaluación"). Role-gated al TEACHER (y TENANT_ADMIN para
+         * soporte).
+         */
+        id: 'lms',
+        label: 'Mis cursos',
+        icon: 'book-open',
+        route: ROUTES.LMS.ROOT,
+        feature: FeatureKey.Lms,
+        roles: [UserRole.TenantAdmin, UserRole.Teacher],
+      },
+      {
+        /*
          * Sprint 6 — el sidebar usa role-gating (mismo trade-off que
          * students/teachers/academic) porque el backend aún no popula
          * `User.permissions`. Las sub-rutas reales son
@@ -159,7 +204,7 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         icon: 'credit-card',
         route: ROUTES.PAYMENTS.ROOT,
         feature: FeatureKey.Payments,
-        roles: [UserRole.TenantAdmin, UserRole.Staff, UserRole.Student, UserRole.Guardian],
+        roles: [UserRole.TenantAdmin, UserRole.Staff, UserRole.Student, UserRole.Parent],
         children: [
           {
             /*
@@ -183,7 +228,7 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
   },
   {
     id: 'insights',
-    label: 'Insights',
+    label: 'Análisis',
     items: [
       {
         id: 'ai',
@@ -222,12 +267,51 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         roles: [UserRole.TenantAdmin],
       },
       {
+        id: 'notifications',
+        label: 'Notificaciones',
+        icon: 'bell',
+        route: ROUTES.NOTIFICATIONS.ROOT,
+        feature: FeatureKey.Notifications,
+        roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Student, UserRole.Parent],
+      },
+      {
+        id: 'announcements',
+        label: 'Anuncios',
+        icon: 'megaphone',
+        route: ROUTES.ANNOUNCEMENTS.ROOT,
+        feature: FeatureKey.Announcements,
+        roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Student, UserRole.Parent],
+      },
+      {
         id: 'settings',
         label: 'Configuración',
         icon: 'settings',
         route: ROUTES.SETTINGS.ROOT,
         feature: FeatureKey.Settings,
         roles: [UserRole.TenantAdmin],
+      },
+      /*
+       * Sprint 17 / F-QA-PLAN 2026-07-17 — Centro de Pruebas por rol.
+       * Visible para todos los roles autenticados: cada uno ve las
+       * capabilities de su rol + el catálogo de bug reports. SUPER_ADMIN
+       * también entra aquí (su ruta admin es complementaria).
+       *
+       * Nota: la ruta `authChildGuard` ya está aplicada por el árbol
+       * privado, así que este item aparece sin gating adicional.
+       */
+      {
+        id: 'help',
+        label: 'Centro de pruebas',
+        icon: 'shield-check',
+        route: ROUTES.HELP.ROOT,
+        roles: [
+          UserRole.SuperAdmin,
+          UserRole.TenantAdmin,
+          UserRole.Teacher,
+          UserRole.Student,
+          UserRole.Parent,
+          UserRole.Staff,
+        ],
       },
     ],
   },

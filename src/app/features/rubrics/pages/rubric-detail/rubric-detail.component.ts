@@ -130,7 +130,7 @@ import { RubricRow } from '../../models';
               <table class="table">
                 <thead>
                   <tr>
-                    <th class="w-40">Key</th>
+                    <th class="w-40">Clave</th>
                     <th>Criterio</th>
                     <th class="w-20 text-right">Peso</th>
                     @for (lvl of r.levels; track lvl.code) {

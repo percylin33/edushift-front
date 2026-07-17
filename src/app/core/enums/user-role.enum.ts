@@ -4,7 +4,7 @@
  * need a translation step.
  *
  * <p>{@code TENANT_ADMIN}, {@code TEACHER}, {@code STUDENT},
- * {@code GUARDIAN}, {@code STAFF}, and {@code SUPER_ADMIN} match the
+ * {@code PARENT}, {@code STAFF}, and {@code SUPER_ADMIN} match the
  * Java enum constants one-to-one. {@code GUEST} is a frontend-only
  * placeholder used by the navigation when no role is loaded.
  */
@@ -14,6 +14,6 @@ export enum UserRole {
   Staff = 'STAFF',
   Teacher = 'TEACHER',
   Student = 'STUDENT',
-  Guardian = 'GUARDIAN',
+  Parent = 'PARENT',
   Guest = 'GUEST',
 }

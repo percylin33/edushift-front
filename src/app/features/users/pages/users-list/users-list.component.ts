@@ -356,7 +356,7 @@ export class UsersListComponent implements OnInit {
     { value: UserRole.Staff, label: 'Staff' },
     { value: UserRole.Teacher, label: 'Profesor' },
     { value: UserRole.Student, label: 'Estudiante' },
-    { value: UserRole.Guardian, label: 'Tutor' },
+    { value: UserRole.Parent, label: 'Tutor' },
   ];
 
   /**

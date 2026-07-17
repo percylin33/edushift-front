@@ -55,6 +55,7 @@ export interface GoogleAuthConfig {
 
 export interface AppEnvironment {
   production: boolean;
+  uatMode: boolean;
   appName: string;
   appVersion: string;
   apiUrl: string;
@@ -81,6 +82,20 @@ export interface AppEnvironment {
    * signature check, not hiding the ID.
    */
   google: GoogleAuthConfig;
+  /**
+   * Dev-only MFA enrolment bypass for the SUPER_ADMIN console
+   * (Sprint 15 / F-02 follow-up). The BE controller at
+   * `POST /v1/admin/dev/complete-mfa` is bean-gated to `{dev,local}`
+   * profiles; in prod it does not exist (404). When the FE runs in a
+   * non-prod profile AND this field is set, the admin login flow
+   * automatically spends the onboarding bearer against the bypass
+   * endpoint so an operator can log in without an authenticator app.
+   *
+   * <p>Leave undefined (or empty) in `environment.production.ts` so
+   * prod login fails with a clear "MFA enrolment required" error
+   * instead of silently auto-bypassing.</p>
+   */
+  devMfaBypassCode?: string;
   features: {
     dashboard: boolean;
     auth: boolean;
