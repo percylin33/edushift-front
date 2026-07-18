@@ -5,7 +5,7 @@ export const environment: AppEnvironment = {
   uatMode: false,
   appName: 'EduShift',
   appVersion: '0.0.0',
-  apiUrl: 'https://api.edushift.app/api',
+  apiUrl: 'https://edushift-back.onrender.com',
   apiVersion: 'v1',
   defaultLocale: 'es',
   supportedLocales: ['es', 'en'],
