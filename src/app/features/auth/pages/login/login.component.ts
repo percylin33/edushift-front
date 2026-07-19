@@ -169,13 +169,13 @@ export class LoginComponent {
   private readonly store = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  private readonly googleAuth = inject(GoogleAuthService);
+  private readonly googleAuth = inject(GoogleAuthService, { optional: true });
 
   readonly forgotPasswordRoute = ROUTES.AUTH.FORGOT_PASSWORD;
   readonly registerRoute = ROUTES.AUTH.REGISTER;
 
   readonly googleEnabled = computed(() => environment.google.enabled);
-  readonly googleBusy = this.googleAuth.busy;
+  readonly googleBusy = computed(() => this.googleAuth?.busy() ?? false);
 
   readonly form: FormGroup = this.fb.nonNullable.group({
     tenantSlug: this.fb.nonNullable.control('', [
@@ -250,6 +250,10 @@ export class LoginComponent {
 
     this.store.setError(null);
     try {
+      if (!this.googleAuth) {
+        this.store.setError('Google Sign-in no está disponible en este entorno.');
+        return;
+      }
       const { idToken } = await this.googleAuth.signIn();
       if (!idToken) {
         this.store.setError('Google no devolvió un token válido. Inténtalo de nuevo.');

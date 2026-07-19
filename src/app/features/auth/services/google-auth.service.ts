@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, Optional, computed, inject, signal } from '@angular/core';
 import { SocialAuthService } from '@abacritt/angularx-social-login';
 
 import { environment } from '@env/environment';
@@ -30,7 +30,7 @@ import { environment } from '@env/environment';
  */
 @Injectable({ providedIn: 'root' })
 export class GoogleAuthService {
-  private readonly social = inject(SocialAuthService);
+  private readonly social = inject(SocialAuthService, { optional: true });
 
   /** Provider id we register with `SocialLoginModule`. Keep in sync with `core.providers.ts`. */
   static readonly PROVIDER_ID = 'google';
@@ -58,7 +58,7 @@ export class GoogleAuthService {
    *         suitable for direct UI display.
    */
   async signIn(): Promise<{ idToken: string; email?: string }> {
-    if (!this.isEnabled()) {
+    if (!this.isEnabled() || !this.social) {
       throw new Error('Google Sign-in is not enabled in this environment.');
     }
     this._busy.set(true);
@@ -78,6 +78,9 @@ export class GoogleAuthService {
    * for the "Switch account" UX; not wired yet.
    */
   async signOut(): Promise<void> {
+    if (!this.social) {
+      return;
+    }
     await this.social.signOut(true);
   }
 }
