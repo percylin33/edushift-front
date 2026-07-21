@@ -112,4 +112,51 @@ describe('TenantService', () => {
     expect(result.slug).toBe('cached-school');
     expect(result.resolvedFrom).toBe('default');
   });
+
+  /**
+   * Replay of the bug the user hit: the FE had persisted
+   * 'edushift-front-rad5rs5ax-percylin33s-projects' (a Vercel preview
+   * hostname fragment) and was sending it as the tenant slug on every
+   * boot, triggering 404 from the BE. The validator must reject any
+   * cached value matching that pattern so the next boot falls back to
+   * the configured default.
+   */
+  it('resolveSlug descarta cached slug con formato de URL de Vercel', () => {
+    if (!environment.multiTenant.enabled) return;
+
+    const vercelSlug = 'edushift-front-rad5rs5ax-percylin33s-projects';
+    storage.get.and.callFake(<T>(key: string) =>
+      key === STORAGE_KEYS.CURRENT_TENANT ? (vercelSlug as T) : null,
+    );
+    storage.remove.calls.reset();
+    storage.set.calls.reset();
+
+    const result = service.resolveSlug();
+
+    expect(result.slug).toBe(environment.multiTenant.defaultTenant);
+    expect(result.resolvedFrom).toBe('default');
+    expect(storage.remove).toHaveBeenCalledWith(STORAGE_KEYS.CURRENT_TENANT);
+  });
+
+  it('resolveSlug descarta cached slug con formato de tunnel-id (3vmchk6t-8081)', () => {
+    if (!environment.multiTenant.enabled) return;
+
+    storage.get.and.callFake(<T>(key: string) =>
+      key === STORAGE_KEYS.CURRENT_TENANT ? ('3vmchk6t-8081' as T) : null,
+    );
+
+    const result = service.resolveSlug();
+    expect(result.slug).toBe(environment.multiTenant.defaultTenant);
+    expect(storage.remove).toHaveBeenCalledWith(STORAGE_KEYS.CURRENT_TENANT);
+  });
+
+  it('setSlug rechaza slug con formato Vercel preview', () => {
+    if (!environment.multiTenant.enabled) return;
+    storage.set.calls.reset();
+
+    service.setSlug('edushift-front-rad5rs5ax-percylin33s-projects');
+
+    expect(service.tenantSlug()).toBeNull();
+    expect(storage.set).not.toHaveBeenCalled();
+  });
 });

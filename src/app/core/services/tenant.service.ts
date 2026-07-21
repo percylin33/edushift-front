@@ -46,7 +46,7 @@ export class TenantService {
     }
 
     const queryOverride = this.readSlugFromQuery();
-    if (queryOverride) {
+    if (queryOverride && TenantService.isLikelyRealTenantSlug(queryOverride)) {
       this.storage.set(STORAGE_KEYS.CURRENT_TENANT, queryOverride);
       return { slug: queryOverride, resolvedFrom: 'path' };
     }
@@ -54,10 +54,12 @@ export class TenantService {
     switch (environment.multiTenant.strategy) {
       case 'subdomain': {
         const host = window.location.hostname;
+        // Skip hosts where the first DNS label is a deploy-platform identifier
+        // (Vercel preview, ngrok tunnel id, etc.) — those are not tenant slugs.
         if (!TenantService.isTunnelHost(host)) {
           const parts = host.split('.');
           const candidate = parts.length > 2 ? parts[0] : null;
-          if (candidate && candidate !== 'www') {
+          if (candidate && candidate !== 'www' && TenantService.isLikelyRealTenantSlug(candidate)) {
             return { slug: candidate, resolvedFrom: 'subdomain' };
           }
         }
@@ -65,7 +67,7 @@ export class TenantService {
       }
       case 'path': {
         const segments = window.location.pathname.split('/').filter(Boolean);
-        if (segments.length > 0) {
+        if (segments.length > 0 && TenantService.isLikelyRealTenantSlug(segments[0])) {
           return { slug: segments[0], resolvedFrom: 'path' };
         }
         break;
@@ -75,13 +77,14 @@ export class TenantService {
     }
 
     const cached = this.storage.get<string>(STORAGE_KEYS.CURRENT_TENANT);
-    if (cached && !this.isStaleTunnelCache(cached)) {
+    if (cached && !this.isStaleTunnelCache(cached) && TenantService.isLikelyRealTenantSlug(cached)) {
       return { slug: cached, resolvedFrom: 'default' };
     }
     if (cached) {
-      /* Earlier builds (before tunnel detection) persisted the tunnel id as
-       * the tenant slug. Purge it so subsequent boots cleanly fall back to
-       * the configured default rather than re-using the bogus value. */
+      // Earlier builds (before tunnel / preview-host detection) persisted
+      // bogus slugs (tunnel id, Vercel preview label). Purge them so
+      // subsequent boots cleanly fall back to the configured default rather
+      // than re-using the stale value and getting 404s from the BE.
       this.storage.remove(STORAGE_KEYS.CURRENT_TENANT);
     }
 
@@ -89,15 +92,48 @@ export class TenantService {
   }
 
   /**
+   * Rejects strings that look like deploy-platform identifiers instead of
+   * tenant slugs. Concretely: a tenant slug in EduShift is short (≤ 24
+   * chars), lowercase, and never contains a Vercel preview hash pattern
+   * (8-hex chars followed by the project's full name). Anything that
+   * matches `^[a-z0-9-]{16,}-` is almost certainly a Vercel/Render
+   * preview URL fragment, not a tenant.
+   */
+  private static isLikelyRealTenantSlug(slug: string): boolean {
+    if (!slug) return false;
+    const lower = slug.toLowerCase().trim();
+    // Tenant slugs are short; reject anything longer than 24 chars.
+    if (lower.length > 24) return false;
+    // Tenant slugs never contain double-dash or start/end with a dash.
+    if (lower.includes('--') || lower.startsWith('-') || lower.endsWith('-')) return false;
+    // The classic pattern of a Vercel auto-generated preview URL:
+    //   <8-hex>-<owner>-<repo>        e.g. rad5rs5ax-percylin33s-projects
+    //   <8-hex>-<owner>-<repo>-<branch>
+    if (/^[a-z0-9]{8,}-[a-z0-9-]+$/.test(lower)) {
+      // Heuristic: starts with a long opaque token (8+ alphanumeric) followed
+      // by a dash and a multi-word name → it's a preview URL.
+      const firstSegment = lower.split('-')[0];
+      if (/^[a-z0-9]{6,}$/.test(firstSegment)) return false;
+    }
+    return /^[a-z][a-z0-9-]{0,23}$/.test(lower);
+  }
+
+  /**
    * Detects cache entries that were written by older builds while the app was
-   * loaded from a tunnel host. The pattern is the first DNS label of the
-   * current tunnel host (e.g. {@code 3vmchk6t-4200.brs.devtunnels.ms} →
-   * {@code 3vmchk6t-4200}). When that label was previously persisted as the
-   * tenant slug it points at a non-existent tenant and must be discarded.
+   * loaded from a tunnel / preview host. The pattern is the first DNS label
+   * of the current host (e.g. {@code 3vmchk6t-4200.brs.devtunnels.ms} →
+   * {@code 3vmchk6t-4200} or {@code edushift-front-rad5rs5ax-percylin33s-projects.vercel.app} →
+   * {@code edushift-front-rad5rs5ax-percylin33s-projects}). When that label was
+   * previously persisted as the tenant slug it points at a non-existent
+   * tenant and must be discarded.
    */
   private isStaleTunnelCache(cached: string): boolean {
     const host = window.location.hostname;
-    if (!TenantService.isTunnelHost(host)) return false;
+    if (!TenantService.isTunnelHost(host)) {
+      // Not on a tunnel/preview host, but the cached value might still be a
+      // Vercel preview URL from a previous session.
+      return TenantService.isLikelyRealTenantSlug(cached) === false;
+    }
     const tunnelPrefix = host.split('.')[0]?.toLowerCase();
     return !!tunnelPrefix && cached.toLowerCase() === tunnelPrefix;
   }
@@ -112,7 +148,13 @@ export class TenantService {
     }
   }
 
-  /** Hosts where {@code parts[0]} is a tunnel id and never a tenant slug. */
+  /**
+   * Hosts where {@code parts[0]} is a tunnel id (or a Vercel preview id) and
+   * never a real tenant slug. Add new SaaS-hosting suffixes here as we
+   * onboard tenants — anywhere the deploy platform injects its own DNS
+   * label between the user and the app, the first dot-separated segment
+   * is NOT a tenant slug.
+   */
   private static readonly TUNNEL_HOST_SUFFIXES: readonly string[] = [
     '.devtunnels.ms',
     '.ngrok.io',
@@ -122,6 +164,10 @@ export class TenantService {
     '.trycloudflare.com',
     '.loca.lt',
     '.lhr.life',
+    '.vercel.app',
+    '.netlify.app',
+    '.render.com',
+    '.onrender.com',
   ];
 
   private static isTunnelHost(host: string): boolean {
@@ -160,6 +206,9 @@ export class TenantService {
   setSlug(slug: string): void {
     const trimmed = slug?.trim().toLowerCase();
     if (!trimmed) return;
+    // Reject anything that looks like a deploy-platform URL fragment so we
+    // never persist bogus values that would survive across sessions.
+    if (!TenantService.isLikelyRealTenantSlug(trimmed)) return;
     const placeholder: Tenant = {
       id: '',
       slug: trimmed,

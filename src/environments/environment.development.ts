@@ -1,6 +1,7 @@
 import type { AppEnvironment } from './environment.model';
+import { runtimeOverrides } from './runtime-overrides';
 
-export const environment: AppEnvironment = {
+export const environment: AppEnvironment = runtimeOverrides({
   production: false,
   uatMode: true,
   appName: 'EduShift',
@@ -89,4 +90,4 @@ export const environment: AppEnvironment = {
     messagingSenderId: 'REPLACE_ME_WITH_FIREBASE_MESSAGING_SENDER_ID',
     appId: 'REPLACE_ME_WITH_FIREBASE_WEB_APP_ID',
   },
-};
+});

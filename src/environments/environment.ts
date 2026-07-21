@@ -1,15 +1,23 @@
 import type { AppEnvironment } from './environment.model';
+import { runtimeOverrides } from './runtime-overrides';
 
 /**
- * Default environment (development).
- * Replaced at build time by Angular's `fileReplacements` for production.
+ * Default environment. At build time Angular's `fileReplacements`
+ * swaps this for `environment.development.ts` (ng serve) or
+ * `environment.production.ts` (ng build --configuration production).
+ *
+ * <p>The `apiUrl` below is rewritten at <em>runtime</em> by
+ * {@link runtimeOverrides} so a single bundle works for both the local
+ * docker-compose dev backend and the Render production backend. We
+ * keep a sensible default here so SSR / tests that lack
+ * {@code window.location} still get a working value.</p>
  */
-export const environment: AppEnvironment = {
+export const environment: AppEnvironment = runtimeOverrides({
   production: false,
   uatMode: true,
   appName: 'EduShift',
   appVersion: '0.0.0',
-  apiUrl: 'https://3vmchk6t-8081.brs.devtunnels.ms/api',
+  apiUrl: 'http://localhost:8081/api',
   apiVersion: 'v1',
   defaultLocale: 'es',
   supportedLocales: ['es', 'en'],
@@ -26,20 +34,11 @@ export const environment: AppEnvironment = {
     tokenScheme: 'Bearer',
   },
   google: {
-    enabled: true,
-    // Dev placeholder. REPLACE with the real OAuth Client ID from
-    // Google Cloud Console → APIs & Services → Credentials.
-    // Authorized JavaScript origins must include this app's origin
-    // (e.g. http://localhost:4200 in dev, https://app.edushift.app in prod).
-    clientId: 'REPLACE_ME_WITH_YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com',
-    scopes: [
-      'openid',
-      'profile',
-      'email',
-      // PR-2 will add https://www.googleapis.com/auth/gmail.send here
-      // and request consent via SocialAuthService additional consents.
-    ],
+    enabled: false,
+    clientId: '',
+    scopes: ['openid', 'profile', 'email'],
   },
+  devMfaBypassCode: 'dev-bypass',
   features: {
     dashboard: true,
     auth: true,
@@ -71,4 +70,4 @@ export const environment: AppEnvironment = {
     pwaDisplay: 'standalone',
     pwaStartUrl: '/attendance/scanner',
   },
-};
+});

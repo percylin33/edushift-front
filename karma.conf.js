@@ -16,6 +16,17 @@
 
 module.exports = function (config) {
   config.set({
+    // The Angular CLI normally injects `frameworks` automatically when
+    // you don't define a karmaConfig, but as soon as we point it at a
+    // custom file (via angular.json -> karmaConfig) it stops doing that.
+    // Listing the framework plugins here is what makes the browser
+    // produce the `__karma__.start` shim that the runner expects.
+    frameworks: ['jasmine', '@angular-devkit/build-angular'],
+    plugins: [
+      require('karma-jasmine'),
+      require('karma-chrome-launcher'),
+      require('@angular-devkit/build-angular/plugins/karma'),
+    ],
     customLaunchers: {
       ChromeHeadlessCI: {
         base: 'ChromeHeadless',
@@ -27,8 +38,12 @@ module.exports = function (config) {
           '--remote-debugging-port=9222',
           // Unique user-data-dir per test run avoids the
           // "DevToolsActivePort file doesn't exist" race when the
-          // browser process is reused across runs.
-          '--user-data-dir=/tmp/karma-chrome-' + Date.now(),
+          // browser process is reused across runs. The path is
+          // OS-aware so it works on both Windows (%TEMP%) and Linux
+          // (/tmp).
+          '--user-data-dir=' + (process.platform === 'win32'
+            ? require('os').tmpdir() + '\\karma-chrome-' + Date.now()
+            : '/tmp/karma-chrome-' + Date.now()),
         ],
       },
     },

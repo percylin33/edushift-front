@@ -1,6 +1,7 @@
 import type { AppEnvironment } from './environment.model';
+import { runtimeOverrides } from './runtime-overrides';
 
-export const environment: AppEnvironment = {
+export const environment: AppEnvironment = runtimeOverrides({
   production: true,
   uatMode: false,
   appName: 'EduShift',
@@ -71,4 +72,4 @@ export const environment: AppEnvironment = {
   // operator provisions a dedicated EduShift project and uploads the
   // real config via the deploy pipeline (see docs/infra/firebase.md).
   firebase: undefined
-};
+});
