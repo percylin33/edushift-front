@@ -11,7 +11,7 @@ import {
 } from '@angular/router';
 
 import { routes } from './app.routes';
-import { provideCore, provideGoogleCore } from '@core/providers';
+import { provideCore } from '@core/providers';
 import { AppTitleStrategy } from '@core/routing';
 
 /**

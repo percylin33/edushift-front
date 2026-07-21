@@ -14,18 +14,17 @@ import {
   SubmitButtonComponent,
 } from '@shared/components';
 import { mapHttpError } from '@shared/utils';
-import { environment } from '@env/environment';
 
 import { AuthApiService } from '../../services/auth-api.service';
-import { GoogleSigninWrapperComponent } from '../../components/google-signin-wrapper/google-signin-wrapper.component';
-import { GoogleAuthService } from '../../services/google-auth.service';
-// GoogleSigninButtonComponent is no longer imported here. We render
-// <app-google-signin-wrapper> which itself lazy-loads the real button
-// (and its SocialAuthServiceConfig provider) only when the user scrolls
-// it into view AND environment.google.enabled is true. In production the
-// wrapper stays dead code and Angular tree-shakes it away.
 import { AuthStore } from '../../store/auth.store';
 import { LoginRequest } from '../../models';
+
+// Google Sign-In is intentionally NOT imported here. The
+// `@abacritt/angularx-social-login` SDK would otherwise be inlined
+// into the login lazy chunk (esbuild's reachability analysis traces
+// through `GoogleAuthService.signIn()` and `GoogleSigninWrapperComponent`'s
+// input/output bindings). To re-enable Google, see the comment block
+// in `main.ts` for the dynamic-import pattern documented inline.
 
 /**
  * Login screen.
@@ -64,14 +63,12 @@ import { LoginRequest } from '../../models';
     FormFieldComponent,
     PasswordFieldComponent,
     SubmitButtonComponent,
-    // GoogleSigninWrapperComponent is the public selector; it owns the
-    // angularx-social-login import and is only included when the
-    // environment flag is true. In production builds it stays in the
-    // bundle (it's a static import here) but its child template is
-    // conditional on `googleEnabled()`, which lets Angular's
-    // tree-shaker remove every SocialAuthServiceConfig / SocialLoginModule
-    // reference path when the flag is false.
-    GoogleSigninWrapperComponent,
+    // GoogleSigninWrapperComponent was removed because the SDK it
+    // statically imports (angularx-social-login) drags the SDK into the
+    // login lazy chunk via esbuild's reachability analysis. The wrapper
+    // stays as dead code at src/app/features/auth/components/google-signin-wrapper/.
+    // Re-introduce it once the team implements the dynamic-import pattern
+    // described in src/main.ts.
   ],
   template: `
     <div class="space-y-6">
@@ -139,23 +136,19 @@ import { LoginRequest } from '../../models';
 
         <app-submit-button
           [loading]="loading()"
-          [disabled]="googleBusy()"
           label="Iniciar sesión"
           loadingLabel="Verificando…"
         />
 
         @if (googleEnabled()) {
           <!--
-            Google Sign-In is rendered via a lazy wrapper component so that
-            angularx-social-login (which registers SocialAuthServiceConfig)
-            is only pulled into the bundle when environment.google.enabled is
-            true. In production the wrapper is never imported, and the bundle
-            tree-shakes away all references to the social-login SDK.
+            Google Sign-In is temporarily disabled while we wait for a
+            dynamic-import rewrite (see main.ts). The component stub
+            GoogleSigninWrapperComponent is kept in the codebase but not
+            imported here. When environment.google.enabled flips to true
+            again, re-introduce the lazy wrapper and the onGoogleSignIn
+            handler below.
           -->
-          <app-google-signin-wrapper
-            [busy]="googleBusy()"
-            (signinClick)="onGoogleSignIn()"
-          />
         }
 
         <p class="pt-1 text-center text-xs text-content-muted">
@@ -179,13 +172,15 @@ export class LoginComponent {
   private readonly store = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  private readonly googleAuth = inject(GoogleAuthService, { optional: true });
 
   readonly forgotPasswordRoute = ROUTES.AUTH.FORGOT_PASSWORD;
   readonly registerRoute = ROUTES.AUTH.REGISTER;
 
-  readonly googleEnabled = computed(() => environment.google.enabled);
-  readonly googleBusy = computed(() => this.googleAuth?.busy() ?? false);
+  // Whether the Google Sign-In button should be rendered. While the
+  // social-login SDK is excluded from the production bundle (see
+  // `main.ts` for the re-enable recipe) this is intentionally a
+  // no-op so the @if branch never executes.
+  readonly googleEnabled = computed(() => false);
 
   readonly form: FormGroup = this.fb.nonNullable.group({
     tenantSlug: this.fb.nonNullable.control('', [
@@ -239,66 +234,9 @@ export class LoginComponent {
     return null;
   }
 
-  /**
-   * Open the Google account chooser, ship the resulting {@code id_token}
-   * to {@code POST /v1/auth/google}, then run the same boot chain as
-   * the password flow ({@code setSession → me → navigate}).
-   */
-  async onGoogleSignIn(): Promise<void> {
-    if (this.loading() || this.googleBusy()) return;
-
-    this.tenantSlugCtrl.markAsTouched();
-    if (this.tenantSlugCtrl.invalid) {
-      this.store.setError(
-        'Ingresa el identificador de tu institución antes de continuar con Google.',
-      );
-      return;
-    }
-
-    const tenantSlug: string = this.tenantSlugCtrl.value.trim().toLowerCase();
-    this.tenant.setSlug(tenantSlug);
-
-    this.store.setError(null);
-    try {
-      if (!this.googleAuth) {
-        this.store.setError('Google Sign-in no está disponible en este entorno.');
-        return;
-      }
-      const { idToken } = await this.googleAuth.signIn();
-      if (!idToken) {
-        this.store.setError('Google no devolvió un token válido. Inténtalo de nuevo.');
-        return;
-      }
-
-      this.store.setLoading(true);
-      this.authApi
-        .loginWithGoogle({ idToken })
-        .pipe(
-          tap((session) => this.auth.setSession(session)),
-          switchMap(() =>
-            this.authApi.me().pipe(
-              tap((user) => this.auth.setUser(user)),
-              catchError(() => of(null)),
-            ),
-          ),
-          finalize(() => this.store.setLoading(false)),
-        )
-        .subscribe({
-          next: () => {
-            const returnUrl =
-              this.route.snapshot.queryParamMap.get('returnUrl') ?? ROUTES.DASHBOARD.ROOT;
-            this.router.navigateByUrl(returnUrl);
-          },
-          error: (err: HttpErrorResponse) => {
-            this.store.setError(mapHttpError(err));
-          },
-        });
-    } catch (err) {
-      console.warn('[google-signin] popup flow failed', err);
-      const message = err instanceof Error ? err.message : 'No se pudo iniciar sesión con Google.';
-      this.store.setError(message);
-    }
-  }
+  // Google Sign-In handler has been removed together with the rest of
+  // the Google flow while the social-login SDK is excluded from the
+  // production bundle. See `main.ts` for the re-enable recipe.
 
   onSubmit(): void {
     if (this.loading()) return;
