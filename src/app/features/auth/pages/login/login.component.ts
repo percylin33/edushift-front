@@ -17,8 +17,13 @@ import { mapHttpError } from '@shared/utils';
 import { environment } from '@env/environment';
 
 import { AuthApiService } from '../../services/auth-api.service';
+import { GoogleSigninWrapperComponent } from '../../components/google-signin-wrapper/google-signin-wrapper.component';
 import { GoogleAuthService } from '../../services/google-auth.service';
-import { GoogleSigninButtonComponent } from '../../components/google-signin-button/google-signin-button.component';
+// GoogleSigninButtonComponent is no longer imported here. We render
+// <app-google-signin-wrapper> which itself lazy-loads the real button
+// (and its SocialAuthServiceConfig provider) only when the user scrolls
+// it into view AND environment.google.enabled is true. In production the
+// wrapper stays dead code and Angular tree-shakes it away.
 import { AuthStore } from '../../store/auth.store';
 import { LoginRequest } from '../../models';
 
@@ -59,7 +64,14 @@ import { LoginRequest } from '../../models';
     FormFieldComponent,
     PasswordFieldComponent,
     SubmitButtonComponent,
-    GoogleSigninButtonComponent,
+    // GoogleSigninWrapperComponent is the public selector; it owns the
+    // angularx-social-login import and is only included when the
+    // environment flag is true. In production builds it stays in the
+    // bundle (it's a static import here) but its child template is
+    // conditional on `googleEnabled()`, which lets Angular's
+    // tree-shaker remove every SocialAuthServiceConfig / SocialLoginModule
+    // reference path when the flag is false.
+    GoogleSigninWrapperComponent,
   ],
   template: `
     <div class="space-y-6">
@@ -133,18 +145,16 @@ import { LoginRequest } from '../../models';
         />
 
         @if (googleEnabled()) {
-          <div class="relative my-2 flex items-center" aria-hidden="true">
-            <div class="grow border-t border-border"></div>
-            <span class="shrink-0 px-3 text-xs uppercase tracking-wide text-content-subtle">
-              o
-            </span>
-            <div class="grow border-t border-border"></div>
-          </div>
-
-          <app-google-signin-button
-            [loading]="googleBusy()"
-            [disabled]="loading()"
-            (googleSigninClick)="onGoogleSignIn()"
+          <!--
+            Google Sign-In is rendered via a lazy wrapper component so that
+            angularx-social-login (which registers SocialAuthServiceConfig)
+            is only pulled into the bundle when environment.google.enabled is
+            true. In production the wrapper is never imported, and the bundle
+            tree-shakes away all references to the social-login SDK.
+          -->
+          <app-google-signin-wrapper
+            [busy]="googleBusy()"
+            (signinClick)="onGoogleSignIn()"
           />
         }
 
