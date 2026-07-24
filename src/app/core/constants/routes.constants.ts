@@ -100,6 +100,16 @@ export const ROUTES = {
     NEW: '/learning-sessions/new',
     detail: (id: string) => `/learning-sessions/${id}`,
   },
+  /**
+   * Sprint cierre-C / F8 — top-level /schedule route.
+   *  - `ROOT`  : weekly grid with all sections the user can see
+   *              (TEACHER sees only their assignments; TENANT_ADMIN sees all).
+   *  - `MINE`  : "Mi horario" shortcut — same view filtered to current user.
+   */
+  SCHEDULE: {
+    ROOT: '/schedule',
+    MINE: '/schedule/me',
+  },
   EVALUATIONS: {
     ROOT: '/evaluations',
     /** {@code /evaluations/by-assignment/{assignmentUuid}} — listing por assignment. */

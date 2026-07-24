@@ -154,6 +154,24 @@ export const PRIVATE_ROUTES: Routes = [
         loadChildren: () => import('@features/lms/lms.routes').then((m) => m.LMS_ROUTES),
       },
       /*
+       * Sprint cierre-C / F8 — top-level /schedule route.
+       * Gated by the new FeatureKey.Schedule. Role-aware landing:
+       * TEACHER goes to /schedule/me (their schedule); TENANT_ADMIN /
+       * STUDENT get placeholder views until cierre-C / B4 delivers the
+       * full per-tenant schedule UI.
+       */
+      {
+        path: 'schedule',
+        canActivate: [featureFlagGuard],
+        data: {
+          feature: FeatureKey.Schedule,
+          breadcrumb: 'Horarios',
+          title: 'Horarios',
+        },
+        loadChildren: () =>
+          import('@features/schedule').then((m) => m.SCHEDULE_ROUTES),
+      },
+      /*
        * Sprint 17 / FE-17.2 — self-service profile. Lives in the
        * private tree because it requires an authenticated session.
        * No `featureFlagGuard` (every user has a profile) and no

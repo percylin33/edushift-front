@@ -23,6 +23,10 @@ export enum FeatureKey {
   Announcements = 'announcements',
   Settings = 'settings',
   Lms = 'lms',
+  // Sprint cierre-C / F8 — top-level /schedule route. Reachable by
+  // any role (TENANT_ADMIN sees the global placeholder; TEACHER sees
+  // "Mi horario" via /schedule/me; STUDENT sees their section).
+  Schedule = 'schedule',
   // Sprint 15 — super-admin platform console. Gated by SUPER_ADMIN role
   // (not by feature flag); the constant is declared so `featureFlagGuard`
   // can be used if ever needed for environment-level gating.
