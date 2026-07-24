@@ -389,6 +389,18 @@ export const API = {
     MARK_READ: (publicUuid: string) =>
       `${BASE}/notifications/${encodeURIComponent(publicUuid)}/read`,
     MARK_ALL_READ: `${BASE}/notifications/read-all`,
+    /**
+     * Sprint cierre-C / F11 — notification templates editor.
+     *  - `GET   /v1/notifications/templates`            (list, LMS_NOTIFICATIONS_MANAGE)
+     *  - `PATCH /v1/notifications/templates/{publicUuid}` (update subject + bodyHtml)
+     * The BE sanitizes the HTML with jsoup on write and bumps `version` so
+     * the engine's cache invalidates (BE-9.4).
+     */
+    TEMPLATES: {
+      ROOT: `${BASE}/notifications/templates`,
+      BY_ID: (publicUuid: string) =>
+        `${BASE}/notifications/templates/${encodeURIComponent(publicUuid)}`,
+    },
   },
   ATTENDANCE: {
     /** {@code POST /v1/attendance/sessions} (BE-6.4). 200 si ya hay ACTIVE, 201 si se acaba de crear. */

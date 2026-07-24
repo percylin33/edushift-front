@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authChildGuard } from '@core/guards';
+import { authChildGuard, permissionGuard } from '@core/guards';
 
 export const NOTIFICATIONS_ROUTES: Routes = [
   {
@@ -15,6 +15,17 @@ export const NOTIFICATIONS_ROUTES: Routes = [
     loadComponent: () =>
       import('./pages/preferences-page/preferences-page.component').then(
         (m) => m.NotificationPreferencesPageComponent,
+      ),
+  },
+  {
+    // Sprint cierre-C / F11 — admin templates editor.
+    // Gated by LMS_NOTIFICATIONS_MANAGE (matches @PreAuthorize on the BE).
+    path: 'templates',
+    canMatch: [permissionGuard],
+    data: { permissions: 'LMS_NOTIFICATIONS_MANAGE' },
+    loadComponent: () =>
+      import('./pages/notification-templates-page/notification-templates-page.component').then(
+        (m) => m.NotificationTemplatesPageComponent,
       ),
   },
 ];
