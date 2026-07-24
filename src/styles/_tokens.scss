@@ -69,10 +69,12 @@
   --color-border-subtle: 241 245 249;
   --color-border-strong: 203 213 225;
 
-  /* Feedback */
+  /* Feedback — colors chosen for WCAG 2.1 AA contrast on white/dark bg.
+     Light-mode warning uses Tailwind's orange-700 (#C2410C, 4.69:1) instead
+     of amber-700 (3.57:1) which fails AA for normal text. */
   --color-success: 22 163 74;
-  --color-warning: 217 119 6;
-  --color-danger: 220 38 38;
+  --color-warning: 194 65 12;
+  --color-danger: 185 28 28;
   --color-info: 2 132 199;
 
   --color-focus: var(--color-primary-500);
