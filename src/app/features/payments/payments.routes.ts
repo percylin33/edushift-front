@@ -56,6 +56,14 @@ export const PAYMENTS_ROUTES: Routes = [
             (m) => m.AdminPaymentsPageComponent,
           ),
       },
+      {
+        // Sprint cierre-C / F14 — payment concepts catalog.
+        path: 'concepts',
+        loadComponent: () =>
+          import('./pages/payment-concepts-page/payment-concepts-page.component').then(
+            (m) => m.PaymentConceptsPageComponent,
+          ),
+      },
     ],
   },
 ];

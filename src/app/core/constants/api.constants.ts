@@ -284,6 +284,19 @@ export const API = {
       // CASH payment for the invoice and flip it to PAID.
       MARK_PAID_CASH: (invoicePublicUuid: string) =>
         `${BASE}/admin/payments/invoices/${encodeURIComponent(invoicePublicUuid)}/mark-paid-cash`,
+      // -----------------------------------------------------------------
+      // Sprint cierre-C / F14 — payment concepts catalog.
+      //  - `GET    /admin/payments/concepts`           (list, paged)
+      //  - `POST   /admin/payments/concepts`           (create)
+      //  - `PATCH  /admin/payments/concepts/{uuid}`    (update)
+      //  - `DELETE /admin/payments/concepts/{uuid}`    (soft-delete)
+      // All gated by LMS_PAYMENT_ADMIN (TENANT_ADMIN + STAFF front-desk).
+      // -----------------------------------------------------------------
+      CONCEPTS: {
+        ROOT: `${BASE}/admin/payments/concepts`,
+        BY_ID: (publicUuid: string) =>
+          `${BASE}/admin/payments/concepts/${encodeURIComponent(publicUuid)}`,
+      },
     },
   },
   SESSIONS: {
