@@ -125,6 +125,20 @@ export const ACADEMIC_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/periods-list/periods-list.component').then((m) => m.PeriodsListComponent),
       },
+      /*
+       * Sprint cierre-C / B4 -- physical classrooms catalog. La página
+       * reusa el patrón de payment-concepts (cierre-C / F14): tabla +
+       * drawer inline para create/edit + confirmación de delete.
+       */
+      {
+        path: 'classrooms',
+        canActivate: [roleGuard],
+        data: { roles: [UserRole.TenantAdmin], title: 'Aulas' },
+        loadComponent: () =>
+          import('./pages/classrooms-page/classrooms-page.component').then(
+            (m) => m.ClassroomsPageComponent,
+          ),
+      },
     ],
   },
 ];
