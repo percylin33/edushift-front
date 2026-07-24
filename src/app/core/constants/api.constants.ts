@@ -45,6 +45,8 @@ export const API = {
     ROOT: `${BASE}/dashboard`,
     METRICS: `${BASE}/dashboard/metrics`,
     WIDGETS: `${BASE}/dashboard/widgets`,
+    /** Sprint 9B / BE-9B.1 — teacher-scoped attendance snapshot. */
+    TEACHER: `${BASE}/dashboard/teacher`,
   },
   USERS: {
     ROOT: `${BASE}/users`,

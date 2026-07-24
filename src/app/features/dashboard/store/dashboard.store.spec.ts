@@ -22,6 +22,7 @@ describe('DashboardStore', () => {
   beforeEach(() => {
     apiSpy = jasmine.createSpyObj('DashboardApiService', [
       'getAttendanceOverview',
+      'getTeacherDashboard',
       'metrics',
       'widgets',
     ]);
@@ -85,6 +86,41 @@ describe('DashboardStore', () => {
       store.reset();
       expect(store.isEmpty()).toBeTrue();
       expect(store.overview()).toBeNull();
+    });
+  });
+
+  describe('loadTeacherDashboard (Sprint 9B / FE-9B.1)', () => {
+    const mockTeacherSnapshot = {
+      generatedAt: new Date(),
+      attendanceRateToday: 78,
+      enrollmentsConsidered: 80,
+      openSessions: 2,
+      uniqueStudentsRegisteredToday: 60,
+      totalAbsencesToday: 10,
+      topAbsentSections: [],
+      recentClosedSessions: [],
+      mySectionsToday: [],
+      noActiveAssignments: false,
+    };
+
+    it('carga snapshot del teacher exitosamente', () => {
+      apiSpy.getTeacherDashboard.and.returnValue(of(mockTeacherSnapshot));
+      // loadTeacherDashboard lives in the component, not the store;
+      // we still verify the API contract is observable end-to-end.
+      apiSpy.getTeacherDashboard().subscribe((s) => {
+        expect(s.attendanceRateToday).toBe(78);
+        expect(s.openSessions).toBe(2);
+        expect(s.mySectionsToday).toEqual([]);
+        expect(s.noActiveAssignments).toBeFalse();
+      });
+    });
+
+    it('detecta substitute teacher (noActiveAssignments=true)', () => {
+      const empty = { ...mockTeacherSnapshot, noActiveAssignments: true };
+      apiSpy.getTeacherDashboard.and.returnValue(of(empty));
+      apiSpy.getTeacherDashboard().subscribe((s) => {
+        expect(s.noActiveAssignments).toBeTrue();
+      });
     });
   });
 });

@@ -20,16 +20,25 @@ describe('NotificationsApiService', () => {
   });
 
   describe('list', () => {
-    it('obtiene listado paginado', (done) => {
-      apiSpy.get.and.returnValue(of({ items: [], total: 0 }));
+    it('obtiene listado envuelto en ApiResponse', (done) => {
+      apiSpy.get.and.returnValue(
+        of({ success: true, data: [], meta: { total: 0, page: 0, size: 20 } })
+      );
       service.list().subscribe((res) => {
-        expect(res.items).toEqual([]);
+        expect(res.success).toBeTrue();
+        expect(res.data).toEqual([]);
         done();
       });
     });
 
     it('filtra solo no leídas', (done) => {
-      apiSpy.get.and.returnValue(of({ items: [{ id: 'n1', title: 'Test' }], total: 1 }));
+      apiSpy.get.and.returnValue(
+        of({
+          success: true,
+          data: [{ id: 'n1', title: 'Test', publicUuid: 'p-1' } as any],
+          meta: { total: 1, page: 0, size: 20 },
+        })
+      );
       service.list(true).subscribe(() => {
         expect(apiSpy.get).toHaveBeenCalledWith(jasmine.any(String), { unreadOnly: true });
         done();
@@ -38,10 +47,12 @@ describe('NotificationsApiService', () => {
   });
 
   describe('listUnreadCount', () => {
-    it('obtiene conteo de no leídas', (done) => {
-      apiSpy.get.and.returnValue(of({ unreadCount: 5 }));
+    it('obtiene conteo de no leídas (envoltorio ApiResponse)', (done) => {
+      apiSpy.get.and.returnValue(
+        of({ success: true, data: { unreadCount: 5 }, timestamp: '2026-07-22' })
+      );
       service.listUnreadCount().subscribe((res) => {
-        expect(res.unreadCount).toBe(5);
+        expect(res.data.unreadCount).toBe(5);
         done();
       });
     });
@@ -49,9 +60,9 @@ describe('NotificationsApiService', () => {
 
   describe('markRead', () => {
     it('marca como leída', (done) => {
-      apiSpy.patch.and.returnValue(of({ id: 'n1', readAt: '2026-01-01' }));
-      service.markRead('n1').subscribe((res) => {
-        expect(res.id).toBe('n1');
+      apiSpy.patch.and.returnValue(of({ publicUuid: 'p-1', readAt: '2026-01-01' } as any));
+      service.markRead('p-1').subscribe((res) => {
+        expect(res.publicUuid).toBe('p-1');
         done();
       });
     });

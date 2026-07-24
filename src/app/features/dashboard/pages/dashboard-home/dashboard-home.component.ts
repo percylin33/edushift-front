@@ -1,5 +1,6 @@
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { UserRole } from '@core/enums';
@@ -9,9 +10,11 @@ import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
+  SpinnerComponent,
   StatCardComponent,
 } from '@shared/components';
-import { AttendanceRecentSession, AttendanceSessionSlot, AttendanceTopSection } from '../../models';
+import { AttendanceRecentSession, AttendanceSessionSlot, AttendanceTopSection, TeacherDashboardSnapshot, TeacherMySession } from '../../models';
+import { DashboardApiService } from '../../services/dashboard-api.service';
 import { DashboardStore } from '../../store/dashboard.store';
 
 interface QuickLink {
@@ -61,6 +64,7 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
     StatCardComponent,
     EmptyStateComponent,
     IconComponent,
+    SpinnerComponent,
   ],
   template: `
     <app-page-container size="wide">
@@ -257,34 +261,146 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
       </ng-template>
 
       <!-- ===================================================================
-        Teacher view — quick links only (no admin endpoint call)
+        Teacher view — Sprint 9B / FE-9B.1
+        Real data: 4 KPIs + mySectionsToday + top-absent + recent-closed.
       ==================================================================== -->
       <ng-template #teacherView>
-        <section aria-label="Accesos rápidos" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          @for (link of teacherLinks; track link.id) {
-            <a
-              [routerLink]="link.route"
-              class="card group transition-shadow hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
-            >
-              <div class="card-body flex items-start gap-4">
-                <span
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-500/10 text-primary-700 dark:text-primary-300"
-                >
-                  <app-icon [name]="link.icon" [size]="20" />
-                </span>
-                <div class="min-w-0 flex-1">
-                  <p class="font-medium text-content">{{ link.label }}</p>
-                  <p class="mt-1 text-xs text-content-muted">{{ link.description }}</p>
-                </div>
-                <app-icon
-                  name="chevron-right"
-                  [size]="14"
-                  class="mt-1 text-content-subtle transition-transform group-hover:translate-x-0.5"
+        @if (teacher(); as t) {
+          @if (t.noActiveAssignments) {
+            <div class="card">
+              <div class="card-body">
+                <app-empty-state
+                  icon="users"
+                  title="Sin asignaciones activas"
+                  description="Cuando un administrador te asigne a una sección, verás aquí tus clases de hoy, los alumnos ausentes y tus sesiones recientes."
                 />
               </div>
-            </a>
+            </div>
+          } @else {
+            <section aria-label="Resumen de hoy" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              @for (kpi of teacherKpis(); track kpi.id) {
+                <app-stat-card [label]="kpi.label" [value]="kpi.value" [icon]="kpi.icon" [delta]="kpi.delta" [trend]="kpi.trend" />
+              }
+            </section>
+
+            <!-- Mis secciones hoy (top of the page — what needs attention NOW) -->
+            @if (teacherMySections().length > 0) {
+              <section aria-label="Mis secciones hoy" class="card">
+                <header class="card-header flex items-center justify-between gap-2">
+                  <div>
+                    <h2 class="text-base font-semibold text-content">Mis secciones hoy</h2>
+                    <p class="mt-0.5 text-xs text-content-muted">
+                      Acciones pendientes: abrir sesiones que aún no has abierto o cerrar las que están activas.
+                    </p>
+                  </div>
+                  @if (teacherLastUpdated(); as label) {
+                    <span class="text-xs text-content-subtle">{{ label }}</span>
+                  }
+                </header>
+                <ul class="divide-y divide-slate-200 dark:divide-slate-800" data-testid="teacher-my-sections">
+                  @for (s of teacherMySections(); track s.sectionPublicUuid) {
+                    <li
+                      class="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
+                      [attr.data-testid]="'teacher-my-section-' + s.sectionPublicUuid"
+                      [attr.data-status]="s.status"
+                    >
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate font-medium text-content">{{ s.sectionName }}</p>
+                        <p class="mt-0.5 text-xs text-content-muted">
+                          {{ slotLabel(s.slot) }} ·
+                          {{ s.presentCount }}/{{ s.enrolledStudents }} confirmados ·
+                          {{ s.absentCount }} ausentes
+                        </p>
+                      </div>
+                      @if (teacherSessionLink(s); as link) {
+                        <a
+                          [routerLink]="link"
+                          class="btn btn-primary btn-sm"
+                        >
+                          {{ teacherCtaLabel(s) }}
+                        </a>
+                      } @else {
+                        <span class="text-xs text-content-subtle">Sin sesión abierta</span>
+                      }
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
+
+            <!-- Top absent (last 7 days) + recent closed -->
+            @if (teacherTopSections().length > 0) {
+              <section aria-label="Top secciones con mas inasistencias" class="card">
+                <header class="card-header">
+                  <h2 class="text-base font-semibold text-content">
+                    Top secciones con mas inasistencias (ultimos 7 dias)
+                  </h2>
+                </header>
+                <ul class="divide-y divide-slate-200 dark:divide-slate-800" data-testid="teacher-top-absent">
+                  @for (s of teacherTopSections(); track s.sectionPublicUuid) {
+                    <li
+                      class="flex items-center justify-between gap-3 px-5 py-3"
+                      [attr.data-testid]="'teacher-top-section-' + s.sectionPublicUuid"
+                    >
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate font-medium text-content">
+                          {{ s.sectionName }}
+                          @if (s.gradeName) {
+                            <span class="ml-1 text-xs text-content-subtle">({{ s.gradeName }})</span>
+                          }
+                        </p>
+                        <p class="mt-0.5 text-xs text-content-muted">
+                          {{ s.absentCount }} de {{ s.enrolledStudents }} ({{ s.absentRatePct }}%)
+                        </p>
+                      </div>
+                      <span [class]="rateBadgeClass(s.absentRatePct)">
+                        {{ s.absentRatePct }}%
+                      </span>
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
+
+            @if (teacherRecentSessions().length > 0) {
+              <section aria-label="Ultimas sesiones cerradas" class="card">
+                <header class="card-header">
+                  <h2 class="text-base font-semibold text-content">
+                    Ultimas sesiones cerradas
+                  </h2>
+                </header>
+                <ul class="divide-y divide-slate-200 dark:divide-slate-800" data-testid="teacher-recent-closed">
+                  @for (s of teacherRecentSessions(); track s.sessionPublicUuid) {
+                    <li
+                      class="flex items-center justify-between gap-3 px-5 py-3"
+                      [attr.data-testid]="'teacher-recent-session-' + s.sessionPublicUuid"
+                    >
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate font-medium text-content">{{ s.sectionName }}</p>
+                        <p class="mt-0.5 text-xs text-content-muted">
+                          {{ s.occurredOn | date: 'short' }} · {{ slotLabel(s.slot) }} ·
+                          cerrado {{ s.closedAt | date: 'shortTime' }}
+                        </p>
+                      </div>
+                      <a
+                        [routerLink]="sessionLink(s.sessionPublicUuid)"
+                        class="btn btn-secondary btn-sm"
+                      >
+                        Ver detalle
+                      </a>
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
           }
-        </section>
+        } @else {
+          <div class="card" data-testid="teacher-loading">
+            <div class="card-body flex items-center justify-center py-12">
+              <app-spinner [size]="32" />
+            </div>
+          </div>
+        }
       </ng-template>
     </app-page-container>
   `,
@@ -292,9 +408,16 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
 export class DashboardHomeComponent implements OnInit {
   private readonly tenant = inject(TenantService);
   private readonly auth = inject(AuthService);
+  private readonly api = inject(DashboardApiService);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly store = inject(DashboardStore);
 
+  /** Sprint 9B / FE-9B.1 — teacher snapshot signal. Hydrated by
+   *  {@link loadTeacherDashboard} on init if the user is a TEACHER. */
+  protected readonly teacherSnapshot = signal<TeacherDashboardSnapshot | null>(null);
+
   protected readonly isAdmin = computed(() => this.auth.hasRole(UserRole.TenantAdmin));
+  protected readonly isTeacher = computed(() => this.auth.hasRole(UserRole.Teacher));
   protected readonly overview = this.store.overview;
 
   protected readonly greeting = computed(() => {
@@ -316,6 +439,105 @@ export class DashboardHomeComponent implements OnInit {
    * yesterday) require a second snapshot the dashboard endpoint does
    * not return, and stamping a fake one would mislead.
    */
+  // ==========================================================================
+  // Sprint 9B / FE-9B.1 — Teacher dashboard computeds
+  // ==========================================================================
+
+  /** True while the teacher dashboard data is loading. */
+  protected readonly teacherLoading = signal(false);
+
+  /** Snapshot convenience for the template. */
+  protected readonly teacher = computed<TeacherDashboardSnapshot | null>(
+    () => this.teacherSnapshot(),
+  );
+
+  /** "Actualizado hace X" for the teacher header. */
+  protected readonly teacherLastUpdated = computed(() => {
+    const t = this.teacherSnapshot();
+    if (!t) return null;
+    return `Actualizado ${formatRelative(t.generatedAt)}`;
+  });
+
+  /** The four teacher KPIs in the same shape as the admin kpis. */
+  protected readonly teacherKpis = computed(() => {
+    const t = this.teacherSnapshot();
+    if (!t) return EMPTY_KPIS;
+    return [
+      {
+        id: 'rate',
+        label: 'Tasa de asistencia hoy',
+        value: t.enrollmentsConsidered === 0
+          ? '—'
+          : `${t.attendanceRateToday.toFixed(1)}%`,
+        icon: 'calendar-check' as const,
+        delta:
+          t.enrollmentsConsidered === 0
+            ? 'Sin clase hoy'
+            : `${t.enrollmentsConsidered} matriculados considerados`,
+        trend: 'flat' as const,
+      },
+      {
+        id: 'open',
+        label: 'Sesiones abiertas',
+        value: t.openSessions.toString(),
+        icon: 'clock' as const,
+        delta: null,
+        trend: 'flat' as const,
+      },
+      {
+        id: 'unique',
+        label: 'Estudiantes registrados hoy',
+        value: t.uniqueStudentsRegisteredToday.toString(),
+        icon: 'users' as const,
+        delta: null,
+        trend: 'flat' as const,
+      },
+      {
+        id: 'absent',
+        label: 'Inasistencias hoy',
+        value: t.totalAbsencesToday.toString(),
+        icon: 'alert-circle' as const,
+        delta: null,
+        trend: 'flat' as const,
+      },
+    ];
+  });
+
+  /** Top-absent sections (teacher-scoped). */
+  protected readonly teacherTopSections = computed<readonly AttendanceTopSection[]>(
+    () => this.teacherSnapshot()?.topAbsentSections ?? [],
+  );
+
+  /** Recent closed sessions (teacher-scoped). */
+  protected readonly teacherRecentSessions = computed<readonly AttendanceRecentSession[]>(
+    () => this.teacherSnapshot()?.recentClosedSessions ?? [],
+  );
+
+  /** Sections the teacher needs to attend to today. */
+  protected readonly teacherMySections = computed<readonly TeacherMySession[]>(
+    () => this.teacherSnapshot()?.mySectionsToday ?? [],
+  );
+
+  /** Session-detail link for the "Mis secciones" card. */
+  protected teacherSessionLink(s: TeacherMySession): string | null {
+    return s.sessionPublicUuid
+      ? ROUTES.ATTENDANCE.session(s.sessionPublicUuid)
+      : null;
+  }
+
+  /** CTAs in the "Mis secciones" card depending on status. */
+  protected teacherCtaLabel(s: TeacherMySession): string {
+    switch (s.status) {
+      case 'PENDING':
+        return 'Abrir sesión';
+      case 'ACTIVE':
+        return 'Cerrar sesión';
+      case 'CLOSED':
+      default:
+        return 'Ver sesión';
+    }
+  }
+
   protected readonly kpis = computed(() => {
     const o = this.overview();
     if (!o) {
@@ -407,13 +629,28 @@ export class DashboardHomeComponent implements OnInit {
   ngOnInit(): void {
     if (this.isAdmin()) {
       this.store.loadAttendanceOverview();
+    } else if (this.isTeacher()) {
+      this.loadTeacherDashboard();
     }
   }
 
   protected refresh(): void {
     if (this.isAdmin()) {
       this.store.loadAttendanceOverview();
+    } else if (this.isTeacher()) {
+      this.loadTeacherDashboard();
     }
+  }
+
+  /** Sprint 9B / FE-9B.1 — fetch the teacher-scoped snapshot. */
+  private loadTeacherDashboard(): void {
+    this.api
+      .getTeacherDashboard()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (snap) => this.teacherSnapshot.set(snap),
+        error: () => this.teacherSnapshot.set(null),
+      });
   }
 
   protected slotLabel(slot: AttendanceSessionSlot): string {

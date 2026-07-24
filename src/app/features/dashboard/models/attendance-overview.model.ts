@@ -130,7 +130,7 @@ export function toDashboardOverview(
   };
 }
 
-function toTopSection(raw: AttendanceTopSectionRaw): AttendanceTopSection {
+export function toTopSection(raw: AttendanceTopSectionRaw): AttendanceTopSection {
   const rate =
     raw.enrolledStudents > 0 ? Math.round((raw.absentCount / raw.enrolledStudents) * 1000) / 10 : 0;
   return {
@@ -143,7 +143,7 @@ function toTopSection(raw: AttendanceTopSectionRaw): AttendanceTopSection {
   };
 }
 
-function toRecentSession(raw: AttendanceRecentSessionRaw): AttendanceRecentSession {
+export function toRecentSession(raw: AttendanceRecentSessionRaw): AttendanceRecentSession {
   return {
     sessionPublicUuid: raw.sessionPublicUuid,
     sectionPublicUuid: raw.sectionPublicUuid,

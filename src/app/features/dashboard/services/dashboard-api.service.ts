@@ -8,7 +8,10 @@ import {
   AttendanceDashboardOverviewRaw,
   DashboardWidget,
   Metric,
+  TeacherDashboardSnapshot,
+  TeacherDashboardSnapshotRaw,
   toDashboardOverview,
+  toTeacherDashboardSnapshot,
 } from '../models';
 
 /**
@@ -41,5 +44,21 @@ export class DashboardApiService {
     return this.api
       .get<ApiResponse<AttendanceDashboardOverviewRaw>>(API.ATTENDANCE.DASHBOARD_OVERVIEW)
       .pipe(map((envelope) => toDashboardOverview(envelope.data)));
+  }
+
+  /**
+   * Teacher attendance dashboard snapshot (Sprint 9B / BE-9B.1).
+   *
+   * <p>Server-side scoped to the bearer teacher's active
+   * assignments. The {@code TEACHER} role has access; {@code
+   * TENANT_ADMIN} can also call it (useful for support scenarios).
+   * No extra FE filter is required — the backend is authoritative.</p>
+   */
+  getTeacherDashboard(): Observable<TeacherDashboardSnapshot> {
+    return this.api
+      .get<ApiResponse<TeacherDashboardSnapshotRaw>>(
+        API.DASHBOARD.TEACHER,
+      )
+      .pipe(map((envelope) => toTeacherDashboardSnapshot(envelope.data)));
   }
 }

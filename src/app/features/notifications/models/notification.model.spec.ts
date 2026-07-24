@@ -1,46 +1,42 @@
 import { NotificationItem } from './notification.model';
 
 describe('NotificationItem', () => {
-  it('crea una notificación con channel in_app', () => {
-    const n: NotificationItem = {
-      id: 'n1',
-      channel: 'in_app',
-      severity: 'info',
-      title: 'Título',
-      body: 'Cuerpo',
-      readAt: undefined,
-      createdAt: '2026-01-01',
-      updatedAt: '2026-01-01',
-    };
-    expect(n.channel).toBe('in_app');
-    expect(n.severity).toBe('info');
+  const base = {
+    publicUuid: 'p-1',
+    tenantId: 'tenant-1',
+    templateKey: 'TEACHER_ASSIGNED',
+    category: 'SYSTEM' as const,
+    channel: 'BOTH' as const,
+    status: 'SENT' as const,
+    subject: 'TEACHER_ASSIGNED · 2026-01-01',
+    bodyHtml: '{"courseCode":"MAT","sectionName":"A"}',
+    sentAt: '2026-01-01T10:00:00Z',
+    createdAt: '2026-01-01',
+    updatedAt: '2026-01-01',
+  };
+
+  it('crea una notificación sin leer', () => {
+    const n: NotificationItem = { ...base, id: 'n1', readAt: undefined };
+    expect(n.status).toBe('SENT');
     expect(n.readAt).toBeUndefined();
   });
 
   it('crea una notificación leída', () => {
     const n: NotificationItem = {
+      ...base,
       id: 'n2',
-      channel: 'email',
-      severity: 'warning',
-      title: 'Alerta',
-      body: 'Cuerpo',
+      status: 'READ',
       readAt: '2026-01-02T10:00:00Z',
-      createdAt: '2026-01-01',
-      updatedAt: '2026-01-02',
     };
+    expect(n.status).toBe('READ');
     expect(n.readAt).toBeDefined();
   });
 
   it('permite metadata opcional', () => {
     const n: NotificationItem = {
+      ...base,
       id: 'n3',
-      channel: 'push',
-      severity: 'error',
-      title: 'Error',
-      body: 'Detalle',
       metadata: { key: 'value' },
-      createdAt: '2026-01-01',
-      updatedAt: '2026-01-01',
     };
     expect(n.metadata).toEqual({ key: 'value' });
   });
