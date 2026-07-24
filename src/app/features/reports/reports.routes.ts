@@ -28,4 +28,18 @@ export const REPORTS_ROUTES: Routes = [
         (m) => m.ReportsWizardPageComponent,
       ),
   },
+  /*
+   * Sprint cierre-C / F12 — report catalog (admin-only).
+   * Shows every report_job in the tenant + a placeholder card for the
+   * per-template cron scheduler arriving in cierre-C / B12.
+   */
+  {
+    path: 'catalog',
+    canActivate: [roleGuard],
+    data: { roles: [UserRole.TenantAdmin] },
+    loadComponent: () =>
+      import('./pages/report-catalog-page/report-catalog-page.component').then(
+        (m) => m.ReportCatalogPageComponent,
+      ),
+  },
 ];
