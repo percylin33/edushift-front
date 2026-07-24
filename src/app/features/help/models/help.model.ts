@@ -54,7 +54,7 @@ export const MANUAL_CHAPTER_FILES: ReadonlyArray<ManualChapterFile> = [
   '03-autoevaluacion.md',
 ];
 
-export interface ApiEnvelope<T> extends ApiResponse<T> {}
+export type ApiEnvelope<T> = ApiResponse<T>;
 
 /**
  * One progress row returned by

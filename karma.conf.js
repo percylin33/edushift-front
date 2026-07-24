@@ -25,6 +25,7 @@ module.exports = function (config) {
     plugins: [
       require('karma-jasmine'),
       require('karma-chrome-launcher'),
+      require('karma-coverage'),
       require('@angular-devkit/build-angular/plugins/karma'),
     ],
     customLaunchers: {
@@ -61,6 +62,28 @@ module.exports = function (config) {
         random: false,
       },
       clearContext: false, // leave Jasmine spec runner output visible
+    },
+    // Sprint cierre-A / I5: frontend coverage gate. The CI runner fails
+    // the build if statements/branches/functions/lines drop below the
+    // threshold; local `npm test` skips the gate (singleRun=false) so
+    // devs are not blocked while writing specs. The thresholds start
+    // modest (statements 50%, the rest 40%) and tighten progressively
+    // each sprint.
+    coverageReporter: {
+      dir: require('path').join(__dirname, 'coverage'),
+      subdir: '.',
+      reporters: [
+        { type: 'html', subdir: 'html' },
+        { type: 'text-summary' },
+      ],
+      check: {
+        global: {
+          statements: 50,
+          branches: 40,
+          functions: 40,
+          lines: 50,
+        },
+      },
     },
   });
 };

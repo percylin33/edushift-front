@@ -54,7 +54,8 @@ describe('errorInterceptor', () => {
 
   it('401 en endpoint no-auth limpia sesi—n y redirige a login', () => {
     spyOn(router, 'navigate');
-    httpClient.get('/api/sections').subscribe({ error: () => {} });
+    const noopObserver = { next: () => undefined, error: (_err: unknown) => undefined };
+    httpClient.get('/api/sections').subscribe(noopObserver);
 
     const req = httpMock.expectOne('/api/sections');
     req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
@@ -65,7 +66,7 @@ describe('errorInterceptor', () => {
 
   it('401 en /auth/login no limpia sesi—n ni redirige', () => {
     spyOn(router, 'navigate');
-    httpClient.post('/auth/login', {}).subscribe({ error: () => {} });
+    httpClient.post('/auth/login', {}).subscribe(noopObserver);
 
     const req = httpMock.expectOne('/auth/login');
     req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
@@ -76,7 +77,7 @@ describe('errorInterceptor', () => {
 
   it('403 redirige a /forbidden', () => {
     spyOn(router, 'navigate');
-    httpClient.get('/api/admin').subscribe({ error: () => {} });
+    httpClient.get('/api/admin').subscribe(noopObserver);
 
     const req = httpMock.expectOne('/api/admin');
     req.flush('Forbidden', { status: 403, statusText: 'Forbidden' });
@@ -85,7 +86,7 @@ describe('errorInterceptor', () => {
   });
 
   it('status 0 muestra notificaci—n de conexi—n', () => {
-    httpClient.get('/api/test').subscribe({ error: () => {} });
+    httpClient.get('/api/test').subscribe(noopObserver);
 
     const req = httpMock.expectOne('/api/test');
     req.flush('Network Error', { status: 0, statusText: 'Unknown Error' });
@@ -94,7 +95,7 @@ describe('errorInterceptor', () => {
   });
 
   it('500+ muestra notificaci—n de error inesperado', () => {
-    httpClient.get('/api/test').subscribe({ error: () => {} });
+    httpClient.get('/api/test').subscribe(noopObserver);
 
     const req = httpMock.expectOne('/api/test');
     req.flush('Server Error', { status: 500, statusText: 'Internal Server Error' });
