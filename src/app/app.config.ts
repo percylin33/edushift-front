@@ -1,4 +1,4 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, isDevMode, provideZoneChangeDetection } from '@angular/core';
 import {
   PreloadAllModules,
   TitleStrategy,
@@ -9,6 +9,7 @@ import {
   withRouterConfig,
   withViewTransitions,
 } from '@angular/router';
+import { provideServiceWorker } from '@angular/service-worker';
 
 import { routes } from './app.routes';
 import { provideCore } from '@core/providers';
@@ -48,6 +49,10 @@ export const appConfig: ApplicationConfig = {
       withViewTransitions(),
     ),
     { provide: TitleStrategy, useClass: AppTitleStrategy },
+    provideServiceWorker('ngsw-worker.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000',
+    }),
     ...provideCore(),
   ],
 };

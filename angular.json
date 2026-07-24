@@ -40,13 +40,25 @@
             ],
             "scripts": []
           },
+          "i18n": {
+            "locales": {
+              "es-PE": {
+                "translation": "src/locale/messages.es-PE.xlf"
+              },
+              "en-US": {
+                "translation": "src/locale/messages.en-US.xlf"
+              }
+            },
+            "sourceLocale": "es-PE"
+          },
           "configurations": {
             "production": {
+              "serviceWorker": "ngsw-config.json",
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "500kb",
+                  "maximumError": "1mb"
                 },
                 {
                   "type": "anyComponentStyle",

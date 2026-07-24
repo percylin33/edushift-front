@@ -33,7 +33,9 @@
     "@angular/forms": "~19.2.19",
     "@angular/platform-browser": "~19.2.19",
     "@angular/platform-browser-dynamic": "~19.2.19",
+    "@angular/localize": "~19.2.19",
     "@angular/router": "~19.2.19",
+    "@angular/service-worker": "~19.2.19",
     "@stomp/stompjs": "^7.0.0",
     "@types/dompurify": "^3.0.5",
     "@types/qrcode": "^1.5.6",
@@ -91,7 +93,9 @@
     "@angular/forms": "~19.2.19",
     "@angular/platform-browser": "~19.2.19",
     "@angular/platform-browser-dynamic": "~19.2.19",
+    "@angular/localize": "~19.2.19",
     "@angular/router": "~19.2.19",
+    "@angular/service-worker": "~19.2.19",
     "@angular/compiler-cli": "~19.2.19"
   }
 }
