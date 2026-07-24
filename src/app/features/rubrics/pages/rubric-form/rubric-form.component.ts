@@ -20,13 +20,14 @@ import {
 import { HttpErrorResponse } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { ApiError } from '@core/models';
-import { ROUTES } from '@core/constants';
+import { ROUTES, API } from '@core/constants';
 import {
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
   SpinnerComponent,
 } from '@shared/components';
+import { AiPanelComponent } from '@features/ai/components/ai-panel';
 import { CriterionEditorComponent, RubricSystemBadgeComponent } from '../../components';
 import { RubricsStore } from '../../store';
 import {
@@ -67,6 +68,7 @@ interface CriteriaLevels {
     PageHeaderComponent,
     RubricSystemBadgeComponent,
     SpinnerComponent,
+    AiPanelComponent,
   ],
   template: `
     <app-page-container size="wide">
@@ -155,6 +157,22 @@ interface CriteriaLevels {
             </div>
           </section>
 
+          <!-- Sprint cierre-B / F9 — AI rubric draft via SSE streaming (B11). -->
+          @if (!isReadonly() && !existing()) {
+            <app-ai-panel
+              title="Asistente IA — Generar borrador de rúbrica"
+              subtitle="Define los criterios y la IA propone niveles + descriptores."
+              triggerLabel="Generar rúbrica"
+              [idleHint]="'Indicá el nombre y al menos un criterio en el editor de abajo. La IA los va a expandir.'"
+              [draftSummary]="aiDraftSummary()"
+              [endpoint]="API.AI.GENERATE_RUBRIC_STREAM"
+              [requestBody]="aiRubricRequestBody()"
+              [parse]="parseRubricDraft"
+              (done)="applyRubricDraft($event)"
+              (failed)="onAiError($event)"
+            />
+          }
+
           <app-criterion-editor
             [readonly]="isReadonly()"
             [(ngModel)]="value"
@@ -228,6 +246,86 @@ export class RubricFormComponent implements OnInit, OnDestroy {
   };
 
   private readonly fieldErrors = signal<Record<string, string>>({});
+
+  // ============================================================================
+  // Sprint cierre-B / F9 — AI rubric draft integration
+  // ============================================================================
+
+  /** Builds the SSE request body from the current form state. */
+  protected readonly aiRubricRequestBody = computed(() => {
+    const meta = this.metaForm.getRawValue();
+    const criteriaNames = this.value.criteria
+      .map((c) => c.name?.trim())
+      .filter((n): n is string => !!n && n.length > 0);
+    return {
+      courseName: this.existing()?.description ?? 'Curso',
+      criteria: criteriaNames.length > 0 ? criteriaNames : ['Criterio de evaluación'],
+      seedRubricId: null,
+      levelCount: Math.max(2, this.value.levels.length || 4),
+    };
+  });
+
+  /** One-line summary shown in the AI panel after a successful generation. */
+  protected readonly aiDraftSummary = signal<string>('');
+
+  /** Pure JSON.parse; the BE hands us a full RubricGeneratorResult envelope. */
+  protected readonly parseRubricDraft = (json: string): {
+    rubric?: { title?: string; description?: string; criteria?: { name: string; weight: number; descriptors: Record<string, string> }[]; levels?: { code: string; name: string; order?: number }[] };
+  } => JSON.parse(json);
+
+  /** Applies the AI draft to the rubric form's criteria + levels + meta. */
+  protected applyRubricDraft(payload: {
+    rubric?: { title?: string; description?: string; criteria?: { name: string; weight: number; descriptors: Record<string, string> }[]; levels?: { code: string; name: string; order?: number }[] };
+  }): void {
+    const rubric = payload?.rubric;
+    if (!rubric) {
+      this.errorBanner.set?.('La IA no devolvió un borrador válido.');
+      return;
+    }
+    // Update meta (name + description) if the AI suggested values.
+    const patch: Record<string, unknown> = {};
+    if (rubric.title && !this.metaForm.get('name')?.value) patch['name'] = rubric.title;
+    if (rubric.description) patch['description'] = rubric.description;
+    if (Object.keys(patch).length > 0) this.metaForm.patchValue(patch);
+
+    // Replace levels with AI-suggested ones if any.
+    const newLevels: LevelInput[] = (rubric.levels ?? []).map((l, idx) => ({
+      code: l.code || `L${idx + 1}`,
+      name: l.name || `Nivel ${idx + 1}`,
+      order: l.order ?? idx + 1,
+    }));
+
+    // Map AI criteria to CriterionInput shape.
+    const newCriteria: CriterionInput[] = (rubric.criteria ?? []).map((c, idx) => {
+      const descriptors = c.descriptors ?? {};
+      return {
+        key: `c${idx + 1}`,
+        name: c.name,
+        description: '',
+        weight: typeof c.weight === 'number' ? c.weight : 1 / (rubric.criteria?.length || 1),
+        descriptors: newLevels.length > 0
+          ? newLevels.map((l) => ({ levelCode: l.code, descriptor: descriptors[l.code] ?? '' }))
+          : Object.entries(descriptors).map(([code, descriptor]) => ({ levelCode: code, descriptor })),
+      };
+    });
+
+    this.value = {
+      criteria: newCriteria,
+      levels: newLevels.length > 0 ? newLevels : this.value.levels,
+    };
+
+    this.aiDraftSummary.set(
+      `Aplicado: ${newCriteria.length} criterios, ${newLevels.length || this.value.levels.length} niveles. Revisá antes de guardar.`,
+    );
+  }
+
+  protected onAiError(message: string): void {
+    // Rubric store doesn't expose a setter for the error banner, so we
+    // surface it via a transient local signal that the template reads.
+    this.aiErrorMessage.set(message);
+  }
+
+  protected readonly aiErrorMessage = signal<string | null>(null);
   private routeSub?: Subscription;
 
   async ngOnInit(): Promise<void> {
