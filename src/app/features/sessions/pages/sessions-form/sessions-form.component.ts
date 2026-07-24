@@ -10,7 +10,7 @@ import {
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormArray } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { ROUTES } from '@core/constants';
+import { ROUTES, API } from '@core/constants';
 import {
   PageContainerComponent,
   PageHeaderComponent,
@@ -26,6 +26,7 @@ import {
   LearningSessionDetail,
   SessionStatus,
 } from '../../models';
+import { AiPanelComponent } from '@features/ai/components/ai-panel';
 
 /**
  * `/learning-sessions/new` y `/learning-sessions/:id/edit`
@@ -51,6 +52,7 @@ import {
     PageHeaderComponent,
     IconComponent,
     SpinnerComponent,
+    AiPanelComponent,
   ],
   template: `
     <app-page-container size="wide">
@@ -225,6 +227,26 @@ import {
             </div>
           </section>
 
+          <!-- ============================================================
+            Sprint cierre-B / F9 - AI panel that drafts a session outline
+            via the SSE streaming endpoint (B11). On the done event, the
+            parent applies the draft to the form fields below.
+          ============================================================= -->
+          @if (!isReadOnly() && !isEdit()) {
+            <app-ai-panel
+              title="Asistente IA — Generar borrador de sesión"
+              subtitle="Genera título, objetivo, actividades INICIO/DESARROLLO/CIERRE, recursos y criterios de evaluación."
+              triggerLabel="Generar borrador"
+              [idleHint]="'La IA va a completar los campos de abajo. Podés editar antes de guardar.'"
+              [draftSummary]="aiDraftSummary()"
+              [endpoint]="API.AI.GENERATE_SESSION_STREAM"
+              [requestBody]="aiSessionRequestBody()"
+              [parse]="parseSessionDraft"
+              (done)="applySessionDraft($event)"
+              (failed)="onAiError($event)"
+            />
+          }
+
           <!-- Contenido Pedagógico -->
           <section class="card">
             <header class="card-header">
@@ -389,6 +411,85 @@ export class SessionsFormComponent implements OnInit {
     const status = this.selectedSession()?.status;
     return status === SessionStatus.COMPLETED || status === SessionStatus.CANCELLED;
   });
+
+  // ============================================================================
+  // Sprint cierre-B / F9 — AI panel integration
+  // ============================================================================
+
+  /** Builds the SSE request body from the current form state. */
+  protected readonly aiSessionRequestBody = computed(() => {
+    const assignmentUuid = this.form.get('assignmentUuid')?.value ?? '';
+    const assignment = this.assignments().find((a: { publicUuid: string }) => a.publicUuid === assignmentUuid);
+    const courseName = assignment?.courseName ?? '';
+    const gradeName = assignment?.gradeName ?? '';
+    const title = this.form.get('title')?.value ?? '';
+    const durationMinutes = Number(this.form.get('durationMinutes')?.value ?? 45);
+    return {
+      topic: title,
+      courseId: assignment?.coursePublicUuid ?? '',
+      unitId: this.form.get('unitUuid')?.value ?? '',
+      durationMinutes,
+      competencyIds: Array.from(this.selectedCompetencies()),
+      capacityIds: Array.from(this.selectedCapacities()),
+    };
+  });
+
+  /** One-line summary shown in the AI panel after a successful generation. */
+  protected readonly aiDraftSummary = signal<string>('');
+
+  /** Pure JSON.parse; the BE hands us a full SessionGeneratorResult envelope. */
+  protected readonly parseSessionDraft = (json: string): { session: { title: string; summary: string; activities: { phase: string; name: string; durationMinutes: number; description: string }[]; resources: { type: string; title: string; url?: string; description: string }[]; evaluationCriteria: { name: string; weight: number; description: string }[] }; persistedSessionUuid?: string } => JSON.parse(json);
+
+  /** Applies the AI draft to the form fields. */
+  protected applySessionDraft(payload: { session: { title: string; summary: string; activities: { phase: string; name: string; durationMinutes: number; description: string }[]; resources: { type: string; title: string; url?: string; description: string }[]; evaluationCriteria: { name: string; weight: number; description: string }[] }; persistedSessionUuid?: string }): void {
+    const session = payload?.session;
+    if (!session) {
+      this.errorMessage.set('La IA no devolvió un borrador válido.');
+      return;
+    }
+    this.form.patchValue({
+      title: session.title,
+      objective: session.summary,
+    });
+    // Replace activities formArray with the AI-suggested ones.
+    this.activitiesArray.clear();
+    for (const a of session.activities ?? []) {
+      this.activitiesArray.push(
+        this.fb.group({
+          phase: [a.phase ?? 'INICIO', Validators.required],
+          name: [a.name ?? '', [Validators.required, Validators.maxLength(120)]],
+          durationMinutes: [a.durationMinutes ?? 0, [Validators.required, Validators.min(5), Validators.max(180)]],
+          description: [a.description ?? '', [Validators.required, Validators.maxLength(1000)]],
+        }),
+      );
+    }
+    // Replace materials formArray.
+    this.materialsArray.clear();
+    for (const r of session.resources ?? []) {
+      this.materialsArray.push(
+        this.fb.group({
+          type: [r.type ?? 'LINK', Validators.required],
+          title: [r.title ?? '', Validators.required],
+          url: [r.url ?? ''],
+        }),
+      );
+    }
+    // Append evaluation criteria to observations for now (the form has no dedicated criteria UI yet).
+    const criteria = (session.evaluationCriteria ?? [])
+      .map((c) => `- ${c.name} (${Math.round(c.weight * 100)}%): ${c.description}`)
+      .join('\n');
+    const existingObs = this.form.get('observations')?.value ?? '';
+    const merged = existingObs ? `${existingObs}\n\nCriterios de evaluación:\n${criteria}` : `Criterios de evaluación:\n${criteria}`;
+    this.form.patchValue({ observations: merged });
+
+    this.aiDraftSummary.set(
+      `Aplicado: ${session.activities?.length ?? 0} actividades, ${session.resources?.length ?? 0} materiales, ${session.evaluationCriteria?.length ?? 0} criterios. Revisá antes de guardar.`,
+    );
+  }
+
+  protected onAiError(message: string): void {
+    this.errorMessage.set(`IA: ${message}`);
+  }
 
   protected readonly selectedCourseUuid = computed(() => {
     const assignmentUuid = this.form.get('assignmentUuid')?.value;

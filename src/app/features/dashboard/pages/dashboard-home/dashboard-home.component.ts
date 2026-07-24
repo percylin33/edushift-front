@@ -14,8 +14,10 @@ import {
   StatCardComponent,
 } from '@shared/components';
 import { AttendanceRecentSession, AttendanceSessionSlot, AttendanceTopSection, TeacherDashboardSnapshot, TeacherMySession } from '../../models';
+import { AnalyticsApiService, AnalyticsChartPoint, AnalyticsChartSeries, AnalyticsKpiEntry } from '../../services/analytics-api.service';
 import { DashboardApiService } from '../../services/dashboard-api.service';
 import { DashboardStore } from '../../store/dashboard.store';
+import { AnalyticsTrendChartComponent } from '../../components/analytics-trend-chart';
 
 interface QuickLink {
   readonly id: string;
@@ -65,6 +67,7 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
     EmptyStateComponent,
     IconComponent,
     SpinnerComponent,
+    AnalyticsTrendChartComponent,
   ],
   template: `
     <app-page-container size="wide">
@@ -132,6 +135,79 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
         @if (lastUpdatedLabel(); as stamp) {
           <p class="mt-3 text-xs text-content-subtle">{{ stamp }}</p>
         }
+
+        <!-- =============================================================
+          Sprint cierre-A / F10 — tenant KPI cards (analytics B1)
+          Three high-level indicators alongside the existing attendance KPIs.
+        ============================================================== -->
+        <section
+          aria-label="Indicadores (cierre-A / B1)"
+          class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          data-testid="analytics-kpi-section"
+        >
+          <div class="card">
+            <div class="card-body">
+              <p class="text-xs uppercase tracking-wide text-content-subtle">Asistencia</p>
+              <p class="mt-1 text-3xl font-semibold tabular-nums text-content">
+                {{ formatRate(attendanceKpi()?.value) }}
+              </p>
+              <p class="mt-1 text-xs text-content-muted">
+                Últimos 30 días · ATTENDANCE_RATE
+              </p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body">
+              <p class="text-xs uppercase tracking-wide text-content-subtle">Rendimiento</p>
+              <p class="mt-1 text-3xl font-semibold tabular-nums text-content">
+                {{ formatRate(performanceKpi()?.value) }}
+              </p>
+              <p class="mt-1 text-xs text-content-muted">
+                Últimos 30 días · PERFORMANCE_AVG
+              </p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body">
+              <p class="text-xs uppercase tracking-wide text-content-subtle">Morosidad</p>
+              <p class="mt-1 text-3xl font-semibold tabular-nums text-content">
+                {{ formatRate(morosidadKpi()?.value) }}
+              </p>
+              <p class="mt-1 text-xs text-content-muted">
+                Últimos 30 días · MOROSIDAD
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================
+          Sprint cierre-A / F10 — tenant trend charts
+          Three line charts using ng2-charts, fed by the B1 chart endpoints.
+        ============================================================== -->
+        <section
+          aria-label="Tendencia (últimos 30 días)"
+          class="mt-6 grid gap-4 lg:grid-cols-3"
+          data-testid="analytics-trend-section"
+        >
+          <app-analytics-trend-chart
+            title="Tasa de asistencia"
+            subtitle="ATTENDANCE_RATE — % del 0..1"
+            [data]="analyticsAttendanceSeries()"
+            color="#6366f1"
+          />
+          <app-analytics-trend-chart
+            title="Rendimiento académico"
+            subtitle="PERFORMANCE_AVG — normalizado 0..1"
+            [data]="analyticsPerformanceSeries()"
+            color="#10b981"
+          />
+          <app-analytics-trend-chart
+            title="Morosidad"
+            subtitle="% facturas vencidas vs. emitidas"
+            [data]="analyticsMorosidadSeries()"
+            color="#ef4444"
+          />
+        </section>
 
         <section class="mt-8 grid gap-6 lg:grid-cols-3">
           <!-- Top absent (7d) -->
@@ -409,12 +485,44 @@ export class DashboardHomeComponent implements OnInit {
   private readonly tenant = inject(TenantService);
   private readonly auth = inject(AuthService);
   private readonly api = inject(DashboardApiService);
+  private readonly analyticsApi = inject(AnalyticsApiService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly store = inject(DashboardStore);
 
   /** Sprint 9B / FE-9B.1 — teacher snapshot signal. Hydrated by
    *  {@link loadTeacherDashboard} on init if the user is a TEACHER. */
   protected readonly teacherSnapshot = signal<TeacherDashboardSnapshot | null>(null);
+
+  /** Sprint cierre-A / F10 — analytics chart series (30d window). */
+  protected readonly analyticsKpis = signal<readonly AnalyticsKpiEntry[]>([]);
+  protected readonly analyticsAttendanceSeries = signal<readonly AnalyticsChartPoint[]>([]);
+  protected readonly analyticsPerformanceSeries = signal<readonly AnalyticsChartPoint[]>([]);
+  protected readonly analyticsMorosidadSeries = signal<readonly AnalyticsChartPoint[]>([]);
+  protected readonly analyticsLoading = signal(false);
+
+  /** Convenience computed: ATTENDANCE_RATE value (or null if not loaded). */
+  protected readonly attendanceKpi = computed<AnalyticsKpiEntry | null>(() => {
+		const k = this.analyticsKpis().find((x) => x.metricKey === 'ATTENDANCE_RATE');
+		return k ?? null;
+	});
+
+  /** Convenience computed: PERFORMANCE_AVG value (or null if not loaded). */
+  protected readonly performanceKpi = computed<AnalyticsKpiEntry | null>(() => {
+		const k = this.analyticsKpis().find((x) => x.metricKey === 'PERFORMANCE_AVG');
+		return k ?? null;
+	});
+
+  /** Convenience computed: MOROSIDAD value (or null if not loaded). */
+  protected readonly morosidadKpi = computed<AnalyticsKpiEntry | null>(() => {
+		const k = this.analyticsKpis().find((x) => x.metricKey === 'MOROSIDAD');
+		return k ?? null;
+	});
+
+  /** Formats a 0..1 KPI rate as a 0..100 percentage string. */
+  protected formatRate(value: number | null | undefined): string {
+		if (value == null || Number.isNaN(value)) return '—';
+		return `${(value * 100).toFixed(1)}%`;
+	}
 
   protected readonly isAdmin = computed(() => this.auth.hasRole(UserRole.TenantAdmin));
   protected readonly isTeacher = computed(() => this.auth.hasRole(UserRole.Teacher));
@@ -632,6 +740,9 @@ export class DashboardHomeComponent implements OnInit {
     } else if (this.isTeacher()) {
       this.loadTeacherDashboard();
     }
+    // Sprint cierre-A / F10: load analytics for both admin and teacher
+    // views (the BE endpoint permits TENANT_ADMIN + TEACHER + STUDENT).
+    this.loadAnalytics();
   }
 
   protected refresh(): void {
@@ -640,6 +751,37 @@ export class DashboardHomeComponent implements OnInit {
     } else if (this.isTeacher()) {
       this.loadTeacherDashboard();
     }
+    this.loadAnalytics();
+  }
+
+  /**
+   * Sprint cierre-A / F10: fetch the current KPI summary + the 30-day
+   * attendance / performance / morosidad trend series. Failures are
+   * silent (the section shows empty states); the rest of the dashboard
+   * keeps working.
+   */
+  private loadAnalytics(): void {
+    this.analyticsLoading.set(true);
+    const from = new Date(Date.now() - 30 * 86_400_000).toISOString();
+    const to = new Date().toISOString();
+
+    this.analyticsApi.getKpis().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (s) => this.analyticsKpis.set(s.kpis),
+      error: () => this.analyticsKpis.set([]),
+    });
+    this.analyticsApi.getAttendanceSeries(from, to).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (s) => this.analyticsAttendanceSeries.set(s.points),
+      error: () => this.analyticsAttendanceSeries.set([]),
+    });
+    this.analyticsApi.getPerformanceSeries(from, to).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (s) => this.analyticsPerformanceSeries.set(s.points),
+      error: () => this.analyticsPerformanceSeries.set([]),
+    });
+    this.analyticsApi.getMorosidadSeries(from, to).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (s) => this.analyticsMorosidadSeries.set(s.points),
+      error: () => this.analyticsMorosidadSeries.set([]),
+      complete: () => this.analyticsLoading.set(false),
+    });
   }
 
   /** Sprint 9B / FE-9B.1 — fetch the teacher-scoped snapshot. */

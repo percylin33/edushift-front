@@ -48,6 +48,21 @@ export const API = {
     /** Sprint 9B / BE-9B.1 — teacher-scoped attendance snapshot. */
     TEACHER: `${BASE}/dashboard/teacher`,
   },
+  /**
+   * Sprint cierre-A / B1 + F10 — tenant KPI dashboard.
+   * Endpoints live under {@code /v1/analytics/*} on the BE side.
+   * Roles: TENANT_ADMIN + TEACHER + STUDENT.
+   */
+  ANALYTICS: {
+    /** `GET /v1/analytics/kpis` — current-period KPI summary. */
+    KPIS: `${BASE}/analytics/kpis`,
+    /** `GET /v1/analytics/charts/attendance?from=&to=`. */
+    CHARTS_ATTENDANCE: `${BASE}/analytics/charts/attendance`,
+    /** `GET /v1/analytics/charts/performance?from=&to=`. */
+    CHARTS_PERFORMANCE: `${BASE}/analytics/charts/performance`,
+    /** `GET /v1/analytics/charts/morosidad?from=&to=`. */
+    CHARTS_MOROSIDAD: `${BASE}/analytics/charts/morosidad`,
+  },
   USERS: {
     ROOT: `${BASE}/users`,
     /** Detail / patch endpoint for a specific user. */
@@ -84,6 +99,16 @@ export const API = {
       `${BASE}/teachers/${encodeURIComponent(publicUuid)}/link-user`,
     /** {@code POST /v1/teachers/{publicUuid}/invite} — crea invitación con metadata.teacherId. */
     INVITE: (publicUuid: string) => `${BASE}/teachers/${encodeURIComponent(publicUuid)}/invite`,
+    /**
+     * Sprint cierre-B / F7 — teacher bulk import.
+     *  - {@code POST /v1/teachers/bulk-import} (multipart, TENANT_ADMIN).
+     *  - {@code GET  /v1/teachers/bulk-import/{publicUuid}} — poll status.
+     */
+    BULK_IMPORT: {
+      ROOT: `${BASE}/teachers/bulk-import`,
+      BY_ID: (publicUuid: string) =>
+        `${BASE}/teachers/bulk-import/${encodeURIComponent(publicUuid)}`,
+    },
     /**
      * {@code GET|POST /v1/teachers/{publicUuid}/assignments} (BE-4.7).
      * {@code GET} acepta {@code ?periodId&active=true|false}.
@@ -331,6 +356,9 @@ export const API = {
     GENERATE_SESSION: `${BASE}/ai/generate-session`,
     // Sprint 8 / BE-8.2 — generate rubric criteria (supports seedRubricId fork, ADR-8.3)
     GENERATE_RUBRIC: `${BASE}/ai/generate-rubric`,
+    // Sprint cierre-A / B11 — SSE streaming variants of the generators.
+    GENERATE_SESSION_STREAM: `${BASE}/ai/generate-session/stream`,
+    GENERATE_RUBRIC_STREAM: `${BASE}/ai/generate-rubric/stream`,
     // Sprint 8 / BE-8.4 — usage dashboard (TENANT_ADMIN)
     USAGE_SUMMARY: `${BASE}/ai/usage/summary`,
     USAGE_DAILY: `${BASE}/ai/usage/daily`,
