@@ -26,7 +26,7 @@ describe('NotificationsHomeComponent', () => {
     category: 'SYSTEM',
     channel: 'BOTH',
     status: 'SENT',
-    subject: 'TEACHER_ASSIGNED · 2026-07-22T10:00:00Z',
+    subject: 'Has sido asignado(a) — A',
     bodyHtml:
       '{"courseCode":"SECUNDARIA","sectionName":"A","teacherName":"César Ortega"}',
     sentAt: '2026-07-22T10:00:00Z',
@@ -79,11 +79,6 @@ describe('NotificationsHomeComponent', () => {
     expect(component.isRead({ ...sampleRow, status: 'READ' })).toBeTrue();
     expect(component.isRead({ ...sampleRow, status: 'SENT', readAt: '2026-07-22T10:05:00Z' })).toBeTrue();
     expect(component.isRead({ ...sampleRow, status: 'SENT' })).toBeFalse();
-  });
-
-  it('humanizeTemplateKey capitaliza separando por guión bajo', () => {
-    expect(component.humanizeTemplateKey('TEACHER_ASSIGNED')).toBe('Teacher Assigned');
-    expect(component.humanizeTemplateKey('STUDENT_ABSENT')).toBe('Student Absent');
   });
 
   it('summarize deriva un resumen a partir del bodyHtml JSON', () => {

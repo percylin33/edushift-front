@@ -112,10 +112,12 @@ import { NotificationItem } from '../../models';
               <div class="min-w-0 flex-1">
                 <div class="flex items-center justify-between gap-3">
                   <p class="truncate text-sm font-semibold text-content">
-                    {{ humanizeTemplateKey(n.templateKey) }}
+                    {{ n.subject }}
                   </p>
                   <span class="shrink-0 text-xs text-content-subtle">
-                    {{ n.sentAt | date: 'short' }}
+                    @if (n.sentAt) {
+                      {{ n.sentAt | date: 'short' }}
+                    }
                   </span>
                 </div>
                 <p class="mt-0.5 line-clamp-2 text-sm text-content-muted">
@@ -132,7 +134,7 @@ import { NotificationItem } from '../../models';
                     {{ n.status === 'READ' ? 'Leída' : 'Nueva' }}
                   </span>
                   <span class="text-content-subtle">·</span>
-                  <span class="text-content-subtle">{{ n.category }}</span>
+                  <span class="text-content-subtle">{{ categoryLabel(n.category) }}</span>
                   @if (!isRead(n)) {
                     <span class="text-content-subtle">·</span>
                     <button
@@ -208,12 +210,21 @@ export class NotificationsHomeComponent implements OnInit {
     }
   }
 
-  humanizeTemplateKey(key: string): string {
-    return key
-      .toLowerCase()
-      .split('_')
-      .map((seg) => (seg ? seg[0].toUpperCase() + seg.slice(1) : seg))
-      .join(' ');
+  categoryLabel(cat: string): string {
+    return (
+      (
+        {
+          ABSENCE: 'Ausencias',
+          GRADE: 'Calificaciones',
+          QUIZ: 'Quizzes',
+          TASK: 'Tareas',
+          AI_FEEDBACK: 'Feedback IA',
+          ANNOUNCEMENT: 'Anuncios',
+          PAYMENT: 'Pagos',
+          SYSTEM: 'Sistema',
+        } as Record<string, string>
+      )[cat] ?? cat
+    );
   }
 
   summarize(n: NotificationItem): string {
@@ -222,11 +233,15 @@ export class NotificationsHomeComponent implements OnInit {
       const section = parsed['sectionName'];
       const teacher = parsed['teacherName'];
       const course = parsed['courseCode'];
+      const title = parsed['title'];
+      const body = parsed['body'];
       const parts: string[] = [];
       if (course) parts.push(`Curso ${course}`);
       if (section) parts.push(`sección ${section}`);
       if (teacher && teacher !== n.subject) parts.push(`docente ${teacher}`);
       if (parts.length > 0) return parts.join(' · ');
+      if (title) return title;
+      if (body) return body.replace(/<[^>]+>/g, '').slice(0, 120);
     } catch {
       /* payload not JSON — fall through */
     }

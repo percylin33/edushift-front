@@ -8,7 +8,7 @@ describe('NotificationItem', () => {
     category: 'SYSTEM' as const,
     channel: 'BOTH' as const,
     status: 'SENT' as const,
-    subject: 'TEACHER_ASSIGNED · 2026-01-01',
+    subject: 'Has sido asignado(a) — A',
     bodyHtml: '{"courseCode":"MAT","sectionName":"A"}',
     sentAt: '2026-01-01T10:00:00Z',
     createdAt: '2026-01-01',

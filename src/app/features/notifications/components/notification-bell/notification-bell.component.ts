@@ -240,7 +240,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
         [
           {
             id: p.notificationUuid,
-            title: p.subject ?? humanize(p.templateKey),
+            title: p.subject ?? '',
             body: 'Nueva notificación',
             createdAt: p.occurredAt,
             readAt: null,
@@ -288,11 +288,4 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
       this.unreadCount.set(0);
     });
   }
-}
-
-function humanize(key: string): string {
-  return key
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/^\w/, (c) => c.toUpperCase());
 }

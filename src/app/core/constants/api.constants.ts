@@ -251,6 +251,19 @@ export const API = {
       /** {@code GET|PUT|DELETE /v1/time-slots/{publicUuid}} (BE-5A.3). */
       BY_ID: (publicUuid: string) => `${BASE}/time-slots/${encodeURIComponent(publicUuid)}`,
     },
+    /**
+     * Sprint cierre-C / B4 -- classrooms catalog (per-tenant).
+     *  - `GET    /v1/academic/classrooms`           (paginated)
+     *  - `GET    /v1/academic/classrooms/{uuid}`    (one)
+     *  - `POST   /v1/academic/classrooms`           (create, TENANT_ADMIN)
+     *  - `PUT    /v1/academic/classrooms/{uuid}`    (update, TENANT_ADMIN)
+     *  - `DELETE /v1/academic/classrooms/{uuid}`    (soft-delete, TENANT_ADMIN)
+     */
+    CLASSROOMS: {
+      ROOT: `${BASE}/academic/classrooms`,
+      BY_ID: (publicUuid: string) =>
+        `${BASE}/academic/classrooms/${encodeURIComponent(publicUuid)}`,
+    },
     PERIODS: {
       /** {@code GET|POST /v1/academic/periods}. {@code GET} acepta {@code ?academicYearId&periodType}. */
       ROOT: `${BASE}/academic/periods`,
@@ -414,6 +427,18 @@ export const API = {
       ROOT: `${BASE}/notifications/templates`,
       BY_ID: (publicUuid: string) =>
         `${BASE}/notifications/templates/${encodeURIComponent(publicUuid)}`,
+    },
+    /**
+     * Sprint cierre-C / B8 — FCM push device registration.
+     *  - `POST /v1/notifications/devices`         (register FCM token for current user)
+     *  - `PUT  /v1/notifications/devices/heartbeat`  (revive + refresh last_seen_at)
+     *  - `DELETE /v1/notifications/devices`       (unregister on logout)
+     * Endpoints return 204; the FE just consumes the bearer token
+     * for tenant-scoped upserts.
+     */
+    DEVICES: {
+      ROOT: `${BASE}/notifications/devices`,
+      HEARTBEAT: `${BASE}/notifications/devices/heartbeat`,
     },
   },
   ATTENDANCE: {
