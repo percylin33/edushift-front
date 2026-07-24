@@ -380,6 +380,20 @@ export const API = {
   REPORTS: {
     ROOT: `${BASE}/reports`,
     EXPORT: `${BASE}/reports/export`,
+    /**
+     * Sprint cierre-C / B12 — recurring report templates.
+     *  - `GET    /v1/reports/templates`           (list, paged)
+     *  - `GET    /v1/reports/templates/{uuid}`    (one)
+     *  - `POST   /v1/reports/templates`           (create)
+     *  - `PUT    /v1/reports/templates/{uuid}`    (update)
+     *  - `DELETE /v1/reports/templates/{uuid}`    (soft-delete)
+     * All gated by `hasRole('TENANT_ADMIN')`.
+     */
+    TEMPLATES: {
+      ROOT: `${BASE}/reports/templates`,
+      BY_ID: (publicUuid: string) =>
+        `${BASE}/reports/templates/${encodeURIComponent(publicUuid)}`,
+    },
   },
   NOTIFICATIONS: {
     ROOT: `${BASE}/notifications`,
