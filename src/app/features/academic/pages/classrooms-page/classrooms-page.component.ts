@@ -148,7 +148,12 @@ import {
 				<div class="card mt-6" data-testid="classroom-form">
 					<header class="card-header flex items-center justify-between">
 						<h2 class="card-title">{{ draft.existing ? 'Editar aula' : 'Nueva aula' }}</h2>
-						<button type="button" class="btn btn-ghost btn-sm" (click)="cancelEdit()">
+						<button
+							type="button"
+							class="btn btn-ghost btn-sm"
+							(click)="cancelEdit()"
+							aria-label="Cancelar"
+						>
 							<app-icon name="x" [size]="14" />
 						</button>
 					</header>

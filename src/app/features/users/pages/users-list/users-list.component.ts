@@ -276,17 +276,19 @@ type UsersTab = 'users' | 'invitations';
                   class="btn btn-outline btn-sm"
                   [disabled]="!canPrev() || loading()"
                   (click)="prev()"
+                  aria-label="Anterior"
                 >
                   <app-icon name="chevron-left" [size]="16" />
-                  <span class="hidden sm:inline">Anterior</span>
+                  <span class="hidden sm:inline" aria-hidden="true">Anterior</span>
                 </button>
                 <button
                   type="button"
                   class="btn btn-outline btn-sm"
                   [disabled]="!canNext() || loading()"
                   (click)="next()"
+                  aria-label="Siguiente"
                 >
-                  <span class="hidden sm:inline">Siguiente</span>
+                  <span class="hidden sm:inline" aria-hidden="true">Siguiente</span>
                   <app-icon name="chevron-right" [size]="16" />
                 </button>
               </div>
