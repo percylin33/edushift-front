@@ -69,9 +69,9 @@ import { UsersStore } from '../../store';
           [title]="u.fullName || u.email"
           [subtitle]="rolesSubtitle(u)"
         >
-          <a [routerLink]="usersLink" class="btn btn-ghost btn-sm">
+          <a [routerLink]="usersLink" class="btn btn-ghost btn-sm" aria-label="Volver">
             <app-icon name="chevron-left" [size]="16" />
-            <span class="hidden sm:inline">Volver</span>
+            <span class="hidden sm:inline" aria-hidden="true">Volver</span>
           </a>
           @if (u.status === Active) {
             <button
