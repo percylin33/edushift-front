@@ -14,6 +14,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { IconComponent } from '@shared/components';
 import { NavigationItem } from '../../models';
+import { NavLabels } from '../../i18n/nav-labels.service';
 
 /**
  * Single sidebar entry.
@@ -46,7 +47,7 @@ import { NavigationItem } from '../../models';
         @if (item().icon; as icon) {
           <app-icon [name]="icon" [size]="20" class="shrink-0" />
         }
-        <span class="flex-1 truncate text-left">{{ item().label }}</span>
+        <span class="flex-1 truncate text-left">{{ label() }}</span>
         @if (item().badge; as badge) {
           <span class="badge badge-primary text-2xs">{{ badge }}</span>
         }
@@ -74,7 +75,7 @@ import { NavigationItem } from '../../models';
                     childActive.isActive,
                 }"
               >
-                <span class="truncate">{{ child.label }}</span>
+                <span class="truncate">{{ childLabels[child.id] || child.label }}</span>
                 @if (child.badge; as badge) {
                   <span class="badge badge-primary ml-auto text-2xs">{{ badge }}</span>
                 }
@@ -89,7 +90,7 @@ import { NavigationItem } from '../../models';
         routerLinkActive
         #rla="routerLinkActive"
         [routerLinkActiveOptions]="{ exact: item().exactMatch ?? false }"
-        [attr.title]="collapsed() ? item().label : null"
+        [attr.title]="collapsed() ? label() : null"
         [attr.aria-current]="rla.isActive ? 'page' : null"
         (click)="navigated.emit()"
         class="group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
@@ -108,7 +109,7 @@ import { NavigationItem } from '../../models';
           <app-icon [name]="icon" [size]="20" class="shrink-0" />
         }
         @if (!collapsed()) {
-          <span class="flex-1 truncate">{{ item().label }}</span>
+          <span class="flex-1 truncate">{{ label() }}</span>
           @if (item().badge; as badge) {
             <span class="badge badge-primary text-2xs">{{ badge }}</span>
           }
@@ -119,10 +120,20 @@ import { NavigationItem } from '../../models';
 })
 export class SidebarItemComponent {
   private readonly router = inject(Router);
+  private readonly navLabels = inject(NavLabels);
 
   readonly item = input.required<NavigationItem>();
   readonly collapsed = input<boolean>(false);
   readonly navigated = output<void>();
+
+  /** Translated label for the current item (cierre-D / I4 bulk translation). */
+  readonly label = computed(() => this.navLabels.labelFor(this.item().id));
+  /** Translated labels for the children (id → label). */
+  readonly childLabels = computed<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    for (const c of this.item().children ?? []) out[c.id] = this.navLabels.labelFor(c.id);
+    return out;
+  });
 
   readonly hasChildren = computed(() => (this.item().children?.length ?? 0) > 0);
 

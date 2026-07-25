@@ -5,6 +5,7 @@ import { APP } from '@core/constants';
 import { TenantService } from '@core/services';
 import { LayoutService, NavigationService } from '../../services';
 import { SidebarItemComponent } from './sidebar-item.component';
+import { NavLabels } from '../../i18n/nav-labels.service';
 
 /**
  * App sidebar. Single component handles both modes:
@@ -71,7 +72,7 @@ import { SidebarItemComponent } from './sidebar-item.component';
               <p
                 class="mb-2 px-3 text-2xs font-semibold uppercase tracking-wider text-content-subtle"
               >
-                {{ group.label }}
+                {{ navLabels.labelFor(group.id) }}
               </p>
             }
             <ul class="space-y-1">
@@ -114,6 +115,7 @@ export class SidebarComponent {
   private readonly layout = inject(LayoutService);
   private readonly navigation = inject(NavigationService);
   private readonly tenant = inject(TenantService);
+  protected readonly navLabels = inject(NavLabels);
 
   readonly groups = this.navigation.groups;
   readonly collapsed = this.layout.sidebarCollapsed;
