@@ -21,6 +21,7 @@ import {
 	PageHeaderComponent,
 	SpinnerComponent,
 } from '@shared/components';
+import { CommonLabels } from '@core/i18n/common-labels.service';
 import {
 	Classroom,
 	ClassroomType,
@@ -82,7 +83,7 @@ import {
 
 			@if (loading() && classrooms().length === 0) {
 				<div class="flex items-center justify-center py-16">
-					<app-spinner [size]="24" label="Cargando catálogo…" />
+					<app-spinner [size]="24" [label]="commonLabels.cargando()" />
 				</div>
 			} @else if (classrooms().length === 0) {
 				<app-empty-state
@@ -133,7 +134,7 @@ import {
 												[attr.data-testid]="'classroom-delete-' + c.publicUuid"
 											>
 												<app-icon name="trash-2" [size]="12" />
-												<span>Eliminar</span>
+							<span>{{ commonLabels.eliminar() }}</span>
 											</button>
 										</td>
 									</tr>
@@ -193,7 +194,7 @@ import {
 						}
 
 						<footer class="flex justify-end gap-2 sm:col-span-2">
-							<button type="button" class="btn btn-ghost btn-sm" (click)="cancelEdit()">Cancelar</button>
+							<button type="button" class="btn btn-ghost btn-sm" (click)="cancelEdit()">{{ commonLabels.cancelar() }}</button>
 							<button
 								type="submit"
 								class="btn btn-primary btn-sm"
@@ -225,7 +226,7 @@ import {
 						</p>
 					</div>
 					<footer class="card-header flex justify-end gap-2">
-						<button type="button" class="btn btn-ghost btn-sm" (click)="cancelDelete()">Cancelar</button>
+						<button type="button" class="btn btn-ghost btn-sm" (click)="cancelDelete()">{{ commonLabels.cancelar() }}</button>
 						<button
 							type="button"
 							class="btn btn-danger btn-sm"
@@ -234,8 +235,8 @@ import {
 							data-testid="classroom-delete-confirm"
 						>
 							<app-icon name="trash-2" [size]="14" />
-							<span>Eliminar</span>
-						</button>
+										<span>{{ commonLabels.eliminar() }}</span>
+									</button>
 					</footer>
 				</div>
 			}
@@ -245,6 +246,7 @@ import {
 export class ClassroomsPageComponent implements OnInit {
 	private readonly fb = inject(FormBuilder);
 	private readonly api = inject(ClassroomsApiService);
+	protected readonly commonLabels = inject(CommonLabels);
 
 	protected readonly TYPES: readonly { value: ClassroomType; label: string }[] = [
 		{ value: 'CLASSROOM', label: 'Aula' },
