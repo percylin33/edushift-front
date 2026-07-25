@@ -67,9 +67,10 @@ import { UnitFormModalComponent } from './unit-form-modal.component';
         class="btn btn-primary btn-sm"
         [disabled]="saving() || !courseUuid()"
         (click)="openCreate()"
+        aria-label="Nueva unidad"
       >
         <app-icon name="plus" [size]="14" />
-        <span class="hidden sm:inline">Nueva unidad</span>
+        <span class="hidden sm:inline" aria-hidden="true">Nueva unidad</span>
       </button>
     </header>
 

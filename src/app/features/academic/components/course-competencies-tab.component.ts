@@ -61,18 +61,20 @@ import {
           class="btn btn-outline btn-sm"
           [disabled]="saving() || !courseUuid()"
           (click)="onSeed()"
+          aria-label="Seed MINEDU"
         >
           <app-icon name="sparkles" [size]="14" />
-          <span class="hidden sm:inline">Seed MINEDU</span>
+          <span class="hidden sm:inline" aria-hidden="true">Seed MINEDU</span>
         </button>
         <button
           type="button"
           class="btn btn-primary btn-sm"
           [disabled]="saving() || !courseUuid()"
           (click)="openCompetencyCreate()"
+          aria-label="Nueva Competencia"
         >
           <app-icon name="plus" [size]="14" />
-          <span class="hidden sm:inline">Nueva Competencia</span>
+          <span class="hidden sm:inline" aria-hidden="true">Nueva Competencia</span>
         </button>
       </div>
     </header>

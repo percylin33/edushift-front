@@ -84,9 +84,10 @@ import {
           [disabled]="!canBulkGenerate()"
           (click)="openBulkPreview()"
           [title]="bulkButtonTooltip()"
+          [attr.aria-label]="'Generar ' + (periodTypeLabel(bulkType()) | lowercase) + 's'"
         >
           <app-icon name="sparkles" [size]="16" />
-          <span class="hidden sm:inline">
+          <span class="hidden sm:inline" aria-hidden="true">
             Generar {{ periodTypeLabel(bulkType()) | lowercase }}s
           </span>
         </button>
@@ -96,9 +97,10 @@ import {
           [disabled]="!canCreate()"
           (click)="openCreate()"
           [title]="canCreate() ? '' : 'El año seleccionado está cerrado'"
+          aria-label="Nuevo periodo"
         >
           <app-icon name="plus" [size]="16" />
-          <span class="hidden sm:inline">Nuevo periodo</span>
+          <span class="hidden sm:inline" aria-hidden="true">Nuevo periodo</span>
         </button>
       </div>
     </header>
