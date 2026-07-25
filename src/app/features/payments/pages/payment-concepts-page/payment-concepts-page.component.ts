@@ -21,6 +21,7 @@ import {
 	PageHeaderComponent,
 	SpinnerComponent,
 } from '@shared/components';
+import { CommonLabels } from '@core/i18n/common-labels.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
 	PaymentConcept,
@@ -95,7 +96,7 @@ import {
 
 			@if (loading() && concepts().length === 0) {
 				<div class="flex items-center justify-center py-16">
-					<app-spinner [size]="24" label="Cargando catálogo…" />
+					<app-spinner [size]="24" [label]="commonLabels.cargando()" />
 				</div>
 			} @else if (concepts().length === 0) {
 				<app-empty-state
@@ -162,7 +163,7 @@ import {
 												[attr.data-testid]="'concept-delete-' + c.publicUuid"
 											>
 												<app-icon name="trash-2" [size]="12" />
-												<span>Eliminar</span>
+					<span>{{ commonLabels.eliminar() }}</span>
 											</button>
 										</td>
 									</tr>
@@ -337,7 +338,7 @@ import {
 							data-testid="concepts-delete-confirm"
 						>
 							<app-icon name="trash-2" [size]="14" />
-							<span>Eliminar</span>
+							<span>{{ commonLabels.eliminar() }}</span>
 						</button>
 					</footer>
 				</div>
@@ -348,6 +349,7 @@ import {
 export class PaymentConceptsPageComponent implements OnInit {
 	private readonly fb = inject(FormBuilder);
 	private readonly conceptsApi = inject(PaymentConceptsApiService);
+	protected readonly commonLabels = inject(CommonLabels);
 
 	protected readonly CATEGORIES: readonly PaymentConceptCategory[] = [
 		'TUITION', 'ENROLLMENT', 'MATERIALS', 'MEALS', 'TRANSPORT', 'EXAM', 'EVENT', 'OTHER',
