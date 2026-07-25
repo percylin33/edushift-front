@@ -77,9 +77,10 @@ import {
         [disabled]="!canCreate()"
         (click)="openCreate()"
         [title]="canCreate() ? '' : 'Solo se pueden crear secciones en años PLANNING o ACTIVE'"
+        aria-label="Nueva sección"
       >
         <app-icon name="plus" [size]="16" />
-        <span class="hidden sm:inline">Nueva sección</span>
+        <span class="hidden sm:inline" aria-hidden="true">Nueva sección</span>
       </button>
     </header>
 

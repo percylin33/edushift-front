@@ -76,14 +76,14 @@ import {
             formatDate(s!.scheduledDate)
           "
         >
-          <a [routerLink]="ROUTES.SESSIONS.LIST" class="btn btn-ghost btn-sm">
+          <a [routerLink]="ROUTES.SESSIONS.LIST" class="btn btn-ghost btn-sm" aria-label="Volver">
             <app-icon name="arrow-left" [size]="16" />
-            <span>Volver</span>
+            <span aria-hidden="true">Volver</span>
           </a>
           @if (!isTerminal()) {
-            <a [routerLink]="editRoute()" class="btn btn-outline btn-sm">
+            <a [routerLink]="editRoute()" class="btn btn-outline btn-sm" aria-label="Editar">
               <app-icon name="edit-2" [size]="16" />
-              <span class="hidden sm:inline">Editar</span>
+              <span class="hidden sm:inline" aria-hidden="true">Editar</span>
             </a>
           }
         </app-page-header>
