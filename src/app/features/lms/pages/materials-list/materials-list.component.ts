@@ -54,9 +54,10 @@ import { MaterialUploadDialogComponent } from '../../components';
         type="button"
         class="btn btn-primary btn-sm self-start sm:self-auto"
         (click)="onOpenDialog()"
+        aria-label="Subir material"
       >
         <app-icon name="plus" [size]="16" />
-        <span class="hidden sm:inline">Subir material</span>
+        <span class="hidden sm:inline" aria-hidden="true">Subir material</span>
       </button>
     </header>
 

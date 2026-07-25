@@ -74,13 +74,13 @@ type TabId = 'info' | 'account' | 'assignments' | 'specializations' | 'schedule'
     <app-page-container size="wide">
       @if (teacher(); as t) {
         <app-page-header [title]="t.fullName" [subtitle]="subtitle(t)">
-          <a [routerLink]="listRoute" class="btn btn-ghost btn-sm">
+          <a [routerLink]="listRoute" class="btn btn-ghost btn-sm" aria-label="Volver">
             <app-icon name="chevron-left" [size]="16" />
-            <span>Volver</span>
+            <span aria-hidden="true">Volver</span>
           </a>
-          <a [routerLink]="editRoute(t.publicUuid)" class="btn btn-outline btn-sm">
+          <a [routerLink]="editRoute(t.publicUuid)" class="btn btn-outline btn-sm" aria-label="Editar">
             <app-icon name="edit-2" [size]="16" />
-            <span class="hidden sm:inline">Editar</span>
+            <span class="hidden sm:inline" aria-hidden="true">Editar</span>
           </a>
           <button
             type="button"

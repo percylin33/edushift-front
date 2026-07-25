@@ -73,9 +73,10 @@ import { AcademicLevel, Grade } from '../../models';
         type="button"
         class="btn btn-primary btn-sm self-start sm:self-auto"
         (click)="openLevelModal(null)"
+        aria-label="Nuevo nivel"
       >
         <app-icon name="plus" [size]="16" />
-        <span class="hidden sm:inline">Nuevo nivel</span>
+        <span class="hidden sm:inline" aria-hidden="true">Nuevo nivel</span>
       </button>
     </header>
 
@@ -184,9 +185,14 @@ import { AcademicLevel, Grade } from '../../models';
               </p>
             </div>
             @if (selectedLevel()) {
-              <button type="button" class="btn btn-outline btn-sm" (click)="openGradeModal(null)">
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                (click)="openGradeModal(null)"
+                aria-label="Nuevo grado"
+              >
                 <app-icon name="plus" [size]="14" />
-                <span class="hidden sm:inline">Nuevo grado</span>
+                <span class="hidden sm:inline" aria-hidden="true">Nuevo grado</span>
               </button>
             }
           </header>
