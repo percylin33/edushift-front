@@ -21,6 +21,7 @@ import {
 	PageHeaderComponent,
 	SpinnerComponent,
 } from '@shared/components';
+import { CommonLabels } from '@core/i18n/common-labels.service';
 import {
 	NotificationTemplate,
 	NotificationTemplatesApiService,
@@ -73,7 +74,7 @@ import {
 
 			@if (loading() && templates().length === 0) {
 				<div class="flex items-center justify-center py-16">
-					<app-spinner [size]="24" label="Cargando plantillas…" />
+					<app-spinner [size]="24" [label]="commonLabels.cargando()" />
 				</div>
 			} @else if (templates().length === 0) {
 				<div role="alert" class="card border-l-4 border-l-info bg-info/5">
@@ -213,7 +214,7 @@ import {
 									<span>Guardando…</span>
 								} @else {
 									<app-icon name="check" [size]="14" />
-									<span>Guardar y bumpear versión</span>
+									<span>{{ commonLabels.guardar() }} y bumpear versión</span>
 								}
 							</button>
 						</footer>
@@ -226,6 +227,7 @@ import {
 export class NotificationTemplatesPageComponent implements OnInit {
 	private readonly fb = inject(FormBuilder);
 	private readonly api = inject(NotificationTemplatesApiService);
+	protected readonly commonLabels = inject(CommonLabels);
 
 	protected readonly loading = signal(false);
 	protected readonly saving = signal(false);
