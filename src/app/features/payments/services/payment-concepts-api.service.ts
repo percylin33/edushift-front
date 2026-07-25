@@ -64,7 +64,7 @@ export class PaymentConceptsApiService {
 		return this.api
 			.get<ApiResponse<{ content: PaymentConcept[]; totalElements: number }>>(
 				API.PAYMENTS.ADMIN.CONCEPTS.ROOT,
-				{ params: { page, size } },
+				{ page, size },
 			)
 			.pipe(map((env) => ({
 				items: env.data?.content ?? [],

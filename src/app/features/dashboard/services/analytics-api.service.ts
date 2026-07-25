@@ -57,27 +57,21 @@ export class AnalyticsApiService {
 	/** Time series of {@code ATTENDANCE_RATE} for the given period. */
 	getAttendanceSeries(from: string, to: string): Observable<AnalyticsChartSeries> {
 		return this.api
-			.get<ApiResponse<AnalyticsChartSeries>>(API.ANALYTICS.CHARTS_ATTENDANCE, {
-				params: { from, to },
-			})
+			.get<ApiResponse<AnalyticsChartSeries>>(API.ANALYTICS.CHARTS_ATTENDANCE, { from, to })
 			.pipe(map((env) => env.data));
 	}
 
 	/** Time series of {@code PERFORMANCE_AVG} for the given period. */
 	getPerformanceSeries(from: string, to: string): Observable<AnalyticsChartSeries> {
 		return this.api
-			.get<ApiResponse<AnalyticsChartSeries>>(API.ANALYTICS.CHARTS_PERFORMANCE, {
-				params: { from, to },
-			})
+			.get<ApiResponse<AnalyticsChartSeries>>(API.ANALYTICS.CHARTS_PERFORMANCE, { from, to })
 			.pipe(map((env) => env.data));
 	}
 
 	/** Time series of {@code MOROSIDAD} for the given period. */
 	getMorosidadSeries(from: string, to: string): Observable<AnalyticsChartSeries> {
 		return this.api
-			.get<ApiResponse<AnalyticsChartSeries>>(API.ANALYTICS.CHARTS_MOROSIDAD, {
-				params: { from, to },
-			})
+			.get<ApiResponse<AnalyticsChartSeries>>(API.ANALYTICS.CHARTS_MOROSIDAD, { from, to })
 			.pipe(map((env) => env.data));
 	}
 }

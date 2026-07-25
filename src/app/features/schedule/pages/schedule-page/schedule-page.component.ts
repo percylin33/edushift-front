@@ -84,13 +84,13 @@ import { ScheduleGridComponent } from '@features/academic/components/schedule-gr
 				<div class="flex items-center justify-center py-16">
 					<app-spinner [size]="24" label="Cargando horario…" />
 				</div>
-			} @else if (errorMessage(); as err) {
+			} @else if (errorMessage()) {
 				<div role="alert" class="card mb-6 border-l-4 border-l-danger bg-danger/5">
 					<div class="card-body flex items-start gap-3">
 						<app-icon name="alert-circle" [size]="20" class="mt-0.5 shrink-0 text-danger" />
 						<div class="flex-1">
 							<p class="font-medium text-danger">No se pudo cargar el horario</p>
-							<p class="mt-1 text-sm text-content-muted">{{ err }}</p>
+							<p class="mt-1 text-sm text-content-muted">{{ errorMessage() }}</p>
 						</div>
 					</div>
 				</div>

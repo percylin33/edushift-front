@@ -216,7 +216,10 @@ export class RubricFormComponent implements OnInit, OnDestroy {
   protected readonly loading = signal<boolean>(false);
 
   protected readonly saving = this.store.saving;
-  protected readonly errorBanner = this.store.error;
+  /** Exposed via getter so the template can reference {@code API.AI.*} directly. */
+  protected readonly API = API;
+  /** Local writable banner for AI-panel errors (decoupled from the store's readonly {@code error}). */
+  protected readonly errorBanner = signal<string | null>(null);
 
   protected readonly title = computed(() => {
     const e = this.existing();
@@ -304,8 +307,8 @@ export class RubricFormComponent implements OnInit, OnDestroy {
         description: '',
         weight: typeof c.weight === 'number' ? c.weight : 1 / (rubric.criteria?.length || 1),
         descriptors: newLevels.length > 0
-          ? newLevels.map((l) => ({ levelCode: l.code, descriptor: descriptors[l.code] ?? '' }))
-          : Object.entries(descriptors).map(([code, descriptor]) => ({ levelCode: code, descriptor })),
+          ? newLevels.map((l) => ({ level: l.code, text: descriptors[l.code] ?? '' }))
+          : Object.entries(descriptors).map(([code, text]) => ({ level: code, text })),
       };
     });
 

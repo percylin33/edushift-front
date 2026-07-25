@@ -1,5 +1,6 @@
 export * from './spinner/spinner.component';
 export * from './icon';
+export * from './badge-color';
 export * from './alert/alert.component';
 export * from './form-field/form-field.component';
 export * from './password-field/password-field.component';

@@ -145,7 +145,7 @@ import { ScheduleSlotItem, DAYS_OF_WEEK, formatTime } from '../models';
   ],
 })
 export class ScheduleGridComponent {
-  @Input() slots: ScheduleSlotItem[] = [];
+  @Input() slots: readonly ScheduleSlotItem[] = [];
   /** Si es true, muestra la sección en cada slot (modo Teacher-centric). */
   @Input() showSectionView = true;
   /** Si es true, muestra el docente en cada slot (modo Section-centric). */

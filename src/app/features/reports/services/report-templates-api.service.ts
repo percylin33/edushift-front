@@ -58,7 +58,7 @@ export class ReportTemplatesApiService {
 		return this.api
 			.get<ApiResponse<{ content: ReportTemplate[]; totalElements: number }>>(
 				API.REPORTS.TEMPLATES.ROOT,
-				{ params: { page, size } },
+				{ page, size },
 			)
 			.pipe(map((env) => env.data?.content ?? []));
 	}

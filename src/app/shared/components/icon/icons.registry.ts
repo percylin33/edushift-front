@@ -132,6 +132,12 @@ export const ICONS = {
   // override stroke-width/colors on the wrapper SVG.
   'google-g':
     '<path fill="#4285F4" d="M21.35 11.1H12v3.8h5.35c-.5 2.5-2.6 4.1-5.35 4.1a6 6 0 1 1 0-12 5.5 5.5 0 0 1 3.85 1.5l2.65-2.6A9.4 9.4 0 0 0 12 3a9 9 0 1 0 9 9c0-.65-.05-1.25-.15-1.9z"/>',
+  // Cierre-C / B4 — used by classrooms empty state (rooms within a building).
+  building:
+    '<rect width="18" height="18" x="3" y="3" rx="1"/><path d="M9 8h.01"/><path d="M9 12h.01"/><path d="M9 16h.01"/><path d="M15 8h.01"/><path d="M15 12h.01"/><path d="M15 16h.01"/>',
+  // Sprint cierre-C / B12 — used by AI session generator's "last run" indicator.
+  'calendar-clock':
+    '<rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><circle cx="12" cy="15" r="3"/><path d="M12 13v2l1 1"/>',
 } as const;
 
 export type IconName = keyof typeof ICONS;

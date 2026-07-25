@@ -28,7 +28,7 @@ export class ReportsApiService {
   /** Sprint cierre-C / F12 — paginated list of all jobs in the tenant. */
   list(page = 0, size = 30): Observable<readonly ReportJob[]> {
     return this.api
-      .get<{ data?: ReportJob[] } | ReportJob[]>(BASE, { params: { page, size } })
+      .get<{ data?: ReportJob[] } | ReportJob[]>(BASE, { page, size })
       .pipe(
         map((env) => {
           if (Array.isArray(env)) return env as ReportJob[];

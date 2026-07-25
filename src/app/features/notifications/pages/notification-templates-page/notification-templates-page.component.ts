@@ -58,7 +58,7 @@ import {
 			<app-page-header
 				eyebrow="Notificaciones"
 				title="Plantillas"
-				subtitle="Editá el subject y el body de cada plantilla. Soporta placeholders {{key}}."
+				subtitle="Editá el subject y el body de cada plantilla. Soporta placeholders como {{'{{'}}key{{'}}'}}."
 			>
 				<button
 					type="button"

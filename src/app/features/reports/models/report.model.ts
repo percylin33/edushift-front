@@ -9,6 +9,8 @@ export interface ReportJob {
   format: ReportFormat;
   status: ReportStatus;
   progressPct: number;
+  params?: string;
+  triggeredByTemplate?: string;
   errorCode?: string;
   errorMessage?: string;
   requestedAt: string;

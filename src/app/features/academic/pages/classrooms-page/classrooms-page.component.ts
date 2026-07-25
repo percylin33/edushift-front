@@ -160,7 +160,6 @@ import {
 					<form [formGroup]="form" (ngSubmit)="submit()" class="card-body grid gap-4 sm:grid-cols-2">
 						<div class="field">
 							<label class="label">Código *</label>
-							{{ c.capacity === null ? '—' : c.capacity }}
 							<p class="field-hint">Único por tenant; letras, dígitos, guion y guion bajo.</p>
 						</div>
 						<div class="field">
