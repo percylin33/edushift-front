@@ -85,6 +85,55 @@ USARIAS ESTE PRODUCTO? [Si / No / Tal vez]</pre>
           <p class="mt-1 text-sm text-content-muted">Si encuentras un bug, <strong>reportalo inmediatamente</strong> aunque sea chiquito. Mejor tener 30 P2 que 1 P0 que recien descubrimos al final.</p>
         </div>
       </section>
+      <section class="mt-6">
+        <h2 class="mb-3 text-sm font-semibold text-content">Tu turno del dia (walkthrough narrativo)</h2>
+        <p class="text-sm text-content-muted">Segui el <strong>walkthrough narrativo</strong> (lunes 17 de marzo, 7:30 a 17:30) en orden. Tu turno asignado es el siguiente:</p>
+        <ul class="mt-3 divide-y divide-border-subtle rounded-md border border-border bg-surface">
+          <li class="flex items-center justify-between gap-3 p-3">
+            <div>
+              <p class="text-sm font-medium text-content">Director (Tenant Admin)</p>
+              <p class="text-xs text-content-muted">Apertura del dia, pagos, reportes, anuncios, audit, logout</p>
+            </div>
+            <span class="badge badge-info">7:30 / 11:00 / 13:00 / 16:00 / 17:30</span>
+          </li>
+          <li class="flex items-center justify-between gap-3 p-3">
+            <div>
+              <p class="text-sm font-medium text-content">Docente Lengua</p>
+              <p class="text-xs text-content-muted">Asistencia 5A, IA rubricas, aprobar justificaciones</p>
+            </div>
+            <span class="badge badge-info">7:45 / 14:00 / 17:00</span>
+          </li>
+          <li class="flex items-center justify-between gap-3 p-3">
+            <div>
+              <p class="text-sm font-medium text-content">Docente Matematica</p>
+              <p class="text-xs text-content-muted">Horario, crear evaluacion, generar sesion IA</p>
+            </div>
+            <span class="badge badge-info">8:00</span>
+          </li>
+          <li class="flex items-center justify-between gap-3 p-3">
+            <div>
+              <p class="text-sm font-medium text-content">Estudiante</p>
+              <p class="text-xs text-content-muted">Dashboard, QR, entregar tarea, ver notas, descargar material</p>
+            </div>
+            <span class="badge badge-info">8:15 / 12:00</span>
+          </li>
+          <li class="flex items-center justify-between gap-3 p-3">
+            <div>
+              <p class="text-sm font-medium text-content">Apoderado</p>
+              <p class="text-xs text-content-muted">Justificar inasistencias, pagos, ver calificaciones</p>
+            </div>
+            <span class="badge badge-info">10:00 / 15:00</span>
+          </li>
+          <li class="flex items-center justify-between gap-3 p-3">
+            <div>
+              <p class="text-sm font-medium text-content">Staff (Personal)</p>
+              <p class="text-xs text-content-muted">Pagos operativos, reportes</p>
+            </div>
+            <span class="badge badge-info">13:00</span>
+          </li>
+        </ul>
+        <p class="mt-3 text-sm text-content-muted">El walkthrough completo (~30 acciones en 15+ modulos) esta en <code>docs/qa/pilot-scenario-walkthrough.md</code>. Si tenes 6+ horas, hace ademas el guide tecnico exhaustivo (~360 acciones).</p>
+      </section>
     </app-page-container>
   `,
 })
