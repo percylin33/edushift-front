@@ -123,19 +123,45 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
       },
       {
         /*
-         * Sprint 5 (FE-5.x) — sesiones de aprendizaje. Para el TEACHER
-         * son su herramienta diaria de planificación de clases (ver
-         * `docs/manuales/docente/02-flujos-esenciales.md` Flujo 1:
-         * "crea la sesión antes de iniciar la asistencia"). TENANT_ADMIN
-         * también las ve para soporte. Role-gated hasta que la security
-         * sprint popule `User.permissions`.
+         * Schedule module (F8 + jornada/workload). TENANT_ADMIN gets the
+         * hub + jornada/carga; TEACHER gets the weekly landing (`/schedule`
+         * / `/schedule/me`). Feature flag `schedule` must be on.
+         */
+        id: 'schedule',
+        label: 'Horarios',
+        icon: 'clock',
+        route: ROUTES.SCHEDULE.ROOT,
+        feature: FeatureKey.Schedule,
+        roles: [UserRole.TenantAdmin, UserRole.Teacher],
+        children: [
+          {
+            id: 'schedule-jornada',
+            label: 'Jornada y recreos',
+            route: ROUTES.SCHEDULE.JORNADA,
+            roles: [UserRole.TenantAdmin],
+          },
+          {
+            id: 'schedule-workload',
+            label: 'Carga docente',
+            route: ROUTES.SCHEDULE.WORKLOAD,
+            roles: [UserRole.TenantAdmin],
+          },
+        ],
+      },
+      {
+        /*
+         * Sprint 5 (FE-5.x) — sesiones de aprendizaje. Solo TENANT_ADMIN
+         * hasta que se implemente el endpoint `/me/sessions` para TEACHER
+         * (BUG-2026-07-31-03: el backend restringe este recurso a admin y
+         * abrirlo a teacher sin filtro por teacherAssignment es un agujero
+         * de aislamiento entre tenants/docentes).
          */
         id: 'learning-sessions',
         label: 'Sesiones de clase',
         icon: 'calendar',
         route: ROUTES.SESSIONS.ROOT,
         feature: FeatureKey.Sessions,
-        roles: [UserRole.TenantAdmin, UserRole.Teacher],
+        roles: [UserRole.TenantAdmin],
       },
       {
         /*
@@ -195,6 +221,71 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
             label: 'Escáner QR',
             route: ROUTES.ATTENDANCE.SCANNER,
             roles: [UserRole.TenantAdmin, UserRole.Teacher],
+          },
+        ],
+      },
+      {
+        id: 'family',
+        label: 'Mis hijos',
+        icon: 'users',
+        route: '/family',
+        feature: FeatureKey.Family,
+        roles: [UserRole.Parent],
+      },
+      {
+        /*
+         * DEBT-STUDENT-PRIVACY / Fase 1: STUDENT-facing personal surface.
+         * Six sub-sections (Mis cursos, Mis notas, Mi asistencia,
+         * Mi QR, Mis pagos, Mi perfil) — each sub-item is gated by a
+         * `ME_*` permission so a tenant can disable any sub-section via
+         * PermissionOverride without affecting the rest. The wrapping
+         * `roles` gate keeps the entry out of the sidebar for everyone
+         * else; the routes additionally go through a `permissionGuard`
+         * for defence-in-depth.
+         */
+        id: 'me',
+        label: 'Mi espacio',
+        icon: 'user',
+        route: '/me',
+        feature: FeatureKey.Me,
+        roles: [UserRole.Student],
+        permissions: [Permission.MeRead],
+        children: [
+          {
+            id: 'me-courses',
+            label: 'Mis cursos',
+            route: '/me/courses',
+            permissions: [Permission.MeRead],
+          },
+          {
+            id: 'me-schedule',
+            label: 'Mi horario',
+            route: '/me/schedule',
+            permissions: [Permission.MeRead],
+          },
+          {
+            id: 'me-grades',
+            label: 'Mis notas',
+            route: '/me/grades',
+            permissions: [Permission.MeRead],
+          },
+          {
+            id: 'me-attendance',
+            label: 'Mi asistencia',
+            route: '/me/attendance',
+            permissions: [Permission.MeAttendanceRead],
+          },
+          {
+            id: 'me-qr',
+            label: 'Mi QR',
+            route: '/me/qr',
+            permissions: [Permission.MeQrRead],
+          },
+          {
+            id: 'me-payments',
+            label: 'Mis pagos',
+            route: '/me/payments',
+            permissions: [Permission.MePaymentsRead],
           },
         ],
       },

@@ -36,8 +36,11 @@ export const API = {
     PERMISSION_OVERRIDES: `${BASE}/tenants/me/permission-overrides`,
     /** Public lookup used by the login screen to fetch branding before authentication. */
     BY_SLUG: (slug: string) => `${BASE}/tenants/by-slug/${encodeURIComponent(slug)}`,
-    /** Public self-signup: creates a tenant + admin and returns an auth session. */
+    /** Invite-gated signup: creates a tenant + admin and returns an auth session. */
     REGISTER: `${BASE}/tenants/register`,
+    /** Public preflight for a Super-Admin school invitation token. */
+    INVITATION_BY_TOKEN: (token: string) =>
+      `${BASE}/tenants/invitations/by-token/${encodeURIComponent(token)}`,
     /** Onboarding lifecycle hop PENDING → ACTIVE. Idempotent on already-ACTIVE tenants. */
     ACTIVATE: `${BASE}/tenants/me/activate`,
   },
@@ -88,6 +91,9 @@ export const API = {
     BY_TOKEN: (token: string) => `${BASE}/users/invitations/by-token/${encodeURIComponent(token)}`,
     /** Public: accept an invitation token (returns an auth session). */
     ACCEPT: `${BASE}/users/invitations/accept`,
+    /** Admin: resend a pending invitation (rotates token). */
+    RESEND: (publicUuid: string) =>
+      `${BASE}/users/invitations/${encodeURIComponent(publicUuid)}/resend`,
   },
   TEACHERS: {
     /** {@code GET|POST /v1/teachers}. {@code GET} acepta {@code ?search&employmentStatus&hasUserAccount} + paginación Spring. */
@@ -131,6 +137,10 @@ export const API = {
     WITHDRAW: (publicUuid: string) =>
       `${BASE}/enrollments/${encodeURIComponent(publicUuid)}/withdraw`,
   },
+  GUARDIANS: {
+    /** {@code GET /v1/guardians/by-document?documentType=&documentNumber=} */
+    BY_DOCUMENT: `${BASE}/guardians/by-document`,
+  },
   STUDENTS: {
     ROOT: `${BASE}/students`,
     /** {@code GET|PUT|DELETE /v1/students/{publicUuid}}. */
@@ -150,6 +160,18 @@ export const API = {
     /** {@code PUT|DELETE /v1/students/{studentUuid}/guardians/{guardianUuid}}. */
     GUARDIAN_BY_ID: (studentPublicUuid: string, guardianPublicUuid: string) =>
       `${BASE}/students/${encodeURIComponent(studentPublicUuid)}/guardians/${encodeURIComponent(guardianPublicUuid)}`,
+    /** {@code POST /v1/students/{uuid}/invite} — STUDENT + metadata.studentId. */
+    INVITE: (publicUuid: string) =>
+      `${BASE}/students/${encodeURIComponent(publicUuid)}/invite`,
+    /** {@code POST /v1/students/{uuid}/link-user} — rescue existing STUDENT user. */
+    LINK_USER: (publicUuid: string) =>
+      `${BASE}/students/${encodeURIComponent(publicUuid)}/link-user`,
+    /** {@code POST /v1/students/{s}/guardians/{g}/invite}. */
+    GUARDIAN_INVITE: (studentPublicUuid: string, guardianPublicUuid: string) =>
+      `${BASE}/students/${encodeURIComponent(studentPublicUuid)}/guardians/${encodeURIComponent(guardianPublicUuid)}/invite`,
+    /** {@code POST /v1/students/{s}/guardians/{g}/link-user}. */
+    GUARDIAN_LINK_USER: (studentPublicUuid: string, guardianPublicUuid: string) =>
+      `${BASE}/students/${encodeURIComponent(studentPublicUuid)}/guardians/${encodeURIComponent(guardianPublicUuid)}/link-user`,
     /** {@code GET|POST /v1/students/{publicUuid}/enrollments} (BE-4.8). */
     ENROLLMENTS: (studentPublicUuid: string) =>
       `${BASE}/students/${encodeURIComponent(studentPublicUuid)}/enrollments`,
@@ -240,9 +262,15 @@ export const API = {
       /** {@code GET /v1/teachers/{teacherUuid}/schedule?periodId=<uuid>} (BE-5A.3). */
       TEACHER_SCHEDULE: (teacherUuid: string) =>
         `${BASE}/teachers/${encodeURIComponent(teacherUuid)}/schedule`,
+      /** {@code GET /v1/teachers/{teacherUuid}/schedule/week?periodId=<uuid>}. */
+      TEACHER_SCHEDULE_WEEK: (teacherUuid: string) =>
+        `${BASE}/teachers/${encodeURIComponent(teacherUuid)}/schedule/week`,
       /** {@code GET /v1/academic/sections/{sectionUuid}/schedule?periodId=<uuid>} (BE-5A.3). */
       SECTION_SCHEDULE: (sectionUuid: string) =>
         `${BASE}/academic/sections/${encodeURIComponent(sectionUuid)}/schedule`,
+      /** {@code GET /v1/academic/sections/{sectionUuid}/schedule/week?periodId=<uuid>}. */
+      SECTION_SCHEDULE_WEEK: (sectionUuid: string) =>
+        `${BASE}/academic/sections/${encodeURIComponent(sectionUuid)}/schedule/week`,
     },
     TIME_SLOTS: {
       /** {@code GET|POST /v1/teacher-assignments/{assignmentUuid}/time-slots} (BE-5A.3). */
@@ -250,6 +278,32 @@ export const API = {
         `${BASE}/teacher-assignments/${encodeURIComponent(assignmentUuid)}/time-slots`,
       /** {@code GET|PUT|DELETE /v1/time-slots/{publicUuid}} (BE-5A.3). */
       BY_ID: (publicUuid: string) => `${BASE}/time-slots/${encodeURIComponent(publicUuid)}`,
+    },
+    /**
+     * Day templates / jornada / recess / bootstrap / workload.
+     * Controllers under {@code com.edushift.modules.schedule.daytemplate}.
+     */
+    DAY_SCHEDULE: {
+      SETTINGS: `${BASE}/schedule/settings`,
+      DAY_TEMPLATES: `${BASE}/schedule/day-templates`,
+      DAY_TEMPLATE: (uuid: string) =>
+        `${BASE}/schedule/day-templates/${encodeURIComponent(uuid)}`,
+      DAY_TEMPLATE_BLOCKS: (uuid: string) =>
+        `${BASE}/schedule/day-templates/${encodeURIComponent(uuid)}/blocks`,
+      BLOCK: (uuid: string) => `${BASE}/schedule/blocks/${encodeURIComponent(uuid)}`,
+      SEED_DEFAULTS: `${BASE}/schedule/day-templates/seed-defaults`,
+      APPLY_DAY_PLAN: (uuid: string) =>
+        `${BASE}/schedule/day-templates/${encodeURIComponent(uuid)}/apply-day-plan`,
+      VALIDATION_WARNINGS: `${BASE}/schedule/validation-warnings`,
+      BOOTSTRAP: (yearUuid: string) =>
+        `${BASE}/schedule/bootstrap/${encodeURIComponent(yearUuid)}`,
+      BOOTSTRAP_UPLOAD: (yearUuid: string) =>
+        `${BASE}/schedule/bootstrap/${encodeURIComponent(yearUuid)}/upload`,
+      CLONE_SCHEDULE: (yearUuid: string) =>
+        `${BASE}/academic/years/${encodeURIComponent(yearUuid)}/clone-schedule`,
+      TEACHERS_WORKLOAD: `${BASE}/teachers/workload`,
+      TEACHER_WORKLOAD: (uuid: string) =>
+        `${BASE}/teachers/${encodeURIComponent(uuid)}/workload`,
     },
     /**
      * Sprint cierre-C / B4 -- classrooms catalog (per-tenant).
@@ -282,6 +336,8 @@ export const API = {
       `${BASE}/payments/invoices/${encodeURIComponent(publicUuid)}/payments`,
     INVOICE_CHECKOUT: (publicUuid: string) =>
       `${BASE}/payments/invoices/${encodeURIComponent(publicUuid)}/checkout`,
+    INVOICE_RECEIPT: (publicUuid: string) =>
+      `${BASE}/payments/invoices/${encodeURIComponent(publicUuid)}/receipt`,
     // Sprint 11 / FE-11.1 — admin power tools (DEBT-10-PAY-1).
     ADMIN: {
       // Listing all payments in the tenant with optional filters.
@@ -531,6 +587,12 @@ export const API = {
     /** `POST /v1/admin/tenants/{publicUuid}/reactivate` — reactivate tenant. */
     TENANTS_REACTIVATE: (publicUuid: string) =>
       `${BASE}/admin/tenants/${encodeURIComponent(publicUuid)}/reactivate`,
+    /** Super-Admin: invite a new school by email. */
+    SCHOOL_INVITATIONS: `${BASE}/admin/school-invitations`,
+    SCHOOL_INVITATION_BY_ID: (publicUuid: string) =>
+      `${BASE}/admin/school-invitations/${encodeURIComponent(publicUuid)}`,
+    SCHOOL_INVITATION_RESEND: (publicUuid: string) =>
+      `${BASE}/admin/school-invitations/${encodeURIComponent(publicUuid)}/resend`,
     /** `GET|POST /v1/admin/plans` — platform plan CRUD. */
     PLANS_ROOT: `${BASE}/admin/plans`,
     /** `GET|PUT|DELETE /v1/admin/plans/{publicUuid}` — single plan CRUD. */
@@ -593,16 +655,18 @@ export const API = {
     /** {@code PATCH /tasks/{uuid}} (BE-7a.2) — editar task (DRAFT / before dueAt). */
     ASSIGNMENT_PATCH: (publicUuid: string) =>
       `${BASE}/tasks/${encodeURIComponent(publicUuid)}`,
-    // DEBT-FE-LMS-1: no publish/close endpoints on BE for tasks — lifecycle
-    // transitions are done via PATCH on the status field. The constants
-    // stay as no-ops so callers compile but they 404 if hit; remove once
-    // the FE stops referencing them.
-    /** @deprecated No BE endpoint — tasks have no dedicated publish/close. */
+    // DEBT-FE-LMS-1 (FIX BUG-2026-07-31-04): publish/archive endpoints DO
+    // exist on the BE (added by V95 + TaskController). `ASSIGNMENT_PUBLISH`
+    // hits `POST /tasks/{uuid}/publish` (DRAFT → PUBLISHED). The
+    // `ASSIGNMENT_CLOSE` alias maps to the BE's `/archive` endpoint
+    // (PUBLISHED → ARCHIVED) — kept named "close" on the FE for UX
+    // continuity (admin UI shows "Cerrar tarea").
+    /** {@code POST /tasks/{uuid}/publish} (BE-7a.2 / BUG-04) — DRAFT → PUBLISHED. */
     ASSIGNMENT_PUBLISH: (publicUuid: string) =>
       `${BASE}/tasks/${encodeURIComponent(publicUuid)}/publish`,
-    /** @deprecated No BE endpoint — tasks have no dedicated publish/close. */
+    /** {@code POST /tasks/{uuid}/archive} (BE-7a.2 / BUG-04) — PUBLISHED → ARCHIVED. */
     ASSIGNMENT_CLOSE: (publicUuid: string) =>
-      `${BASE}/tasks/${encodeURIComponent(publicUuid)}/close`,
+      `${BASE}/tasks/${encodeURIComponent(publicUuid)}/archive`,
     /** {@code GET /sections/{uuid}/tasks} (BE-7a.2) — paginated listing (TEACHER/TA). */
     ASSIGNMENTS_BY_SECTION: (sectionUuid: string) =>
       `${BASE}/sections/${encodeURIComponent(sectionUuid)}/tasks`,

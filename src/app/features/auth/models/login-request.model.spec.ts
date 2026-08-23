@@ -27,19 +27,19 @@ describe('LoginRequestModel', () => {
 
   describe('ForgotPasswordRequest', () => {
     it('requiere email', () => {
-      const r: ForgotPasswordRequest = { email: 'a@b.com' };
+      const r: ForgotPasswordRequest = { email: 'a@b.com', tenantSlug: 'acme' };
       expect(r.email).toBe('a@b.com');
     });
   });
 
   describe('ResetPasswordRequest', () => {
-    it('requiere token + password + confirmación', () => {
+    it('requiere token + newPassword + confirmPassword (contrato BE)', () => {
       const r: ResetPasswordRequest = {
         token: 'tok',
-        password: 'newSecret',
-        passwordConfirmation: 'newSecret',
+        newPassword: 'newSecret1!',
+        confirmPassword: 'newSecret1!',
       };
-      expect(r.password).toBe(r.passwordConfirmation);
+      expect(r.newPassword).toBe(r.confirmPassword);
     });
   });
 });

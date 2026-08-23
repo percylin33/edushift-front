@@ -1,17 +1,35 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClient, HttpEventType, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { of } from 'rxjs';
-import { SubmissionApiService, UploadProgress } from './submission-api.service';
-import { SubmissionResponseRaw, SubmissionStatus, toSubmission } from '../models';
+import { FileUploadService } from '@core/services/file-upload.service';
+import { SubmissionApiService } from './submission-api.service';
+import { SubmissionResponseRaw, SubmissionStatus } from '../models';
 
 describe('SubmissionApiService', () => {
   let service: SubmissionApiService;
   let httpSpy: jasmine.SpyObj<HttpClient>;
+  let filesSpy: jasmine.SpyObj<FileUploadService>;
 
   beforeEach(() => {
     httpSpy = jasmine.createSpyObj<HttpClient>('HttpClient', ['get', 'post', 'patch']);
+    filesSpy = jasmine.createSpyObj<FileUploadService>('FileUploadService', ['upload']);
+    filesSpy.upload.and.returnValue(
+      of({
+        publicUuid: 'file-1',
+        originalName: 'entrega.pdf',
+        contentType: 'application/pdf',
+        sizeBytes: 7,
+        checksumSha256: 'abc',
+        url: '',
+        createdAt: '2026-01-15T10:00:00.000Z',
+      }),
+    );
     TestBed.configureTestingModule({
-      providers: [SubmissionApiService, { provide: HttpClient, useValue: httpSpy }],
+      providers: [
+        SubmissionApiService,
+        { provide: HttpClient, useValue: httpSpy },
+        { provide: FileUploadService, useValue: filesSpy },
+      ],
     });
     service = TestBed.inject(SubmissionApiService);
   });
@@ -40,7 +58,7 @@ describe('SubmissionApiService', () => {
     });
   });
 
-  it('create con attachment usa FormData y reportProgress', (done) => {
+  it('create con attachment sube el archivo y luego POSTea JSON', (done) => {
     const raw: SubmissionResponseRaw = {
       publicUuid: 'sub-1',
       assignmentPublicUuid: 'a-1',
@@ -66,13 +84,22 @@ describe('SubmissionApiService', () => {
 
     service
       .create('a-1', {
-        textContent: 'texto',
+        studentPublicUuid: 'st-1',
+        textBody: 'texto',
         attachment: file,
-        submittedForStudentPublicUuid: null,
       })
       .subscribe((progress) => {
         if (progress.kind === 'Response') {
           expect(progress.value.publicUuid).toBe('sub-1');
+          expect(filesSpy.upload).toHaveBeenCalledWith('submissions', file);
+          const body = httpSpy.post.calls.mostRecent().args[1] as {
+            studentPublicUuid: string;
+            textBody: string;
+            attachmentPublicUuid: string;
+          };
+          expect(body.studentPublicUuid).toBe('st-1');
+          expect(body.textBody).toBe('texto');
+          expect(body.attachmentPublicUuid).toBe('file-1');
           done();
         }
       });
@@ -100,7 +127,7 @@ describe('SubmissionApiService', () => {
     const resp = new HttpResponse({ body: { success: true, data: raw } });
     httpSpy.post.and.returnValue(of(resp));
 
-    service.create('a-1', { textContent: 'solo texto' }).subscribe((p) => {
+    service.create('a-1', { studentPublicUuid: 'st-1', textBody: 'solo texto' }).subscribe((p) => {
       if (p.kind === 'Response') {
         expect(p.value.textContent).toBe('solo texto');
         done();

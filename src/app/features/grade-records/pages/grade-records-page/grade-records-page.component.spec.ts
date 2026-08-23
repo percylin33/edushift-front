@@ -8,7 +8,7 @@ import { of } from 'rxjs';
 import { EvaluationScale, EvaluationStatus } from '@features/evaluations/models';
 
 describe('GradeRecordsPageComponent', () => {
-  let component: GradeRecordsPageComponent;
+  let component: any;
   let fixture: ComponentFixture<GradeRecordsPageComponent>;
   let storeSpy: jasmine.SpyObj<GradeRecordsStore>;
   let evaluationsApiSpy: jasmine.SpyObj<EvaluationsApiService>;
@@ -46,7 +46,7 @@ describe('GradeRecordsPageComponent', () => {
         scale: EvaluationScale.SCORE_0_20,
         status: EvaluationStatus.DRAFT,
         assignment: { label: 'Test' },
-      }),
+      } as any),
     );
 
     const routeSpy = {

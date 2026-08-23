@@ -8,3 +8,4 @@ export * from './guardians-section.component';
 export * from './enroll-student-modal.component';
 export * from './withdraw-enrollment-modal.component';
 export * from './enrollments-section.component';
+export * from './invite-portal-dialog.component';

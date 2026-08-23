@@ -381,6 +381,7 @@ export class SessionsFormComponent implements OnInit {
   private readonly router = inject(Router);
 
   protected readonly ROUTES = ROUTES;
+  protected readonly API = API;
 
   protected readonly form: FormGroup = this.fb.group({
     assignmentUuid: ['', Validators.required],

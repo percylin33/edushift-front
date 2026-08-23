@@ -1,13 +1,15 @@
 import { Routes } from '@angular/router';
-import { permissionGuard, roleGuard } from '@core/guards';
-import { Permission, UserRole } from '@core/enums';
+import { permissionGuard } from '@core/guards';
+import { Permission } from '@core/enums';
 
 /**
  * Routes para el feature {@code lms} (Sprint 7a + 7b).
  *
  * <h3>Estructura</h3>
  * <ul>
- *   <li>{@code /lms}                                                → redirect a /dashboard (no hay entry-point global).</li>
+ *   <li>{@code /lms}                                                → landing resolver (FE-7a.5 / BUG-2026-07-30-05) que
+ *       redirige a la primera sección real del tenant (o /me/courses
+ *       para STUDENT, /family para PARENT).</li>
  *   <li>{@code /lms/sections/:sectionUuid/assignments}              → lista del TEACHER (LMS_TASK_READ).</li>
  *   <li>{@code /lms/students/:studentUuid/assignments}              → "Mis tareas" del STUDENT/PARENT (LMS_TASK_READ).</li>
  *   <li>{@code /lms/assignments/new?section=:sectionUuid}           → crear (LMS_TASK_CREATE).</li>
@@ -26,12 +28,13 @@ import { Permission, UserRole } from '@core/enums';
  * </ul>
  *
  * <h3>RBAC (FE-7a.4 / FE-7b.0)</h3>
- * El coarse-grain role check queda en {@code roleGuard}; la
- * granularidad fina (LMS_*) la aplica {@code permissionGuard} con
- * {@code data.permissions}. Usamos {@code canMatch} en vez de
- * {@code canActivate} para que el bundle lazy-loaded de la ruta
- * prohibida NUNCA se descargue en el cliente (rationale en
- * {@code permissionGuard}).
+ * El coarse-grain gate (entrar al LMS shell) lo aplica
+ * {@code permissionGuard} con {@code Permission.LmsTaskRead} en la
+ * ruta padre; la granularidad fina (LMS_TASK_CREATE / GRADE / SUBMIT /
+ * LMS_MATERIAL_* / LMS_QUIZ_*) la aplican los {@code permissionGuard}
+ * hijos. Usamos {@code canMatch} en vez de {@code canActivate} para
+ * que el bundle lazy-loaded de la ruta prohibida NUNCA se descargue
+ * en el cliente (rationale en {@code permissionGuard}).
  *
  * <h3>Estado de implementación</h3>
  * FE-7a.1 entrega los componentes de {@code tasks} (lista, form,
@@ -42,18 +45,42 @@ import { Permission, UserRole } from '@core/enums';
  * ata al builder.
  */
 export const LMS_ROUTES: Routes = [
+  // ---------------------------------------------------------------------------
+  // Landing resolver (FE-7a.5 / BUG-2026-07-30-05).
+  //
+  // This route is reachable by ANY authenticated role (no LMS_TASK_READ
+  // guard) because its job is precisely to figure out where the user
+  // should land:
+  //   - STUDENT → /me/courses
+  //   - PARENT  → /family
+  //   - others  → first ACTIVE section's assignments list
+  // Putting the guard here would 403 STUDENT/PARENT before the resolver
+  // can redirect them to a different, role-appropriate page.
+  // ---------------------------------------------------------------------------
   {
     path: '',
-    canMatch: [roleGuard],
-data: {
-       roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Student, UserRole.Parent],
-       title: 'Aula virtual',
-       breadcrumb: 'Aula virtual',
-     },
+    loadComponent: () =>
+      import('./pages/lms-landing/lms-landing.component').then((m) => m.LmsLandingComponent),
+    data: { title: 'Aula virtual', breadcrumb: 'Aula virtual' },
+  },
+  {
+    path: '',
+    canMatch: [permissionGuard],
+    data: {
+      // Coarse-grain gate: any role holding LMS_TASK_READ enters the LMS
+      // shell. Granular per-action checks live on the child routes below
+      // (LMS_TASK_CREATE / LMS_TASK_GRADE / LMS_TASK_SUBMIT / LMS_MATERIAL_*
+      // / LMS_QUIZ_*). `canMatch` (vs `canActivate`) prevents the LMS bundle
+      // from being fetched by roles that don't have any LMS authority —
+      // e.g. STAFF or SUPER_ADMIN.
+      permissions: Permission.LmsTaskRead,
+      mode: 'any',
+      title: 'Aula virtual',
+      breadcrumb: 'Aula virtual',
+    },
     loadComponent: () =>
       import('./pages/lms-shell/lms-shell.component').then((m) => m.LmsShellComponent),
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'sections/_/assignments' },
       {
         path: 'sections/:sectionUuid/assignments',
         canMatch: [permissionGuard],

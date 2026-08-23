@@ -75,7 +75,7 @@ import { NavLabels } from '../../i18n/nav-labels.service';
                     childActive.isActive,
                 }"
               >
-                <span class="truncate">{{ childLabels[child.id] || child.label }}</span>
+                <span class="truncate">{{ childLabels()[child.id] || child.label }}</span>
                 @if (child.badge; as badge) {
                   <span class="badge badge-primary ml-auto text-2xs">{{ badge }}</span>
                 }

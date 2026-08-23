@@ -47,6 +47,7 @@ export interface StudentResponseRaw {
   enrollmentStatus: EnrollmentStatus;
   enrollmentDate: string | null;
   userId: string | null;
+  pendingInvitationPublicUuid: string | null;
   metadata: Record<string, unknown> | null;
   createdAt: string | null;
   updatedAt: string | null;
@@ -89,6 +90,8 @@ export interface StudentDetail extends StudentRow {
   address?: string;
   /** Public UUID of the linked user account, when the student has one. */
   userId?: string;
+  /** Pending invitation public UUID when the student has no user yet. */
+  pendingInvitationPublicUuid?: string;
   metadata?: Record<string, unknown>;
   createdAt?: Date;
   updatedAt?: Date;
@@ -248,4 +251,33 @@ export interface BulkImportRowError {
   row: number;
   code: string;
   message: string;
+}
+
+/** RAW {@code InviteStudentResponse} / {@code InviteGuardianResponse}. */
+export interface InvitePortalResponseRaw {
+  invitationPublicUuid: string;
+  invitationToken: string;
+  expiresAt: string | null;
+  email: string;
+  studentPublicUuid?: string;
+  guardianPublicUuid?: string;
+}
+
+/** Resultado del POST invite/resend adaptado a Date. */
+export interface PortalInvitationResult {
+  invitationPublicUuid: string;
+  invitationToken: string;
+  expiresAt?: Date;
+  email: string;
+}
+
+export type PortalStatus = 'none' | 'pending' | 'active';
+
+export function portalStatus(
+  userId?: string | null,
+  pendingInvitationPublicUuid?: string | null,
+): PortalStatus {
+  if (userId) return 'active';
+  if (pendingInvitationPublicUuid) return 'pending';
+  return 'none';
 }

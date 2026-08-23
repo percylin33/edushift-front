@@ -14,29 +14,27 @@ import { SubmissionStatus } from './task.model';
 /** {@code SubmissionResponseRaw} — full submission payload. */
 export interface SubmissionResponseRaw {
   publicUuid: string;
-  assignmentPublicUuid: string;
+  assignmentPublicUuid?: string;
+  taskPublicUuid?: string;
   studentPublicUuid: string;
-  /** Public UUID of the actor who hit POST. May be the student or their guardian. */
-  submittedByUserPublicUuid: string;
-  /** Only set when {@code submittedByUserPublicUuid} is a guardian acting for the student. */
-  submittedForStudentPublicUuid: string | null;
+  submittedByUserPublicUuid?: string;
+  submitterPublicUuid?: string;
+  submittedForStudentPublicUuid?: string | null;
   status: SubmissionStatus;
-  /** Free-form answer body, up to 5000 chars. */
-  textContent: string | null;
-  /** Denormalized on the read path for convenience — server joins file_objects. */
-  attachment: SubmissionAttachmentRaw | null;
-  /** 1-based. Incrementa con cada re-entrega. */
-  version: number;
-  /** Decimal 0..maxScore. {@code null} until graded. */
-  grade: number | null;
-  /** Free-form TEACHER feedback; {@code null} until graded or returned. */
-  feedback: string | null;
-  submittedAt: string;
-  gradedAt: string | null;
-  gradedByTeacherPublicUuid: string | null;
-  /** Set by the server on {@code RETURNED} lifecycle hop. */
-  returnedAt: string | null;
-  returnedByTeacherPublicUuid: string | null;
+  textContent?: string | null;
+  textBody?: string | null;
+  attachment?: SubmissionAttachmentRaw | null;
+  attachmentPublicUuid?: string | null;
+  version?: number;
+  grade?: number | null;
+  feedback?: string | null;
+  submittedAt?: string;
+  createdAt?: string;
+  gradedAt?: string | null;
+  gradedByTeacherPublicUuid?: string | null;
+  gradedByPublicUuid?: string | null;
+  returnedAt?: string | null;
+  returnedByTeacherPublicUuid?: string | null;
 }
 
 /** {@code SubmissionAttachmentRaw} — file_object projection embedded in the read shape. */
@@ -118,11 +116,14 @@ export interface SubmissionRow {
  * enforces: at least one of {@code textContent} / {@code attachment}.
  */
 export interface CreateSubmissionRequest {
-  textContent?: string | null;
-  /** For PARENT acting on behalf: the student's public UUID. */
-  submittedForStudentPublicUuid?: string | null;
-  /** Multipart file part named "attachment". Omit for text-only. */
+  studentPublicUuid?: string;
+  textBody?: string | null;
+  attachmentPublicUuid?: string | null;
+  /** Client-only: uploaded via FileUploadService before the JSON POST. */
   attachment?: File | null;
+  /** @deprecated use studentPublicUuid */
+  textContent?: string | null;
+  submittedForStudentPublicUuid?: string | null;
 }
 
 /** Body for {@code PATCH /v1/lms/submissions/{uuid}} (re-submit). */
@@ -148,21 +149,34 @@ export interface ReturnSubmissionRequest {
  * ------------------------------------------------------------------------ */
 
 export function toSubmission(raw: SubmissionResponseRaw): Submission {
+  const submittedAt = raw.submittedAt ?? raw.createdAt ?? new Date().toISOString();
+  const attachment =
+    raw.attachment
+      ? toAttachment(raw.attachment)
+      : raw.attachmentPublicUuid
+        ? {
+            publicUuid: raw.attachmentPublicUuid,
+            filename: '',
+            sizeBytes: 0,
+            contentType: '',
+            downloadUrl: '',
+          }
+        : null;
   return {
     publicUuid: raw.publicUuid,
-    assignmentPublicUuid: raw.assignmentPublicUuid,
+    assignmentPublicUuid: raw.assignmentPublicUuid ?? raw.taskPublicUuid ?? '',
     studentPublicUuid: raw.studentPublicUuid,
-    submittedByUserPublicUuid: raw.submittedByUserPublicUuid,
+    submittedByUserPublicUuid: raw.submittedByUserPublicUuid ?? raw.submitterPublicUuid ?? '',
     submittedForStudentPublicUuid: raw.submittedForStudentPublicUuid ?? null,
     status: raw.status,
-    textContent: raw.textContent ?? null,
-    attachment: raw.attachment ? toAttachment(raw.attachment) : null,
-    version: raw.version,
+    textContent: raw.textContent ?? raw.textBody ?? null,
+    attachment,
+    version: raw.version ?? 1,
     grade: raw.grade ?? null,
     feedback: raw.feedback ?? null,
-    submittedAt: new Date(raw.submittedAt),
+    submittedAt: new Date(submittedAt),
     gradedAt: raw.gradedAt ? new Date(raw.gradedAt) : null,
-    gradedByTeacherPublicUuid: raw.gradedByTeacherPublicUuid ?? null,
+    gradedByTeacherPublicUuid: raw.gradedByTeacherPublicUuid ?? raw.gradedByPublicUuid ?? null,
     returnedAt: raw.returnedAt ? new Date(raw.returnedAt) : null,
     returnedByTeacherPublicUuid: raw.returnedByTeacherPublicUuid ?? null,
   };
@@ -224,7 +238,7 @@ export const MAX_ATTACHMENT_SIZE_LABEL = '25 MB';
  */
 export function canResubmit(status: SubmissionStatus, allowResubmissions: boolean): boolean {
   if (status === SubmissionStatus.Returned) return true;
-  if (status === SubmissionStatus.Graded && allowResubmissions) return true;
+  if (allowResubmissions) return true;
   return status === SubmissionStatus.Pending;
 }
 

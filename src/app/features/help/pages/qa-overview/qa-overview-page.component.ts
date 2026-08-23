@@ -6,7 +6,6 @@ import { PageContainerComponent } from '@shared/components';
 import { PageHeaderComponent } from '@shared/components';
 import { SpinnerComponent } from '@shared/components';
 import { IconComponent } from '@shared/components';
-import { EmptyStateComponent } from '@shared/components';
 
 import { CAPABILITIES, ROLES, capabilitiesForRole } from '../../capabilities.catalog';
 import { QaBugReportService } from '../../services/qa-bug-report.service';
@@ -41,7 +40,6 @@ interface RoleCard {
     PageHeaderComponent,
     SpinnerComponent,
     IconComponent,
-    EmptyStateComponent,
   ],
   template: `
     <app-page-container>

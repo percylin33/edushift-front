@@ -7,7 +7,7 @@ import { of } from 'rxjs';
 import { RubricDetail } from '../../models';
 
 describe('RubricDetailComponent', () => {
-  let component: RubricDetailComponent;
+  let component: any;
   let fixture: ComponentFixture<RubricDetailComponent>;
   let storeSpy: jasmine.SpyObj<RubricsStore>;
 

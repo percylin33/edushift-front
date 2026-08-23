@@ -3,7 +3,7 @@ import { ChipMultiSelectComponent, ChipOption } from './chip-multi-select.compon
 import { FormsModule } from '@angular/forms';
 
 describe('ChipMultiSelectComponent', () => {
-  let component: ChipMultiSelectComponent;
+  let component: any;
   let fixture: ComponentFixture<ChipMultiSelectComponent>;
 
   const mockOptions: ChipOption[] = [

@@ -6,7 +6,7 @@ import { signal } from '@angular/core';
 import { of } from 'rxjs';
 
 describe('RubricFormComponent', () => {
-  let component: RubricFormComponent;
+  let component: any;
   let fixture: ComponentFixture<RubricFormComponent>;
   let storeSpy: jasmine.SpyObj<RubricsStore>;
 

@@ -3,7 +3,7 @@ import { SubmissionFormComponent } from './submission-form.component';
 import { SubmissionStatus } from '../../models';
 
 describe('SubmissionFormComponent', () => {
-  let component: SubmissionFormComponent;
+  let component: any;
   let fixture: ComponentFixture<SubmissionFormComponent>;
 
   beforeEach(async () => {

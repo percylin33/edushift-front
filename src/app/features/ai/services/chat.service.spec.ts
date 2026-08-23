@@ -1,22 +1,22 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClient } from '@angular/common/http';
 import { of } from 'rxjs';
 import { ChatService } from './chat.service';
-import { ApiService } from '@core/services/api.service';
+import { ApiService } from '@core/services';
+import { SseClientService } from './sse-client.service';
 
 describe('ChatService', () => {
   let service: ChatService;
   let apiSpy: jasmine.SpyObj<ApiService>;
-  let httpSpy: jasmine.SpyObj<HttpClient>;
+  let sseSpy: jasmine.SpyObj<SseClientService>;
 
   beforeEach(() => {
     apiSpy = jasmine.createSpyObj('ApiService', ['get', 'post', 'delete']);
-    httpSpy = jasmine.createSpyObj('HttpClient', ['post']);
+    sseSpy = jasmine.createSpyObj('SseClientService', ['stream']);
     TestBed.configureTestingModule({
       providers: [
         ChatService,
         { provide: ApiService, useValue: apiSpy },
-        { provide: HttpClient, useValue: httpSpy },
+        { provide: SseClientService, useValue: sseSpy },
       ],
     });
     service = TestBed.inject(ChatService);
@@ -118,9 +118,11 @@ describe('ChatService', () => {
 
   describe('sendMessage', () => {
     it('retorna handle con chunks$ y cancel', () => {
+      sseSpy.stream.and.returnValue(of({ event: 'done', data: '{"publicUuid":"m1","cancelled":false}' }));
       const handle = service.sendMessage('s1', 'Hola');
       expect(handle.chunks$).toBeDefined();
       expect(typeof handle.cancel).toBe('function');
+      expect(sseSpy.stream).toHaveBeenCalled();
     });
   });
 });

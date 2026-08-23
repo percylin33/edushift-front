@@ -52,9 +52,10 @@ describe('errorInterceptor', () => {
     httpMock.verify();
   });
 
+  const noopObserver = { next: () => undefined, error: (_err: unknown) => undefined };
+
   it('401 en endpoint no-auth limpia sesi—n y redirige a login', () => {
     spyOn(router, 'navigate');
-    const noopObserver = { next: () => undefined, error: (_err: unknown) => undefined };
     httpClient.get('/api/sections').subscribe(noopObserver);
 
     const req = httpMock.expectOne('/api/sections');

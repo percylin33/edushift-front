@@ -1,4 +1,5 @@
 import { InvitationStatus, UserRole } from '@core/enums';
+import { DocumentType } from '@core/enums';
 import {
   Invitation,
   CreateInvitationRequest,
@@ -14,6 +15,8 @@ describe('InvitationModel', () => {
         email: 'a@b.com',
         firstName: 'A',
         lastName: 'B',
+        documentType: DocumentType.Dni,
+        documentNumber: '87654321',
         fullName: 'A B',
         roles: [UserRole.Teacher],
         status: InvitationStatus.Pending,
@@ -29,6 +32,8 @@ describe('InvitationModel', () => {
         email: 'a@b.com',
         firstName: 'A',
         lastName: 'B',
+        documentType: DocumentType.Dni,
+        documentNumber: '87654321',
         fullName: 'A B',
         roles: [UserRole.Teacher],
         status: InvitationStatus.Cancelled,
@@ -44,6 +49,8 @@ describe('InvitationModel', () => {
         email: 'a@b.com',
         firstName: 'A',
         lastName: 'B',
+        documentType: DocumentType.Dni,
+        documentNumber: '87654321',
         roles: [UserRole.Teacher],
       };
       expect(req.roles).toContain(UserRole.Teacher);

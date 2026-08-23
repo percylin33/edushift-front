@@ -4,7 +4,7 @@ import { RubricsStore } from '../store';
 import { RubricRow } from '../models';
 
 describe('ForkRubricModalComponent', () => {
-  let component: ForkRubricModalComponent;
+  let component: any;
   let fixture: ComponentFixture<ForkRubricModalComponent>;
   let storeSpy: jasmine.SpyObj<RubricsStore>;
 

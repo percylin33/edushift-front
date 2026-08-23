@@ -1,9 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, signal } from '@angular/core';
 
 import { environment } from '@env/environment';
+import { TenantService } from '@core/services';
 
 import { ForgotPasswordComponent } from './forgot-password.component';
 
@@ -11,11 +12,23 @@ describe('ForgotPasswordComponent', () => {
   let fixture: ComponentFixture<ForgotPasswordComponent>;
   let component: ForgotPasswordComponent;
   let httpMock: HttpTestingController;
+  const tenantSlug = signal<string | null>('tecnosur');
 
   beforeEach(async () => {
+    tenantSlug.set('tecnosur');
     await TestBed.configureTestingModule({
       imports: [ForgotPasswordComponent, HttpClientTestingModule],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        {
+          provide: TenantService,
+          useValue: {
+            tenantSlug: tenantSlug.asReadonly(),
+            tenant: signal(null).asReadonly(),
+            setSlug: jasmine.createSpy('setSlug'),
+          },
+        },
+      ],
     })
       .overrideComponent(ForgotPasswordComponent, {
         set: { changeDetection: ChangeDetectionStrategy.Default },
@@ -31,23 +44,27 @@ describe('ForgotPasswordComponent', () => {
   afterEach(() => httpMock.verify());
 
   it('shows the success state on a 200 response (anti-enumeration: same UI for missing email)', () => {
-    component.form.patchValue({ email: 'alice@acme.test' });
-    component.onSubmit();
+    component['form'].patchValue({ email: 'alice@acme.test' });
+    component['onSubmit']();
 
     const req = httpMock.expectOne(
       (r) =>
         r.url === `${environment.apiUrl}/${environment.apiVersion}/auth/forgot-password` &&
         r.method === 'POST',
     );
+    expect(req.request.body).toEqual({
+      tenantSlug: 'tecnosur',
+      email: 'alice@acme.test',
+    });
     req.flush(null);
     fixture.detectChanges();
 
-    expect(component.sent()).toBe(true);
+    expect(component['sent']()).toBe(true);
   });
 
   it('maps a 429 error to a friendly Spanish message', () => {
-    component.form.patchValue({ email: 'alice@acme.test' });
-    component.onSubmit();
+    component['form'].patchValue({ email: 'alice@acme.test' });
+    component['onSubmit']();
 
     const req = httpMock.expectOne((r) => r.url.endsWith('/auth/forgot-password'));
     req.flush(
@@ -56,15 +73,30 @@ describe('ForgotPasswordComponent', () => {
     );
     fixture.detectChanges();
 
-    expect(component.errorMessage()).toMatch(/espera unos minutos/i);
-    expect(component.sent()).toBe(false);
+    expect(component['errorMessage']()).toMatch(/espera unos minutos/i);
+    expect(component['sent']()).toBe(false);
   });
 
   it('rejects an invalid email before sending a request', () => {
-    component.form.patchValue({ email: 'not-an-email' });
-    component.form.get('email')?.markAsTouched();
-    component.onSubmit();
+    component['form'].patchValue({ email: 'not-an-email' });
+    component['form'].get('email')?.markAsTouched();
+    component['onSubmit']();
 
     httpMock.expectNone((r) => r.url.endsWith('/auth/forgot-password'));
+  });
+
+  it('blocks submit when no tenant is resolved from the URL', () => {
+    tenantSlug.set(null);
+    component['form'].patchValue({ email: 'alice@acme.test' });
+    component['onSubmit']();
+
+    httpMock.expectNone((r) => r.url.endsWith('/auth/forgot-password'));
+    expect(component['errorMessage']()).toMatch(/institución/i);
+  });
+
+  it('does not render an Institución field when tenant comes from the URL', () => {
+    const html = fixture.nativeElement as HTMLElement;
+    expect(html.querySelector('#tenantSlug')).toBeNull();
+    expect(html.textContent).not.toMatch(/Identificador de tu colegio/i);
   });
 });

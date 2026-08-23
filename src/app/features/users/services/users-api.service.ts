@@ -111,12 +111,6 @@ export class UsersApiService {
       .pipe(map((envelope) => this.toUserDetail(envelope.data)));
   }
 
-  /**
-   * 202 Accepted with no body — Sprint 3 just queues the intent. We
-   * return {@code void} to keep callers honest about the asynchronous
-   * delivery (the actual reset email lands in Sprint 9 once the
-   * notifications module is wired).
-   */
   resetPassword(publicUuid: string): Observable<void> {
     return this.api.post<void>(API.USERS.RESET_PASSWORD(publicUuid));
   }
@@ -167,9 +161,13 @@ export class UsersApiService {
    * {@code /invitation/:token} page to greet the recipient by name
    * and confirm <em>which school</em> they are joining.
    */
-  previewInvitation(token: string): Observable<InvitationPreflight> {
+  previewInvitation(token: string, tenantSlug?: string | null): Observable<InvitationPreflight> {
+    const params =
+      tenantSlug && tenantSlug.trim()
+        ? { tenant: tenantSlug.trim() }
+        : undefined;
     return this.api
-      .get<ApiResponse<InvitationPreflightResponseRaw>>(API.INVITATIONS.BY_TOKEN(token))
+      .get<ApiResponse<InvitationPreflightResponseRaw>>(API.INVITATIONS.BY_TOKEN(token), params)
       .pipe(map((envelope) => this.toPreflight(envelope.data)));
   }
 
@@ -259,6 +257,8 @@ export class UsersApiService {
       email: raw.email,
       firstName: raw.firstName,
       lastName: raw.lastName,
+      documentType: raw.documentType,
+      documentNumber: raw.documentNumber,
       fullName: fullName || raw.email,
       roles: this.narrowRoles(raw.roles),
       status: raw.status,
@@ -278,6 +278,7 @@ export class UsersApiService {
       lastName: raw.lastName,
       fullName: fullName || raw.email,
       tenantName: raw.tenantName,
+      tenantSlug: raw.tenantSlug ?? undefined,
     };
   }
 }

@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
-import { AuthService } from '@core/services';
+import { AuthService, TenantService } from '@core/services';
 import { ROUTES } from '@core/constants';
 import { AlertComponent, FormFieldComponent, SubmitButtonComponent } from '@shared/components';
 
@@ -27,7 +27,7 @@ import { AuthApiService } from '../../services/auth-api.service';
   selector: 'app-mfa-challenge',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, AlertComponent, FormFieldComponent, SubmitButtonComponent],
+  imports: [ReactiveFormsModule, RouterLink, AlertComponent, FormFieldComponent, SubmitButtonComponent],
   template: `
     <div class="space-y-6">
       <header class="space-y-1.5">
@@ -46,7 +46,8 @@ import { AuthApiService } from '../../services/auth-api.service';
             message="Tu sesión MFA ha expirado. Vuelve a iniciar sesión."
           />
           <a
-            [href]="loginRoute"
+            [routerLink]="loginRoute"
+            [queryParams]="schoolQueryParams()"
             class="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
           >
             Volver a iniciar sesión
@@ -82,7 +83,8 @@ import { AuthApiService } from '../../services/auth-api.service';
         <p class="text-center text-xs text-content-muted">
           Perdiste tu dispositivo? Usa un
           <a
-            [href]="loginRoute"
+            [routerLink]="loginRoute"
+            [queryParams]="schoolQueryParams()"
             class="font-medium text-primary-600 hover:text-primary-700 hover:underline"
           >
             código de recuperación
@@ -97,9 +99,14 @@ export class MfaChallengeComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly authApi = inject(AuthApiService);
+  private readonly tenant = inject(TenantService);
   private readonly router = inject(Router);
 
   protected readonly loginRoute = ROUTES.AUTH.LOGIN;
+  protected schoolQueryParams(): Record<string, string> {
+    const slug = this.tenant.tenantSlug();
+    return slug ? { tenant: slug } : {};
+  }
 
   protected readonly submitting = signal(false);
   protected readonly errorMessage = signal<string | null>(null);

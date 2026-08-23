@@ -3,32 +3,46 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { ChangeDetectionStrategy } from '@angular/core';
 
-import { environment } from '@env/environment';
-
+import { TenantService } from '@core/services';
 import { ResetPasswordComponent } from './reset-password.component';
 
 describe('ResetPasswordComponent', () => {
   let fixture: ComponentFixture<ResetPasswordComponent>;
-  let component: ResetPasswordComponent;
+  let component: any;
   let httpMock: HttpTestingController;
+  let routeQuery: Record<string, string>;
 
   function setupRoute(token: string | null): void {
-    TestBed.overrideProvider(ActivatedRoute, {
-      useValue: {
-        snapshot: { queryParamMap: convertToParamMap(token ? { token } : {}) },
-      },
-    });
+    routeQuery = token ? { token } : {};
   }
 
   beforeEach(async () => {
+    routeQuery = {};
     await TestBed.configureTestingModule({
       imports: [ResetPasswordComponent, HttpClientTestingModule],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              get queryParamMap() {
+                return convertToParamMap(routeQuery);
+              },
+            },
+          },
+        },
+        {
+          provide: TenantService,
+          useValue: { tenantSlug: () => 'acme', setSlug: jasmine.createSpy('setSlug') },
+        },
+      ],
     })
       .overrideComponent(ResetPasswordComponent, {
         set: { changeDetection: ChangeDetectionStrategy.Default },
       })
       .compileComponents();
+    httpMock = TestBed.inject(HttpTestingController);
   });
 
   afterEach(() => httpMock.verify());

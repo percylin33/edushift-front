@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
+import { Router, UrlTree, provideRouter } from '@angular/router';
 import { tenantGuard } from './tenant.guard';
 import { TenantService } from '@core/services';
 
@@ -37,6 +37,6 @@ describe('tenantGuard', () => {
     });
     router = TestBed.inject(Router);
     const result = TestBed.runInInjectionContext(() => tenantGuard({} as any, {} as any));
-    expect(router.isUrlTree(result)).toBeTrue();
+    expect(result instanceof UrlTree).toBeTrue();
   });
 });

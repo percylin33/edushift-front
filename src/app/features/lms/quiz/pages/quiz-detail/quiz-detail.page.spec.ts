@@ -8,7 +8,7 @@ import { Permission } from '@core/enums';
 import { QuizStatus } from '../../models/quiz.model';
 
 describe('QuizDetailPageComponent', () => {
-  let component: QuizDetailPageComponent;
+  let component: any;
   let fixture: ComponentFixture<QuizDetailPageComponent>;
   let mockStore: jasmine.SpyObj<QuizzesStore>;
   let mockAuth: jasmine.SpyObj<AuthService>;

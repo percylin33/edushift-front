@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpEvent, HttpEventType, HttpParams } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, firstValueFrom } from 'rxjs';
 import { API } from '@core/constants';
 import { ApiResponse } from '@core/models';
+import { FileUploadService } from '@core/services/file-upload.service';
 import {
   CreateSubmissionRequest,
   GradeSubmissionRequest,
@@ -23,10 +24,10 @@ import {
  * <ul>
  *   <li>{@link #listByAssignment}   → {@code GET    /v1/lms/assignments/{uuid}/submissions} (TEACHER)</li>
  *   <li>{@link #listByStudent}      → {@code GET    /v1/lms/students/{uuid}/submissions} (STUDENT/PARENT)</li>
- *   <li>{@link #create}             → {@code POST   /v1/lms/assignments/{uuid}/submissions} (multipart)</li>
- *   <li>{@link #update}             → {@code PATCH  /v1/lms/submissions/{uuid}} (multipart)</li>
- *   <li>{@link #grade}              → {@code PATCH  /v1/lms/submissions/{uuid}/grade} (JSON)</li>
- *   <li>{@link #return}             → {@code PATCH  /v1/lms/submissions/{uuid}/return} (JSON)</li>
+ *   <li>{@link #create}             → {@code POST /v1/tasks/{uuid}/submissions} (JSON after /files upload)</li>
+ *   <li>{@link #getMine}            → {@code GET /v1/tasks/{uuid}/submissions/me}</li>
+ *   <li>{@link #grade}              → {@code PATCH /v1/submissions/{uuid}/grade} (JSON)</li>
+ *   <li>{@link #return}             → {@code PATCH /v1/submissions/{uuid}/return} (JSON)</li>
  * </ul>
  *
  * <h3>Upload progress</h3>
@@ -38,6 +39,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class SubmissionApiService {
   private readonly http = inject(HttpClient);
+  private readonly files = inject(FileUploadService);
 
   /* ------------------------------------------------------------------------ */
   /* Listings                                                                 */
@@ -65,37 +67,44 @@ export class SubmissionApiService {
    * como `application/json` con sólo `textContent` (y opcionalmente
    * `submittedForStudentPublicUuid`).
    */
+  getMine(taskPublicUuid: string, studentPublicUuid?: string | null): Observable<Submission | null> {
+    let params = new HttpParams();
+    if (studentPublicUuid) {
+      params = params.set('studentPublicUuid', studentPublicUuid);
+    }
+    return this.http
+      .get<ApiResponse<SubmissionResponseRaw | null>>(API.LMS.TASK_SUBMISSION_MINE(taskPublicUuid), {
+        params,
+      })
+      .pipe(map((envelope) => (envelope.data ? toSubmission(envelope.data) : null)));
+  }
+
   create(
     assignmentPublicUuid: string,
     body: CreateSubmissionRequest,
   ): Observable<UploadProgress<Submission>> {
-    if (body.attachment) {
-      const fd = new FormData();
-      fd.append('attachment', body.attachment, body.attachment.name);
-      if (body.textContent) fd.append('textContent', body.textContent);
-      if (body.submittedForStudentPublicUuid) {
-        fd.append('submittedForStudentPublicUuid', body.submittedForStudentPublicUuid);
-      }
-      return this.toUploadProgress(
-        this.http.post<ApiResponse<SubmissionResponseRaw>>(
-          API.LMS.ASSIGNMENT_SUBMISSIONS(assignmentPublicUuid),
-          fd,
-          { reportProgress: true, observe: 'events' },
-        ),
-      );
-    }
-
-    const json = {
-      textContent: body.textContent ?? null,
-      submittedForStudentPublicUuid: body.submittedForStudentPublicUuid ?? null,
-    };
-    return this.toUploadProgress(
-      this.http.post<ApiResponse<SubmissionResponseRaw>>(
-        API.LMS.ASSIGNMENT_SUBMISSIONS(assignmentPublicUuid),
-        json,
-        { reportProgress: true, observe: 'events' },
-      ),
-    );
+    const studentPublicUuid = body.studentPublicUuid || body.submittedForStudentPublicUuid || '';
+    const textBody = body.textBody ?? body.textContent ?? null;
+    return new Observable<UploadProgress<Submission>>((subscriber) => {
+      const run = async () => {
+        subscriber.next({ kind: 'Sent' });
+        let attachmentPublicUuid = body.attachmentPublicUuid ?? null;
+        if (body.attachment) {
+          const meta = await firstValueFrom(this.files.upload('submissions', body.attachment));
+          attachmentPublicUuid = meta.publicUuid;
+          subscriber.next({ kind: 'Progress', percent: 80, loaded: 80, total: 100 });
+        }
+        const json = { studentPublicUuid, textBody, attachmentPublicUuid };
+        this.toUploadProgress(
+          this.http.post<ApiResponse<SubmissionResponseRaw>>(
+            API.LMS.ASSIGNMENT_SUBMISSIONS(assignmentPublicUuid),
+            json,
+            { reportProgress: true, observe: 'events' },
+          ),
+        ).subscribe(subscriber);
+      };
+      void run().catch((err) => subscriber.error(err));
+    });
   }
 
   update(

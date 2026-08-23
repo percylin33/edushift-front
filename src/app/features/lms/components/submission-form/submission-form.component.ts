@@ -113,20 +113,17 @@ import {
           }
         </div>
 
-        @if (isParent() && showSubmittedFor()) {
+        @if (isParent() && showStudentUuidField()) {
           <div class="field">
-            <label class="label" for="sub-for">Entregar para (opcional)</label>
+            <label class="label" for="sub-for">Entregar para</label>
             <input
               id="sub-for"
               type="text"
               class="input"
               formControlName="submittedForStudentPublicUuid"
-              placeholder="UUID del hijo (selector rico pendiente)"
+              placeholder="UUID del hijo"
             />
-            <p class="field-hint">
-              MVP: pega el UUID del hijo. La UI de selector múltiple queda como ticket explícito en
-              el card de FE-7a.2.
-            </p>
+            <p class="field-hint">Abre esta pantalla desde Familia para no pegar el UUID a mano.</p>
           </div>
         }
 
@@ -161,11 +158,14 @@ export class SubmissionFormComponent implements OnChanges {
   @Input() errorMessage: string | null = null;
   @Input() uploading = false;
   @Input() uploadPercent = 0;
+  /** When set (query from Familia or STUDENT profile), the raw UUID field is hidden. */
+  @Input() studentPublicUuid: string | null = null;
 
   @Output() readonly submitCreate = new EventEmitter<{
     textContent: string | null;
     attachment: File | null;
     submittedForStudentPublicUuid: string | null;
+    studentPublicUuid: string | null;
   }>();
   @Output() readonly submitUpdate = new EventEmitter<{
     textContent: string | null;
@@ -191,13 +191,17 @@ export class SubmissionFormComponent implements OnChanges {
 
   protected readonly isParent = computed(() => this.auth.hasRole(UserRole.Parent));
 
+  protected readonly studentUuidSig = signal<string | null>(null);
+
   protected readonly canResubmitNow = computed(() => {
     const e = this.existingSig();
     if (!e) return false;
     return canResubmit(e.status, this.allowResubmissions);
   });
 
-  protected readonly showSubmittedFor = signal(true);
+  protected readonly showStudentUuidField = computed(
+    () => this.isParent() && !this.studentUuidSig(),
+  );
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['existingSubmission']) {
@@ -218,6 +222,9 @@ export class SubmissionFormComponent implements OnChanges {
     }
     if (changes['uploadPercent']) {
       this.uploadPercentSig.set(this.uploadPercent);
+    }
+    if (changes['studentPublicUuid']) {
+      this.studentUuidSig.set(this.studentPublicUuid);
     }
   }
 
@@ -271,7 +278,10 @@ export class SubmissionFormComponent implements OnChanges {
     }
     const v = this.form.getRawValue();
     const text = (v.textContent ?? '').toString().trim() || null;
-    const submittedFor = (v.submittedForStudentPublicUuid ?? '').toString().trim() || null;
+    const submittedFor =
+      this.studentUuidSig() ||
+      (v.submittedForStudentPublicUuid ?? '').toString().trim() ||
+      null;
     const file = this.selectedFile();
 
     if (!text && !file) {
@@ -288,6 +298,7 @@ export class SubmissionFormComponent implements OnChanges {
         textContent: text,
         attachment: file,
         submittedForStudentPublicUuid: submittedFor,
+        studentPublicUuid: submittedFor,
       });
     }
   }

@@ -201,7 +201,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // 1) Initial fetch of unread count.
     this.api.listUnreadCount().subscribe({
-      next: (res) => this.unreadCount.set(res.unreadCount ?? 0),
+      next: (res) => this.unreadCount.set((res as any)?.data?.unreadCount ?? 0),
       error: () => {
         /* keep 0 */
       },
@@ -209,7 +209,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
 
     // 2) Connect to STOMP and subscribe to the per-user topic.
     this.realtime.connect();
-    this.auth.user$.pipe(takeUntil(this.stop$)).subscribe((u) => {
+    this.auth.user$.pipe(takeUntil(this.stop$)).subscribe((u: any) => {
       if (u?.tenantId && u?.id) {
         const dest = `/topic/tenant/${u.tenantId}/user/${u.id}`;
         this.realtime.subscribe(dest);
@@ -244,7 +244,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
             body: 'Nueva notificación',
             createdAt: p.occurredAt,
             readAt: null,
-          },
+          } as any,
           ...list,
         ].slice(0, 10),
       );
@@ -262,7 +262,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.api.list(false).subscribe({
       next: (page) => {
-        this.items.set(page?.items ?? []);
+        this.items.set(page?.data ?? []);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),

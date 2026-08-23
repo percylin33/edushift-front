@@ -1,13 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { of } from 'rxjs';
 import { provideRouter } from '@angular/router';
 import { SubmissionSubmitComponent } from './submission-submit.component';
 import { TasksStore } from '../../store';
 import { SubmissionsStore } from '../../store';
 import { SubmissionStatus } from '../../models';
+import { AuthService } from '@core/services';
+import { UserRole } from '@core/enums';
+import { MeApiService } from '@features/me/services/me-api.service';
 
 describe('SubmissionSubmitComponent', () => {
-  let component: SubmissionSubmitComponent;
+  let component: any;
   let fixture: ComponentFixture<SubmissionSubmitComponent>;
   let mockTasksStore: jasmine.SpyObj<TasksStore>;
   let mockSubmissionsStore: jasmine.SpyObj<SubmissionsStore>;
@@ -16,7 +20,7 @@ describe('SubmissionSubmitComponent', () => {
     mockTasksStore = jasmine.createSpyObj<TasksStore>('TasksStore', ['loadDetail']);
     mockSubmissionsStore = jasmine.createSpyObj<SubmissionsStore>(
       'SubmissionsStore',
-      ['create', 'update'],
+      ['create', 'update', 'loadMySubmission'],
       {
         error: signal(null),
         uploading: signal(false),
@@ -24,26 +28,8 @@ describe('SubmissionSubmitComponent', () => {
       },
     );
 
-    mockTasksStore.loadDetail.and.returnValue(
-      Promise.resolve({
-        publicUuid: 'a-1',
-        title: 'Tarea',
-        dueAt: new Date('2030-01-01'),
-        maxScore: 20,
-        allowResubmissions: true,
-        requiresAttachment: false,
-        lifecycle: 'PUBLISHED',
-        sectionPublicUuid: 's-1',
-        coursePublicUuid: 'c-1',
-        periodPublicUuid: 'p-1',
-        description: null,
-        createdByTeacherPublicUuid: 'tch-1',
-        createdAt: new Date(),
-        updatedAt: null,
-        submissionsCount: 0,
-      }),
-    );
-
+    mockTasksStore.loadDetail.and.returnValue(Promise.resolve({} as any));
+    mockSubmissionsStore.loadMySubmission.and.returnValue(Promise.resolve(null));
     mockSubmissionsStore.create.and.returnValue(Promise.resolve({} as any));
     mockSubmissionsStore.update.and.returnValue(Promise.resolve({} as any));
 
@@ -53,6 +39,16 @@ describe('SubmissionSubmitComponent', () => {
         provideRouter([]),
         { provide: TasksStore, useValue: mockTasksStore },
         { provide: SubmissionsStore, useValue: mockSubmissionsStore },
+        {
+          provide: AuthService,
+          useValue: { hasRole: (role: UserRole) => role === UserRole.Student },
+        },
+        {
+          provide: MeApiService,
+          useValue: {
+            getProfile: () => of({ data: { publicUuid: 'st-1' } }),
+          },
+        },
       ],
     }).compileComponents();
 
@@ -72,14 +68,20 @@ describe('SubmissionSubmitComponent', () => {
     expect(component.showForm()).toBeTrue();
   });
 
-  it('onCreate llama al store', async () => {
+  it('onCreate llama al store con el contrato JSON del BE', async () => {
+    component.studentPublicUuid.set('st-1');
     const payload = {
       textContent: 'Mi respuesta',
       attachment: null,
       submittedForStudentPublicUuid: null,
+      studentPublicUuid: 'st-1',
     };
     await component.onCreate(payload);
-    expect(mockSubmissionsStore.create).toHaveBeenCalledWith('a-1', payload);
+    expect(mockSubmissionsStore.create).toHaveBeenCalledWith('a-1', {
+      studentPublicUuid: 'st-1',
+      textBody: 'Mi respuesta',
+      attachment: null,
+    });
   });
 
   it('onUpdate llama al store', async () => {

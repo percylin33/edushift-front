@@ -15,7 +15,7 @@ describe('toAuthSession', () => {
       refreshToken: 'refresh-token',
       expiresInSec: 3600,
     };
-    const session = toAuthSession(raw);
+    const session = toAuthSession(raw as any);
     expect(session.accessToken).toBe('access-token');
     expect(session.user.publicUuid).toBe('abc');
     expect(session.expiresAt).toBeInstanceOf(Date);
@@ -31,7 +31,7 @@ describe('toUserSummary', () => {
       status: 'ACTIVE',
       avatarUrl: null,
     };
-    const summary = toUserSummary(raw);
+    const summary = toUserSummary(raw as any);
     expect(summary.fullName).toBe('Test');
     expect(summary.avatarUrl).toBeUndefined();
   });
@@ -56,7 +56,7 @@ describe('toUser', () => {
       updatedAt: '2024-01-01',
       avatarUrl: null,
     };
-    const user = toUser(raw);
+    const user = toUser(raw as any);
     expect(user.roles).toContain(UserRole.TenantAdmin);
     expect(user.permissions).toContain('users:read' as Permission);
   });

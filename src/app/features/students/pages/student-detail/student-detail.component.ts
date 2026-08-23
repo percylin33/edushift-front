@@ -19,9 +19,10 @@ import {
   EnrollmentStatusBadgeComponent,
   EnrollmentsSectionComponent,
   GuardiansSectionComponent,
+  InvitePortalDialogComponent,
 } from '../../components';
 import { StudentsStore } from '../../store';
-import { StudentDetail } from '../../models';
+import { portalStatus, StudentDetail } from '../../models';
 
 /**
  * `/students/:id` — read-only detail page.
@@ -52,6 +53,7 @@ import { StudentDetail } from '../../models';
     EnrollmentStatusBadgeComponent,
     EnrollmentsSectionComponent,
     GuardiansSectionComponent,
+    InvitePortalDialogComponent,
   ],
   template: `
     <app-page-container size="default">
@@ -139,12 +141,38 @@ import { StudentDetail } from '../../models';
                 <p class="text-2xs uppercase tracking-wider text-content-subtle">Fecha</p>
                 <p class="text-sm text-content">{{ formatDate(s.enrollmentDate) }}</p>
               </div>
-              @if (s.userId) {
-                <div>
-                  <p class="text-2xs uppercase tracking-wider text-content-subtle">Cuenta</p>
-                  <p class="font-mono text-xs text-content-muted">{{ s.userId }}</p>
+              <div>
+                <p class="text-2xs uppercase tracking-wider text-content-subtle">Portal</p>
+                <div class="mt-1 flex flex-wrap items-center gap-2">
+                  @switch (studentPortalStatus(s)) {
+                    @case ('active') {
+                      <span class="badge badge-success">Activo</span>
+                    }
+                    @case ('pending') {
+                      <span class="badge badge-warning">Invitación pendiente</span>
+                      <button type="button" class="btn btn-ghost btn-sm" (click)="openStudentResend(s)">
+                        Reenviar
+                      </button>
+                    }
+                    @default {
+                      <span class="badge">Sin cuenta</span>
+                      <button
+                        type="button"
+                        class="btn btn-outline btn-sm"
+                        [disabled]="!s.email"
+                        (click)="openStudentInvite(s)"
+                      >
+                        Activar portal
+                      </button>
+                    }
+                  }
                 </div>
-              }
+                @if (!s.email && !s.userId) {
+                  <p class="mt-1 text-xs text-content-muted">
+                    Agrega un email para que el alumno use el portal. En primaria el portal canónico es el del tutor.
+                  </p>
+                }
+              </div>
             </div>
           </section>
 
@@ -172,6 +200,18 @@ import { StudentDetail } from '../../models';
           <app-enrollments-section [student]="s" />
 
           <app-guardians-section [studentPublicUuid]="s.publicUuid" />
+
+          @if (portalInvite(); as inv) {
+            <app-invite-portal-dialog
+              [personName]="inv.personName"
+              [email]="inv.email"
+              [audience]="inv.audience"
+              [studentPublicUuid]="s.publicUuid"
+              [guardianPublicUuid]="inv.guardianPublicUuid"
+              [invitationPublicUuid]="inv.invitationPublicUuid"
+              (closed)="closePortalInvite()"
+            />
+          }
 
           <section class="card lg:col-span-3">
             <header class="card-header">
@@ -222,8 +262,15 @@ export class StudentDetailComponent implements OnInit {
   protected readonly saving = this.store.saving;
   protected readonly errorMessage = this.store.error;
 
-  /** Tracks the public UUID we are showing so navigations refresh the load. */
-  private readonly currentId = signal<string | null>(null);
+  protected readonly currentId = signal<string | null>(null);
+
+  protected readonly portalInvite = signal<{
+    personName: string;
+    email?: string;
+    audience: 'estudiante' | 'tutor';
+    guardianPublicUuid?: string;
+    invitationPublicUuid?: string;
+  } | null>(null);
 
   protected readonly fullName = computed(() => this.student()?.fullName ?? '');
 
@@ -291,6 +338,34 @@ export class StudentDetailComponent implements OnInit {
     }
     if (age < 0 || age > 120) return '—';
     return `${age} años`;
+  }
+
+  protected studentPortalStatus(s: StudentDetail) {
+    return portalStatus(s.userId, s.pendingInvitationPublicUuid);
+  }
+
+  protected openStudentInvite(s: StudentDetail): void {
+    this.store.clearError();
+    this.portalInvite.set({
+      personName: s.fullName,
+      email: s.email,
+      audience: 'estudiante',
+    });
+  }
+
+  protected openStudentResend(s: StudentDetail): void {
+    if (!s.pendingInvitationPublicUuid) return;
+    this.store.clearError();
+    this.portalInvite.set({
+      personName: s.fullName,
+      email: s.email,
+      audience: 'estudiante',
+      invitationPublicUuid: s.pendingInvitationPublicUuid,
+    });
+  }
+
+  protected closePortalInvite(): void {
+    this.portalInvite.set(null);
   }
 
   protected async onDelete(student: StudentDetail): Promise<void> {

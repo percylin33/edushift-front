@@ -32,6 +32,8 @@ export interface GuardianResponseRaw {
   relationship: RelationshipType;
   isPrimaryContact: boolean;
   canPickupStudent: boolean;
+  userId: string | null;
+  pendingInvitationPublicUuid: string | null;
 }
 
 // =============================================================================
@@ -58,11 +60,53 @@ export interface Guardian {
   relationship: RelationshipType;
   isPrimaryContact: boolean;
   canPickupStudent: boolean;
+  userId?: string;
+  pendingInvitationPublicUuid?: string;
 }
 
 // =============================================================================
 // Request shapes
 // =============================================================================
+
+/** {@code GET /v1/guardians/by-document} — profile without link metadata. */
+export interface GuardianProfileResponseRaw {
+  guardianPublicUuid: string;
+  documentType: DocumentType;
+  documentNumber: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+  occupation: string | null;
+  userId: string | null;
+}
+
+export interface GuardianProfile {
+  guardianPublicUuid: string;
+  documentType: DocumentType;
+  documentNumber: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email?: string;
+  phone?: string;
+  occupation?: string;
+  userId?: string;
+}
+
+/** Splits a stored last name into paternal / maternal for the form. */
+export function splitGuardianLastName(full: string): { paternal: string; maternal: string } {
+  const trimmed = full.trim();
+  const space = trimmed.indexOf(' ');
+  if (space === -1) {
+    return { paternal: trimmed, maternal: '' };
+  }
+  return {
+    paternal: trimmed.slice(0, space),
+    maternal: trimmed.slice(space + 1).trim(),
+  };
+}
 
 /**
  * Body of {@code POST /v1/students/{publicUuid}/guardians}. Mirrors

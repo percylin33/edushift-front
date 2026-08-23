@@ -6,7 +6,7 @@ import { QuizzesStore } from '../../store/quizzes.store';
 import { QuizStatus, ALL_QUIZ_STATUSES } from '../../models/quiz.model';
 
 describe('QuizListPageComponent', () => {
-  let component: QuizListPageComponent;
+  let component: any;
   let fixture: ComponentFixture<QuizListPageComponent>;
   let mockStore: jasmine.SpyObj<QuizzesStore>;
 

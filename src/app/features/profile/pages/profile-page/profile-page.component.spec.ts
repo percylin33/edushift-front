@@ -10,7 +10,7 @@ import { ProfilePageComponent } from './profile-page.component';
 
 describe('ProfilePageComponent', () => {
   let fixture: ComponentFixture<ProfilePageComponent>;
-  let component: ProfilePageComponent;
+  let component: any;
   let httpMock: HttpTestingController;
   let auth: AuthService;
 

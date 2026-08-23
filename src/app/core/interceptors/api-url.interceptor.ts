@@ -12,6 +12,11 @@ export const apiUrlInterceptor: HttpInterceptorFn = (req, next) => {
   if (!normalized.startsWith('api/')) return next(req);
 
   const path = normalized.replace(/^api\//, '');
-  const url = `${environment.apiUrl}/${environment.apiVersion}/${path}`;
+  // Features such as family/me call `/api/v1/...`. This interceptor already
+  // injects `apiVersion`, so a leftover `v1/` in the path produced
+  // `/api/v1/v1/family/children` (ENDPOINT_NOT_FOUND).
+  const versionPrefix = `${environment.apiVersion}/`;
+  const stripped = path.startsWith(versionPrefix) ? path.slice(versionPrefix.length) : path;
+  const url = `${environment.apiUrl}/${environment.apiVersion}/${stripped}`;
   return next(req.clone({ url }));
 };

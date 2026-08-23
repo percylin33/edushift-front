@@ -22,6 +22,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, finalize, of } from 'rxjs';
 
 import { AuthApiService } from '../../services/auth-api.service';
+import { TenantService } from '@core/services';
+import { ROUTES } from '@core/constants';
 import {
   AlertComponent,
   IconComponent,
@@ -70,7 +72,8 @@ import { mapHttpError } from '@shared/utils';
         <div class="space-y-4">
           <app-alert variant="error" [message]="validationError()" />
           <a
-            routerLink="/auth/forgot-password"
+            [routerLink]="forgotPasswordRoute"
+            [queryParams]="schoolQueryParams()"
             class="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
           >
             <app-icon name="arrow-left" [size]="14" />
@@ -89,7 +92,8 @@ import { mapHttpError } from '@shared/utils';
             message="Tu contraseña fue actualizada. Inicia sesión con tu nueva contraseña."
           />
           <a
-            routerLink="/auth/login"
+            [routerLink]="loginRoute"
+            [queryParams]="schoolQueryParams()"
             class="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
           >
             <app-icon name="arrow-left" [size]="14" />
@@ -130,7 +134,8 @@ import { mapHttpError } from '@shared/utils';
 
         <p class="text-center text-sm text-content-muted">
           <a
-            routerLink="/auth/login"
+            [routerLink]="loginRoute"
+            [queryParams]="schoolQueryParams()"
             class="font-medium text-primary-600 hover:text-primary-700 hover:underline"
           >
             Volver a iniciar sesión
@@ -143,9 +148,17 @@ import { mapHttpError } from '@shared/utils';
 export class ResetPasswordComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authApi = inject(AuthApiService);
+  private readonly tenant = inject(TenantService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+
+  protected readonly loginRoute = ROUTES.AUTH.LOGIN;
+  protected readonly forgotPasswordRoute = ROUTES.AUTH.FORGOT_PASSWORD;
+  protected schoolQueryParams(): Record<string, string> {
+    const slug = this.tenant.tenantSlug();
+    return slug ? { tenant: slug } : {};
+  }
 
   protected readonly submitting = signal(false);
   protected readonly success = signal(false);
@@ -204,6 +217,9 @@ export class ResetPasswordComponent implements OnInit {
       .subscribe((res) => {
         if (res === null) return;
         if (res.valid) {
+          if (res.tenantSlug) {
+            this.tenant.setSlug(res.tenantSlug);
+          }
           this.validationState.set('valid');
         } else {
           this.validationState.set('invalid');
@@ -243,7 +259,11 @@ export class ResetPasswordComponent implements OnInit {
     this.submitting.set(true);
 
     this.authApi
-      .resetPassword({ token: this.token()!, password, passwordConfirmation })
+      .resetPassword({
+        token: this.token()!,
+        newPassword: password,
+        confirmPassword: passwordConfirmation,
+      })
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: () => {

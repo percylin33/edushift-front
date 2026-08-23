@@ -7,26 +7,14 @@ import { ReactiveFormsModule } from '@angular/forms';
 
 import { AuthService, TenantService, ThemeService } from '@core/services';
 import { TenantThemeService } from '@core/theming';
-import { STORAGE_KEYS } from '@core/constants';
 import { AuthSession, User } from '@core/models';
+import { TenantStatus } from '@core/enums';
 
 import { LoginComponent } from './login.component';
 import { AuthApiService } from '../../services/auth-api.service';
 import { GoogleAuthService } from '../../services/google-auth.service';
 import { AuthStore } from '../../store/auth.store';
-import { LoginRequest, LoginResult } from '../../models';
-
-class FakeAuthApiService {
-  login(_payload: LoginRequest) {
-    return of({} as AuthSession);
-  }
-  loginWithGoogle(_payload: { idToken: string }) {
-    return of({} as AuthSession);
-  }
-  me() {
-    return of({} as User);
-  }
-}
+import { LoginResult } from '../../models';
 
 class FakeAuthService {
   readonly user = signal<User | null>(null);
@@ -86,6 +74,16 @@ describe('LoginComponent', () => {
     component = fixture.componentInstance;
     store = TestBed.inject(AuthStore);
     tenantService = TestBed.inject(TenantService);
+    tenantService.setTenant(
+      {
+        id: '019ec200-4a00-7000-8001-000000000001',
+        slug: 'acme',
+        name: 'Acme School',
+        status: TenantStatus.Active,
+        isActive: true,
+      },
+      'path',
+    );
     fixture.detectChanges();
   });
 
@@ -94,12 +92,9 @@ describe('LoginComponent', () => {
     expect(component.form.invalid).toBeTrue();
   });
 
-  it('validaci—on: tenantSlug required', () => {
-    const ctrl = component.form.get('tenantSlug')!;
-    ctrl.markAsTouched();
-    fixture.detectChanges();
-    expect(ctrl.invalid).toBeTrue();
-    expect(ctrl.hasError('required')).toBeTrue();
+  it('no expone campo Institución / tenantSlug', () => {
+    expect(component.form.get('tenantSlug')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Institución');
   });
 
   it('validación: email requerido y formato', () => {
@@ -128,15 +123,14 @@ describe('LoginComponent', () => {
     expect(authApiSpy.login).not.toHaveBeenCalled();
   });
 
-  it('onSubmit llama login y navega al dashboard', () => {
-    const router = TestBed.inject(ActivatedRoute);
+  it('onSubmit llama login y usa el slug del TenantService', () => {
     component.form.patchValue({
-      tenantSlug: 'acme',
       email: 'admin@test.com',
       password: 'secret',
     });
     component.onSubmit();
     expect(authApiSpy.login).toHaveBeenCalled();
+    expect(tenantService.tenantSlug()).toBe('acme');
     expect(store.loading()).toBeFalse();
   });
 
@@ -152,7 +146,6 @@ describe('LoginComponent', () => {
     );
 
     component.form.patchValue({
-      tenantSlug: 'acme',
       email: 'admin@test.com',
       password: 'wrong',
     });
@@ -173,7 +166,6 @@ describe('LoginComponent', () => {
     );
 
     component.form.patchValue({
-      tenantSlug: 'acme',
       email: 'admin@test.com',
       password: 'secret',
     });
@@ -182,36 +174,13 @@ describe('LoginComponent', () => {
     expect(store.error()).toContain('error inesperado');
   });
 
-  it('onSubmit marca tenantSlug en TenantService antes de llamar login', () => {
+  it('onSubmit no llama login si no hay slug de tenant', () => {
+    tenantService.clear();
     component.form.patchValue({
-      tenantSlug: 'MiCole',
       email: 'admin@test.com',
       password: 'secret',
     });
     component.onSubmit();
-    expect(tenantService.tenantSlug()).toBe('micole');
-  });
-
-  it('onSubmit limpia tenant stale antes de setear el slug tipeado', () => {
-    localStorage.setItem(STORAGE_KEYS.CURRENT_TENANT, 'tenant-stale');
-    tenantService.setSlug('tenant-stale');
-    expect(tenantService.tenantSlug()).toBe('tenant-stale');
-
-    component.form.patchValue({
-      tenantSlug: 'tenant-fresh',
-      email: 'admin@test.com',
-      password: 'secret',
-    });
-    component.onSubmit();
-
-    expect(tenantService.tenantSlug()).toBe('tenant-fresh');
-    expect(localStorage.getItem(STORAGE_KEYS.CURRENT_TENANT)).toBe('tenant-fresh');
-    expect(tenantService.context().resolvedFrom).not.toBe('unknown');
-  });
-
-  it('onGoogleSignIn valida tenantSlug antes de abrir popup', async () => {
-    component.form.get('tenantSlug')!.setValue('');
-    await component.onGoogleSignIn();
-    expect(store.error()).toContain('Google');
+    expect(authApiSpy.login).not.toHaveBeenCalled();
   });
 });

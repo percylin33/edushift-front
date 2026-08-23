@@ -14,12 +14,12 @@ describe('ICONS registry', () => {
   });
 
   it('incluye iconos comunes', () => {
-    expect(ICONS).toHaveProperty('home');
-    expect(ICONS).toHaveProperty('users');
-    expect(ICONS).toHaveProperty('settings');
-    expect(ICONS).toHaveProperty('bell');
-    expect(ICONS).toHaveProperty('sun');
-    expect(ICONS).toHaveProperty('moon');
+    expect('home' in ICONS).toBe(true);
+    expect('users' in ICONS).toBe(true);
+    expect('settings' in ICONS).toBe(true);
+    expect('bell' in ICONS).toBe(true);
+    expect('sun' in ICONS).toBe(true);
+    expect('moon' in ICONS).toBe(true);
   });
 
   it('los nombres están en kebab-case', () => {

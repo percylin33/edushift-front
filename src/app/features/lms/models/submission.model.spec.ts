@@ -1,7 +1,7 @@
+import { SubmissionStatus } from './task.model';
 import {
   SubmissionResponseRaw,
   SubmissionSummaryRaw,
-  SubmissionStatus,
   toSubmission,
   toSubmissionRow,
   toBucket,

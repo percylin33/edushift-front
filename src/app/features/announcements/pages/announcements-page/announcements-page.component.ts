@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
-  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -79,9 +78,7 @@ import { Announcement } from '../../models/announcement.model';
                   <span class="text-amber-500" title="Fijado">📌</span>
                 }
                 <div class="min-w-0 flex-1">
-                  <h2
-                    class="line-clamp-1 text-base font-semibold text-slate-900 dark:text-slate-100"
-                  >
+                  <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">
                     {{ a.title }}
                   </h2>
                   <div
@@ -96,9 +93,19 @@ import { Announcement } from '../../models/announcement.model';
                     <span>{{ a.publishedAt | date: 'longDate' }}</span>
                   </div>
                   <div
-                    class="prose prose-sm mt-3 line-clamp-3 max-w-none dark:prose-invert"
+                    class="prose prose-sm mt-3 max-w-none dark:prose-invert"
+                    [class.line-clamp-4]="!isExpanded(a.publicUuid)"
                     [innerHTML]="safeBody(a.bodyHtml)"
                   ></div>
+                  @if (isLongBody(a.bodyHtml)) {
+                    <button
+                      type="button"
+                      class="mt-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
+                      (click)="toggleExpanded(a)"
+                    >
+                      {{ isExpanded(a.publicUuid) ? 'Ver menos' : 'Ver completo' }}
+                    </button>
+                  }
                 </div>
               </div>
             </li>
@@ -114,6 +121,8 @@ export class AnnouncementsPageComponent implements OnInit {
 
   readonly items = signal<Announcement[]>([]);
   readonly loading = signal(true);
+  /** publicUuids currently showing full body (no line-clamp). */
+  private readonly expanded = signal<ReadonlySet<string>>(new Set());
 
   /**
    * Sprint 10 / DEBT-9-FE-1 (XSS defense in depth): the BE
@@ -122,6 +131,26 @@ export class AnnouncementsPageComponent implements OnInit {
    */
   safeBody(html: string | null | undefined): SafeHtml {
     return this.sanitizer.sanitize(SecurityContext.HTML, html ?? '') ?? '';
+  }
+
+  isExpanded(publicUuid: string): boolean {
+    return this.expanded().has(publicUuid);
+  }
+
+  /** Show expand control when body is longer than a short preview. */
+  isLongBody(html: string | null | undefined): boolean {
+    const plain = (html ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    return plain.length > 160 || (html ?? '').includes('<h');
+  }
+
+  toggleExpanded(a: Announcement): void {
+    const next = new Set(this.expanded());
+    if (next.has(a.publicUuid)) {
+      next.delete(a.publicUuid);
+    } else {
+      next.add(a.publicUuid);
+    }
+    this.expanded.set(next);
   }
 
   ngOnInit(): void {

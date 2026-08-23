@@ -20,8 +20,9 @@ export interface ForgotPasswordRequest {
   tenantSlug: string;
 }
 
+/** Body of {@code POST /v1/auth/reset-password} — matches BE {@code ResetPasswordRequest}. */
 export interface ResetPasswordRequest {
   token: string;
-  password: string;
-  passwordConfirmation: string;
+  newPassword: string;
+  confirmPassword: string;
 }

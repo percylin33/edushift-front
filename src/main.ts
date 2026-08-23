@@ -1,5 +1,5 @@
-import { bootstrapApplication, type ApplicationConfig } from '@angular/platform-browser';
-import { mergeApplicationConfig } from '@angular/core';
+import '@angular/localize/init';
+import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
 

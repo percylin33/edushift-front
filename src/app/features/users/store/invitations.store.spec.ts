@@ -4,6 +4,7 @@ import { InvitationsStore } from './invitations.store';
 import { UsersApiService } from '../services';
 import { Invitation } from '../models';
 import { InvitationStatus, UserRole } from '@core/enums';
+import { DocumentType } from '@core/enums';
 
 describe('InvitationsStore', () => {
   let store: InvitationsStore;
@@ -14,6 +15,8 @@ describe('InvitationsStore', () => {
     email: 'a@b.com',
     firstName: 'A',
     lastName: 'B',
+    documentType: DocumentType.Dni,
+    documentNumber: '87654321',
     fullName: 'A B',
     roles: [UserRole.Teacher],
     status: InvitationStatus.Pending,
@@ -92,6 +95,8 @@ describe('InvitationsStore', () => {
       email: 'a@b.com',
       firstName: 'A',
       lastName: 'B',
+      documentType: DocumentType.Dni,
+      documentNumber: '87654321',
       roles: [UserRole.Teacher],
     });
     expect(result?.publicUuid).toBe('inv-1');
@@ -106,6 +111,8 @@ describe('InvitationsStore', () => {
       email: 'a@b.com',
       firstName: 'A',
       lastName: 'B',
+      documentType: DocumentType.Dni,
+      documentNumber: '87654321',
       roles: [UserRole.Teacher],
     });
     expect(result).toBeNull();

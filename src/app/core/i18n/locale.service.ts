@@ -1,4 +1,5 @@
-import { DOCUMENT, Inject, Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { Subject } from 'rxjs';
 
 /**
@@ -21,9 +22,12 @@ export class LocaleService {
 	readonly current = signal<Locale>(this.detectInitial());
 	readonly changes = new Subject<Locale>();
 
-	constructor(@Inject(DOCUMENT) private readonly document: Document) {
+	constructor() {
+		this.document = inject(DOCUMENT);
 		this.applyToDom(this.current());
 	}
+
+	private readonly document: Document;
 
 	get available(): readonly LocaleOption[] {
 		return [

@@ -1,4 +1,4 @@
-import { InvitationStatus, UserRole } from '@core/enums';
+import { DocumentType, InvitationStatus, UserRole } from '@core/enums';
 
 /**
  * RAW backend {@code InvitationResponse} record. Used by both the
@@ -15,6 +15,8 @@ export interface InvitationResponseRaw {
   email: string;
   firstName: string;
   lastName: string;
+  documentType: DocumentType;
+  documentNumber: string;
   roles: string[];
   status: InvitationStatus;
   /** Only present on the {@code POST /invitations} response. List endpoints null this out. */
@@ -35,6 +37,8 @@ export interface Invitation {
   email: string;
   firstName: string;
   lastName: string;
+  documentType: DocumentType;
+  documentNumber: string;
   /** Convenience derived field — backend doesn't ship a `fullName` for invitations. */
   fullName: string;
   roles: UserRole[];
@@ -56,6 +60,8 @@ export interface CreateInvitationRequest {
   email: string;
   firstName: string;
   lastName: string;
+  documentType: DocumentType;
+  documentNumber: string;
   roles: UserRole[];
 }
 
@@ -68,6 +74,7 @@ export interface InvitationPreflightResponseRaw {
   firstName: string;
   lastName: string;
   tenantName: string;
+  tenantSlug?: string | null;
 }
 
 export interface InvitationPreflight {
@@ -76,6 +83,7 @@ export interface InvitationPreflight {
   lastName: string;
   fullName: string;
   tenantName: string;
+  tenantSlug?: string;
 }
 
 /**
@@ -86,4 +94,6 @@ export interface InvitationPreflight {
 export interface AcceptInvitationRequest {
   token: string;
   password: string;
+  /** School slug from `?tenant=` — must match the invitation (UAT-CD-11). */
+  tenantSlug?: string;
 }

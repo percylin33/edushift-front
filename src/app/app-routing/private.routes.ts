@@ -179,6 +179,20 @@ export const PRIVATE_ROUTES: Routes = [
        * specific tenant's data).
        */
       {
+        path: 'family',
+        canActivate: [featureFlagGuard],
+        data: { feature: FeatureKey.Family, breadcrumb: 'Familia', title: 'Familia' },
+        loadChildren: () =>
+          import('@features/family/family.routes').then((m) => m.FAMILY_ROUTES),
+      },
+      {
+        path: 'me',
+        canActivate: [featureFlagGuard],
+        data: { feature: FeatureKey.Me, breadcrumb: 'Mi espacio', title: 'Mi espacio' },
+        loadChildren: () =>
+          import('@features/me/me.routes').then((m) => m.ME_ROUTES),
+      },
+      {
         path: 'profile',
         loadChildren: () =>
           import('@features/profile/profile.routes').then((m) => m.PROFILE_ROUTES),

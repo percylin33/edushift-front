@@ -16,27 +16,52 @@ describe('MaterialApiService', () => {
     service = TestBed.inject(MaterialApiService);
   });
 
-  it('listBySection hace GET y mapea a rows', (done) => {
+  it('listBySection hace GET, desenvuelve Page.content y mapea a rows (BUG-2026-07-31-05)', (done) => {
+    // Backend returns Spring `Page<MaterialSummary>`:
+    // { content: [...], totalElements, ... }, not a flat array.
     httpSpy.get.and.returnValue(
-      of([
-        {
-          publicUuid: 'mat-1',
-          title: 'Guía',
-          type: MaterialType.Pdf,
-          filename: 'guia.pdf',
-          sizeBytes: 1024,
-          contentType: 'application/pdf',
-          url: null,
-          uploadedByTeacherName: 'Prof. A',
-          sizeBytesDisplay: '1 KB',
-          createdAt: '2026-01-01T00:00:00.000Z',
-        },
-      ]),
+      of({
+        content: [
+          {
+            publicUuid: 'mat-1',
+            title: 'Guía',
+            type: MaterialType.Pdf,
+            filename: 'guia.pdf',
+            sizeBytes: 1024,
+            contentType: 'application/pdf',
+            url: null,
+            uploadedByTeacherName: 'Prof. A',
+            sizeBytesDisplay: '1 KB',
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        totalElements: 1,
+        number: 0,
+        size: 20,
+      }),
     );
 
     service.listBySection('s-1').subscribe((rows) => {
       expect(rows).toHaveSize(1);
       expect(rows[0].title).toBe('Guía');
+      done();
+    });
+  });
+
+  it('listBySection con content vacio devuelve []', (done) => {
+    httpSpy.get.and.returnValue(
+      of({ content: [], totalElements: 0, number: 0, size: 20 }),
+    );
+    service.listBySection('s-empty').subscribe((rows) => {
+      expect(rows).toEqual([]);
+      done();
+    });
+  });
+
+  it('listBySection defensivo si content es undefined devuelve []', (done) => {
+    httpSpy.get.and.returnValue(of({} as any));
+    service.listBySection('s-weird').subscribe((rows) => {
+      expect(rows).toEqual([]);
       done();
     });
   });

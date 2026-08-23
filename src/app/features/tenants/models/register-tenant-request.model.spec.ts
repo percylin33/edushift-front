@@ -9,6 +9,7 @@ describe('RegisterTenantRequestModel', () => {
       adminPassword: 'pass1234',
       adminFirstName: 'Admin',
       adminLastName: 'User',
+      inviteToken: 'tokentokentoken12',
     };
     expect(r.tenantSlug).toBe('acme');
     expect(r.adminEmail).toBe('admin@acme.com');
@@ -22,7 +23,8 @@ describe('RegisterTenantRequestModel', () => {
       adminPassword: '',
       adminFirstName: '',
       adminLastName: '',
+      inviteToken: '',
     };
-    expect(Object.keys(r)).toHaveSize(6);
+    expect(Object.keys(r)).toHaveSize(7);
   });
 });

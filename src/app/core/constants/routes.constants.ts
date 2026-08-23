@@ -8,6 +8,7 @@ export const ROUTES = {
     ROOT: '/auth',
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',
+    SETUP_SCHOOL: '/auth/setup-school',
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
     /** Sprint 17 / FE-17.3 — second-factor challenge page. */
@@ -109,6 +110,8 @@ export const ROUTES = {
   SCHEDULE: {
     ROOT: '/schedule',
     MINE: '/schedule/me',
+    JORNADA: '/schedule/jornada',
+    WORKLOAD: '/schedule/workload',
   },
   EVALUATIONS: {
     ROOT: '/evaluations',

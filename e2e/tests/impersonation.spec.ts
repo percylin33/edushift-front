@@ -1,6 +1,5 @@
 import { test, expect, request } from '@playwright/test';
-import { SUPER_ADMIN } from '../fixtures/admin-users';
-import { apiContextFor } from '../utils/api-helpers';
+import { loginSuperAdminSession } from '../fixtures/super-admin-login';
 
 /**
  * Impersonation flow (QA Plan 2026-07-02 / 02-plan-por-rol.md §2.1 + 03-pruebas-seguridad.md §3.4).
@@ -12,58 +11,16 @@ import { apiContextFor } from '../utils/api-helpers';
  * (see docs/qa/07-seed-desde-front.md §Dato-7).</p>
  *
  * <h3>SUPER_ADMIN login (dev only)</h3>
- * <p>{@code POST /admin/login} requires an MFA enrolment step on first
- * use. In dev we side-step the authenticator-app requirement via the
- * static-code {@code POST /admin/dev/complete-mfa} endpoint (see
- * {@code AdminDevMfaController}, {@code @Profile({"dev","local"})}).
- * Override the dev code with {@code EDUSHIFT_DEV_MFA_BYPASS_CODE}.</p>
+ * <p>Shared helper {@link loginSuperAdminSession} handles MFA enrolment
+ * via {@code POST /admin/dev/complete-mfa} (override code with
+ * {@code EDUSHIFT_DEV_MFA_BYPASS_CODE}).</p>
  */
 
 const API_BASE = process.env['API_URL'] ?? 'http://localhost:8081';
 
 async function loginAsSuperAdmin(): Promise<string> {
-  const ctx = await request.newContext({ baseURL: API_BASE });
-  try {
-    const loginRes = await ctx.post('/api/v1/admin/login', {
-      headers: { 'Content-Type': 'application/json' },
-      data: { email: SUPER_ADMIN.email, password: SUPER_ADMIN.password },
-    });
-    if (!loginRes.ok()) {
-      throw new Error(`SA login failed: ${loginRes.status()} ${await loginRes.text()}`);
-    }
-    const body = await loginRes.json();
-    const onboardingToken: string | undefined =
-      body.data?.onboardingToken ?? body.onboardingToken;
-    if (!onboardingToken) {
-      throw new Error(
-        'SA login returned no onboardingToken. Response: ' + JSON.stringify(body),
-      );
-    }
-
-    // MFA enrolment bypass (dev-only). If this 404s the BE was started
-    // without the dev profile — surface a clear skip reason instead of
-    // a 500.
-    const enrolRes = await ctx.post('/api/v1/admin/dev/complete-mfa', {
-      headers: {
-        Authorization: `Bearer ${onboardingToken}`,
-        'X-Dev-Code': process.env['EDUSHIFT_DEV_MFA_BYPASS_CODE'] ?? 'dev-bypass',
-      },
-    });
-    if (!enrolRes.ok()) {
-      throw new Error(
-        `SA MFA enrolment bypass failed: ${enrolRes.status()} ${await enrolRes.text()}`,
-      );
-    }
-    const enrolBody = await enrolRes.json();
-    const token: string | undefined =
-      enrolBody.data?.session?.accessToken ?? enrolBody.accessToken;
-    if (!token) {
-      throw new Error('SA MFA enrolment returned no accessToken');
-    }
-    return token;
-  } finally {
-    await ctx.dispose();
-  }
+  const session = await loginSuperAdminSession();
+  return session.accessToken;
 }
 
 test.describe('SUPER_ADMIN — impersonation', () => {

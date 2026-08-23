@@ -56,7 +56,7 @@ export class ClassroomsApiService {
 		return this.api
 			.get<ApiResponse<{ content: Classroom[]; totalElements: number }>>(
 				API.ACADEMIC.CLASSROOMS.ROOT,
-				{ params: { page, size } },
+				{ page, size },
 			)
 			.pipe(map((env) => ({
 				items: env.data?.content ?? [],

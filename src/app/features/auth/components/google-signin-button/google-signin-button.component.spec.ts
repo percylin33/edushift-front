@@ -3,7 +3,7 @@ import { GoogleSigninButtonComponent } from './google-signin-button.component';
 
 describe('GoogleSigninButtonComponent', () => {
   let fixture: ComponentFixture<GoogleSigninButtonComponent>;
-  let component: GoogleSigninButtonComponent;
+  let component: any;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({

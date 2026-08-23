@@ -12,8 +12,9 @@ import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
-import { AuthService } from '@core/services';
+import { AuthService, TenantService } from '@core/services';
 import { ROUTES } from '@core/constants';
+import { schoolLoginQueryParams } from '@core/navigation/school-login.navigation';
 import { ApiError, User } from '@core/models';
 import { IconComponent, SpinnerComponent, PromptDialogService } from '@shared/components';
 import { InitialsPipe } from '@shared/pipes';
@@ -298,6 +299,7 @@ export class ProfilePageComponent implements OnInit {
   private readonly profileService = inject(ProfileService);
   private readonly promptDialog = inject(PromptDialogService);
   private readonly router = inject(Router);
+  private readonly tenant = inject(TenantService);
 
   protected readonly forgotPasswordRoute = ROUTES.AUTH.FORGOT_PASSWORD;
   protected readonly mfaEnrollRoute = '/auth/mfa-enroll';
@@ -526,7 +528,9 @@ export class ProfilePageComponent implements OnInit {
     }
     const me = this.auth.user();
     if (!me) {
-      this.router.navigateByUrl(ROUTES.AUTH.LOGIN);
+      this.router.navigate([ROUTES.AUTH.LOGIN], {
+        queryParams: schoolLoginQueryParams(this.tenant),
+      });
       return;
     }
 

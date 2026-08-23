@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, injec
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import { UserRole } from '@core/enums';
+import { Permission, UserRole } from '@core/enums';
 import { AuthService, TenantService } from '@core/services';
 import {
   EmptyStateComponent,
@@ -89,9 +89,104 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
 
       @if (isAdmin()) {
         <ng-container *ngTemplateOutlet="adminView" />
+      } @else if (isParent()) {
+        <ng-container *ngTemplateOutlet="parentView" />
+      } @else if (isStudent()) {
+        <ng-container *ngTemplateOutlet="studentView" />
       } @else {
         <ng-container *ngTemplateOutlet="teacherView" />
       }
+
+      <ng-template #parentView>
+        <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <a routerLink="/family" class="card transition hover:ring-2 hover:ring-indigo-400">
+            <div class="card-body">
+              <h2 class="text-lg font-semibold">Mis hijos</h2>
+              <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Consulta su rendimiento, asistencia y actividades.</p>
+              <span class="mt-4 inline-block text-sm font-semibold text-indigo-600">Ver información familiar →</span>
+            </div>
+          </a>
+          <a routerLink="/payments" class="card transition hover:ring-2 hover:ring-emerald-400">
+            <div class="card-body">
+              <h2 class="text-lg font-semibold">Pagos pendientes</h2>
+              <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Revisa tus cuotas y estados de cuenta.</p>
+              <span class="mt-4 inline-block text-sm font-semibold text-emerald-600">Ver pagos →</span>
+            </div>
+          </a>
+          <a routerLink="/announcements" class="card transition hover:ring-2 hover:ring-amber-400">
+            <div class="card-body">
+              <h2 class="text-lg font-semibold">Comunicados del colegio</h2>
+              <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">No te pierdas avisos importantes.</p>
+              <span class="mt-4 inline-block text-sm font-semibold text-amber-600">Ver anuncios →</span>
+            </div>
+          </a>
+        </section>
+      </ng-template>
+
+      <!-- ===================================================================
+        Student view (DEBT-STUDENT-PRIVACY / Fase 1) — light dashboard
+        surfacing the six sub-sections of the personal workspace.
+        Each card is conditionally rendered based on the matching
+        ME permission so a tenant that disables e.g. payments for
+        K-6 segments sees a clean grid without broken links.
+      ==================================================================== -->
+      <ng-template #studentView>
+        <section
+          aria-label="Accesos rápidos de mi espacio"
+          class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          @if (auth.hasPermission(Permission.MeRead)) {
+            <a routerLink="/me/courses" class="card transition hover:ring-2 hover:ring-indigo-400">
+              <div class="card-body">
+                <h2 class="text-lg font-semibold">Mis cursos</h2>
+                <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Materiales, tareas y quizzes asignados.</p>
+                <span class="mt-4 inline-block text-sm font-semibold text-indigo-600">Ver mis cursos →</span>
+              </div>
+            </a>
+            <a routerLink="/me/grades" class="card transition hover:ring-2 hover:ring-indigo-400">
+              <div class="card-body">
+                <h2 class="text-lg font-semibold">Mis notas</h2>
+                <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Calificaciones por curso y periodo.</p>
+                <span class="mt-4 inline-block text-sm font-semibold text-indigo-600">Ver mis notas →</span>
+              </div>
+            </a>
+          }
+          @if (auth.hasPermission(Permission.MeAttendanceRead)) {
+            <a routerLink="/me/attendance" class="card transition hover:ring-2 hover:ring-emerald-400">
+              <div class="card-body">
+                <h2 class="text-lg font-semibold">Mi asistencia</h2>
+                <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Historial y justificaciones.</p>
+                <span class="mt-4 inline-block text-sm font-semibold text-emerald-600">Ver mi asistencia →</span>
+              </div>
+            </a>
+          }
+          @if (auth.hasPermission(Permission.MeQrRead)) {
+            <a routerLink="/me/qr" class="card transition hover:ring-2 hover:ring-indigo-400">
+              <div class="card-body">
+                <h2 class="text-lg font-semibold">Mi QR</h2>
+                <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Credencial imprimible de asistencia.</p>
+                <span class="mt-4 inline-block text-sm font-semibold text-indigo-600">Ver mi QR →</span>
+              </div>
+            </a>
+          }
+          @if (auth.hasPermission(Permission.MePaymentsRead)) {
+            <a routerLink="/me/payments" class="card transition hover:ring-2 hover:ring-emerald-400">
+              <div class="card-body">
+                <h2 class="text-lg font-semibold">Mis pagos</h2>
+                <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Cuotas, estados y comprobantes.</p>
+                <span class="mt-4 inline-block text-sm font-semibold text-emerald-600">Ver mis pagos →</span>
+              </div>
+            </a>
+          }
+          <a routerLink="/announcements" class="card transition hover:ring-2 hover:ring-amber-400">
+            <div class="card-body">
+              <h2 class="text-lg font-semibold">Comunicados</h2>
+              <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Anuncios publicados para ti.</p>
+              <span class="mt-4 inline-block text-sm font-semibold text-amber-600">Ver anuncios →</span>
+            </div>
+          </a>
+        </section>
+      </ng-template>
 
       <!-- ===================================================================
         Admin view — KPIs + top absent + recent closed
@@ -483,7 +578,7 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
 })
 export class DashboardHomeComponent implements OnInit {
   private readonly tenant = inject(TenantService);
-  private readonly auth = inject(AuthService);
+  protected readonly auth = inject(AuthService);
   private readonly api = inject(DashboardApiService);
   private readonly analyticsApi = inject(AnalyticsApiService);
   private readonly destroyRef = inject(DestroyRef);
@@ -526,7 +621,13 @@ export class DashboardHomeComponent implements OnInit {
 
   protected readonly isAdmin = computed(() => this.auth.hasRole(UserRole.TenantAdmin));
   protected readonly isTeacher = computed(() => this.auth.hasRole(UserRole.Teacher));
+  protected readonly isParent = computed(() => this.auth.hasRole(UserRole.Parent));
+  protected readonly isStudent = computed(() => this.auth.hasRole(UserRole.Student));
   protected readonly overview = this.store.overview;
+
+  /** Re-exported so the template can reference {@link Permission.MeRead}
+   *  etc. directly without having to alias the enum at the call site. */
+  protected readonly Permission = Permission;
 
   protected readonly greeting = computed(() => {
     const hour = new Date().getHours();
@@ -739,6 +840,9 @@ export class DashboardHomeComponent implements OnInit {
       this.store.loadAttendanceOverview();
     } else if (this.isTeacher()) {
       this.loadTeacherDashboard();
+    }
+    if (this.isParent()) {
+      return;
     }
     // Sprint cierre-A / F10: load analytics for both admin and teacher
     // views (the BE endpoint permits TENANT_ADMIN + TEACHER + STUDENT).

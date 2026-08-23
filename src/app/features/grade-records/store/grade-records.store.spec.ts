@@ -96,23 +96,23 @@ describe('GradeRecordsStore', () => {
 
   describe('upsert', () => {
     it('crea/actualiza y actualiza rows', async () => {
-      apiSpy.upsertGrade.and.returnValue(of(mockDetail));
+      apiSpy.upsertGrade.and.returnValue(of(mockDetail) as any);
       store['_rows'].set([]);
-      const result = await store.upsert('e1', { studentPublicUuid: 's1', score: 15 });
+      const result = await store.upsert('e1', { studentPublicUuid: 's1', score: 15 } as any);
       expect(result).toBeTruthy();
       expect(store.hasRows()).toBeTrue();
     });
 
     it('maneja error', async () => {
       apiSpy.upsertGrade.and.returnValue(throwError(() => new Error('Fail')));
-      const result = await store.upsert('e1', { studentPublicUuid: 's1', score: 15 });
+      const result = await store.upsert('e1', { studentPublicUuid: 's1', score: 15 } as any);
       expect(result).toBeNull();
     });
   });
 
   describe('update', () => {
     it('actualiza grade record', async () => {
-      apiSpy.updateGrade.and.returnValue(of(mockDetail));
+      apiSpy.updateGrade.and.returnValue(of(mockDetail) as any);
       store['_rows'].set([mockRow]);
       const result = await store.update('gr1', { score: 18 });
       expect(result).toBeTruthy();
@@ -128,8 +128,8 @@ describe('GradeRecordsStore', () => {
   describe('bulkUpsert', () => {
     it('envía bulk y actualiza rows', async () => {
       const summary = { requested: 1, created: 1, updated: 0, records: [mockDetail] };
-      apiSpy.bulkUpsert.and.returnValue(of(summary));
-      const result = await store.bulkUpsert('e1', [{ studentPublicUuid: 's1', score: 15 }]);
+      apiSpy.bulkUpsert.and.returnValue(of(summary) as any);
+      const result = await store.bulkUpsert('e1', [{ studentPublicUuid: 's1', score: 15 }] as any);
       expect(result).toBeTruthy();
       expect(result!.created).toBe(1);
       expect(store.lastBulk()).toBeTruthy();

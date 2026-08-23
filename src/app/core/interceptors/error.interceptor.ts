@@ -4,7 +4,8 @@ import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { HttpStatus } from '@core/enums';
 import { ROUTES } from '@core/constants';
-import { AuthService, LoggerService, NotificationService } from '@core/services';
+import { AuthService, LoggerService, NotificationService, TenantService } from '@core/services';
+import { schoolLoginQueryParams } from '@core/navigation/school-login.navigation';
 
 /**
  * Centralizes HTTP error handling: logs the error, dispatches user-facing
@@ -40,6 +41,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const logger = inject(LoggerService);
   const notifications = inject(NotificationService);
+  const tenant = inject(TenantService);
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -51,12 +53,19 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
             auth.clearSession();
             const returnUrl = stripQueryFromAuthLogin(router.url);
             router.navigate([ROUTES.AUTH.LOGIN], {
-              queryParams: returnUrl ? { returnUrl } : undefined,
+              queryParams: schoolLoginQueryParams(tenant, { returnUrl }),
             });
           }
           break;
         case HttpStatus.Forbidden:
-          router.navigate([ROUTES.ERRORS.FORBIDDEN]);
+          // DEBT-QA-FE-3: previously this branch redirected every 403 to
+          // /403. That broke the dashboard for STAFF/PARENT because
+          // auxiliary endpoints (e.g. /analytics/kpis) legitimately
+          // return 403 for roles without analytics rights, and the
+          // dashboard widget degrades gracefully. Route-level RBAC is
+          // already enforced by `permissionGuard` (canMatch), which
+          // redirects to /403 *before* the component loads, so the
+          // interceptor does not need a global redirect here.
           break;
         case HttpStatus.NotFound:
           break;

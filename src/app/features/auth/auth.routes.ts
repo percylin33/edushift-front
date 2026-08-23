@@ -18,6 +18,12 @@ export const AUTH_ROUTES: Routes = [
     loadComponent: () =>
       import('./pages/register/register.component').then((m) => m.RegisterComponent),
   },
+  {
+    path: 'setup-school',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./pages/register/register.component').then((m) => m.RegisterComponent),
+  },
   /*
    * Sprint 17 / FE-17.1: forgot/reset password screens. Both are public
    * (no `guestGuard` and no `authGuard`): the user is unauthenticated when

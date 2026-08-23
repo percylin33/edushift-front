@@ -11,9 +11,9 @@ export type TenantLogoSize = 'sm' | 'md' | 'lg' | 'xl';
  *   <app-tenant-logo variant="mark" size="md" />   — square icon
  *   <app-tenant-logo variant="full" size="lg" />   — horizontal logo
  *
- * Fallback: when the tenant did not upload a logo we render a brand-gradient
- * chip with the tenant's initial. Both states share the exact same outer
- * dimensions, so layouts never reflow when assets load.
+ * Fallback: when the tenant did not upload a logo we render the platform
+ * generic mark. The letter chip is only a last resort if even that URL is
+ * missing (e.g. tests that stub the asset service to {@code null}).
  */
 @Component({
   selector: 'app-tenant-logo',

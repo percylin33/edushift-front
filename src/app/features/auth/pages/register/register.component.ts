@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, finalize, of, switchMap, tap } from 'rxjs';
@@ -19,8 +19,8 @@ import { AuthApiService } from '../../services/auth-api.service';
 import { AuthStore } from '../../store/auth.store';
 
 /**
- * Self-signup screen. Creates a tenant + its first admin in one shot
- * via {@code POST /v1/tenants/register}, persists the resulting session
+ * Invite-gated school setup. Redeems a Super-Admin invitation via
+ * {@code POST /v1/tenants/register}, persists the resulting session
  * with {@link AuthService#setSession}, hydrates the tenant context, and
  * drops the new owner into the onboarding flow.
  *
@@ -45,10 +45,27 @@ import { AuthStore } from '../../store/auth.store';
   ],
   template: `
     <div class="space-y-6">
+      @if (!inviteToken()) {
+        <header class="space-y-1.5">
+          <h1 class="text-2xl font-semibold tracking-tight text-content">Necesitas una invitación</h1>
+          <p class="text-sm text-content-muted">
+            Las instituciones nuevas se crean cuando EduShift invita al correo del colegio.
+            Revisa tu bandeja o pide el enlace al equipo de la plataforma.
+          </p>
+        </header>
+      } @else if (preflightError()) {
+        <header class="space-y-1.5">
+          <h1 class="text-2xl font-semibold tracking-tight text-content">Invitación no válida</h1>
+          <p class="text-sm text-content-muted">{{ preflightError() }}</p>
+        </header>
+      } @else if (!inviteReady()) {
+        <p class="text-sm text-content-muted">Validando invitación…</p>
+      } @else {
       <header class="space-y-1.5">
-        <h1 class="text-2xl font-semibold tracking-tight text-content">Crear institución</h1>
+        <h1 class="text-2xl font-semibold tracking-tight text-content">Configura tu institución</h1>
         <p class="text-sm text-content-muted">
-          Empieza tu prueba gratuita de 14 días. No pediremos tarjeta.
+          Completa los datos del colegio y tu contraseña de administrador. Luego podrás
+          personalizar branding, usuarios y el resto de la plataforma.
         </p>
       </header>
 
@@ -109,6 +126,7 @@ import { AuthStore } from '../../store/auth.store';
           [spellcheck]="false"
           [error]="errorOf('adminEmail')"
         />
+        <p class="-mt-2 text-xs text-content-subtle">El correo es el de la invitación y no se puede cambiar.</p>
 
         <app-password-field
           fieldId="adminPassword"
@@ -136,6 +154,7 @@ import { AuthStore } from '../../store/auth.store';
           </a>
         </p>
       </form>
+      }
     </div>
   `,
 })
@@ -147,8 +166,12 @@ export class RegisterComponent {
   private readonly tenant = inject(TenantService);
   private readonly store = inject(AuthStore);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   readonly loginRoute = ROUTES.AUTH.LOGIN;
+  readonly inviteToken = signal<string | null>(null);
+  readonly inviteReady = signal(false);
+  readonly preflightError = signal<string | null>(null);
 
   readonly form: FormGroup = this.fb.nonNullable.group({
     tenantName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]],
@@ -189,6 +212,29 @@ export class RegisterComponent {
   );
 
   constructor() {
+    const token = this.route.snapshot.queryParamMap.get('token')?.trim() || null;
+    this.inviteToken.set(token && token.length >= 16 ? token : null);
+    if (this.inviteToken()) {
+      this.tenantApi.findInvitationPreflight(this.inviteToken()!).subscribe({
+        next: (pre) => {
+          this.adminEmailCtrl.setValue(pre.email);
+          this.adminEmailCtrl.disable({ emitEvent: false });
+          this.inviteReady.set(true);
+        },
+        error: (err: HttpErrorResponse) => {
+          if (err.status === 410) {
+            this.preflightError.set(
+              'Esta invitación ya se usó o venció. Pide una nueva al equipo de EduShift.',
+            );
+          } else if (err.status === 404) {
+            this.preflightError.set('No encontramos esta invitación. Revisa el enlace del correo.');
+          } else {
+            this.preflightError.set('No se pudo validar la invitación. Inténtalo de nuevo.');
+          }
+        },
+      });
+    }
+
     this.tenantNameCtrl.valueChanges.subscribe((name: string) => {
       if (this._slugTouchedByUser) return;
       this.tenantSlugCtrl.setValue(slugify(name).slice(0, 80), { emitEvent: false });
@@ -236,6 +282,11 @@ export class RegisterComponent {
       return;
     }
 
+    if (!this.inviteToken()) {
+      this.store.setError('Necesitas una invitación para crear una institución.');
+      return;
+    }
+
     const raw = this.form.getRawValue();
     const payload: RegisterTenantRequest = {
       tenantName: raw.tenantName.trim(),
@@ -244,6 +295,7 @@ export class RegisterComponent {
       adminPassword: raw.adminPassword,
       adminFirstName: raw.adminFirstName.trim(),
       adminLastName: raw.adminLastName.trim(),
+      inviteToken: this.inviteToken() ?? '',
     };
 
     this.store.beginSubmit();
@@ -344,6 +396,11 @@ export class RegisterComponent {
         });
         this.adminEmailCtrl.markAsTouched();
         this.store.setError('Revisa el correo.');
+        return;
+      case 'SCHOOL_INVITATION_EXPIRED':
+      case 'SCHOOL_INVITATION_CANCELLED':
+      case 'SCHOOL_INVITATION_ALREADY_ACCEPTED':
+        this.store.setError(fallback ?? 'Esta invitación ya no es válida. Pide una nueva.');
         return;
       case 'VALIDATION_ERROR':
         this.store.setError(fallback ?? 'Revisa los datos ingresados.');

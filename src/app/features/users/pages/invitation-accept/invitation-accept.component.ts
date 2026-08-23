@@ -11,7 +11,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
-import { AuthService } from '@core/services';
+import { AuthService, TenantService } from '@core/services';
 import {
   AlertComponent,
   IconComponent,
@@ -137,6 +137,7 @@ import { InvitationPreflight } from '../../models';
           </header>
           <a
             [routerLink]="loginRoute"
+            [queryParams]="loginQueryParams()"
             class="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-content hover:bg-surface-muted"
           >
             Ir al inicio de sesión
@@ -151,10 +152,15 @@ export class InvitationAcceptComponent implements OnInit {
   private readonly api = inject(UsersApiService);
   private readonly authApi = inject(AuthApiService);
   private readonly authService = inject(AuthService);
+  private readonly tenant = inject(TenantService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
   protected readonly loginRoute = ROUTES.AUTH.LOGIN;
+  protected readonly loginQueryParams = computed(() => {
+    const slug = this.preflight()?.tenantSlug ?? this.tenant.tenantSlug();
+    return slug ? { tenant: slug } : {};
+  });
 
   protected readonly form: FormGroup = this.fb.nonNullable.group(
     {
@@ -177,12 +183,17 @@ export class InvitationAcceptComponent implements OnInit {
     'No pudimos validar tu invitación. Pídele al administrador un enlace nuevo.',
   );
 
-  protected readonly passwordsMismatch = computed(() => !!this.form.errors?.['passwordsMismatch']);
-  protected readonly canSubmit = computed(
-    () => !!this.preflight() && this.passwordCtrl.value.length >= 8 && !this.passwordsMismatch(),
-  );
+  protected passwordsMismatch(): boolean {
+    return !!this.form.errors?.['passwordsMismatch'];
+  }
+
+  protected canSubmit(): boolean {
+    return !!this.preflight() && this.passwordCtrl.value.length >= 8 && !this.passwordsMismatch();
+  }
 
   private token: string | null = null;
+  /** Claimed school from `?tenant=` (UAT-CD-11). */
+  private claimedTenantSlug: string | null = null;
 
   async ngOnInit(): Promise<void> {
     const token = this.route.snapshot.paramMap.get('token');
@@ -192,9 +203,27 @@ export class InvitationAcceptComponent implements OnInit {
     }
     this.token = token;
 
+    const claimed = this.route.snapshot.queryParamMap.get('tenant')?.trim() || null;
+    this.claimedTenantSlug = claimed;
+
     try {
-      const preview = await firstValueFrom(this.api.previewInvitation(token));
+      const preview = await firstValueFrom(this.api.previewInvitation(token, claimed));
+      if (
+        claimed &&
+        preview.tenantSlug &&
+        claimed.toLowerCase() !== preview.tenantSlug.toLowerCase()
+      ) {
+        this.blockerTitle.set('Invitación de otro colegio');
+        this.blockerMessage.set(
+          'Este enlace no pertenece al colegio indicado en la URL. Usa el enlace original sin modificar el parámetro tenant.',
+        );
+        this.preflight.set(null);
+        return;
+      }
       this.preflight.set(preview);
+      if (preview.tenantSlug) {
+        this.tenant.setSlug(preview.tenantSlug);
+      }
     } catch (err) {
       this.applyPreflightError(err);
       this.preflight.set(null);
@@ -219,7 +248,11 @@ export class InvitationAcceptComponent implements OnInit {
 
     try {
       const session = await firstValueFrom(
-        this.api.acceptInvitation({ token: this.token, password: this.passwordCtrl.value }),
+        this.api.acceptInvitation({
+          token: this.token,
+          password: this.passwordCtrl.value,
+          tenantSlug: this.claimedTenantSlug ?? this.preflight()?.tenantSlug ?? undefined,
+        }),
       );
       this.authService.setSession(session);
       try {
@@ -245,6 +278,13 @@ export class InvitationAcceptComponent implements OnInit {
         this.blockerTitle.set('Enlace no encontrado');
         this.blockerMessage.set(
           'El enlace que abriste ya no existe. Pídele al administrador uno nuevo.',
+        );
+        return;
+      }
+      if (err.status === 403) {
+        this.blockerTitle.set('Invitación de otro colegio');
+        this.blockerMessage.set(
+          'Este enlace no pertenece al colegio indicado en la URL. Usa el enlace original sin modificar el parámetro tenant.',
         );
         return;
       }

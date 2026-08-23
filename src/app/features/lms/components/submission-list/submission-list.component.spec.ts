@@ -6,7 +6,7 @@ import { HasPermissionDirective } from '@shared/directives';
 import { Permission } from '@core/enums';
 
 describe('SubmissionListComponent', () => {
-  let component: SubmissionListComponent;
+  let component: any;
   let fixture: ComponentFixture<SubmissionListComponent>;
   let rows: SubmissionRow[];
 

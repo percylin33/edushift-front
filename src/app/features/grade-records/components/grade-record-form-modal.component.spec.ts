@@ -3,7 +3,7 @@ import { GradeRecordFormModalComponent } from './grade-record-form-modal.compone
 import { EvaluationScale } from '@features/evaluations/models';
 
 describe('GradeRecordFormModalComponent', () => {
-  let component: GradeRecordFormModalComponent;
+  let component: any;
   let fixture: ComponentFixture<GradeRecordFormModalComponent>;
 
   beforeEach(async () => {

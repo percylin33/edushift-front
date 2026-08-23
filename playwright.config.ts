@@ -74,11 +74,14 @@ export default defineConfig({
   projects: [
     {
       name: 'setup',
+      // Tenant roles only — exclude auth.admin.setup.ts (handled by admin-setup).
       testMatch: /.*\.setup\.ts/,
+      testIgnore: /.*\.admin\.setup\.ts/,
     },
     {
       name: 'admin-setup',
       testMatch: /.*\.admin\.setup\.ts/,
+      timeout: 120_000, // may wait once on admin login rate-limit (3/min)
     },
     {
       name: 'chromium-desktop',
@@ -91,7 +94,8 @@ export default defineConfig({
         // login form is exercised only by auth.spec.ts.
         storageState: 'e2e/.auth/tenant-admin.json',
       },
-      dependencies: ['setup'],
+      // admin-setup required so role-route-smoke can use SUPER_ADMIN storage.
+      dependencies: ['setup', 'admin-setup'],
     },
     {
       name: 'chromium-admin',
@@ -111,7 +115,7 @@ export default defineConfig({
         ...devices['Pixel 7'],
         storageState: 'e2e/.auth/tenant-admin.json',
       },
-      dependencies: ['setup'],
+      dependencies: ['setup', 'admin-setup'],
     },
   ],
 

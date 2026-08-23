@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { SessionsDetailComponent } from './sessions-detail.component';
 import { SessionsApiService } from '../../services';
@@ -85,10 +85,10 @@ describe('SessionsDetailComponent', () => {
 
   it('ngOnInit sin id navega a LIST', async () => {
     configureModule(null);
-    const router = TestBed.inject(Router);
+    const router: any = TestBed.inject(Router);
     spyOn(router, 'navigate');
     await component.ngOnInit();
-    expect(router.navigate).toHaveBeenCalled();
+    expect((router as any).navigate).toHaveBeenCalled();
   });
 
   it('isTerminal true para COMPLETED', () => {

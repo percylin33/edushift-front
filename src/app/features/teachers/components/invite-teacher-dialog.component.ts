@@ -12,6 +12,8 @@ import {
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { TeachersStore } from '../store';
 import { TeacherDetail, TeacherInvitationResult } from '../models';
+import { TenantService } from '@core/services';
+import { schoolInvitationAcceptUrl } from '@core/navigation/school-login.navigation';
 
 /**
  * Dialog del flow "Invitar al sistema" para un docente que aún no
@@ -100,8 +102,8 @@ import { TeacherDetail, TeacherInvitationResult } from '../models';
                 </button>
               </div>
               <p class="hint">
-                Sprint 9 enviará el correo automáticamente. Por ahora, copia y comparte el enlace
-                manualmente.
+                También enviamos el enlace por correo (incluye el colegio). Si no llega, copia y
+                comparte este link.
               </p>
             </div>
 
@@ -194,6 +196,7 @@ import { TeacherDetail, TeacherInvitationResult } from '../models';
 })
 export class InviteTeacherDialogComponent {
   private readonly store = inject(TeachersStore);
+  private readonly tenant = inject(TenantService);
 
   readonly teacher = input.required<TeacherDetail>();
 
@@ -212,7 +215,11 @@ export class InviteTeacherDialogComponent {
   protected readonly acceptLink = computed(() => {
     const inv = this.lastInvitation();
     if (!inv) return '';
-    return `${window.location.origin}/invitation/${inv.invitationToken}`;
+    return schoolInvitationAcceptUrl(
+      window.location.origin,
+      inv.invitationToken,
+      this.tenant.tenantSlug(),
+    );
   });
 
   protected readonly copyHint = computed(() =>

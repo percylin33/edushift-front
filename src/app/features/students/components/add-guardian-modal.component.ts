@@ -2,20 +2,36 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
+  DestroyRef,
   HostListener,
+  OnInit,
   computed,
   inject,
   input,
   output,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  catchError,
+  combineLatest,
+  debounceTime,
+  distinctUntilChanged,
+  filter,
+  of,
+  startWith,
+  switchMap,
+  tap,
+} from 'rxjs';
 import { DocumentType, RelationshipType } from '@core/enums';
 import { ApiError } from '@core/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
+import { StudentsApiService } from '../services';
 import { StudentsStore } from '../store/students.store';
-import { AddGuardianRequest } from '../models';
+import { AddGuardianRequest, GuardianProfile, splitGuardianLastName } from '../models';
 
 /**
  * Modal for {@code POST /v1/students/{publicUuid}/guardians}.
@@ -51,7 +67,7 @@ import { AddGuardianRequest } from '../models';
           <div>
             <h2 id="add-guardian-title" class="card-title">Vincular tutor</h2>
             <p class="card-description">
-              Si el documento ya existe en otro estudiante, reutilizamos al tutor.
+              Si el documento ya existe en otro estudiante, cargamos sus datos automáticamente.
             </p>
           </div>
           <button
@@ -74,6 +90,16 @@ import { AddGuardianRequest } from '../models';
           </div>
         }
 
+        @if (profileLoaded()) {
+          <div class="alert alert-info mx-5 mt-4">
+            <app-icon name="info" [size]="18" />
+            <p class="text-sm">
+              Encontramos un tutor con este documento. Revisa los datos y elige la relación antes
+              de vincular.
+            </p>
+          </div>
+        }
+
         <form [formGroup]="form" (ngSubmit)="onSubmit()" class="card-body grid gap-5">
           <fieldset class="grid gap-4 sm:grid-cols-12">
             <legend class="sr-only">Identidad</legend>
@@ -93,10 +119,18 @@ import { AddGuardianRequest } from '../models';
                 id="g-documentNumber"
                 type="text"
                 class="input"
-                placeholder="Ej. 12345678"
+                [attr.inputmode]="documentNumberInputMode()"
+                [placeholder]="documentNumberPlaceholder()"
                 formControlName="documentNumber"
                 autocomplete="off"
               />
+              <p class="hint mt-1 text-xs text-content-muted">{{ documentNumberHint() }}</p>
+              @if (lookingUp()) {
+                <p class="hint mt-1 flex items-center gap-1 text-xs text-content-muted">
+                  <app-spinner [size]="12" label="Buscando tutor" />
+                  <span>Buscando tutor…</span>
+                </p>
+              }
               @if (showError('documentNumber'); as err) {
                 <p class="error">{{ err }}</p>
               }
@@ -108,6 +142,7 @@ import { AddGuardianRequest } from '../models';
                 id="g-firstName"
                 type="text"
                 class="input"
+                placeholder="Ej. Percy"
                 formControlName="firstName"
                 autocomplete="off"
               />
@@ -117,15 +152,31 @@ import { AddGuardianRequest } from '../models';
             </div>
 
             <div class="field sm:col-span-6">
-              <label class="label" for="g-lastName">Apellidos *</label>
+              <label class="label" for="g-lastName">Apellido paterno *</label>
               <input
                 id="g-lastName"
                 type="text"
                 class="input"
+                placeholder="Ej. Valderrama"
                 formControlName="lastName"
                 autocomplete="off"
               />
               @if (showError('lastName'); as err) {
+                <p class="error">{{ err }}</p>
+              }
+            </div>
+
+            <div class="field sm:col-span-6">
+              <label class="label" for="g-secondLastName">Apellido materno</label>
+              <input
+                id="g-secondLastName"
+                type="text"
+                class="input"
+                placeholder="Ej. Arias"
+                formControlName="secondLastName"
+                autocomplete="off"
+              />
+              @if (showError('secondLastName'); as err) {
                 <p class="error">{{ err }}</p>
               }
             </div>
@@ -214,9 +265,12 @@ import { AddGuardianRequest } from '../models';
     </div>
   `,
 })
-export class AddGuardianModalComponent {
+export class AddGuardianModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(StudentsStore);
+  private readonly api = inject(StudentsApiService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly studentPublicUuid = input.required<string>();
   readonly closed = output<void>();
@@ -226,6 +280,8 @@ export class AddGuardianModalComponent {
 
   /** Per-field server errors keyed by control name. */
   private readonly fieldErrors = signal<Record<string, string>>({});
+  protected readonly lookingUp = signal(false);
+  protected readonly profileLoaded = signal(false);
 
   protected readonly documentTypeOptions: ReadonlyArray<{ value: DocumentType; label: string }> = [
     { value: DocumentType.Dni, label: 'DNI' },
@@ -233,6 +289,25 @@ export class AddGuardianModalComponent {
     { value: DocumentType.Passport, label: 'Pasaporte' },
     { value: DocumentType.Other, label: 'Otro' },
   ];
+
+  /** Tracks document type for dynamic hints/validators (OnPush). */
+  private readonly selectedDocumentType = signal<DocumentType>(DocumentType.Dni);
+
+  protected readonly documentNumberPlaceholder = computed(() =>
+    this.selectedDocumentType() === DocumentType.Dni
+      ? '8 dígitos numéricos, ej. 12345678'
+      : 'Ej. AB-1234 o número de pasaporte',
+  );
+
+  protected readonly documentNumberHint = computed(() =>
+    this.selectedDocumentType() === DocumentType.Dni
+      ? 'Solo 8 dígitos numéricos. No ingreses nombres ni apellidos aquí.'
+      : 'Letras, dígitos y guiones (4–20 caracteres).',
+  );
+
+  protected readonly documentNumberInputMode = computed(() =>
+    this.selectedDocumentType() === DocumentType.Dni ? 'numeric' : 'text',
+  );
 
   protected readonly relationshipOptions: ReadonlyArray<{
     value: RelationshipType;
@@ -258,6 +333,7 @@ export class AddGuardianModalComponent {
     ],
     firstName: ['', [Validators.required, Validators.maxLength(100)]],
     lastName: ['', [Validators.required, Validators.maxLength(100)]],
+    secondLastName: ['', [Validators.maxLength(100)]],
     email: ['', [Validators.email, Validators.maxLength(254)]],
     phone: ['', [Validators.maxLength(32)]],
     occupation: ['', [Validators.maxLength(100)]],
@@ -272,6 +348,52 @@ export class AddGuardianModalComponent {
    * inline (and inadvertently de-syncing it from the form state).
    */
   protected readonly canSubmit = computed(() => this.form.valid && !this.saving());
+
+  ngOnInit(): void {
+    const typeCtrl = this.form.get('documentType')!;
+    const numberCtrl = this.form.get('documentNumber')!;
+    this.applyDocumentValidators(typeCtrl.value as DocumentType);
+    typeCtrl.valueChanges.subscribe((type: DocumentType) => {
+      this.selectedDocumentType.set(type);
+      this.profileLoaded.set(false);
+      this.applyDocumentValidators(type);
+      this.cdr.markForCheck();
+    });
+
+    combineLatest([
+      typeCtrl.valueChanges.pipe(startWith(typeCtrl.value as DocumentType)),
+      numberCtrl.valueChanges.pipe(startWith(numberCtrl.value as string)),
+    ])
+      .pipe(
+        debounceTime(400),
+        distinctUntilChanged(
+          ([prevType, prevNum], [nextType, nextNum]) =>
+            prevType === nextType && (prevNum ?? '').trim() === (nextNum ?? '').trim(),
+        ),
+        filter(([type, num]) => this.isDocumentLookupReady(type, num)),
+        tap(() => {
+          this.lookingUp.set(true);
+          this.profileLoaded.set(false);
+          this.cdr.markForCheck();
+        }),
+        switchMap(([type, num]) =>
+          this.api.lookupGuardianByDocument(type, String(num).trim()).pipe(
+            catchError(() => of(null as GuardianProfile | null)),
+          ),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((profile) => {
+        this.lookingUp.set(false);
+        if (profile) {
+          this.prefillFromProfile(profile);
+          this.profileLoaded.set(true);
+        } else {
+          this.profileLoaded.set(false);
+        }
+        this.cdr.markForCheck();
+      });
+  }
 
   @HostListener('document:keydown.escape')
   protected onEscape(): void {
@@ -299,7 +421,7 @@ export class AddGuardianModalComponent {
       documentType: v.documentType,
       documentNumber: v.documentNumber.trim(),
       firstName: v.firstName.trim(),
-      lastName: v.lastName.trim(),
+      lastName: this.combinedLastName(v.lastName, v.secondLastName),
       email: this.optionalString(v.email),
       phone: this.optionalString(v.phone),
       occupation: this.optionalString(v.occupation),
@@ -335,8 +457,59 @@ export class AddGuardianModalComponent {
     if (ctrl.errors['maxlength']) {
       return `Debe tener como máximo ${ctrl.errors['maxlength'].requiredLength} caracteres.`;
     }
-    if (ctrl.errors['pattern']) return 'Solo letras, dígitos y guiones.';
+    if (ctrl.errors['pattern']) {
+      if (controlName === 'documentNumber' && this.selectedDocumentType() === DocumentType.Dni) {
+        return 'El DNI debe tener exactamente 8 dígitos numéricos.';
+      }
+      return 'Solo letras, dígitos y guiones.';
+    }
     return 'Valor inválido.';
+  }
+
+  private applyDocumentValidators(documentType: DocumentType): void {
+    const ctrl = this.form.get('documentNumber')!;
+    const shared = [Validators.required, Validators.maxLength(20)];
+    if (documentType === DocumentType.Dni) {
+      ctrl.setValidators([...shared, Validators.pattern(/^\d{8}$/)]);
+    } else {
+      ctrl.setValidators([
+        ...shared,
+        Validators.minLength(4),
+        Validators.pattern(/^[A-Za-z0-9-]+$/),
+      ]);
+    }
+    ctrl.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private isDocumentLookupReady(documentType: DocumentType, raw: string | null | undefined): boolean {
+    const num = (raw ?? '').trim();
+    if (!num) return false;
+    if (documentType === DocumentType.Dni) {
+      return /^\d{8}$/.test(num);
+    }
+    return num.length >= 4 && /^[A-Za-z0-9-]+$/.test(num);
+  }
+
+  private prefillFromProfile(profile: GuardianProfile): void {
+    const { paternal, maternal } = splitGuardianLastName(profile.lastName);
+    this.form.patchValue(
+      {
+        firstName: profile.firstName,
+        lastName: paternal,
+        secondLastName: maternal,
+        email: profile.email ?? '',
+        phone: profile.phone ?? '',
+        occupation: profile.occupation ?? '',
+      },
+      { emitEvent: false },
+    );
+  }
+
+  private combinedLastName(lastName: string, secondLastName: string | null | undefined): string {
+    const parts = [lastName.trim(), this.optionalString(secondLastName)].filter(
+      (p): p is string => !!p,
+    );
+    return parts.join(' ');
   }
 
   private optionalString(value: string | null | undefined): string | undefined {

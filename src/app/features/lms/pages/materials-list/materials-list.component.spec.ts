@@ -6,7 +6,7 @@ import { MaterialsStore } from '../../store';
 import { MaterialRow, MaterialType } from '../../models';
 
 describe('MaterialsListComponent', () => {
-  let component: MaterialsListComponent;
+  let component: any;
   let fixture: ComponentFixture<MaterialsListComponent>;
   let mockStore: jasmine.SpyObj<MaterialsStore>;
 

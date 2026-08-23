@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { ActivatedRoute, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { AttendanceSessionsListPageComponent } from './attendance-sessions-list.page';
 import { AttendanceStore, AttendanceSessionListFilters } from '../../store';
@@ -105,7 +105,7 @@ describe('AttendanceSessionsListPageComponent', () => {
     fakeStore.listItems.set([]);
     (component as any).sections.set([]);
     (component as any).modalOpen.set(true);
-    const router = TestBed.inject(Router);
+    const router: any = TestBed.inject(Router);
     spyOn(router, 'navigateByUrl');
     (component as any).store.openSession = jasmine
       .createSpy('openSession')

@@ -86,4 +86,37 @@ export class AdminTenantsService {
       next: () => this.loadTenantDetail(tenantUuid),
     });
   }
+
+  inviteSchool(email: string) {
+    return this.api.post<{ data?: SchoolInvitationDto } & SchoolInvitationDto, { email: string }>(
+      API.ADMIN.SCHOOL_INVITATIONS,
+      { email },
+    );
+  }
+
+  loadSchoolInvitations() {
+    return this.api.get<{ content?: SchoolInvitationDto[] }>(API.ADMIN.SCHOOL_INVITATIONS, {
+      size: 20,
+    });
+  }
+
+  resendSchoolInvitation(publicUuid: string) {
+    return this.api.post<{ data?: SchoolInvitationDto } & SchoolInvitationDto>(
+      API.ADMIN.SCHOOL_INVITATION_RESEND(publicUuid),
+    );
+  }
+
+  cancelSchoolInvitation(publicUuid: string) {
+    return this.api.delete<{ data?: SchoolInvitationDto }>(API.ADMIN.SCHOOL_INVITATION_BY_ID(publicUuid));
+  }
+}
+
+export interface SchoolInvitationDto {
+  publicUuid: string;
+  email: string;
+  status: string;
+  token?: string | null;
+  setupUrl?: string | null;
+  emailSent?: boolean;
+  expiresAt?: string | null;
 }

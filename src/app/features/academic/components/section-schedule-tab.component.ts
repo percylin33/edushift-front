@@ -4,40 +4,63 @@ import {
   Component,
   OnChanges,
   SimpleChanges,
+  computed,
   inject,
   input,
   signal,
 } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { AuthService } from '@core/services';
+import { UserRole } from '@core/enums';
 import { IconComponent, SpinnerComponent } from '@shared/components';
-import { AcademicApiService } from '../services';
-import { ScheduleSlotItem } from '../models';
-import { ScheduleGridComponent } from './schedule-grid.component';
+import { TeachersApiService } from '@features/teachers/services';
+import { ScheduleApiService } from '@features/schedule/services/schedule-api.service';
+import { NonTeachingBlockItem, ScheduleSlotItem, SuggestedPeriodItem } from '../models';
+import { ScheduleGridComponent, SuggestedPeriodSelection } from './schedule-grid.component';
+import {
+  TimeSlotAssignmentOption,
+  TimeSlotFormModalComponent,
+} from './time-slot-form-modal.component';
 
 /**
  * Sub-tab "Horario" dentro de {@code section-detail}.
  *
  * <h3>Comportamiento</h3>
  * <ul>
- *   <li>Consume {@code GET /v1/academic/sections/{uuid}/schedule} (BE-5A.3).</li>
- *   <li>Muestra el horario en formato grid (desktop) o lista (mobile).</li>
- *   <li>Es read-only: las mutaciones de horario se gestionan desde la
- *       vista del docente o la asignación (DEBT-SES-2).</li>
+ *   <li>Consume week view con recreos ({@code GET .../schedule/week}).</li>
+ *   <li>TENANT_ADMIN puede crear/editar TimeSlots desde la grilla
+ *       (UAT-SCH-05: conflicto con recreo visible en el modal).</li>
  * </ul>
  */
 @Component({
   selector: 'app-section-schedule-tab',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, IconComponent, SpinnerComponent, ScheduleGridComponent],
+  imports: [
+    CommonModule,
+    IconComponent,
+    SpinnerComponent,
+    ScheduleGridComponent,
+    TimeSlotFormModalComponent,
+  ],
   template: `
-    <header class="mb-3 flex items-end justify-between gap-3">
+    <header class="mb-3 flex flex-wrap items-end justify-between gap-3">
       <div>
         <h3 class="text-base font-semibold text-content">Horario Semanal</h3>
         <p class="text-sm text-content-muted">
-          Asignaciones activas de docentes y cursos para esta sección.
+          @if (canEdit()) {
+            Creá o editá bloques de clase; el backend rechaza solapes con recreo/lonchera.
+          } @else {
+            Asignaciones activas de docentes y cursos para esta sección.
+          }
         </p>
       </div>
+      @if (canEdit()) {
+        <button type="button" class="btn btn-primary btn-sm" (click)="openCreate(1)">
+          <app-icon name="plus" [size]="14" />
+          Nuevo bloque
+        </button>
+      }
     </header>
 
     <section class="card overflow-hidden">
@@ -58,13 +81,32 @@ import { ScheduleGridComponent } from './schedule-grid.component';
         <div class="p-4">
           <app-schedule-grid
             [slots]="slots()"
+            [nonTeachingBlocks]="nonTeachingBlocks()"
+            [suggestedPeriods]="suggestedPeriods()"
+            [editable]="canEdit()"
             [showSectionView]="false"
             [showTeacherView]="true"
             emptyTitle="Aún no hay horario para esta sección"
+            (addRequested)="openCreate($event)"
+            (slotSelected)="openEdit($event)"
+            (periodSelected)="openFromPeriod($event)"
           />
         </div>
       }
     </section>
+
+    @if (modalOpen()) {
+      <app-time-slot-form-modal
+        [assignments]="assignmentOptions()"
+        [initialDayOfWeek]="modalDay()"
+        [initialStartTime]="modalStart()"
+        [initialEndTime]="modalEnd()"
+        [slot]="editingSlot()"
+        (closed)="closeModal()"
+        (saved)="onModalSaved()"
+        (deleted)="onModalSaved()"
+      />
+    }
   `,
   styles: [
     `
@@ -75,27 +117,53 @@ import { ScheduleGridComponent } from './schedule-grid.component';
   ],
 })
 export class SectionScheduleTabComponent implements OnChanges {
-  private readonly api = inject(AcademicApiService);
+  private readonly scheduleApi = inject(ScheduleApiService);
+  private readonly teachersApi = inject(TeachersApiService);
+  private readonly auth = inject(AuthService);
 
   readonly sectionPublicUuid = input.required<string>();
 
   protected readonly slots = signal<ScheduleSlotItem[]>([]);
+  protected readonly nonTeachingBlocks = signal<NonTeachingBlockItem[]>([]);
+  protected readonly suggestedPeriods = signal<SuggestedPeriodItem[]>([]);
+  protected readonly assignmentOptions = signal<TimeSlotAssignmentOption[]>([]);
   protected readonly loading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
+  protected readonly modalOpen = signal(false);
+  protected readonly modalDay = signal<number | null>(null);
+  protected readonly modalStart = signal<string | null>(null);
+  protected readonly modalEnd = signal<string | null>(null);
+  protected readonly editingSlot = signal<ScheduleSlotItem | null>(null);
+
+  protected readonly canEdit = computed(() => this.auth.hasRole(UserRole.TenantAdmin));
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['sectionPublicUuid']) {
-      void this.loadSchedule();
+      void this.loadAll();
     }
   }
 
-  protected async loadSchedule(): Promise<void> {
+  protected async loadAll(): Promise<void> {
     const uuid = this.sectionPublicUuid();
     this.loading.set(true);
     this.errorMessage.set(null);
     try {
-      const data = await firstValueFrom(this.api.getSectionSchedule(uuid));
-      this.slots.set(data);
+      const [view, teachers] = await Promise.all([
+        firstValueFrom(this.scheduleApi.getSectionScheduleWeek(uuid)),
+        this.canEdit()
+          ? firstValueFrom(this.teachersApi.listSectionTeachers(uuid))
+          : Promise.resolve([]),
+      ]);
+      this.slots.set(view.slots ?? []);
+      this.nonTeachingBlocks.set(view.nonTeachingBlocks ?? []);
+      this.suggestedPeriods.set(view.suggestedPeriods ?? []);
+      this.assignmentOptions.set(
+        teachers.map((t) => ({
+          publicUuid: t.assignmentPublicUuid,
+          label: `${t.courseCode} — ${t.courseName} · ${t.teacherFullName}`,
+        })),
+      );
     } catch (err) {
       this.errorMessage.set(err instanceof Error ? err.message : 'Error de red');
     } finally {
@@ -104,6 +172,43 @@ export class SectionScheduleTabComponent implements OnChanges {
   }
 
   protected retry(): void {
-    void this.loadSchedule();
+    void this.loadAll();
+  }
+
+  protected openCreate(dayOfWeek: number): void {
+    this.editingSlot.set(null);
+    this.modalDay.set(dayOfWeek);
+    this.modalStart.set(null);
+    this.modalEnd.set(null);
+    this.modalOpen.set(true);
+  }
+
+  protected openFromPeriod(period: SuggestedPeriodSelection): void {
+    this.editingSlot.set(null);
+    this.modalDay.set(period.dayOfWeek);
+    this.modalStart.set(period.startTime);
+    this.modalEnd.set(period.endTime);
+    this.modalOpen.set(true);
+  }
+
+  protected openEdit(slot: ScheduleSlotItem): void {
+    this.editingSlot.set(slot);
+    this.modalDay.set(null);
+    this.modalStart.set(null);
+    this.modalEnd.set(null);
+    this.modalOpen.set(true);
+  }
+
+  protected closeModal(): void {
+    this.modalOpen.set(false);
+    this.editingSlot.set(null);
+    this.modalDay.set(null);
+    this.modalStart.set(null);
+    this.modalEnd.set(null);
+  }
+
+  protected onModalSaved(): void {
+    this.closeModal();
+    void this.loadAll();
   }
 }

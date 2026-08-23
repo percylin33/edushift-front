@@ -1,4 +1,4 @@
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
 	ChangeDetectionStrategy,
@@ -46,7 +46,6 @@ import {
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [
 		CommonModule,
-		DatePipe,
 		ReactiveFormsModule,
 		PageContainerComponent,
 		PageHeaderComponent,

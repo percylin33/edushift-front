@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { SessionsListComponent } from './sessions-list.component';
 import { SessionsApiService } from '../../services';
@@ -178,7 +178,7 @@ describe('SessionsListComponent', () => {
 
   it('onCreate navega a NEW', () => {
     configureModule();
-    const router = TestBed.inject(Router);
+    const router: any = TestBed.inject(Router);
     spyOn(router, 'navigate');
     (component as any).onCreate();
     expect(router.navigate).toHaveBeenCalled();
@@ -186,7 +186,7 @@ describe('SessionsListComponent', () => {
 
   it('viewDetail navega al detalle', () => {
     configureModule();
-    const router = TestBed.inject(Router);
+    const router: any = TestBed.inject(Router);
     spyOn(router, 'navigate');
     (component as any).viewDetail('sess-1');
     expect(router.navigate).toHaveBeenCalled();

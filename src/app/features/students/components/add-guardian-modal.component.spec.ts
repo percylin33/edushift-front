@@ -1,8 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { of } from 'rxjs';
 import { AddGuardianModalComponent } from './add-guardian-modal.component';
 import { StudentsStore } from '../store/students.store';
+import { StudentsApiService } from '../services';
 import { Guardian } from '../models';
 import { DocumentType, RelationshipType } from '@core/enums';
 
@@ -15,17 +17,28 @@ describe('AddGuardianModalComponent', () => {
     clearError: jasmine.Spy;
     addGuardian: jasmine.Spy;
   };
+  let fakeApi: {
+    lookupGuardianByDocument: jasmine.Spy;
+  };
 
   function configureModule(): void {
     fakeStore = {
       savingGuardian: signal(false),
-      error: signal<string | null>(null),
+      error: signal(null),
       clearError: jasmine.createSpy('clearError'),
       addGuardian: jasmine.createSpy('addGuardian').and.returnValue(Promise.resolve(null)),
     };
+    fakeApi = {
+      lookupGuardianByDocument: jasmine
+        .createSpy('lookupGuardianByDocument')
+        .and.returnValue(of(null)),
+    };
     TestBed.configureTestingModule({
       imports: [AddGuardianModalComponent],
-      providers: [{ provide: StudentsStore, useValue: fakeStore }],
+      providers: [
+        { provide: StudentsStore, useValue: fakeStore },
+        { provide: StudentsApiService, useValue: fakeApi },
+      ],
     });
     fixture = TestBed.createComponent(AddGuardianModalComponent);
     component = fixture.componentInstance;
@@ -60,6 +73,7 @@ describe('AddGuardianModalComponent', () => {
 
   it('onSubmit válido llama store con payload', async () => {
     configureModule();
+    fixture.detectChanges();
     (component as any).form.patchValue({
       documentType: DocumentType.Dni,
       documentNumber: '12345678',
@@ -78,13 +92,78 @@ describe('AddGuardianModalComponent', () => {
       jasmine.objectContaining({
         documentNumber: '12345678',
         firstName: 'Maria',
+        lastName: 'Gomez',
         isPrimaryContact: true,
       }),
     );
   });
 
+  it('onSubmit combina apellido paterno y materno en lastName', async () => {
+    configureModule();
+    fixture.detectChanges();
+    (component as any).form.patchValue({
+      documentType: DocumentType.Dni,
+      documentNumber: '87654321',
+      firstName: 'Percy',
+      lastName: 'Valderrama',
+      secondLastName: 'Arias',
+      relationship: RelationshipType.Father,
+    });
+    await (component as any).onSubmit();
+    expect(fakeStore.addGuardian).toHaveBeenCalledWith(
+      's-1',
+      jasmine.objectContaining({
+        firstName: 'Percy',
+        lastName: 'Valderrama Arias',
+      }),
+    );
+  });
+
+  it('rechaza DNI con letras (ej. nombre en campo documento)', () => {
+    configureModule();
+    fixture.detectChanges();
+    (component as any).form.patchValue({
+      documentType: DocumentType.Dni,
+      documentNumber: 'percy',
+      firstName: 'Valderrama',
+      lastName: 'Arias',
+      relationship: RelationshipType.Father,
+    });
+    expect((component as any).form.invalid).toBeTrue();
+    const ctrl = (component as any).form.get('documentNumber')!;
+    ctrl.markAsTouched();
+    expect((component as any).showError('documentNumber')).toContain('8 dígitos');
+  });
+
+  it('autocompleta datos cuando el DNI existe en el tenant', async () => {
+    configureModule();
+    fakeApi.lookupGuardianByDocument.and.returnValue(
+      of({
+        guardianPublicUuid: 'g-1',
+        documentType: DocumentType.Dni,
+        documentNumber: '87654321',
+        firstName: 'Percy',
+        lastName: 'Valderrama Arias',
+        fullName: 'Percy Valderrama Arias',
+        email: 'percy@test.com',
+        phone: '+51 999',
+        occupation: 'Ingeniero',
+      }),
+    );
+    fixture.detectChanges();
+    (component as any).form.patchValue({ documentNumber: '87654321' });
+    await new Promise((r) => setTimeout(r, 500));
+    fixture.detectChanges();
+    expect(fakeApi.lookupGuardianByDocument).toHaveBeenCalled();
+    expect((component as any).form.get('firstName')!.value).toBe('Percy');
+    expect((component as any).form.get('lastName')!.value).toBe('Valderrama');
+    expect((component as any).form.get('secondLastName')!.value).toBe('Arias');
+    expect((component as any).profileLoaded()).toBeTrue();
+  });
+
   it('onSubmit cierra al recibir guardian', async () => {
     configureModule();
+    fixture.detectChanges();
     const guardian: Guardian = { linkPublicUuid: 'l-1' } as any;
     fakeStore.addGuardian.and.returnValue(Promise.resolve(guardian));
     const closedSpy = jasmine.createSpy('closed');
@@ -102,10 +181,11 @@ describe('AddGuardianModalComponent', () => {
 
   it('showError retorna mensajes específicos por validador', () => {
     configureModule();
+    fixture.detectChanges();
     const ctrl = (component as any).form.get('documentNumber')!;
-    ctrl.setValue('a');
+    ctrl.setValue('abc');
     ctrl.markAsTouched();
-    expect((component as any).showError('documentNumber')).toContain('al menos');
+    expect((component as any).showError('documentNumber')).toContain('8 dígitos');
 
     const emailCtrl = (component as any).form.get('email')!;
     emailCtrl.setValue('no-email');

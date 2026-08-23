@@ -11,7 +11,7 @@ describe('SETTINGS_ROUTES', () => {
     expect(typeof root!.loadComponent).toBe('function');
     const children = (root!.children ?? []) as { path: string }[];
     const childPaths = children.map((c) => c.path);
-    expect(childPaths).toEqual(expect.arrayContaining(['', 'security', 'tenant']));
+    expect(childPaths).toEqual(jasmine.arrayContaining(['', 'security', 'tenant']));
   });
 
   it('la sub-ruta tenant exige rol TENANT_ADMIN', () => {

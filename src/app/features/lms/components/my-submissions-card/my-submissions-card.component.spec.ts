@@ -3,7 +3,7 @@ import { MySubmissionsCardComponent } from './my-submissions-card.component';
 import { SubmissionStatus } from '../../models';
 
 describe('MySubmissionsCardComponent', () => {
-  let component: MySubmissionsCardComponent;
+  let component: any;
   let fixture: ComponentFixture<MySubmissionsCardComponent>;
 
   beforeEach(async () => {

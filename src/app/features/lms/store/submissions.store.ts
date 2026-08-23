@@ -126,13 +126,17 @@ export class SubmissionsStore {
    * Si el backend devuelve 404, el signal queda en null sin levantar
    * error — ese caso es la ausencia de entrega, no un fallo.
    */
-  async loadMySubmission(assignmentUuid: string): Promise<Submission | null> {
+  async loadMySubmission(
+    assignmentUuid: string,
+    studentPublicUuid?: string | null,
+  ): Promise<Submission | null> {
     this._loadingMine.set(true);
     try {
-      // Backend no expone un endpoint "by-assignment-and-student"
-      // dedicado: el front itera el listing por student. Para MVP
-      // dejamos el fetch del student actual en la page.
-      void assignmentUuid;
+      const mine = await firstValueFrom(this.api.getMine(assignmentUuid, studentPublicUuid));
+      this._mySubmission.set(mine);
+      return mine;
+    } catch {
+      this._mySubmission.set(null);
       return null;
     } finally {
       this._loadingMine.set(false);
@@ -173,6 +177,14 @@ export class SubmissionsStore {
     submissionUuid: string,
     request: UpdateSubmissionRequest,
   ): Promise<Submission | null> {
+    const mine = this._mySubmission();
+    if (mine?.assignmentPublicUuid) {
+      return this.create(mine.assignmentPublicUuid, {
+        studentPublicUuid: mine.studentPublicUuid,
+        textBody: request.textContent ?? null,
+        attachment: request.attachment,
+      });
+    }
     this._uploading.set(true);
     this._uploadPercent.set(0);
     this._error.set(null);

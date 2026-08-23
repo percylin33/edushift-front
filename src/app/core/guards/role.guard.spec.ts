@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
+import { Router, UrlTree, provideRouter } from '@angular/router';
 import { roleGuard } from './role.guard';
 import { AuthService } from '@core/services';
 import { UserRole } from '@core/enums';
@@ -17,14 +17,14 @@ describe('roleGuard', () => {
   });
 
   it('permite acceso cuando no hay roles definidos', () => {
-    const result = TestBed.runInInjectionContext(() => roleGuard({ data: {} } as any));
+    const result = TestBed.runInInjectionContext(() => roleGuard({ data: {} } as any, {} as any));
     expect(result).toBeTrue();
   });
 
   it('permite acceso cuando el usuario tiene el rol requerido', () => {
     authSpy.hasRole.and.returnValue(true);
     const result = TestBed.runInInjectionContext(() =>
-      roleGuard({ data: { roles: [UserRole.TenantAdmin] } } as any),
+      roleGuard({ data: { roles: [UserRole.TenantAdmin] } } as any, {} as any),
     );
     expect(result).toBeTrue();
   });
@@ -32,8 +32,8 @@ describe('roleGuard', () => {
   it('redirige a forbidden cuando el usuario no tiene el rol', () => {
     authSpy.hasRole.and.returnValue(false);
     const result = TestBed.runInInjectionContext(() =>
-      roleGuard({ data: { roles: [UserRole.TenantAdmin] } } as any),
+      roleGuard({ data: { roles: [UserRole.TenantAdmin] } } as any, {} as any),
     );
-    expect(router.isUrlTree(result)).toBeTrue();
+    expect(result instanceof UrlTree).toBeTrue();
   });
 });

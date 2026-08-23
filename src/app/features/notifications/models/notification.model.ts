@@ -38,6 +38,8 @@ export interface NotificationItem extends BaseEntity {
   bodyHtml: string;
   sentAt: string;
   readAt?: string;
+  /** Bounded event payload (UUIDs for deep links). */
+  payload?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
 }
 

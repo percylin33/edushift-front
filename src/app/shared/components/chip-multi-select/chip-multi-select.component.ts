@@ -122,7 +122,7 @@ export interface ChipOption {
           role="listbox"
           aria-multiselectable="true"
           [attr.aria-activedescendant]="activeItemId()"
-          class="chip-mselect__panel bg-surface-elevated mt-1 max-h-60 overflow-y-auto rounded-md border border-border shadow-lg"
+          class="chip-mselect__panel mt-1 max-h-60 overflow-y-auto rounded-md border border-border bg-surface-raised shadow-lg"
         >
           @if (filteredOptions().length === 0) {
             <p class="px-3 py-2 text-xs italic text-content-muted">
@@ -169,9 +169,11 @@ export interface ChipOption {
       }
       .chip-mselect__panel {
         position: absolute;
-        z-index: 30;
+        z-index: 40;
         left: 0;
         right: 0;
+        /* Opaque fallback if Tailwind token fails to resolve */
+        background-color: rgb(var(--color-surface-raised) / 1);
       }
     `,
   ],

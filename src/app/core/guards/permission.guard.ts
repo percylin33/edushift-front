@@ -1,8 +1,14 @@
 import { inject } from '@angular/core';
 import { CanMatchFn, Route, Router, UrlSegment, UrlTree } from '@angular/router';
-import { AuthService } from '@core/services';
+import { firstValueFrom } from 'rxjs';
+import { timeout } from 'rxjs/operators';
+import { AuthService, LoggerService } from '@core/services';
 import { Permission } from '@core/enums';
 import { ROUTES } from '@core/constants';
+import { AuthApiService } from '@features/auth/services/auth-api.service';
+
+/** Hard ceiling for the guard's "wait for /auth/me" path, in ms. */
+const GUARD_ME_TIMEOUT_MS = 5_000;
 
 /**
  * Shape of the `data` payload a route declares to gate on permissions.
@@ -37,6 +43,23 @@ export interface PermissionRouteData {
  * tables that wire it under `canActivate:`), but new LMS routes should
  * prefer {@code canMatch: [permissionGuard]}.
  *
+ * <h3>Self-healing: waits for {@code /auth/me} (DEBT-QA-FE-4)</h3>
+ * The login response only carries a {@code UserSummary} (5 fields, no
+ * {@code permissions}); the full {@code User} is fetched from
+ * {@code GET /auth/me}. The {@code APP_INITIALIZER} does that at boot, but
+ * the very first navigation can race the boot-time fetch (and any direct
+ * route visit — bookmark, deep link, hard reload) sees an empty
+ * {@code permissions()} signal. Without this guard's self-healing step,
+ * the user would be bounced to {@code /403} for any permission-gated route
+ * they should actually be allowed into.
+ *
+ * <p>If we have an access token but {@code permissions()} is empty and the
+ * route requires permissions, we synchronously call {@code /auth/me} and
+ * re-evaluate. Same best-effort + 5 s timeout as the initializer; on
+ * failure we fall through to the standard {@code /403} redirect (the
+ * unauthenticated path of {@code errorInterceptor} will log the user out
+ * if the token is dead).
+ *
  * <h3>Usage</h3>
  * <pre>
  *   {
@@ -51,12 +74,14 @@ export interface PermissionRouteData {
  * with the LMS grading authority), declare both guards — Angular invokes
  * them in array order and the first failure short-circuits.
  */
-export const permissionGuard: CanMatchFn = (
+export const permissionGuard: CanMatchFn = async (
   _route: Route,
   _segments: UrlSegment[],
-): true | UrlTree => {
+): Promise<true | UrlTree> => {
   const auth = inject(AuthService);
   const router = inject(Router);
+  const authApi = inject(AuthApiService);
+  const logger = inject(LoggerService);
 
   /* `CanMatchFn` doesn't receive the data object directly, so we read it
    * off the route the matcher was built from. Both signatures converge on
@@ -68,6 +93,20 @@ export const permissionGuard: CanMatchFn = (
       : [data.permissions]
     : [];
   if (required.length === 0) return true;
+
+  /* DEBT-QA-FE-4: if we have a session but `permissions()` is empty,
+   * the boot-time `/auth/me` either hasn't run yet or failed. Self-heal
+   * by firing it here (one-shot: the call result lands in AuthService
+   * so subsequent guard evaluations are synchronous-fast). Skip the
+   * self-heal when there is no session at all — `authChildGuard` and
+   * the error interceptor will redirect to /auth/login. */
+  if (auth.isAuthenticated() && auth.permissions().length === 0) {
+    try {
+      await firstValueFrom(authApi.me().pipe(timeout(GUARD_ME_TIMEOUT_MS)));
+    } catch (err) {
+      logger.warn('permissionGuard: self-healing /auth/me failed; deferring to /403.', err);
+    }
+  }
 
   const owned = auth.permissions();
   const mode = data.permissionMode ?? 'any';

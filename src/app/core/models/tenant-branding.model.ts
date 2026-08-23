@@ -53,6 +53,14 @@ export interface TenantBranding {
   primaryColor?: string;
   accentColor?: string;
 
+  /** Full-bleed background image for the public auth / login shell. */
+  loginBgUrl?: string;
+
+  /** Custom login hero headline. Empty/omitted → "Bienvenido a {name}". */
+  loginTitle?: string;
+  /** Custom login hero supporting copy. */
+  loginDescription?: string;
+
   fontFamily?: string;
   radius?: TenantRadius;
 

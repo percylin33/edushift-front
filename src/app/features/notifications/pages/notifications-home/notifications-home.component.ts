@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
+import { RouterLink } from '@angular/router';
 import {
   EmptyStateComponent,
   IconComponent,
@@ -19,6 +20,7 @@ import {
 } from '@shared/components';
 import { NotificationsStore } from '../../store';
 import { NotificationItem } from '../../models';
+import { notificationDeepLink, resolvePayload } from '../../utils/notification-deep-link';
 
 /**
  * In-app notifications home (Sprint 9 / FE-9.3 + Sprint 5C cascade wiring).
@@ -42,6 +44,7 @@ import { NotificationItem } from '../../models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
+    RouterLink,
     PageContainerComponent,
     PageHeaderComponent,
     EmptyStateComponent,
@@ -110,6 +113,11 @@ import { NotificationItem } from '../../models';
               </div>
 
               <div class="min-w-0 flex-1">
+                <a
+                  class="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  [routerLink]="deepLink(n)"
+                  (click)="openNotification(n)"
+                >
                 <div class="flex items-center justify-between gap-3">
                   <p class="truncate text-sm font-semibold text-content">
                     {{ n.subject }}
@@ -123,6 +131,7 @@ import { NotificationItem } from '../../models';
                 <p class="mt-0.5 line-clamp-2 text-sm text-content-muted">
                   {{ summarize(n) }}
                 </p>
+                </a>
                 <div class="mt-2 flex items-center gap-2 text-xs">
                   <span
                     class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
@@ -195,6 +204,16 @@ export class NotificationsHomeComponent implements OnInit {
       .subscribe();
   }
 
+  openNotification(n: NotificationItem): void {
+    if (!this.isRead(n)) {
+      this.markAsRead(n);
+    }
+  }
+
+  deepLink(n: NotificationItem): string {
+    return notificationDeepLink(n);
+  }
+
   isRead(n: NotificationItem): boolean {
     return n.status === 'READ' || Boolean(n.readAt);
   }
@@ -228,22 +247,24 @@ export class NotificationsHomeComponent implements OnInit {
   }
 
   summarize(n: NotificationItem): string {
-    try {
-      const parsed = JSON.parse(n.bodyHtml ?? '{}');
-      const section = parsed['sectionName'];
-      const teacher = parsed['teacherName'];
-      const course = parsed['courseCode'];
-      const title = parsed['title'];
-      const body = parsed['body'];
-      const parts: string[] = [];
-      if (course) parts.push(`Curso ${course}`);
-      if (section) parts.push(`sección ${section}`);
-      if (teacher && teacher !== n.subject) parts.push(`docente ${teacher}`);
-      if (parts.length > 0) return parts.join(' · ');
-      if (title) return title;
-      if (body) return body.replace(/<[^>]+>/g, '').slice(0, 120);
-    } catch {
-      /* payload not JSON — fall through */
+    const parsed = resolvePayload(n);
+    const section = parsed['sectionName'];
+    const teacher = parsed['teacherName'];
+    const course = parsed['courseCode'] ?? parsed['courseName'];
+    const title = parsed['title'] ?? parsed['taskTitle'] ?? parsed['evaluationTitle'];
+    const body = parsed['body'];
+    const parts: string[] = [];
+    if (typeof course === 'string' && course) parts.push(`Curso ${course}`);
+    if (typeof section === 'string' && section) parts.push(`sección ${section}`);
+    if (typeof teacher === 'string' && teacher && teacher !== n.subject) {
+      parts.push(`docente ${teacher}`);
+    }
+    if (parts.length > 0) return parts.join(' · ');
+    if (typeof title === 'string' && title) return title;
+    if (typeof body === 'string' && body) return body.replace(/<[^>]+>/g, '').slice(0, 120);
+    const html = n.bodyHtml ?? '';
+    if (html && !html.trim().startsWith('{')) {
+      return html.replace(/<[^>]+>/g, '').slice(0, 120);
     }
     return n.subject ?? '';
   }

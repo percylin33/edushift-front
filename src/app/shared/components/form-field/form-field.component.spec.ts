@@ -16,8 +16,8 @@ describe('FormFieldComponent', () => {
   beforeEach(() => {
     control = new FormControl<string>('', { nonNullable: true });
     fixture = TestBed.createComponent(FormFieldComponent);
-    component = fixture.componentInstance;
-    component.id = 'email';
+    component = fixture.componentInstance as any;
+    component.fieldId = 'email';
     component.control = control;
     fixture.detectChanges();
   });

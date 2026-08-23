@@ -7,7 +7,7 @@ import { SubmissionsStore } from '../../store';
 import { SubmissionRow, SubmissionStatus } from '../../models';
 
 describe('SubmissionGradeComponent', () => {
-  let component: SubmissionGradeComponent;
+  let component: any;
   let fixture: ComponentFixture<SubmissionGradeComponent>;
   let mockTasksStore: jasmine.SpyObj<TasksStore>;
   let mockSubmissionsStore: jasmine.SpyObj<SubmissionsStore>;

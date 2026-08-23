@@ -12,7 +12,7 @@ import { TenantSettingsComponent } from './tenant-settings.component';
 
 describe('TenantSettingsComponent', () => {
   let fixture: ComponentFixture<TenantSettingsComponent>;
-  let component: TenantSettingsComponent;
+  let component: any;
   let httpMock: HttpTestingController;
   let auth: AuthService;
 
@@ -75,20 +75,22 @@ describe('TenantSettingsComponent', () => {
     req.flush({
       success: true,
       data: {
-        id: 't-1',
+        publicUuid: 't-1',
         slug: 'acme',
         name: 'Acme School',
         status: TenantStatus.Active,
-        isActive: true,
         plan: 'TRIAL',
-        branding: { primaryColor: '#ff0000', logo: { light: 'https://x/logo.svg' } },
+        branding: { primaryColor: '#ff0000', logoUrl: 'https://x/logo.svg' },
+        settings: {},
+        featureFlags: {},
       },
     });
     fixture.detectChanges();
 
     expect(component.loading()).toBe(false);
+    expect(component.form.get('name')?.value).toBe('Acme School');
     const text = fixture.nativeElement.textContent ?? '';
-    expect(text).toContain('Acme School');
     expect(text).toContain('acme');
+    expect(text).toContain('Título de bienvenida');
   });
 });

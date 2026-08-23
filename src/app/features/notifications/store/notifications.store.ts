@@ -162,8 +162,18 @@ export class NotificationsStore {
   loadAll() {
     this._loading.set(true);
     this._error.set(null);
+    // FIX BUG-2026-07-30-08: backend controller signature is
+    // `list(@RequestParam boolean unreadOnly, Pageable pageable)`.
+    // Without `page`/`size` Spring's `PageableHandlerMethodArgumentResolver`
+    // throws (and the FE was getting "No se pudieron cargar las
+    // notificaciones"). Pass pagination explicitly so the resolver
+    // always has a non-null page request.
     return this.api
-      .get<ApiResponse<NotificationItem[]>>(API.NOTIFICATIONS.ROOT, { unreadOnly: false })
+      .get<ApiResponse<NotificationItem[]>>(API.NOTIFICATIONS.ROOT, {
+        unreadOnly: false,
+        page: 0,
+        size: 20,
+      })
       .pipe(
         tap({
           next: (res) => {

@@ -71,7 +71,7 @@ describe('AdminPaymentActionModalComponent', () => {
   it('refund: emits submit with reason when form valid', () => {
     setKind('refund');
     component.form.controls.reason.setValue('cobro duplicado');
-    const submitSpy = spyOn(component.submit, 'emit');
+    const submitSpy = spyOn(component.actionSubmit, 'emit');
 
     component.onSubmit();
 
@@ -82,7 +82,7 @@ describe('AdminPaymentActionModalComponent', () => {
     setKind('mark-paid-cash');
     component.form.controls.reason.setValue('motivo');
     component.form.controls.note.setValue('cobrado en administración');
-    const submitSpy = spyOn(component.submit, 'emit');
+    const submitSpy = spyOn(component.actionSubmit, 'emit');
 
     component.onSubmit();
 
@@ -91,7 +91,7 @@ describe('AdminPaymentActionModalComponent', () => {
 
   it('invalid form: does not emit submit, marks all as touched', () => {
     setKind('reconcile');
-    const submitSpy = spyOn(component.submit, 'emit');
+    const submitSpy = spyOn(component.actionSubmit, 'emit');
     component.form.controls.reason.setValue('x'); // < 4 chars
 
     component.onSubmit();
@@ -102,16 +102,16 @@ describe('AdminPaymentActionModalComponent', () => {
 
   it('cancel: emits cancel when cancel button invoked', () => {
     setKind('reconcile');
-    const cancelSpy = spyOn(component.cancel, 'emit');
+    const cancelSpy = spyOn(component.actionCancel, 'emit');
 
-    component.cancel.emit();
+    component.actionCancel.emit();
 
     expect(cancelSpy).toHaveBeenCalled();
   });
 
   it('backdrop click: emits cancel when currentTarget == target', () => {
     setKind('reconcile');
-    const cancelSpy = spyOn(component.cancel, 'emit');
+    const cancelSpy = spyOn(component.actionCancel, 'emit');
     const fakeEvent = { target: 'X', currentTarget: 'X' } as unknown as MouseEvent;
     const stopSpy = jasmine.createSpy('stopPropagation');
 
@@ -122,7 +122,7 @@ describe('AdminPaymentActionModalComponent', () => {
 
   it('inner click: does NOT emit cancel', () => {
     setKind('reconcile');
-    const cancelSpy = spyOn(component.cancel, 'emit');
+    const cancelSpy = spyOn(component.actionCancel, 'emit');
     const fakeEvent = { target: 'A', currentTarget: 'B' } as unknown as MouseEvent;
 
     component.onBackdropClick({

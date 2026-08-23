@@ -3,7 +3,7 @@ import { GradeRecordsBulkModalComponent } from './grade-records-bulk-modal.compo
 import { EvaluationScale } from '@features/evaluations/models';
 
 describe('GradeRecordsBulkModalComponent', () => {
-  let component: GradeRecordsBulkModalComponent;
+  let component: any;
   let fixture: ComponentFixture<GradeRecordsBulkModalComponent>;
 
   beforeEach(async () => {
@@ -100,7 +100,7 @@ describe('GradeRecordsBulkModalComponent', () => {
       component.csv.set('a3f7e2c8-1234-4abc-9999-aaaaaaaaaaaa, 18');
       component.submit();
       expect(emitSpy).toHaveBeenCalled();
-      const payload = emitSpy.calls.mostRecent().args[0];
+      const payload = emitSpy.calls.mostRecent().args[0] as any[];
       expect(payload.length).toBe(1);
     });
 

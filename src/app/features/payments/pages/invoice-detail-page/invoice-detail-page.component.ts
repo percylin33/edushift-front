@@ -105,6 +105,18 @@ import {
             </div>
           }
 
+          @if (canDownloadReceipt()) {
+            <div class="mt-6 flex justify-end">
+              <button
+                type="button"
+                (click)="onDownloadReceipt()"
+                class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100"
+              >
+                Descargar comprobante
+              </button>
+            </div>
+          }
+
           @if (errorMsg()) {
             <p class="mt-3 text-sm text-rose-600">{{ errorMsg() }}</p>
           }
@@ -198,6 +210,26 @@ export class InvoiceDetailPageComponent implements OnInit {
   canPay(): boolean {
     const i = this.invoice();
     return !!i && (i.status === 'PENDING' || i.status === 'OVERDUE');
+  }
+
+  canDownloadReceipt(): boolean {
+    return this.invoice()?.status === 'PAID';
+  }
+
+  onDownloadReceipt(): void {
+    const i = this.invoice();
+    if (!i) return;
+    this.api.downloadReceipt(i.publicUuid).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `comprobante-${i.publicUuid}.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.errorMsg.set('No se pudo descargar el comprobante'),
+    });
   }
 
   onPay(): void {

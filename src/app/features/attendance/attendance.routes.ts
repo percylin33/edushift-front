@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
-import { permissionGuard, roleGuard } from '@core/guards';
-import { Permission, UserRole } from '@core/enums';
+import { roleGuard } from '@core/guards';
+import { UserRole } from '@core/enums';
 
 /**
  * Routes for the {@code attendance} module (Sprint 6).
@@ -15,19 +15,19 @@ import { Permission, UserRole } from '@core/enums';
  *
  * <h3>Guards</h3>
  * <ul>
- *   <li>{@code permissionGuard} on the home — soft gate so a future
- *       {@code attendance:read} can be split off without re-shuffling
- *       the route table.</li>
- *   <li>{@code roleGuard} on the scanner, sessions list and
- *       detail — only TEACHER and TENANT_ADMIN can open sessions,
- *       scan students, and edit records.</li>
+ *   <li>{@code roleGuard} on every route — only TEACHER and
+ *       TENANT_ADMIN can open attendance. This matches the sidebar
+ *       visibility in {@code navigation.config.ts} which is role-gated
+ *       (FIX BUG-2026-07-30-06: previously the home also required
+ *       {@code AttendanceRead}, which blocked TENANT_ADMIN despite
+ *       the sidebar item being visible to them).</li>
  * </ul>
  */
 export const ATTENDANCE_ROUTES: Routes = [
   {
     path: '',
-    canActivate: [permissionGuard],
-    data: { permissions: [Permission.AttendanceRead] },
+    canActivate: [roleGuard],
+    data: { roles: [UserRole.Teacher, UserRole.TenantAdmin] },
     loadComponent: () =>
       import('./pages/attendance-home/attendance-home.component').then(
         (m) => m.AttendanceHomeComponent,

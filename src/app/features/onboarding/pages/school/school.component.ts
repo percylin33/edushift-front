@@ -282,8 +282,12 @@ export class OnboardingSchoolComponent implements OnInit {
     this.logoBusy.set(true);
     this.store.setError(null);
 
+    const logoUrl = /^https?:\/\//i.test(meta.url)
+      ? meta.url
+      : `${environment.apiUrl.replace(/\/+$/, '')}/${environment.apiVersion}/files/public/${meta.publicUuid}`;
+
     const payload: UpdateTenantRequest = {
-      branding: { logoUrl: meta.url },
+      branding: { logoUrl },
     };
 
     this.tenantApi
@@ -292,7 +296,7 @@ export class OnboardingSchoolComponent implements OnInit {
       .subscribe({
         next: (tenant) => {
           this.tenantService.setTenant(tenant, 'header');
-          this.currentLogoUrl.set(tenant.branding?.logo?.light ?? meta.url);
+          this.currentLogoUrl.set(tenant.branding?.logo?.light ?? logoUrl);
         },
         error: (err: HttpErrorResponse) => {
           // Surface the error but keep the uploaded bytes — the user

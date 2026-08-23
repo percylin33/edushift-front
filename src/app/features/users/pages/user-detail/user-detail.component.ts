@@ -122,10 +122,9 @@ import { UsersStore } from '../../store';
           <div class="alert alert-info mb-4">
             <app-icon name="mail" [size]="18" />
             <div class="flex-1">
-              <p class="font-medium">Reset de contraseña encolado.</p>
+              <p class="font-medium">Se envió el correo de restablecimiento.</p>
               <p class="mt-1 text-xs opacity-80">
-                El usuario recibirá un email con instrucciones cuando el módulo de notificaciones
-                esté activo.
+                Si no llega, el usuario puede usar «Olvidé mi contraseña» en el login. El mensaje es el mismo si el envío falló internamente.
               </p>
             </div>
           </div>

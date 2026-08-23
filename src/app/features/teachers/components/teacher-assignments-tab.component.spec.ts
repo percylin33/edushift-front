@@ -4,7 +4,8 @@ import { provideRouter } from '@angular/router';
 import { TeacherAssignmentsTabComponent } from './teacher-assignments-tab.component';
 import { TeacherAssignmentsStore } from '../store';
 import { TeacherDetail, AssignmentRow } from '../models';
-import { DocumentType, EmploymentStatus, PeriodType } from '@core/enums';
+import { DocumentType, EmploymentStatus } from '@core/enums';
+import { PeriodType } from '@features/academic/models';
 import { ROUTES } from '@core/constants';
 
 describe('TeacherAssignmentsTabComponent', () => {
@@ -44,7 +45,7 @@ describe('TeacherAssignmentsTabComponent', () => {
     courseCode: 'MATH-101',
     courseName: 'Algebra',
     academicPeriodPublicUuid: 'p-1',
-    periodType: PeriodType.Quarter,
+    periodType: PeriodType.Bimestre,
     periodOrdinal: 1,
     assignedAt: new Date('2026-01-01'),
     unassignedAt: undefined,
@@ -100,7 +101,7 @@ describe('TeacherAssignmentsTabComponent', () => {
   it('periodLabel combina tipo y ordinal', () => {
     configureModule();
     const label = (component as any).periodLabel({
-      periodType: PeriodType.Quarter,
+      periodType: PeriodType.Bimestre,
       periodOrdinal: 2,
     });
     expect(label).toContain('2');

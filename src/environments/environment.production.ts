@@ -54,6 +54,13 @@ export const environment: AppEnvironment = runtimeOverrides({
     // on the back-end (BE-7a.0..5). The flag is consulted by
     // `featureFlagGuard` to short-circuit the whole `/lms/*` tree.
     lms: false,
+    // FIX BUG-2026-07-30-09 / -10 / -18 / -19: type parity with the
+    // shared AppEnvironment shape. Toggle per deployment as needed;
+    // announcements/schedule/family/me ship behind featureFlagGuard.
+    announcements: false,
+    schedule: false,
+    family: false,
+    me: false,
     gmailSend: false
   },
   logging: {

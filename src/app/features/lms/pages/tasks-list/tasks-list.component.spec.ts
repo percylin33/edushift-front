@@ -6,7 +6,7 @@ import { TasksStore } from '../../store';
 import { TaskLifecycle } from '../../models';
 
 describe('TasksListComponent', () => {
-  let component: TasksListComponent;
+  let component: any;
   let fixture: ComponentFixture<TasksListComponent>;
   let mockStore: jasmine.SpyObj<TasksStore>;
 

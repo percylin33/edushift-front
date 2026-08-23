@@ -26,6 +26,9 @@ class FakeTenantApiService {
   findCurrent() {
     return of({});
   }
+  findInvitationPreflight(_token: string) {
+    return of({ email: 'founder@school.test' });
+  }
 }
 
 class FakeAuthService {
@@ -109,10 +112,9 @@ describe('RegisterComponent', () => {
     expect(component.errorOf('adminPassword')).toContain('Mínimo');
   });
 
-  it('togglePasswordVisibility cambia el estado', () => {
-    expect(component.passwordVisible()).toBeFalse();
-    component.togglePasswordVisibility();
-    expect(component.passwordVisible()).toBeTrue();
+  it('sin token de invitación pide el enlace del correo', () => {
+    expect(component.inviteToken()).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Necesitas una invitación');
   });
 
   it('markSlugAsTouched fija _slugTouchedByUser', () => {
@@ -127,7 +129,8 @@ describe('RegisterComponent', () => {
     expect(tenantApi.register).not.toHaveBeenCalled();
   });
 
-  it('onSubmit con form válido marca loading', () => {
+  it('onSubmit con form válido e invitación inicia el alta', () => {
+    component.inviteToken.set('tokentokentoken12');
     component.form.patchValue({
       tenantName: 'Mi Cole',
       tenantSlug: 'mi-cole',
@@ -139,9 +142,9 @@ describe('RegisterComponent', () => {
     component.form.updateValueAndValidity();
     expect(component.form.valid).toBeTrue();
 
-    const setLoadingSpy = spyOn(store, 'setLoading');
+    const beginSpy = spyOn(store, 'beginSubmit').and.callThrough();
     component.onSubmit();
-    expect(setLoadingSpy).toHaveBeenCalledWith(true);
+    expect(beginSpy).toHaveBeenCalled();
   });
 
   it('applyServerErrors mapea TENANT_SLUG_TAKEN a error de campo', () => {

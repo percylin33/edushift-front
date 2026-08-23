@@ -4,6 +4,7 @@ import { Observable, map } from 'rxjs';
 import { API } from '@core/constants';
 import { ApiResponse, SpringPage } from '@core/models';
 import { ApiService } from '@core/services';
+import { DocumentType } from '@core/enums';
 import {
   AddGuardianRequest,
   BulkImportJob,
@@ -17,7 +18,11 @@ import {
   EnrollmentResponseRaw,
   EnrollmentRow,
   Guardian,
+  GuardianProfile,
+  GuardianProfileResponseRaw,
   GuardianResponseRaw,
+  InvitePortalResponseRaw,
+  PortalInvitationResult,
   SectionStudentRosterItem,
   SectionStudentRosterItemRaw,
   StudentDetail,
@@ -169,6 +174,22 @@ export class StudentsApiService {
   // ===========================================================================
 
   /**
+   * Lookup a guardian profile by document for form pre-fill. Returns
+   * 404 when the document is unknown in the tenant (new guardian path).
+   */
+  lookupGuardianByDocument(
+    documentType: DocumentType,
+    documentNumber: string,
+  ): Observable<GuardianProfile> {
+    return this.api
+      .get<ApiResponse<GuardianProfileResponseRaw>>(API.GUARDIANS.BY_DOCUMENT, {
+        documentType,
+        documentNumber: documentNumber.trim(),
+      })
+      .pipe(map((envelope) => this.toGuardianProfile(envelope.data)));
+  }
+
+  /**
    * List the guardians currently linked to a student. Returns each
    * active link with the merged guardian profile + relationship
    * metadata; the response is a plain array (no pagination — students
@@ -222,6 +243,29 @@ export class StudentsApiService {
     return this.api.delete<void>(
       API.STUDENTS.GUARDIAN_BY_ID(studentPublicUuid, guardianPublicUuid),
     );
+  }
+
+  inviteStudent(publicUuid: string): Observable<PortalInvitationResult> {
+    return this.api
+      .post<ApiResponse<InvitePortalResponseRaw>>(API.STUDENTS.INVITE(publicUuid))
+      .pipe(map((envelope) => this.toPortalInvitation(envelope.data)));
+  }
+
+  inviteGuardian(
+    studentPublicUuid: string,
+    guardianPublicUuid: string,
+  ): Observable<PortalInvitationResult> {
+    return this.api
+      .post<ApiResponse<InvitePortalResponseRaw>>(
+        API.STUDENTS.GUARDIAN_INVITE(studentPublicUuid, guardianPublicUuid),
+      )
+      .pipe(map((envelope) => this.toPortalInvitation(envelope.data)));
+  }
+
+  resendInvitation(invitationPublicUuid: string): Observable<PortalInvitationResult> {
+    return this.api
+      .post<ApiResponse<InvitePortalResponseRaw>>(API.INVITATIONS.RESEND(invitationPublicUuid))
+      .pipe(map((envelope) => this.toResendInvitation(envelope.data)));
   }
 
   // ===========================================================================
@@ -336,6 +380,7 @@ export class StudentsApiService {
       enrollmentStatus: raw.enrollmentStatus,
       enrollmentDate: this.parseDate(raw.enrollmentDate),
       userId: raw.userId ?? undefined,
+      pendingInvitationPublicUuid: raw.pendingInvitationPublicUuid ?? undefined,
       metadata: raw.metadata ?? undefined,
       createdAt: this.parseDate(raw.createdAt),
       updatedAt: this.parseDate(raw.updatedAt),
@@ -360,6 +405,21 @@ export class StudentsApiService {
     };
   }
 
+  private toGuardianProfile(raw: GuardianProfileResponseRaw): GuardianProfile {
+    return {
+      guardianPublicUuid: raw.guardianPublicUuid,
+      documentType: raw.documentType,
+      documentNumber: raw.documentNumber,
+      firstName: raw.firstName,
+      lastName: raw.lastName,
+      fullName: raw.fullName,
+      email: raw.email ?? undefined,
+      phone: raw.phone ?? undefined,
+      occupation: raw.occupation ?? undefined,
+      userId: raw.userId ?? undefined,
+    };
+  }
+
   private toGuardian(raw: GuardianResponseRaw): Guardian {
     return {
       linkPublicUuid: raw.linkPublicUuid,
@@ -375,6 +435,33 @@ export class StudentsApiService {
       relationship: raw.relationship,
       isPrimaryContact: raw.isPrimaryContact,
       canPickupStudent: raw.canPickupStudent,
+      userId: raw.userId ?? undefined,
+      pendingInvitationPublicUuid: raw.pendingInvitationPublicUuid ?? undefined,
+    };
+  }
+
+  private toPortalInvitation(raw: InvitePortalResponseRaw): PortalInvitationResult {
+    return {
+      invitationPublicUuid: raw.invitationPublicUuid,
+      invitationToken: raw.invitationToken,
+      expiresAt: this.parseDate(raw.expiresAt),
+      email: raw.email,
+    };
+  }
+
+  private toResendInvitation(raw: {
+    publicUuid?: string;
+    invitationPublicUuid?: string;
+    token?: string | null;
+    invitationToken?: string;
+    expiresAt: string | null;
+    email: string;
+  }): PortalInvitationResult {
+    return {
+      invitationPublicUuid: raw.invitationPublicUuid ?? raw.publicUuid ?? '',
+      invitationToken: raw.invitationToken ?? raw.token ?? '',
+      expiresAt: this.parseDate(raw.expiresAt),
+      email: raw.email,
     };
   }
 

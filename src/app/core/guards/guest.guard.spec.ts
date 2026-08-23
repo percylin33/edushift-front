@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
+import { Router, UrlTree, provideRouter } from '@angular/router';
 import { guestGuard } from './guest.guard';
 import { AuthService } from '@core/services';
 
@@ -32,6 +32,6 @@ describe('guestGuard', () => {
   it('redirige a dashboard cuando está autenticado', () => {
     configure(true);
     const result = TestBed.runInInjectionContext(() => guestGuard({} as any, {} as any));
-    expect(router.isUrlTree(result)).toBeTrue();
+    expect(result instanceof UrlTree).toBeTrue();
   });
 });

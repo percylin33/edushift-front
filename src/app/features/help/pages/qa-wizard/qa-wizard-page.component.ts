@@ -102,7 +102,7 @@ interface PromptPayload {
           @for (step of cap.steps; track step.id) {
             <li
               class="rounded-md border p-4"
-              [class]="stepCardClass(states()[step.id]?.status)"
+              [class]="stepCardClass(states()[step.id].status)"
             >
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <div class="min-w-0">
@@ -121,7 +121,7 @@ interface PromptPayload {
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="rounded-full bg-surface px-2 py-0.5 text-2xs font-semibold uppercase tracking-wider">
-                    {{ statusLabel(states()[step.id]?.status ?? 'idle') }}
+                    {{ statusLabel(states()[step.id].status) }}
                   </span>
                   <button
                     type="button"
@@ -149,9 +149,9 @@ interface PromptPayload {
                 @if (s.result && !s.result.ok && !s.result.manual && s.result.status !== undefined && s.result.status !== null) {
                   <details class="mt-2">
                     <summary class="cursor-pointer text-2xs text-content-subtle">
-                      Ver respuesta ({{ s.result?.status }})
+                      Ver respuesta ({{ s.result.status }})
                     </summary>
-                    <pre class="mt-1 max-h-40 overflow-auto rounded-md bg-surface p-2 text-2xs">{{ formatBody(s.result?.body) }}</pre>
+                    <pre class="mt-1 max-h-40 overflow-auto rounded-md bg-surface p-2 text-2xs">{{ formatBody(s.result.body) }}</pre>
                   </details>
                   @if (!s.reportedBugId) {
                     <div class="mt-2 flex flex-wrap gap-2">

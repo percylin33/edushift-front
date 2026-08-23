@@ -1,11 +1,12 @@
 import { Routes } from '@angular/router';
-import { authChildGuard } from '@core/guards';
 import { permissionGuard } from '@core/guards';
 import { Permission } from '@core/enums';
 
 export const AI_ROUTES: Routes = [
   {
     path: '',
+    canMatch: [permissionGuard],
+    data: { permissions: Permission.LmsAiGenerate, mode: 'any' },
     loadComponent: () => import('./pages/ai-home/ai-home.component').then((m) => m.AiHomeComponent),
   },
   {
@@ -16,7 +17,8 @@ export const AI_ROUTES: Routes = [
   },
   {
     path: 'insights',
-    canActivate: [authChildGuard],
+    canMatch: [permissionGuard],
+    data: { permissions: Permission.LmsAiUsage, mode: 'any' },
     loadComponent: () => import('./pages/ai-usage-page/ai-usage-page.component').then((m) => m.AiUsagePageComponent),
   },
   {

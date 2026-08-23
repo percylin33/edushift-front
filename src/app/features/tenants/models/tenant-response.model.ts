@@ -22,6 +22,8 @@ export interface BrandingRaw {
   logoUrl?: string | null;
   faviconUrl?: string | null;
   loginBgUrl?: string | null;
+  loginTitle?: string | null;
+  loginDescription?: string | null;
 }
 
 /**

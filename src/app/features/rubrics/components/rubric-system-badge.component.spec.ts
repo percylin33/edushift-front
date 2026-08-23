@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RubricSystemBadgeComponent } from './rubric-system-badge.component';
 
 describe('RubricSystemBadgeComponent', () => {
-  let component: RubricSystemBadgeComponent;
+  let component: any;
   let fixture: ComponentFixture<RubricSystemBadgeComponent>;
 
   beforeEach(async () => {

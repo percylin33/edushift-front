@@ -7,8 +7,8 @@ import {
 	inject,
 	signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService, TenantService } from '@core/services';
 import { UserRole } from '@core/enums';
@@ -21,29 +21,33 @@ import {
 	SpinnerComponent,
 } from '@shared/components';
 import { AcademicApiService } from '@features/academic/services';
-import { ScheduleSlotItem } from '@features/academic/models';
-import { ScheduleGridComponent } from '@features/academic/components/schedule-grid.component';
+import {
+	NonTeachingBlockItem,
+	ScheduleSlotItem,
+	SectionRow,
+	SuggestedPeriodItem,
+} from '@features/academic/models';
+import {
+	ScheduleGridComponent,
+	SuggestedPeriodSelection,
+} from '@features/academic/components/schedule-grid.component';
+import {
+	TimeSlotAssignmentOption,
+	TimeSlotFormModalComponent,
+} from '@features/academic/components/time-slot-form-modal.component';
+import { MeApiService } from '@features/me/services/me-api.service';
+import { TeachersApiService } from '@features/teachers/services';
+import { ScheduleApiService } from '../../services/schedule-api.service';
 
 /**
- * Sprint cierre-C / F8 — Top-level `/schedule` route.
+ * Top-level {@code /schedule} route — role-aware landing.
  *
- * <p>Role-aware landing:
  * <ul>
- *   <li><b>TENANT_ADMIN</b>: a placeholder explaining that the full
- *       tenant schedule is in development, with a deep-link to the
- *       <i>Docentes</i> list (each teacher's detail page already
- *       renders their weekly grid via {@code TeacherScheduleTabComponent}).</li>
- *   <li><b>TEACHER</b>: <i>Mi horario</i> — requires the user's linked
- *       {@code teacherPublicUuid}. For Sprint MVP we route via
- *       {@code /teachers/me} when the teacher link is known, otherwise
- *       we ask the user to pick a teacher from the academic detail page.</li>
- *   <li><b>STUDENT</b>: shows the section's schedule (placeholder for MVP).</li>
+ *   <li><b>TENANT_ADMIN</b>: hub jornada/workload + editor de horario por sección
+ *       (crear/editar TimeSlots; UAT-SCH-05).</li>
+ *   <li><b>TEACHER</b>: week view (solo lectura; mutaciones solo admin).</li>
+ *   <li><b>STUDENT</b>: week view vía {@code /me/schedule}.</li>
  * </ul>
- * </p>
- *
- * <p>The page is intentionally thin because the per-tenant schedule UI
- * (cierre-C / B4) is still in progress; this is the URL plumbing
- * (route + sidebar entry) and the role-aware landing for now.</p>
  */
 @Component({
 	selector: 'app-schedule-page',
@@ -51,6 +55,7 @@ import { ScheduleGridComponent } from '@features/academic/components/schedule-gr
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [
 		CommonModule,
+		FormsModule,
 		RouterLink,
 		PageContainerComponent,
 		PageHeaderComponent,
@@ -58,6 +63,7 @@ import { ScheduleGridComponent } from '@features/academic/components/schedule-gr
 		EmptyStateComponent,
 		SpinnerComponent,
 		ScheduleGridComponent,
+		TimeSlotFormModalComponent,
 	],
 	template: `
 		<app-page-container size="wide">
@@ -67,9 +73,13 @@ import { ScheduleGridComponent } from '@features/academic/components/schedule-gr
 				[subtitle]="subtitle()"
 			>
 				@if (isAdmin()) {
-					<a [routerLink]="ROUTES.TEACHERS.LIST" class="btn btn-outline btn-sm">
+					<a [routerLink]="ROUTES.SCHEDULE.JORNADA" class="btn btn-primary btn-sm">
+						<app-icon name="calendar" [size]="14" />
+						<span>Jornada</span>
+					</a>
+					<a [routerLink]="ROUTES.SCHEDULE.WORKLOAD" class="btn btn-outline btn-sm">
 						<app-icon name="users" [size]="14" />
-						<span>Ver docentes</span>
+						<span>Carga docente</span>
 					</a>
 				}
 				@if (isTeacher()) {
@@ -79,6 +89,109 @@ import { ScheduleGridComponent } from '@features/academic/components/schedule-gr
 					</a>
 				}
 			</app-page-header>
+
+			@if (isAdmin() && !loading()) {
+				<section class="mb-8 grid gap-4 sm:grid-cols-2">
+					<a
+						[routerLink]="ROUTES.SCHEDULE.JORNADA"
+						class="card transition-shadow hover:shadow-md"
+					>
+						<div class="card-body">
+							<div class="mb-2 flex items-center gap-2 text-content">
+								<app-icon name="calendar" [size]="20" />
+								<h2 class="text-base font-semibold">Jornada y recreos</h2>
+							</div>
+							<p class="text-sm text-content-muted">
+								Configurá la política de recreos, plantillas de día por nivel, sembrado
+								de defaults, bootstrap desde archivo y clonado entre años.
+							</p>
+						</div>
+					</a>
+					<a
+						[routerLink]="ROUTES.SCHEDULE.WORKLOAD"
+						class="card transition-shadow hover:shadow-md"
+					>
+						<div class="card-body">
+							<div class="mb-2 flex items-center gap-2 text-content">
+								<app-icon name="users" [size]="20" />
+								<h2 class="text-base font-semibold">Carga horaria docente</h2>
+							</div>
+							<p class="text-sm text-content-muted">
+								Revisá minutos semanales, cantidad de bloques, secciones y cursos por
+								docente en el periodo seleccionado.
+							</p>
+						</div>
+					</a>
+				</section>
+
+				<section class="card mb-8">
+					<header class="card-header flex flex-wrap items-end justify-between gap-3">
+						<div>
+							<h2 class="card-title">Horario por sección</h2>
+							<p class="card-description">
+								Creá o editá bloques de clase. Si el horario invade un recreo, el modal
+								muestra el error SCHEDULE_CONFLICT.
+							</p>
+						</div>
+						@if (selectedSectionUuid()) {
+							<button type="button" class="btn btn-primary btn-sm" (click)="openCreate(1)">
+								<app-icon name="plus" [size]="14" />
+								Nuevo bloque
+							</button>
+						}
+					</header>
+					<div class="card-body space-y-4">
+						<div class="field max-w-md">
+							<label class="label" for="schedule-section">Sección</label>
+							<select
+								id="schedule-section"
+								class="select"
+								[ngModel]="selectedSectionUuid()"
+								(ngModelChange)="onSectionChange($event)"
+							>
+								<option [ngValue]="null">Selecciona una sección…</option>
+								@for (s of sections(); track s.publicUuid) {
+									<option [ngValue]="s.publicUuid">
+										{{ s.levelCode }} · {{ s.gradeName }} — {{ s.name }}
+									</option>
+								}
+							</select>
+						</div>
+
+						@if (sectionLoading()) {
+							<div class="flex items-center justify-center py-12">
+								<app-spinner [size]="24" label="Cargando horario de sección…" />
+							</div>
+						} @else if (sectionError()) {
+							<div class="alert alert-danger">
+								<app-icon name="alert-circle" [size]="18" />
+								<p class="flex-1 text-sm">{{ sectionError() }}</p>
+								<button type="button" class="btn btn-ghost btn-sm" (click)="reloadSection()">
+									Reintentar
+								</button>
+							</div>
+						} @else if (selectedSectionUuid()) {
+							<app-schedule-grid
+								[slots]="slots()"
+								[nonTeachingBlocks]="nonTeachingBlocks()"
+								[suggestedPeriods]="suggestedPeriods()"
+								[editable]="true"
+								[showSectionView]="false"
+								[showTeacherView]="true"
+								emptyTitle="Aún no hay horario para esta sección"
+								(addRequested)="openCreate($event)"
+								(slotSelected)="openEdit($event)"
+								(periodSelected)="openFromPeriod($event)"
+							/>
+						} @else {
+							<p class="text-sm text-content-muted">
+								Elegí una sección para ver recreos y bloques de clase, y para probar
+								conflictos (UAT-SCH-05).
+							</p>
+						}
+					</div>
+				</section>
+			}
 
 			@if (loading()) {
 				<div class="flex items-center justify-center py-16">
@@ -94,9 +207,15 @@ import { ScheduleGridComponent } from '@features/academic/components/schedule-gr
 						</div>
 					</div>
 				</div>
-			} @else if (slots().length > 0) {
-				<app-schedule-grid [slots]="slots()" />
-			} @else {
+			} @else if (!isAdmin() && (slots().length > 0 || nonTeachingBlocks().length > 0)) {
+				<app-schedule-grid
+					[slots]="slots()"
+					[nonTeachingBlocks]="nonTeachingBlocks()"
+					[suggestedPeriods]="suggestedPeriods()"
+					[showSectionView]="isTeacher()"
+					[showTeacherView]="isStudent()"
+				/>
+			} @else if (!isAdmin()) {
 				<app-empty-state
 					icon="calendar"
 					[title]="emptyTitle()"
@@ -104,19 +223,48 @@ import { ScheduleGridComponent } from '@features/academic/components/schedule-gr
 				/>
 			}
 		</app-page-container>
+
+		@if (modalOpen()) {
+			<app-time-slot-form-modal
+				[assignments]="assignmentOptions()"
+				[initialDayOfWeek]="modalDay()"
+				[initialStartTime]="modalStart()"
+				[initialEndTime]="modalEnd()"
+				[slot]="editingSlot()"
+				(closed)="closeModal()"
+				(saved)="onModalSaved()"
+				(deleted)="onModalSaved()"
+			/>
+		}
 	`,
 })
 export class SchedulePageComponent implements OnInit {
 	private readonly route = inject(ActivatedRoute);
-	private readonly router = inject(Router);
 	private readonly auth = inject(AuthService);
 	private readonly tenant = inject(TenantService);
+	private readonly scheduleApi = inject(ScheduleApiService);
 	private readonly academicApi = inject(AcademicApiService);
+	private readonly teachersApi = inject(TeachersApiService);
+	private readonly meApi = inject(MeApiService);
 
 	protected readonly ROUTES = ROUTES;
 	protected readonly loading = signal(false);
 	protected readonly errorMessage = signal<string | null>(null);
 	protected readonly slots = signal<readonly ScheduleSlotItem[]>([]);
+	protected readonly nonTeachingBlocks = signal<readonly NonTeachingBlockItem[]>([]);
+	protected readonly suggestedPeriods = signal<readonly SuggestedPeriodItem[]>([]);
+
+	protected readonly sections = signal<SectionRow[]>([]);
+	protected readonly selectedSectionUuid = signal<string | null>(null);
+	protected readonly sectionLoading = signal(false);
+	protected readonly sectionError = signal<string | null>(null);
+	protected readonly assignmentOptions = signal<TimeSlotAssignmentOption[]>([]);
+
+	protected readonly modalOpen = signal(false);
+	protected readonly modalDay = signal<number | null>(null);
+	protected readonly modalStart = signal<string | null>(null);
+	protected readonly modalEnd = signal<string | null>(null);
+	protected readonly editingSlot = signal<ScheduleSlotItem | null>(null);
 
 	protected readonly isAdmin = computed(() => this.auth.hasRole(UserRole.TenantAdmin));
 	protected readonly isTeacher = computed(() => this.auth.hasRole(UserRole.Teacher));
@@ -134,8 +282,8 @@ export class SchedulePageComponent implements OnInit {
 		}
 		if (this.isAdmin()) {
 			return tenantName
-				? `Vista global de horarios del colegio ${tenantName}.`
-				: 'Vista global de horarios del colegio.';
+				? `Jornada, carga docente y edición de bloques — ${tenantName}.`
+				: 'Jornada, carga docente y edición de bloques de clase.';
 		}
 		return 'Horarios de tu sección.';
 	});
@@ -151,51 +299,165 @@ export class SchedulePageComponent implements OnInit {
 			return 'Cuando un administrador te asigne a una sección con horario, aparecerá acá.';
 		}
 		if (this.isAdmin()) {
-			return 'Cuando crees docentes y secciones con sus horarios semanales, aparecerán acá.';
+			return 'Usá Jornada para configurar recreos y plantillas, o el editor por sección más abajo.';
 		}
 		return 'Cuando el administrador configure el horario de tu sección, aparecerá acá.';
 	});
 
 	async ngOnInit(): Promise<void> {
+		if (this.isAdmin()) {
+			await this.loadSections();
+			return;
+		}
 		if (this.isTeacher()) {
 			await this.loadTeacherSchedule();
+			return;
 		}
-		// Admin + student branches are placeholders until cierre-C / B4
-		// delivers the per-tenant / per-section schedule rendering.
+		if (this.isStudent()) {
+			await this.loadStudentSchedule();
+		}
 	}
 
-	/**
-	 * Loads the current user's schedule.
-	 *
-	 * <p>The teacher's {@code publicUuid} is read from the user's auth
-	 * profile when the BE populates it (see
-	 * {@code AuthService.user().teacherPublicUuid}). For Sprint MVP, if
-	 * the link is missing we surface a friendly empty state instead of
-	 * attempting a lookup by email — that's been a source of stale-cache
-	 * bugs in past sprints.</p>
-	 */
+	protected onSectionChange(uuid: string | null): void {
+		this.selectedSectionUuid.set(uuid);
+		if (uuid) {
+			void this.loadSectionSchedule(uuid);
+		} else {
+			this.slots.set([]);
+			this.nonTeachingBlocks.set([]);
+			this.suggestedPeriods.set([]);
+			this.assignmentOptions.set([]);
+			this.sectionError.set(null);
+		}
+	}
+
+	protected reloadSection(): void {
+		const uuid = this.selectedSectionUuid();
+		if (uuid) void this.loadSectionSchedule(uuid);
+	}
+
+	protected openCreate(dayOfWeek: number): void {
+		this.editingSlot.set(null);
+		this.modalDay.set(dayOfWeek);
+		this.modalStart.set(null);
+		this.modalEnd.set(null);
+		this.modalOpen.set(true);
+	}
+
+	protected openFromPeriod(period: SuggestedPeriodSelection): void {
+		this.editingSlot.set(null);
+		this.modalDay.set(period.dayOfWeek);
+		this.modalStart.set(period.startTime);
+		this.modalEnd.set(period.endTime);
+		this.modalOpen.set(true);
+	}
+
+	protected openEdit(slot: ScheduleSlotItem): void {
+		// #region agent log
+		fetch('http://127.0.0.1:7639/ingest/f4773d1b-17bd-44c3-8d39-badf894fd980',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5d2603'},body:JSON.stringify({sessionId:'5d2603',runId:'pre-fix',hypothesisId:'A',location:'schedule-page.component.ts:openEdit',message:'open edit slot',data:{slotPublicUuid:slot?.slotPublicUuid??null,assignmentPublicUuid:slot?.assignmentPublicUuid??null,dayOfWeek:slot?.dayOfWeek??null,startTime:slot?.startTime??null,endTime:slot?.endTime??null},timestamp:Date.now()})}).catch(()=>{});
+		// #endregion
+		this.editingSlot.set(slot);
+		this.modalDay.set(null);
+		this.modalStart.set(null);
+		this.modalEnd.set(null);
+		this.modalOpen.set(true);
+	}
+
+	protected closeModal(): void {
+		this.modalOpen.set(false);
+		this.editingSlot.set(null);
+		this.modalDay.set(null);
+		this.modalStart.set(null);
+		this.modalEnd.set(null);
+	}
+
+	protected onModalSaved(): void {
+		// #region agent log
+		fetch('http://127.0.0.1:7639/ingest/f4773d1b-17bd-44c3-8d39-badf894fd980',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5d2603'},body:JSON.stringify({sessionId:'5d2603',runId:'pre-fix',hypothesisId:'D',location:'schedule-page.component.ts:onModalSaved',message:'modal saved/deleted handler',data:{sectionUuid:this.selectedSectionUuid()},timestamp:Date.now()})}).catch(()=>{});
+		// #endregion
+		this.closeModal();
+		this.reloadSection();
+	}
+
+	private async loadSections(): Promise<void> {
+		try {
+			const rows = await firstValueFrom(this.academicApi.listSections());
+			this.sections.set(rows);
+		} catch {
+			this.sections.set([]);
+		}
+	}
+
+	private async loadSectionSchedule(sectionUuid: string): Promise<void> {
+		this.sectionLoading.set(true);
+		this.sectionError.set(null);
+		try {
+			const [view, teachers] = await Promise.all([
+				firstValueFrom(this.scheduleApi.getSectionScheduleWeek(sectionUuid)),
+				firstValueFrom(this.teachersApi.listSectionTeachers(sectionUuid)),
+			]);
+			this.slots.set(view.slots ?? []);
+			this.nonTeachingBlocks.set(view.nonTeachingBlocks ?? []);
+			this.suggestedPeriods.set(view.suggestedPeriods ?? []);
+			this.assignmentOptions.set(
+				teachers.map((t) => ({
+					publicUuid: t.assignmentPublicUuid,
+					label: `${t.courseCode} — ${t.courseName} · ${t.teacherFullName}`,
+				})),
+			);
+		} catch (err: unknown) {
+			this.sectionError.set(
+				err && typeof err === 'object' && 'message' in err
+					? String((err as { message: unknown }).message)
+					: 'Error al cargar el horario de la sección.',
+			);
+		} finally {
+			this.sectionLoading.set(false);
+		}
+	}
+
 	private async loadTeacherSchedule(): Promise<void> {
 		this.loading.set(true);
 		this.errorMessage.set(null);
 		try {
 			const user = this.auth.user();
-			const teacherUuid: string | undefined = (user as { teacherPublicUuid?: string } | null)?.teacherPublicUuid;
+			const teacherUuid: string | undefined = (user as { teacherPublicUuid?: string } | null)
+				?.teacherPublicUuid;
 			if (!teacherUuid) {
-				// Empty state with hint to contact admin.
 				this.loading.set(false);
 				return;
 			}
-			const data = await firstValueFrom(this.academicApi.getTeacherSchedule(teacherUuid));
-			this.slots.set(data ?? []);
-		}
-		catch (err: unknown) {
+			const view = await firstValueFrom(this.scheduleApi.getTeacherScheduleWeek(teacherUuid));
+			this.slots.set(view.slots ?? []);
+			this.nonTeachingBlocks.set(view.nonTeachingBlocks ?? []);
+			this.suggestedPeriods.set(view.suggestedPeriods ?? []);
+		} catch (err: unknown) {
 			this.errorMessage.set(
 				err && typeof err === 'object' && 'message' in err
 					? String((err as { message: unknown }).message)
 					: 'Error desconocido.',
 			);
+		} finally {
+			this.loading.set(false);
 		}
-		finally {
+	}
+
+	private async loadStudentSchedule(): Promise<void> {
+		this.loading.set(true);
+		this.errorMessage.set(null);
+		try {
+			const response = await firstValueFrom(this.meApi.listSchedule());
+			const view = response.data;
+			this.slots.set(view?.slots ?? []);
+			this.nonTeachingBlocks.set(view?.nonTeachingBlocks ?? []);
+			this.suggestedPeriods.set(view?.suggestedPeriods ?? []);
+		} catch (err: unknown) {
+			this.errorMessage.set(
+				err && typeof err === 'object' && 'message' in err
+					? String((err as { message: unknown }).message)
+					: 'Error desconocido.',
+			);
+		} finally {
 			this.loading.set(false);
 		}
 	}

@@ -7,28 +7,36 @@ describe('apiUrlInterceptor', () => {
   it('no modifica URLs absolutas', () => {
     const req = new HttpRequest('GET', 'https://external.com/api/test');
     const next = jasmine.createSpy('next').and.callFake((r: HttpRequest<unknown>) => r);
-    const result = apiUrlInterceptor(req, next);
+    const result = apiUrlInterceptor(req, next) as any;
     expect(result.url).toBe('https://external.com/api/test');
   });
 
   it('no modifica URLs que no empiezan con api/', () => {
     const req = new HttpRequest('GET', 'assets/config.json');
     const next = jasmine.createSpy('next').and.callFake((r: HttpRequest<unknown>) => r);
-    const result = apiUrlInterceptor(req, next);
+    const result = apiUrlInterceptor(req, next) as any;
     expect(result.url).toBe('assets/config.json');
   });
 
   it('reescribe api/users a la URL completa', () => {
     const req = new HttpRequest('GET', 'api/users');
     const next = jasmine.createSpy('next').and.callFake((r: HttpRequest<unknown>) => r);
-    const result = apiUrlInterceptor(req, next);
+    const result = apiUrlInterceptor(req, next) as any;
     expect(result.url).toBe(`${environment.apiUrl}/${environment.apiVersion}/users`);
   });
 
   it('elimina slash inicial de api/', () => {
     const req = new HttpRequest('GET', '/api/users');
     const next = jasmine.createSpy('next').and.callFake((r: HttpRequest<unknown>) => r);
-    const result = apiUrlInterceptor(req, next);
+    const result = apiUrlInterceptor(req, next) as any;
     expect(result.url).toBe(`${environment.apiUrl}/${environment.apiVersion}/users`);
+  });
+
+  it('no duplica apiVersion cuando la ruta ya incluye /v1', () => {
+    const req = new HttpRequest('GET', '/api/v1/family/children');
+    const next = jasmine.createSpy('next').and.callFake((r: HttpRequest<unknown>) => r);
+    const result = apiUrlInterceptor(req, next) as any;
+    expect(result.url).toBe(`${environment.apiUrl}/${environment.apiVersion}/family/children`);
+    expect(result.url).not.toContain('/v1/v1/');
   });
 });

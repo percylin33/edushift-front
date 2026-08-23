@@ -49,12 +49,24 @@ describe('TenantApiService', () => {
   });
 
   it('findBySlug hace GET y adapta a Tenant', (done) => {
-    apiSpy.get.and.returnValue(of({ success: true, data: summaryRaw }));
+    apiSpy.get.and.returnValue(
+      of({
+        success: true,
+        data: {
+          ...summaryRaw,
+          branding: {
+            ...summaryRaw.branding,
+            loginBgUrl: 'https://cdn.example.com/login.jpg',
+          },
+        },
+      }),
+    );
     service.findBySlug('acme').subscribe((tenant) => {
       expect(tenant.id).toBe('t-1');
       expect(tenant.slug).toBe('acme');
       expect(tenant.isActive).toBeTrue();
       expect(tenant.branding?.primaryColor).toBe('#ff0000');
+      expect(tenant.branding?.loginBgUrl).toBe('https://cdn.example.com/login.jpg');
       done();
     });
   });
@@ -63,7 +75,7 @@ describe('TenantApiService', () => {
     apiSpy.get.and.returnValue(of({ success: true, data: responseRaw }));
     service.findCurrent().subscribe((tenant) => {
       expect(tenant.customDomain).toBe('acme.edu');
-      expect(tenant.plan).toBe('TRIAL');
+      expect(tenant.plan).toBe('TRIAL' as any);
       expect(tenant.maxStudents).toBe(100);
       expect(tenant.featureFlags?.['ai']).toBeTrue();
       done();
@@ -83,17 +95,13 @@ describe('TenantApiService', () => {
       of({
         accessToken: 'a',
         refreshToken: 'r',
-        expiresIn: 3600,
+        expiresInSec: 3600,
         tokenType: 'Bearer',
         user: {
           publicUuid: 'u-1',
           email: 'admin@a.com',
           fullName: 'Admin',
-          roles: ['TENANT_ADMIN'],
-          permissions: [],
-          tenantId: 't-1',
-          tenantSlug: 'acme',
-          tenantName: 'Acme',
+          status: 'ACTIVE',
         },
       }),
     );
@@ -105,10 +113,12 @@ describe('TenantApiService', () => {
         adminPassword: 'pass1234',
         adminFirstName: 'A',
         adminLastName: 'B',
+        inviteToken: 'tokentokentoken12',
       })
       .subscribe((session) => {
         expect(session.accessToken).toBe('a');
-        expect(session.user.tenantSlug).toBe('acme');
+        expect(session.user.email).toBe('admin@a.com');
+        expect(session.user.publicUuid).toBe('u-1');
         done();
       });
   });

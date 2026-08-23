@@ -6,7 +6,7 @@ import { signal } from '@angular/core';
 import { RubricRow } from '../../models';
 
 describe('RubricsListComponent', () => {
-  let component: RubricsListComponent;
+  let component: any;
   let fixture: ComponentFixture<RubricsListComponent>;
   let storeSpy: jasmine.SpyObj<RubricsStore>;
   let routerSpy: jasmine.SpyObj<Router>;

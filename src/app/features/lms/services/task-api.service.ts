@@ -20,13 +20,13 @@ import {
  *
  * <h3>Endpoint coverage</h3>
  * <ul>
- *   <li>{@link #listBySection}      → {@code GET    /v1/lms/sections/{uuid}/assignments} (TEACHER)</li>
- *   <li>{@link #listByStudent}      → {@code GET    /v1/lms/students/{uuid}/assignments} (STUDENT/PARENT)</li>
- *   <li>{@link #getTask}            → {@code GET    /v1/lms/assignments/{uuid}}</li>
- *   <li>{@link #createTask}         → {@code POST   /v1/lms/assignments}</li>
- *   <li>{@link #updateTask}         → {@code PATCH  /v1/lms/assignments/{uuid}} (DRAFT o before dueAt)</li>
- *   <li>{@link #publishTask}        → {@code POST   /v1/lms/assignments/{uuid}/publish} (DRAFT → PUBLISHED)</li>
- *   <li>{@link #closeTask}          → {@code POST   /v1/lms/assignments/{uuid}/close} (PUBLISHED → CLOSED)</li>
+ *   <li>{@link #listBySection}      → {@code GET    /v1/sections/{uuid}/tasks} (TEACHER)</li>
+ *   <li>{@link #listByStudent}      → {@code GET    /v1/students/{uuid}/tasks} (STUDENT/PARENT)</li>
+ *   <li>{@link #getTask}            → {@code GET    /v1/tasks/{uuid}}</li>
+ *   <li>{@link #createTask}         → {@code POST   /v1/sections/{uuid}/tasks}</li>
+ *   <li>{@link #updateTask}         → {@code PATCH  /v1/tasks/{uuid}} (DRAFT o before dueAt)</li>
+ *   <li>{@link #publishTask}        → {@code POST   /v1/tasks/{uuid}/publish} (DRAFT → PUBLISHED)</li>
+ *   <li>{@link #closeTask}          → {@code POST   /v1/tasks/{uuid}/archive} (PUBLISHED → ARCHIVED)</li>
  * </ul>
  *
  * <p>Endpoints de Submissions / Materials viven en
@@ -113,9 +113,9 @@ export class TaskApiService {
   }
 
   /**
-   * DRAFT → PUBLISHED. El backend puede responder 409 si falta
-   * {@code dueAt} (un DRAFT sin fecha no puede publicarse); el store
-   * propaga ese código como error inline.
+   * DRAFT → PUBLISHED. El backend responde 409 TASK_INVALID_STATE si la
+   * tarea ya está en PUBLISHED/ARCHIVED. El store propaga ese código como
+   * banner de error (BUG-2026-07-31-04).
    */
   publishTask(publicUuid: string): Observable<TaskDetail> {
     return this.api
@@ -124,8 +124,9 @@ export class TaskApiService {
   }
 
   /**
-   * PUBLISHED → CLOSED. Idempotente en backend: si ya está CLOSED
-   * retorna 200 con el mismo payload.
+   * PUBLISHED → ARCHIVED. El endpoint del BE es `/tasks/{uuid}/archive`
+   * (NO `/close`). El FE renombra este método a `closeTask` para UX
+   * ("Cerrar tarea") pero mapea a `/archive` (FIX BUG-2026-07-31-04).
    */
   closeTask(publicUuid: string): Observable<TaskDetail> {
     return this.api

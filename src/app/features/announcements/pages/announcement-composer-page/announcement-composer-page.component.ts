@@ -1,31 +1,38 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { SecurityContext } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { catchError, firstValueFrom, map, of, switchMap } from 'rxjs';
+import { startWith } from 'rxjs/operators';
+import { UserRole } from '@core/enums';
+import { ChipMultiSelectComponent, ChipOption } from '@shared/components';
+import { AcademicApiService } from '../../../academic/services/academic-api.service';
+import { UsersApiService } from '../../../users/services/users-api.service';
 import { AnnouncementsApiService } from '../../services/announcements-api.service';
 import { AnnouncementAudience } from '../../models/announcement.model';
 
 /**
  * Announcement composer (Sprint 9 / FE-9.2).
  *
- * <p>3-step wizard (Sprint 9 uses 1 page with a 3-pane layout, which
- * is the modern equivalent):</p>
- * <ol>
- *   <li>Pick audience (SCHOOL / GRADE / SECTION / COURSE / ROLE / USER).</li>
- *   <li>Write the title + body (sanitized on the server; we send HTML).</li>
- *   <li>Preview + Publish (or save as DRAFT).</li>
- * </ol>
- *
- * <p>Pin: a checkbox to mark the announcement as pinned (it floats
- * to the top of the announcements list). Publish: immediate
- * dispatch to all recipients via the outbox.</p>
+ * <p>Audience step uses {@link ChipMultiSelectComponent}: options load
+ * dynamically when {@code audienceType} changes (grades, sections,
+ * courses, roles, users). SCHOOL skips the select and sends {@code []}.</p>
  */
 @Component({
   selector: 'app-announcement-composer-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ChipMultiSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-4xl px-4 py-8 sm:py-10">
@@ -43,7 +50,7 @@ import { AnnouncementAudience } from '../../models/announcement.model';
             1. Audiencia
           </legend>
           <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            @for (a of audienceOptions; track a.value) {
+            @for (a of audienceTypeRadios; track a.value) {
               <label
                 class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 hover:border-emerald-500 has-[:checked]:bg-emerald-50 dark:border-slate-700 dark:has-[:checked]:bg-emerald-900/20"
               >
@@ -57,17 +64,27 @@ import { AnnouncementAudience } from '../../models/announcement.model';
               </label>
             }
           </div>
-          @if (form.controls.audienceType.value !== 'SCHOOL') {
-            <div class="mt-3">
-              <label class="text-xs text-slate-500">
-                IDs de audiencia (separados por coma, según el tipo)
-              </label>
-              <input
-                type="text"
-                formControlName="audienceIdsCsv"
-                class="mt-1 w-full rounded-lg border-slate-200 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800"
-                placeholder="Ej. 1A, 1B"
-              />
+
+          @if (audienceType() !== 'SCHOOL') {
+            <div class="mt-4 space-y-2">
+              <label class="text-xs text-slate-500">{{ audienceSelectLabel() }}</label>
+              @if (audienceLoading()) {
+                <p class="text-sm text-slate-500 dark:text-slate-400">Cargando opciones…</p>
+              } @else if (audienceError()) {
+                <p class="text-sm text-rose-600">{{ audienceError() }}</p>
+              } @else {
+                <app-chip-multi-select
+                  formControlName="audienceIds"
+                  [options]="audienceChipOptions()"
+                  [placeholder]="audiencePlaceholder()"
+                  emptyText="No hay coincidencias"
+                />
+                @if (audienceChipOptions().length === 0) {
+                  <p class="text-xs text-slate-500 dark:text-slate-400">
+                    No hay opciones disponibles para este tipo de audiencia.
+                  </p>
+                }
+              }
             </div>
           }
         </fieldset>
@@ -148,24 +165,35 @@ import { AnnouncementAudience } from '../../models/announcement.model';
     </section>
   `,
 })
-export class AnnouncementComposerPageComponent {
+export class AnnouncementComposerPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(AnnouncementsApiService);
+  private readonly academicApi = inject(AcademicApiService);
+  private readonly usersApi = inject(UsersApiService);
   private readonly router = inject(Router);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly destroyRef = inject(DestroyRef);
 
-  readonly audienceOptions: { value: AnnouncementAudience; label: string }[] = [
+  readonly audienceTypeRadios: { value: AnnouncementAudience; label: string }[] = [
     { value: 'SCHOOL', label: 'Toda la escuela' },
     { value: 'GRADE', label: 'Por grado' },
     { value: 'SECTION', label: 'Por sección' },
     { value: 'COURSE', label: 'Por curso' },
-    { value: 'ROLE', label: 'Por rol (e.g. TEACHER)' },
+    { value: 'ROLE', label: 'Por rol' },
     { value: 'USER', label: 'Usuarios específicos' },
+  ];
+
+  private static readonly ROLE_OPTIONS: ChipOption[] = [
+    { id: UserRole.TenantAdmin, label: 'Administrador' },
+    { id: UserRole.Staff, label: 'Staff' },
+    { id: UserRole.Teacher, label: 'Profesor' },
+    { id: UserRole.Student, label: 'Estudiante' },
+    { id: UserRole.Parent, label: 'Tutor' },
   ];
 
   readonly form = this.fb.group({
     audienceType: this.fb.nonNullable.control<AnnouncementAudience>('SCHOOL'),
-    audienceIdsCsv: this.fb.nonNullable.control(''),
+    audienceIds: this.fb.nonNullable.control<string[]>([]),
     title: this.fb.nonNullable.control('', [Validators.required, Validators.maxLength(200)]),
     bodyHtml: this.fb.nonNullable.control('', [Validators.required]),
     pinned: this.fb.nonNullable.control(false),
@@ -173,27 +201,97 @@ export class AnnouncementComposerPageComponent {
 
   readonly publishing = signal(false);
   readonly errorMsg = signal<string | null>(null);
+  readonly audienceChipOptions = signal<ChipOption[]>([]);
+  readonly audienceLoading = signal(false);
+  readonly audienceError = signal<string | null>(null);
 
-  /**
-   * Sprint 10 / DEBT-9-FE-1 (XSS defense in depth):
-   * Sanitize the body before [innerHTML]. The backend also sanitizes
-   * with jsoup (allowlist) but we never trust the round-trip: a
-   * bug or migration could send raw `<script>` and we don't want
-   * it to execute in the composer's preview iframe-less context.
-   */
-  readonly safeBody = computed<SafeHtml>(
-    () =>
-      this.sanitizer.sanitize(
-        SecurityContext.HTML,
-        this.form.controls.bodyHtml.value ?? '',
-      ) ?? '',
+  readonly audienceType = toSignal(
+    this.form.controls.audienceType.valueChanges.pipe(
+      startWith(this.form.controls.audienceType.value),
+    ),
+    { initialValue: this.form.controls.audienceType.value },
   );
 
+  readonly audienceSelectLabel = computed(() => {
+    switch (this.audienceType()) {
+      case 'GRADE':
+        return 'Grados';
+      case 'SECTION':
+        return 'Secciones';
+      case 'COURSE':
+        return 'Cursos';
+      case 'ROLE':
+        return 'Roles';
+      case 'USER':
+        return 'Usuarios';
+      default:
+        return 'Destinatarios';
+    }
+  });
+
+  readonly audiencePlaceholder = computed(() => {
+    switch (this.audienceType()) {
+      case 'GRADE':
+        return 'Busca y selecciona grados…';
+      case 'SECTION':
+        return 'Busca y selecciona secciones…';
+      case 'COURSE':
+        return 'Busca y selecciona cursos…';
+      case 'ROLE':
+        return 'Selecciona roles…';
+      case 'USER':
+        return 'Busca usuarios por nombre o email…';
+      default:
+        return 'Selecciona…';
+    }
+  });
+
+  private readonly bodyHtmlSignal = toSignal(
+    this.form.controls.bodyHtml.valueChanges.pipe(
+      startWith(this.form.controls.bodyHtml.value),
+    ),
+    { initialValue: this.form.controls.bodyHtml.value },
+  );
+
+  readonly safeBody = computed<SafeHtml>(
+    () =>
+      this.sanitizer.sanitize(SecurityContext.HTML, this.bodyHtmlSignal() ?? '') ?? '',
+  );
+
+  ngOnInit(): void {
+    this.form.controls.audienceType.valueChanges
+      .pipe(
+        startWith(this.form.controls.audienceType.value),
+        switchMap((type) => {
+          this.form.controls.audienceIds.setValue([]);
+          this.audienceError.set(null);
+          if (type === 'SCHOOL') {
+            this.audienceChipOptions.set([]);
+            this.audienceLoading.set(false);
+            return of([] as ChipOption[]);
+          }
+          this.audienceLoading.set(true);
+          return this.loadAudienceOptions(type).pipe(
+            catchError(() => {
+              this.audienceError.set('No se pudieron cargar las opciones de audiencia');
+              return of([] as ChipOption[]);
+            }),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((opts) => {
+        this.audienceChipOptions.set(opts);
+        this.audienceLoading.set(false);
+      });
+  }
+
   async onSaveDraft(): Promise<void> {
+    if (!this.validateAudience()) return;
     if (this.form.invalid) return;
     this.publishing.set(true);
     try {
-      await this.api.create(this.payload(false)).toPromise();
+      await firstValueFrom(this.api.create(this.payload()));
       this.router.navigate(['/announcements']);
     } catch (e: any) {
       this.errorMsg.set(e?.error?.message ?? 'No se pudo guardar');
@@ -202,34 +300,99 @@ export class AnnouncementComposerPageComponent {
   }
 
   async onPublish(): Promise<void> {
+    if (!this.validateAudience()) return;
     if (this.form.invalid) return;
     this.publishing.set(true);
     this.errorMsg.set(null);
     try {
-      const created = await this.api.create(this.payload(false)).toPromise();
-      if (created?.publicUuid) {
-        await this.api.publish(created.publicUuid).toPromise();
+      const created = await firstValueFrom(this.api.create(this.payload()));
+      if (!created?.publicUuid) {
+        throw new Error('Create did not return publicUuid — cannot publish');
       }
+      await firstValueFrom(this.api.publish(created.publicUuid));
       this.router.navigate(['/announcements']);
     } catch (e: any) {
-      this.errorMsg.set(e?.error?.message ?? 'No se pudo publicar');
+      this.errorMsg.set(e?.error?.message ?? e?.message ?? 'No se pudo publicar');
       this.publishing.set(false);
     }
   }
 
-  private payload(_: boolean) {
+  private validateAudience(): boolean {
+    const type = this.form.controls.audienceType.value;
+    if (type !== 'SCHOOL' && (this.form.controls.audienceIds.value?.length ?? 0) === 0) {
+      this.errorMsg.set('Selecciona al menos un destinatario para esta audiencia');
+      return false;
+    }
+    return true;
+  }
+
+  private payload() {
     const v = this.form.getRawValue();
     return {
       title: v.title,
       bodyHtml: v.bodyHtml,
       audienceType: v.audienceType,
-      audienceIds: v.audienceIdsCsv
-        ? v.audienceIdsCsv
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean)
-        : [],
+      audienceIds: v.audienceType === 'SCHOOL' ? [] : [...(v.audienceIds ?? [])],
       pinned: v.pinned,
     };
+  }
+
+  private loadAudienceOptions(type: AnnouncementAudience) {
+    switch (type) {
+      case 'GRADE':
+        return this.academicApi.listLevels().pipe(
+          map((levels) =>
+            levels.flatMap((level) =>
+              (level.grades ?? []).map(
+                (g): ChipOption => ({
+                  id: g.name,
+                  label: g.name,
+                  subtitle: level.name,
+                }),
+              ),
+            ),
+          ),
+        );
+      case 'SECTION':
+        return this.academicApi.listSections().pipe(
+          map((rows) =>
+            rows.map(
+              (s): ChipOption => ({
+                id: s.publicUuid,
+                label: s.name,
+                subtitle: s.gradeName,
+              }),
+            ),
+          ),
+        );
+      case 'COURSE':
+        return this.academicApi.listCourses({ isActive: true }).pipe(
+          map((rows) =>
+            rows.map(
+              (c): ChipOption => ({
+                id: c.publicUuid,
+                label: c.name,
+                subtitle: c.code,
+              }),
+            ),
+          ),
+        );
+      case 'ROLE':
+        return of([...AnnouncementComposerPageComponent.ROLE_OPTIONS]);
+      case 'USER':
+        return this.usersApi.list({}, { page: 0, size: 100 }).pipe(
+          map((page) =>
+            (page.content ?? []).map(
+              (u): ChipOption => ({
+                id: u.publicUuid,
+                label: u.fullName || u.email,
+                subtitle: u.email,
+              }),
+            ),
+          ),
+        );
+      default:
+        return of([] as ChipOption[]);
+    }
   }
 }

@@ -1,9 +1,9 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { STORAGE_KEYS } from '@core/constants';
 import { Permission, UserRole } from '@core/enums';
 import { AuthSession, User, UserSummary } from '@core/models';
 import { StorageService } from './storage.service';
-import { TenantService } from './tenant.service';
 
 /**
  * Storage key for the short-lived {@code mfaToken} returned by
@@ -44,7 +44,6 @@ const MFA_TOKEN_EXPIRES_AT_KEY = 'edushift.mfaTokenExpiresAt';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly storage = inject(StorageService);
-  private readonly tenantService = inject(TenantService);
 
   private readonly _user = signal<User | null>(this.storage.get<User>(STORAGE_KEYS.CURRENT_USER));
   private readonly _accessToken = signal<string | null>(
@@ -65,6 +64,7 @@ export class AuthService {
   private readonly _mfaTokenExpiresAt = signal<Date | null>(this.readMfaTokenExpiresAt());
 
   readonly user = this._user.asReadonly();
+  readonly user$ = toObservable(this._user);
   readonly accessToken = this._accessToken.asReadonly();
   readonly refreshToken = this._refreshToken.asReadonly();
   readonly expiresAt = this._expiresAt.asReadonly();
@@ -74,6 +74,11 @@ export class AuthService {
   readonly isAuthenticated = computed(() => !!this._accessToken() && !!this._user());
   readonly roles = computed<UserRole[]>(() => this._user()?.roles ?? []);
   readonly permissions = computed<Permission[]>(() => this._user()?.permissions ?? []);
+
+  /** Snapshot helper for non-reactive consumers (e.g. STOMP connect headers). */
+  getToken(): string | null {
+    return this._accessToken();
+  }
 
   /**
    * Persist a fresh session at login. Replaces user + tokens in full.
@@ -141,7 +146,8 @@ export class AuthService {
     this.storage.remove(STORAGE_KEYS.AUTH_TOKEN);
     this.storage.remove(STORAGE_KEYS.REFRESH_TOKEN);
     this.storage.remove(STORAGE_KEYS.AUTH_EXPIRES_AT);
-    this.tenantService.clear();
+    // Keep tenant slug + branding. Logout is "leave the session", not
+    // "leave the school" — the next screen is that school's login.
   }
 
   /**

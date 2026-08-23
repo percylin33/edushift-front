@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { permissionGuard } from '@core/guards';
+import { PaymentsRoleRedirectComponent } from './pages/payments-role-redirect/payments-role-redirect.component';
 
 /**
  * Payments feature routes (Sprint 10 / FE-10.1 + Sprint 11 / FE-11.1).
@@ -7,12 +8,27 @@ import { permissionGuard } from '@core/guards';
  * <p>Lazy-loaded; the parent route in {@code app.routes.ts} should
  * wire {@code loadChildren: () => import('./payments/payments.routes').then(m => m.PAYMENTS_ROUTES)}
  * under the {@code /payments} path.</p>
+ *
+ * <h3>Entry-point resolver (FIX BUG-2026-07-30-07)</h3>
+ * <p>{@code /payments} used to redirect to {@code /payments/invoices}
+ * unconditionally. {@code InvoicesPageComponent} is a guardian-facing
+ * screen that calls {@code GET /payments/invoices} (the current
+ * user's own invoices); for {@code TENANT_ADMIN} that endpoint either
+ * fails ("Failed to fetch") or returns an empty list, and the copy
+ * ("Mis cuotas") is wrong for the admin. The new resolver picks the
+ * right entry-point per role:</p>
+ * <ul>
+ *   <li>TENANT_ADMIN / STAFF → {@code /payments/admin/payments}
+ *       (admin listing, gated by {@code LMS_PAYMENT_ADMIN}).</li>
+ *   <li>STUDENT / PARENT    → {@code /payments/invoices}
+ *       (guardian listing).</li>
+ * </ul>
  */
 export const PAYMENTS_ROUTES: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    redirectTo: 'invoices',
+    component: PaymentsRoleRedirectComponent,
   },
   {
     path: 'invoices',

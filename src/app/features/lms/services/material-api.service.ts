@@ -40,9 +40,15 @@ export class MaterialApiService {
   /* ------------------------------------------------------------------------ */
 
   listBySection(sectionPublicUuid: string): Observable<MaterialRow[]> {
+    // BUG-2026-07-31-05: backend returns Spring `Page<MaterialSummary>`
+    // serialised as { content: [...], totalElements, ... } — not a flat
+    // array. Read the `content` array and fall back to [] if absent
+    // (defensive against future backend shape changes).
     return this.http
-      .get<MaterialSummaryRaw[]>(API.LMS.SECTION_MATERIALS_LIST(sectionPublicUuid))
-      .pipe(map((rows) => rows.map(toMaterialRow)));
+      .get<PageResponse<MaterialSummaryRaw>>(
+        API.LMS.SECTION_MATERIALS_LIST(sectionPublicUuid),
+      )
+      .pipe(map((page) => (page.content ?? []).map(toMaterialRow)));
   }
 
   getMaterial(publicUuid: string): Observable<Material> {
@@ -149,3 +155,20 @@ export type MaterialUploadProgress =
   | { kind: 'Sent' }
   | { kind: 'Progress'; percent: number | null; loaded: number; total: number }
   | { kind: 'Response'; value: Material };
+
+/**
+ * Minimal Spring Data {@code Page} envelope. BUG-2026-07-31-05: the
+ * materials listing endpoint returns this shape, not a bare array.
+ * We only consume {@code content} here; the rest is ignored.
+ */
+export interface PageResponse<T> {
+  content: T[];
+  totalElements?: number;
+  totalPages?: number;
+  number?: number;
+  size?: number;
+  first?: boolean;
+  last?: boolean;
+  numberOfElements?: number;
+  empty?: boolean;
+}

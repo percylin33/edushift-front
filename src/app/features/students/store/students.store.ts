@@ -16,6 +16,7 @@ import {
   UpdateGuardianLinkRequest,
   UpdateStudentRequest,
   WithdrawEnrollmentRequest,
+  PortalInvitationResult,
 } from '../models';
 import { StudentEnrollmentStatus, isTerminalBulkImportStatus } from '@core/enums';
 
@@ -105,6 +106,12 @@ export class StudentsStore {
   readonly guardians = this._guardians.asReadonly();
   readonly loadingGuardians = this._loadingGuardians.asReadonly();
   readonly savingGuardian = this._savingGuardian.asReadonly();
+
+  private readonly _lastPortalInvitation = signal<PortalInvitationResult | null>(null);
+  private readonly _invitingPortal = signal(false);
+
+  readonly lastPortalInvitation = this._lastPortalInvitation.asReadonly();
+  readonly invitingPortal = this._invitingPortal.asReadonly();
 
   readonly enrollments = this._enrollments.asReadonly();
   readonly loadingEnrollments = this._loadingEnrollments.asReadonly();
@@ -411,6 +418,67 @@ export class StudentsStore {
     }
   }
 
+  async inviteStudent(publicUuid: string): Promise<PortalInvitationResult | null> {
+    this._invitingPortal.set(true);
+    this._error.set(null);
+    try {
+      const result = await firstValueFrom(this.api.inviteStudent(publicUuid));
+      this._lastPortalInvitation.set(result);
+      await this.loadDetail(publicUuid);
+      return result;
+    } catch (err) {
+      this._error.set(this.toErrorMessage(err));
+      return null;
+    } finally {
+      this._invitingPortal.set(false);
+    }
+  }
+
+  async inviteGuardian(
+    studentPublicUuid: string,
+    guardianPublicUuid: string,
+  ): Promise<PortalInvitationResult | null> {
+    this._invitingPortal.set(true);
+    this._error.set(null);
+    try {
+      const result = await firstValueFrom(
+        this.api.inviteGuardian(studentPublicUuid, guardianPublicUuid),
+      );
+      this._lastPortalInvitation.set(result);
+      await this.loadGuardians(studentPublicUuid);
+      return result;
+    } catch (err) {
+      this._error.set(this.toErrorMessage(err));
+      return null;
+    } finally {
+      this._invitingPortal.set(false);
+    }
+  }
+
+  async resendInvitation(
+    invitationPublicUuid: string,
+    studentPublicUuid: string,
+  ): Promise<PortalInvitationResult | null> {
+    this._invitingPortal.set(true);
+    this._error.set(null);
+    try {
+      const result = await firstValueFrom(this.api.resendInvitation(invitationPublicUuid));
+      this._lastPortalInvitation.set(result);
+      await this.loadDetail(studentPublicUuid);
+      await this.loadGuardians(studentPublicUuid);
+      return result;
+    } catch (err) {
+      this._error.set(this.toErrorMessage(err));
+      return null;
+    } finally {
+      this._invitingPortal.set(false);
+    }
+  }
+
+  clearLastPortalInvitation(): void {
+    this._lastPortalInvitation.set(null);
+  }
+
   // ===========================================================================
   // Enrollments (FE-4.7)
   // ===========================================================================
@@ -578,6 +646,8 @@ export class StudentsStore {
     this._enrollmentsOwner.set(null);
     this._loadingEnrollments.set(false);
     this._savingEnrollment.set(false);
+    this._lastPortalInvitation.set(null);
+    this._invitingPortal.set(false);
     this.resetBulkImport();
   }
 

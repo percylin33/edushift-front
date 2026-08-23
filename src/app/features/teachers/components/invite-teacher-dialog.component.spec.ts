@@ -4,6 +4,7 @@ import { InviteTeacherDialogComponent } from './invite-teacher-dialog.component'
 import { TeacherDetail, TeacherInvitationResult } from '../models';
 import { DocumentType, EmploymentStatus } from '@core/enums';
 import { TeachersStore } from '../store';
+import { TenantService } from '@core/services';
 
 class FakeTeachersStore {
   lastInvitation = signal<TeacherInvitationResult | null>(null);
@@ -54,7 +55,10 @@ describe('InviteTeacherDialogComponent', () => {
     store = new FakeTeachersStore();
     await TestBed.configureTestingModule({
       imports: [InviteTeacherDialogComponent],
-      providers: [{ provide: TeachersStore, useValue: store as any }],
+      providers: [
+        { provide: TeachersStore, useValue: store as any },
+        { provide: TenantService, useValue: { tenantSlug: () => 'acme' } },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(InviteTeacherDialogComponent);
@@ -106,10 +110,11 @@ describe('InviteTeacherDialogComponent', () => {
     expect(title.textContent).toContain('Invitación enviada');
   });
 
-  it('acceptLink construye URL correcta', () => {
+  it('acceptLink construye URL con tenant del colegio', () => {
     store.lastInvitation.set(mockInvitation);
     const link = component['acceptLink']();
     expect(link).toContain('/invitation/token-abc');
+    expect(link).toContain('tenant=acme');
   });
 
   it('formatDate formatea en español', () => {

@@ -1,11 +1,10 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, Subject, throwError } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
-import { ApiService } from '@core/services/api.service';
+import { Observable, Subject } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { ApiService } from '@core/services';
 import { ApiResponse } from '@core/models/api-response.model';
 import { API } from '@core/constants/api.constants';
-import { firstValueFrom } from 'rxjs';
+import { SseClientService, SseHttpError } from './sse-client.service';
 
 /**
  * AI chat service (FE-8.3).
@@ -32,7 +31,7 @@ import { firstValueFrom } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class ChatService {
   private readonly api = inject(ApiService);
-  private readonly http = inject(HttpClient);
+  private readonly sseClient = inject(SseClientService);
 
   /** List the caller's active chat sessions, newest first. */
   listSessions(limit = 20): Observable<ChatSession[]> {
@@ -75,105 +74,55 @@ export class ChatService {
    *   <li>{@code event: error} — {@code data: <message>}</li>
    * </ul>
    *
-   * <p>Implementation note: we use the native
-   * {@link HttpClient#request} with {@code responseType: 'text'} and
-   * a manual SSE parser. The Angular HTTP client does not natively
-   * expose SSE event types, so we read the raw text stream and
-   * split on {@code \n\n}.
+   * <p>Implementation note: SSE streaming uses {@link SseClientService},
+   * which attaches the JWT via {@code fetch} (Angular interceptors do
+   * not apply to the streaming API).
    */
   sendMessage(
     sessionPublicUuid: string,
     text: string,
   ): { chunks$: Observable<ChatChunk>; cancel: () => void } {
-    const controller = new AbortController();
     const chunks$ = new Subject<ChatChunk>();
     const url = `${API.AI.CHAT}/sessions/${sessionPublicUuid}/messages`;
 
-    void this.streamSse(url, text, controller, chunks$);
+    const subscription = this.sseClient.stream(url, { text }).subscribe({
+      next: (token) => {
+        if (token.event === 'token') {
+          chunks$.next({ kind: 'token', text: token.data });
+        } else if (token.event === 'done') {
+          try {
+            const parsed = JSON.parse(token.data) as { publicUuid: string; cancelled: boolean };
+            chunks$.next({
+              kind: 'done',
+              publicUuid: parsed.publicUuid,
+              cancelled: !!parsed.cancelled,
+            });
+          } catch {
+            chunks$.next({ kind: 'done' });
+          }
+        } else if (token.event === 'error') {
+          chunks$.next({ kind: 'error', message: token.data });
+        }
+      },
+      error: (err: unknown) => {
+        const message =
+          err instanceof SseHttpError
+            ? `HTTP ${err.status}: ${err.message}`
+            : (err as Error)?.message ?? 'Error desconocido.';
+        chunks$.next({ kind: 'error', message });
+        chunks$.complete();
+      },
+      complete: () => chunks$.complete(),
+    });
+
     return {
       chunks$: chunks$.asObservable(),
-      cancel: () => controller.abort(),
-    };
-  }
-
-  private async streamSse(
-    url: string,
-    text: string,
-    controller: AbortController,
-    chunks$: Subject<ChatChunk>,
-  ): Promise<void> {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'text/event-stream',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ text }),
-        signal: controller.signal,
-      });
-      if (!res.ok || !res.body) {
-        const errBody = await res.text().catch(() => '');
-        chunks$.next({
-          kind: 'error',
-          message: `HTTP ${res.status}: ${errBody || res.statusText}`,
-        });
-        chunks$.complete();
-        return;
-      }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let buffer = '';
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        // SSE events are separated by a blank line (\n\n).
-        let sep: number;
-        while ((sep = buffer.indexOf('\n\n')) >= 0) {
-          const event = buffer.substring(0, sep);
-          buffer = buffer.substring(sep + 2);
-          this.parseSseEvent(event, chunks$);
-        }
-      }
-      if (buffer.length > 0) this.parseSseEvent(buffer, chunks$);
-      chunks$.complete();
-    } catch (e: any) {
-      if (e?.name === 'AbortError') {
+      cancel: () => {
+        subscription.unsubscribe();
         chunks$.next({ kind: 'cancelled' });
-      } else {
-        chunks$.next({ kind: 'error', message: e?.message ?? 'Error desconocido.' });
-      }
-      chunks$.complete();
-    }
-  }
-
-  private parseSseEvent(raw: string, chunks$: Subject<ChatChunk>): void {
-    let event = 'message';
-    const dataLines: string[] = [];
-    for (const line of raw.split('\n')) {
-      if (line.startsWith('event:')) event = line.substring(6).trim();
-      else if (line.startsWith('data:')) dataLines.push(line.substring(5).trim());
-    }
-    const data = dataLines.join('\n');
-    if (event === 'token') {
-      chunks$.next({ kind: 'token', text: data });
-    } else if (event === 'done') {
-      try {
-        const parsed = JSON.parse(data) as { publicUuid: string; cancelled: boolean };
-        chunks$.next({
-          kind: 'done',
-          publicUuid: parsed.publicUuid,
-          cancelled: !!parsed.cancelled,
-        });
-      } catch {
-        chunks$.next({ kind: 'done' });
-      }
-    } else if (event === 'error') {
-      chunks$.next({ kind: 'error', message: data });
-    }
+        chunks$.complete();
+      },
+    };
   }
 }
 

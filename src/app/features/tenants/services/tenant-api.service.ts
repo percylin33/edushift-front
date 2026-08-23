@@ -78,11 +78,16 @@ export class TenantApiService {
       .pipe(map((envelope) => this.toTenantFromResponse(envelope.data)));
   }
 
+  findInvitationPreflight(token: string): Observable<{ email: string }> {
+    return this.api
+      .get<ApiResponse<{ email: string }>>(API.TENANTS.INVITATION_BY_TOKEN(token))
+      .pipe(map((envelope) => envelope.data));
+  }
+
   /**
-   * Public self-signup. Atomically creates a {@code PENDING} tenant on
+   * Invite-gated signup. Atomically creates a {@code PENDING} tenant on
    * the {@code TRIAL} plan and an {@code ACTIVE} {@code TENANT_ADMIN}
-   * user, then returns an {@code AuthResponse} so the UI can transition
-   * to the onboarding flow already authenticated.
+   * user, then returns an {@code AuthResponse}.
    *
    * <p>The {@code 409 TENANT_SLUG_TAKEN} response surfaces verbatim
    * through {@code errorInterceptor}; the registration form is
@@ -160,13 +165,22 @@ export class TenantApiService {
    */
   private toBranding(raw: BrandingRaw | null | undefined): TenantBranding | undefined {
     if (!raw) return undefined;
-    const hasAnyField = !!raw.primaryColor || !!raw.logoUrl || !!raw.faviconUrl || !!raw.loginBgUrl;
+    const hasAnyField =
+      !!raw.primaryColor ||
+      !!raw.logoUrl ||
+      !!raw.faviconUrl ||
+      !!raw.loginBgUrl ||
+      !!raw.loginTitle ||
+      !!raw.loginDescription;
     if (!hasAnyField) return undefined;
 
     const branding: TenantBranding = {};
     if (raw.primaryColor) branding.primaryColor = raw.primaryColor;
     if (raw.faviconUrl) branding.favicon = raw.faviconUrl;
     if (raw.logoUrl) branding.logo = { light: raw.logoUrl };
+    if (raw.loginBgUrl) branding.loginBgUrl = raw.loginBgUrl;
+    if (raw.loginTitle) branding.loginTitle = raw.loginTitle;
+    if (raw.loginDescription) branding.loginDescription = raw.loginDescription;
     return branding;
   }
 }

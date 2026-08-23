@@ -2,6 +2,35 @@ import { Injectable, computed, inject } from '@angular/core';
 import { TenantLogo } from '@core/models';
 import { TenantService } from '@core/services/tenant.service';
 import { ThemeService } from '@core/services/theme.service';
+import { environment } from '@env/environment';
+
+/** Generic school mark shown when the tenant has not uploaded a logo. */
+export const PLATFORM_DEFAULT_LOGO_URL = '/branding/default-logo.svg';
+
+/** Generic campus background shown when the tenant has not uploaded a login hero. */
+export const PLATFORM_DEFAULT_LOGIN_BG_URL = '/branding/default-login-bg.svg';
+
+/**
+ * Rewrite branding URLs that point at our own API so the browser loads them
+ * same-origin via the Angular proxy ({@code /api/...} on :4200/:4201) instead
+ * of hitting {@code localhost:8081} directly. That avoids
+ * {@code ERR_BLOCKED_BY_RESPONSE.NotSameOrigin} from CORP on the API.
+ * External URLs (Unsplash, CDN) are left untouched.
+ */
+export function toSameOriginAssetUrl(url: string | null | undefined): string | null {
+  const trimmed = url?.trim();
+  if (!trimmed) return null;
+  try {
+    const apiOrigin = new URL(environment.apiUrl).origin;
+    const parsed = new URL(trimmed, apiOrigin);
+    if (parsed.origin === apiOrigin) {
+      return `${parsed.pathname}${parsed.search}`;
+    }
+  } catch {
+    return trimmed;
+  }
+  return trimmed;
+}
 
 /**
  * Reactive resolver for tenant-branded assets.
@@ -17,8 +46,9 @@ import { ThemeService } from '@core/services/theme.service';
  *   - `markUrl()`     → square icon (sidebar collapsed, fallback for tabs).
  *
  * Both resolve dark-mode preference automatically with safe fallbacks:
- *   markDark → mark → dark → light
- *   dark     → light
+ *   markDark → mark → dark → light → platform default logo
+ *   dark     → light → platform default logo
+ * Login background: tenant {@code loginBgUrl} → platform default campus image.
  */
 @Injectable({ providedIn: 'root' })
 export class TenantAssetsService {
@@ -29,20 +59,29 @@ export class TenantAssetsService {
     () => this.tenant.tenant()?.branding?.logo ?? null,
   );
 
-  readonly fullLogoUrl = computed<string | null>(() => {
+  readonly fullLogoUrl = computed<string>(() => {
     const l = this.logo();
-    if (!l) return null;
-    return this.theme.isDark() ? (l.dark ?? l.light) : l.light;
+    const raw = this.theme.isDark() ? (l?.dark ?? l?.light) : l?.light;
+    return toSameOriginAssetUrl(raw) ?? PLATFORM_DEFAULT_LOGO_URL;
   });
 
-  readonly markUrl = computed<string | null>(() => {
+  readonly markUrl = computed<string>(() => {
     const l = this.logo();
-    if (!l) return null;
-    if (this.theme.isDark()) {
-      return l.markDark ?? l.mark ?? l.dark ?? l.light;
-    }
-    return l.mark ?? l.light;
+    const raw = this.theme.isDark()
+      ? (l?.markDark ?? l?.mark ?? l?.dark ?? l?.light)
+      : (l?.mark ?? l?.light);
+    return toSameOriginAssetUrl(raw) ?? PLATFORM_DEFAULT_LOGO_URL;
   });
+
+  /** True when the tenant uploaded its own logo (not the platform default). */
+  readonly hasCustomLogo = computed<boolean>(
+    () =>
+      !!toSameOriginAssetUrl(
+        this.theme.isDark()
+          ? (this.logo()?.dark ?? this.logo()?.light)
+          : this.logo()?.light,
+      ),
+  );
 
   readonly alt = computed<string>(() => {
     const l = this.logo();
@@ -55,4 +94,31 @@ export class TenantAssetsService {
     const name = this.tenant.tenant()?.name?.trim() ?? '';
     return (name.charAt(0) || 'E').toUpperCase();
   });
+
+  /** Full-bleed login / auth background (tenant upload, else platform default). */
+  readonly loginBgUrl = computed<string>(
+    () =>
+      toSameOriginAssetUrl(this.tenant.tenant()?.branding?.loginBgUrl) ??
+      PLATFORM_DEFAULT_LOGIN_BG_URL,
+  );
+
+  /** True when the tenant uploaded its own login background. */
+  readonly hasCustomLoginBg = computed<boolean>(
+    () => !!toSameOriginAssetUrl(this.tenant.tenant()?.branding?.loginBgUrl),
+  );
+
+  /** Primary brand color (hex), used to tint the login overlay. */
+  readonly primaryColor = computed<string | null>(
+    () => this.tenant.tenant()?.branding?.primaryColor?.trim() || null,
+  );
+
+  /** Custom login headline; empty means the shell should use its default. */
+  readonly loginTitle = computed<string | null>(
+    () => this.tenant.tenant()?.branding?.loginTitle?.trim() || null,
+  );
+
+  /** Custom login supporting copy; empty means the shell default. */
+  readonly loginDescription = computed<string | null>(
+    () => this.tenant.tenant()?.branding?.loginDescription?.trim() || null,
+  );
 }

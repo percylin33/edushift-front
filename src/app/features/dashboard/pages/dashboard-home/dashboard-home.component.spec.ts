@@ -7,7 +7,7 @@ import { signal } from '@angular/core';
 import { of } from 'rxjs';
 
 describe('DashboardHomeComponent', () => {
-  let component: DashboardHomeComponent;
+  let component: any;
   let fixture: ComponentFixture<DashboardHomeComponent>;
   let storeSpy: jasmine.SpyObj<DashboardStore>;
   let authSpy: jasmine.SpyObj<AuthService>;
@@ -95,12 +95,12 @@ describe('DashboardHomeComponent', () => {
     });
 
     it('retorna KPIs vacíos si no hay overview', () => {
-      storeSpy.overview = signal(null);
+      (storeSpy.overview as any).set?.(null);
       fixture = TestBed.createComponent(DashboardHomeComponent);
       component = fixture.componentInstance;
       fixture.detectChanges();
       const kpis = component.kpis();
-      expect(kpis.every((k) => k.value === '—')).toBeTrue();
+      expect(kpis.every((k: any) => k.value === '—')).toBeTrue();
     });
   });
 

@@ -25,6 +25,7 @@ export const environment: AppEnvironment = runtimeOverrides({
     enabled: true,
     strategy: 'subdomain',
     headerName: 'X-Tenant-Slug',
+    // Auth login requires URL identity locally: /auth/login?tenant=tecnosur
     defaultTenant: 'demo',
   },
   auth: {
@@ -56,6 +57,13 @@ export const environment: AppEnvironment = runtimeOverrides({
     notifications: true,
     settings: true,
     lms: true,
+    // FIX BUG-2026-07-30-09 / -10 / -18 / -19: same as
+    // environment.development.ts — declare the routes that are wired
+    // with featureFlagGuard so the guard doesn't fall through to false.
+    announcements: true,
+    schedule: true,
+    family: true,
+    me: true,
     gmailSend: false,
   },
   logging: {

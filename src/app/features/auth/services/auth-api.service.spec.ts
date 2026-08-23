@@ -37,7 +37,7 @@ describe('AuthApiService', () => {
     apiSpy.post.and.returnValue(of(mockAuthResponseRaw));
 
     const payload: LoginRequest = { email: 'test@test.com', password: 'secret' };
-    service.login(payload).subscribe((session) => {
+    service.login(payload).subscribe((session: any) => {
       expect(session.accessToken).toBe('access-123');
       expect(session.user.email).toBe('test@test.com');
       expect(apiSpy.post).toHaveBeenCalledWith(jasmine.stringMatching(/\/auth\/login$/), payload);

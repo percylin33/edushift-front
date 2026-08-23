@@ -58,6 +58,7 @@ describe('SubmissionsStore', () => {
     mockApi = jasmine.createSpyObj<SubmissionApiService>('SubmissionApiService', [
       'listByAssignment',
       'listByStudent',
+      'getMine',
       'create',
       'update',
       'grade',
@@ -65,6 +66,7 @@ describe('SubmissionsStore', () => {
     ]);
     mockApi.listByAssignment.and.returnValue(of([]));
     mockApi.listByStudent.and.returnValue(of([]));
+    mockApi.getMine.and.returnValue(of(null));
 
     TestBed.configureTestingModule({
       providers: [SubmissionsStore, { provide: SubmissionApiService, useValue: mockApi }],
@@ -91,6 +93,14 @@ describe('SubmissionsStore', () => {
     await store.loadByStudent('st-1');
     expect(store.studentRows()).toHaveSize(1);
     expect(store.currentStudentUuid()).toBe('st-1');
+  });
+
+  it('loadMySubmission hidrata getMine', async () => {
+    mockApi.getMine.and.returnValue(of(submissionOf()));
+    const mine = await store.loadMySubmission('a-1', 'st-1');
+    expect(mine?.publicUuid).toBe('sub-1');
+    expect(mockApi.getMine).toHaveBeenCalledWith('a-1', 'st-1');
+    expect(store.mySubmission()?.publicUuid).toBe('sub-1');
   });
 
   it('create con upload progresivo', async () => {

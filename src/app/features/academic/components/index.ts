@@ -13,3 +13,4 @@ export * from './course-units-tab.component';
 export * from './competency-capacity-form-modal.component';
 export * from './course-competencies-tab.component';
 export * from './schedule-grid.component';
+export * from './time-slot-form-modal.component';

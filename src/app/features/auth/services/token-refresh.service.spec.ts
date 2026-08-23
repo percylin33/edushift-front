@@ -9,7 +9,7 @@ describe('TokenRefreshService', () => {
   let authStub: { refreshToken: jasmine.Spy; rotateTokens: jasmine.Spy; clearSession: jasmine.Spy };
   let authApiStub: jasmine.SpyObj<AuthApiService>;
 
-  const session = {
+  const session: any = {
     accessToken: 'a',
     refreshToken: 'r',
     expiresIn: 3600,

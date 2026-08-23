@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MaterialUploadDialogComponent } from './material-upload-dialog.component';
 
 describe('MaterialUploadDialogComponent', () => {
-  let component: MaterialUploadDialogComponent;
+  let component: any;
   let fixture: ComponentFixture<MaterialUploadDialogComponent>;
 
   beforeEach(async () => {
@@ -32,7 +32,7 @@ describe('MaterialUploadDialogComponent', () => {
     spyOn(component.submit, 'emit');
     component.form.patchValue({ title: 'Mi material', type: 'LINK', url: 'https://ejemplo.com' });
     component.onSubmit();
-    expect(component.submit.emit).toHaveBeenCalledWith(
+    expect((component as any).submit.emit).toHaveBeenCalledWith(
       jasmine.objectContaining({ title: 'Mi material', type: 'LINK', url: 'https://ejemplo.com' }),
     );
   });
@@ -40,13 +40,13 @@ describe('MaterialUploadDialogComponent', () => {
   it('no emite si form inválido', () => {
     spyOn(component.submit, 'emit');
     component.onSubmit();
-    expect(component.submit.emit).not.toHaveBeenCalled();
+    expect((component as any).submit.emit).not.toHaveBeenCalled();
   });
 
   it('emite cancelled al cancelar', () => {
     spyOn(component.cancelled, 'emit');
     component.onCancel();
-    expect(component.cancelled.emit).toHaveBeenCalled();
+    expect((component as any).cancelled.emit).toHaveBeenCalled();
   });
 
   it('isLinkSelected detecta tipo LINK', () => {

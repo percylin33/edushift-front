@@ -7,7 +7,7 @@ import { UserRole } from '@core/enums';
  *
  * <h3>Estructura</h3>
  * <ul>
- *   <li>{@code /evaluations}                                 → 404 (no hay listing global, ADR-5B.2: las evaluations cuelgan de un assignment).</li>
+ *   <li>{@code /evaluations}                                 → landing con accesos directos (FE-5B.6, fix BUG-2026-07-30-04).</li>
  *   <li>{@code /evaluations/by-assignment/:assignmentUuid}   → list por assignment (FE-5B.1).</li>
  *   <li>{@code /evaluations/by-assignment/:assignmentUuid/gradebook} → grade book matrix (FE-5B.4, no implementada aún).</li>
  *   <li>{@code /evaluations/:publicUuid}                     → detail con tabs (FE-5B.5, no implementada aún).</li>
@@ -22,6 +22,19 @@ import { UserRole } from '@core/enums';
  * cada endpoint — este guard es solo UX hint, no perímetro.</p>
  */
 export const EVALUATIONS_ROUTES: Routes = [
+  {
+    path: '',
+    canActivate: [roleGuard],
+    data: {
+      roles: [UserRole.TenantAdmin, UserRole.Teacher],
+      title: 'Evaluaciones',
+      breadcrumb: 'Evaluaciones',
+    },
+    loadComponent: () =>
+      import('./pages/evaluations-landing/evaluations-landing.component').then(
+        (m) => m.EvaluationsLandingComponent,
+      ),
+  },
   {
     path: 'by-assignment/:assignmentUuid/gradebook',
     canActivate: [roleGuard],

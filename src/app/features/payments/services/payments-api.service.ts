@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ApiService } from '@core/services';
 import { API } from '@core/constants/api.constants';
@@ -28,6 +29,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class PaymentsApiService {
   private readonly api = inject(ApiService);
+  private readonly http = inject(HttpClient);
 
   // -------------------------------------------------------------------------
   // User-facing (Sprint 10 / FE-10.1)
@@ -53,6 +55,10 @@ export class PaymentsApiService {
    */
   checkout(publicUuid: string): Observable<CheckoutResponse> {
     return this.api.post<CheckoutResponse>(API.PAYMENTS.INVOICE_CHECKOUT(publicUuid), {});
+  }
+
+  downloadReceipt(publicUuid: string): Observable<Blob> {
+    return this.http.get(API.PAYMENTS.INVOICE_RECEIPT(publicUuid), { responseType: 'blob' });
   }
 
   // -------------------------------------------------------------------------

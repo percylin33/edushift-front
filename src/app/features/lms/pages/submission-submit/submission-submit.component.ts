@@ -2,9 +2,13 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
+import { UserRole } from '@core/enums';
 import { ApiError } from '@core/models';
+import { AuthService } from '@core/services';
 import { SpinnerComponent } from '@shared/components';
+import { MeApiService } from '@features/me/services/me-api.service';
 import { TasksStore } from '../../store';
 import { SubmissionsStore } from '../../store';
 import { MySubmissionsCardComponent } from '../../components';
@@ -77,6 +81,7 @@ import { Submission, canResubmit } from '../../models';
             [errorMessage]="errorBanner()"
             [uploading]="uploading()"
             [uploadPercent]="uploadPercent()"
+            [studentPublicUuid]="studentPublicUuid()"
             (submitCreate)="onCreate($event)"
             (submitUpdate)="onUpdate($event)"
           />
@@ -98,6 +103,8 @@ export class SubmissionSubmitComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly tasksStore = inject(TasksStore);
   private readonly submissionsStore = inject(SubmissionsStore);
+  private readonly auth = inject(AuthService);
+  private readonly meApi = inject(MeApiService);
 
   protected readonly mySubmission = signal<Submission | null>(null);
   protected readonly assignmentTitle = signal<string | null>(null);
@@ -108,6 +115,7 @@ export class SubmissionSubmitComponent implements OnInit {
   protected readonly uploadPercent = this.submissionsStore.uploadPercent;
   protected readonly loadingTask = signal(false);
   protected readonly showForm = signal(true);
+  protected readonly studentPublicUuid = signal<string | null>(null);
 
   protected assignmentUuid = '';
 
@@ -126,18 +134,35 @@ export class SubmissionSubmitComponent implements OnInit {
     this.assignmentUuid = id;
 
     this.loadingTask.set(true);
-    void this.tasksStore.loadDetail(id).then((detail) => {
-      if (detail) {
-        this.assignmentTitle.set(detail.title);
-        this.dueAt.set(detail.dueAt);
-        this.allowResubmissions.set(detail.allowResubmissions);
-      }
-      this.loadingTask.set(false);
-    });
+    void this.bootstrap(id);
+  }
 
-    // En MVP la submission propia se hidrata vía el listing del student
-    // (la page padre pasa la lista; aquí simulamos null hasta que el
-    // caller inyecte la submission via #setMySubmission).
+  private async bootstrap(assignmentUuid: string): Promise<void> {
+    const queryStudent =
+      this.route.snapshot.queryParamMap.get('studentPublicUuid') ??
+      this.route.snapshot.queryParamMap.get('student');
+    let studentUuid = queryStudent?.trim() || null;
+    if (!studentUuid && this.auth.hasRole(UserRole.Student)) {
+      try {
+        const profile = await firstValueFrom(this.meApi.getProfile());
+        studentUuid = profile.data?.publicUuid ?? null;
+      } catch {
+        studentUuid = null;
+      }
+    }
+    this.studentPublicUuid.set(studentUuid);
+
+    const [detail, mine] = await Promise.all([
+      this.tasksStore.loadDetail(assignmentUuid),
+      this.submissionsStore.loadMySubmission(assignmentUuid, studentUuid),
+    ]);
+    if (detail) {
+      this.assignmentTitle.set(detail.title);
+      this.dueAt.set(detail.dueAt);
+      this.allowResubmissions.set(detail.allowResubmissions);
+    }
+    this.mySubmission.set(mine);
+    this.loadingTask.set(false);
   }
 
   protected onResubmit(): void {
@@ -152,8 +177,17 @@ export class SubmissionSubmitComponent implements OnInit {
     textContent: string | null;
     attachment: File | null;
     submittedForStudentPublicUuid: string | null;
+    studentPublicUuid?: string | null;
   }): Promise<void> {
-    const created = await this.submissionsStore.create(this.assignmentUuid, payload);
+    const created = await this.submissionsStore.create(this.assignmentUuid, {
+      studentPublicUuid:
+        this.studentPublicUuid() ||
+        payload.studentPublicUuid ||
+        payload.submittedForStudentPublicUuid ||
+        '',
+      textBody: payload.textContent,
+      attachment: payload.attachment,
+    });
     if (created) {
       this.mySubmission.set(created);
       this.showForm.set(false);

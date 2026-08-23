@@ -114,6 +114,18 @@ export interface AppEnvironment {
     settings: boolean;
     lms: boolean;
     /**
+     * FIX BUG-2026-07-30-09 / -10 / -18 / -19: these top-level routes
+     * exist in `private.routes.ts` gated by `featureFlagGuard`. The
+     * guard reads `environment.features[<key>]` and falls back to
+     * `false` if the key is missing — which silently redirected the
+     * user to /404. Declared here so the env objects type-check and
+     * the flags stay explicit.
+     */
+    announcements: boolean;
+    schedule: boolean;
+    family: boolean;
+    me: boolean;
+    /**
      * Sprint 11 / PR-2 — "send email as the user via Gmail" toggle. Off
      * by default until BE-11.x ships the consent + refresh-token plumbing.
      * When false the Gmail UI is hidden even if `google.enabled` is true.

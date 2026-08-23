@@ -19,8 +19,8 @@ describe('NotificationBellComponent', () => {
       'markRead',
       'markAllRead',
     ]);
-    apiSpy.listUnreadCount.and.returnValue(of({ unreadCount: 3 }));
-    apiSpy.list.and.returnValue(of({ items: [] }));
+    apiSpy.listUnreadCount.and.returnValue(of({ unreadCount: 3 } as any));
+    apiSpy.list.and.returnValue(of({ data: [] } as any));
     realtimeSpy = jasmine.createSpyObj('RealtimeService', ['connect', 'subscribe'], {
       connected: () => true,
       incoming$: of(),
@@ -66,7 +66,7 @@ describe('NotificationBellComponent', () => {
   describe('loadItems', () => {
     it('carga lista de notificaciones', () => {
       apiSpy.list.and.returnValue(
-        of({ items: [{ id: 'n1', title: 'Test', body: '', createdAt: '' }] }),
+        of({ data: [{ publicUuid: 'n1', templateKey: 'TEST', category: 'SYSTEM', channel: 'IN_APP', status: 'SENT', subject: 'Test', bodyHtml: '', sentAt: '', createdAt: '', updatedAt: '' }] } as any),
       );
       component.loadItems();
       expect(component.items().length).toBe(1);
@@ -74,7 +74,7 @@ describe('NotificationBellComponent', () => {
     });
 
     it('maneja error de carga', () => {
-      apiSpy.list.and.returnValue(of({ items: [] }));
+      apiSpy.list.and.returnValue(of({ data: [] } as any));
       component.loadItems();
       expect(component.loading()).toBeFalse();
     });
@@ -82,8 +82,8 @@ describe('NotificationBellComponent', () => {
 
   describe('onItemClick', () => {
     it('marca como leída', () => {
-      apiSpy.markRead.and.returnValue(of({ id: 'n1', title: 'Test', body: '', createdAt: '' }));
-      component.onItemClick({ id: 'n1', title: 'Test', body: '', createdAt: '' });
+      apiSpy.markRead.and.returnValue(of({} as any));
+      (component as any).onItemClick({ publicUuid: 'n1' } as any);
       expect(apiSpy.markRead).toHaveBeenCalledWith('n1');
     });
   });

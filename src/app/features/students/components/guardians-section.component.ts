@@ -14,7 +14,9 @@ import { StudentsStore } from '../store/students.store';
 import { Guardian } from '../models';
 import { AddGuardianModalComponent } from './add-guardian-modal.component';
 import { EditGuardianLinkModalComponent } from './edit-guardian-link-modal.component';
+import { InvitePortalDialogComponent } from './invite-portal-dialog.component';
 import { RelationshipBadgeComponent } from './relationship-badge.component';
+import { portalStatus } from '../models';
 
 /**
  * Drop-in section for the student detail page. Owns the guardian
@@ -46,6 +48,7 @@ import { RelationshipBadgeComponent } from './relationship-badge.component';
     RelationshipBadgeComponent,
     AddGuardianModalComponent,
     EditGuardianLinkModalComponent,
+    InvitePortalDialogComponent,
   ],
   template: `
     <section class="card lg:col-span-3">
@@ -100,6 +103,17 @@ import { RelationshipBadgeComponent } from './relationship-badge.component';
                     @if (g.isPrimaryContact) {
                       <span class="badge badge-success">Principal</span>
                     }
+                    @switch (guardianPortalStatus(g)) {
+                      @case ('active') {
+                        <span class="badge badge-success">Portal activo</span>
+                      }
+                      @case ('pending') {
+                        <span class="badge badge-warning">Invitación pendiente</span>
+                      }
+                      @default {
+                        <span class="badge">Sin portal</span>
+                      }
+                    }
                     @if (g.canPickupStudent) {
                       <span class="badge badge-info">Recoge</span>
                     }
@@ -131,6 +145,26 @@ import { RelationshipBadgeComponent } from './relationship-badge.component';
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
+                  @if (guardianPortalStatus(g) === 'none') {
+                    <button
+                      type="button"
+                      class="btn btn-outline btn-sm"
+                      [disabled]="!g.email || saving()"
+                      (click)="openInvite(g)"
+                    >
+                      Activar portal
+                    </button>
+                  }
+                  @if (guardianPortalStatus(g) === 'pending' && g.pendingInvitationPublicUuid) {
+                    <button
+                      type="button"
+                      class="btn btn-outline btn-sm"
+                      [disabled]="saving()"
+                      (click)="openResend(g)"
+                    >
+                      Reenviar
+                    </button>
+                  }
                   <button
                     type="button"
                     class="btn btn-ghost btn-sm"
@@ -165,6 +199,17 @@ import { RelationshipBadgeComponent } from './relationship-badge.component';
         (closed)="closeAddModal()"
       />
     }
+    @if (inviteTarget(); as t) {
+      <app-invite-portal-dialog
+        [personName]="t.fullName"
+        [email]="t.email"
+        audience="tutor"
+        [studentPublicUuid]="studentPublicUuid()"
+        [guardianPublicUuid]="t.guardianPublicUuid"
+        [invitationPublicUuid]="t.invitationPublicUuid"
+        (closed)="closeInvite()"
+      />
+    }
     @if (editTarget(); as t) {
       <app-edit-guardian-link-modal
         [studentPublicUuid]="studentPublicUuid()"
@@ -186,6 +231,12 @@ export class GuardiansSectionComponent implements OnInit {
 
   protected readonly addOpen = signal(false);
   protected readonly editTarget = signal<Guardian | null>(null);
+  protected readonly inviteTarget = signal<{
+    fullName: string;
+    email?: string;
+    guardianPublicUuid: string;
+    invitationPublicUuid?: string;
+  } | null>(null);
 
   /**
    * Re-fetch whenever the bound student id changes. Mirrors the
@@ -251,6 +302,34 @@ export class GuardiansSectionComponent implements OnInit {
 
   protected closeEditModal(): void {
     this.editTarget.set(null);
+  }
+
+  protected guardianPortalStatus(g: Guardian) {
+    return portalStatus(g.userId, g.pendingInvitationPublicUuid);
+  }
+
+  protected openInvite(g: Guardian): void {
+    this.store.clearError();
+    this.inviteTarget.set({
+      fullName: g.fullName,
+      email: g.email,
+      guardianPublicUuid: g.guardianPublicUuid,
+    });
+  }
+
+  protected openResend(g: Guardian): void {
+    if (!g.pendingInvitationPublicUuid) return;
+    this.store.clearError();
+    this.inviteTarget.set({
+      fullName: g.fullName,
+      email: g.email,
+      guardianPublicUuid: g.guardianPublicUuid,
+      invitationPublicUuid: g.pendingInvitationPublicUuid,
+    });
+  }
+
+  protected closeInvite(): void {
+    this.inviteTarget.set(null);
   }
 
   protected retry(): void {

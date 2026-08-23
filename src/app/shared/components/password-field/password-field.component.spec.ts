@@ -16,8 +16,8 @@ describe('PasswordFieldComponent', () => {
   beforeEach(() => {
     control = new FormControl<string>('', { nonNullable: true });
     fixture = TestBed.createComponent(PasswordFieldComponent);
-    component = fixture.componentInstance;
-    component.id = 'password';
+    component = fixture.componentInstance as any;
+    component.fieldId = 'password';
     component.control = control;
     fixture.detectChanges();
   });

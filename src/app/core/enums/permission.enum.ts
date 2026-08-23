@@ -94,4 +94,19 @@ export enum Permission {
   // `/payments/admin/*` surface (reconcile, refund, mark-paid-cash).
   // -------------------------------------------------------------------------
   LmsPaymentAdmin = 'LMS_PAYMENT_ADMIN',
+  LmsFamilyRead = 'LMS_FAMILY_READ',
+  LmsAttendanceJustify = 'LMS_ATTENDANCE_JUSTIFY',
+
+  // -------------------------------------------------------------------------
+  // Student workspace (DEBT-STUDENT-PRIVACY / Fase 1-3). Authority names
+  // mirror `LmsAuthorities.ME_*` on the backend one-to-one. Granted to
+  // STUDENT by default; tenants can revoke any sub-section via
+  // PermissionOverride (e.g. disable payments for K-6 segments).
+  // -------------------------------------------------------------------------
+  MeRead = 'ME_READ',
+  MeAttendanceRead = 'ME_ATTENDANCE_READ',
+  MeAttendanceJustify = 'ME_ATTENDANCE_JUSTIFY',
+  MeQrRead = 'ME_QR_READ',
+  MePaymentsRead = 'ME_PAYMENTS_READ',
+  MePaymentsCheckout = 'ME_PAYMENTS_CHECKOUT',
 }

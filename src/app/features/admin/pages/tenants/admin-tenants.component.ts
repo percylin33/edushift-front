@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { ROUTES } from '@core/constants';
-import { AdminTenantsService } from '../../services';
+import { AdminTenantsService, SchoolInvitationDto } from '../../services';
 
 @Component({
   selector: 'app-admin-tenants',
@@ -17,15 +17,85 @@ import { AdminTenantsService } from '../../services';
           <h1 class="text-2xl font-bold text-white">Instituciones</h1>
           <p class="mt-1 text-sm text-slate-400">Gestiona los tenants de la plataforma.</p>
         </div>
-        <span class="text-xs text-slate-500">
-          {{ svc.totalElements() }} registros
-          @if (svc.totalPages() > 1) {
-            <span class="ml-2 text-slate-600">
-              · página {{ currentPage() + 1 }} de {{ svc.totalPages() }}
-            </span>
-          }
-        </span>
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            (click)="toggleInvite()"
+            class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+          >
+            Invitar colegio
+          </button>
+          <span class="text-xs text-slate-500">
+            {{ svc.totalElements() }} registros
+            @if (svc.totalPages() > 1) {
+              <span class="ml-2 text-slate-600">
+                · página {{ currentPage() + 1 }} de {{ svc.totalPages() }}
+              </span>
+            }
+          </span>
+        </div>
       </div>
+
+      @if (showInvite()) {
+        <section class="mt-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+          <h2 class="text-sm font-semibold text-white">Nueva institución por invitación</h2>
+          <p class="mt-1 text-xs text-slate-400">
+            Enviamos un correo con el enlace para que el colegio configure nombre, slug y
+            contraseña de administrador.
+          </p>
+          <div class="mt-3 flex flex-wrap items-end gap-3">
+            <label class="min-w-[16rem] flex-1 text-xs text-slate-400">
+              Correo del administrador
+              <input
+                type="email"
+                [(ngModel)]="inviteEmail"
+                placeholder="directora@colegio.edu.pe"
+                class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+              />
+            </label>
+            <button
+              type="button"
+              (click)="sendInvite()"
+              [disabled]="inviteBusy() || !inviteEmail.trim()"
+              class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+            >
+              {{ inviteBusy() ? 'Enviando…' : 'Enviar invitación' }}
+            </button>
+          </div>
+          @if (inviteMessage(); as msg) {
+            <p class="mt-3 text-sm text-emerald-300">{{ msg }}</p>
+          }
+          @if (lastSetupUrl(); as url) {
+            <p class="mt-2 break-all font-mono text-xs text-indigo-300">{{ url }}</p>
+            <button type="button" (click)="copyLastUrl()" class="mt-1 text-xs text-indigo-400 hover:text-indigo-300">
+              Copiar enlace
+            </button>
+          }
+          @if (inviteError(); as err) {
+            <p class="mt-3 text-sm text-red-300">{{ err }}</p>
+          }
+
+          @if (pendingInvites().length > 0) {
+            <h3 class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Pendientes</h3>
+            <ul class="mt-2 space-y-2">
+              @for (inv of pendingInvites(); track inv.publicUuid) {
+                <li class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-800 px-3 py-2 text-sm">
+                  <span class="text-slate-200">{{ inv.email }}</span>
+                  <span class="text-xs text-slate-500">vence {{ inv.expiresAt | date: 'short' }}</span>
+                  <div class="flex gap-3">
+                    <button type="button" class="text-xs text-indigo-400 hover:text-indigo-300" (click)="resendInvite(inv.publicUuid)">
+                      Reenviar
+                    </button>
+                    <button type="button" class="text-xs text-red-400 hover:text-red-300" (click)="cancelInvite(inv.publicUuid)">
+                      Cancelar
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
 
       <div class="mt-4 flex flex-wrap gap-3">
         <input
@@ -178,6 +248,13 @@ export class AdminTenantsComponent implements OnInit {
   protected pageSize = 10;
   protected readonly currentPage = signal(0);
   protected readonly pages = signal<(number | '…')[]>([]);
+  protected readonly showInvite = signal(false);
+  protected inviteEmail = '';
+  protected readonly inviteBusy = signal(false);
+  protected readonly inviteMessage = signal<string | null>(null);
+  protected readonly inviteError = signal<string | null>(null);
+  protected readonly lastSetupUrl = signal<string | null>(null);
+  protected readonly pendingInvites = signal<SchoolInvitationDto[]>([]);
 
   constructor() {
     // Recompute the visible page-window whenever totalPages or the
@@ -193,6 +270,75 @@ export class AdminTenantsComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  protected toggleInvite(): void {
+    this.showInvite.update((open) => !open);
+    if (this.showInvite()) {
+      this.refreshInvites();
+    }
+  }
+
+  protected sendInvite(): void {
+    const email = this.inviteEmail.trim();
+    if (!email || this.inviteBusy()) return;
+    this.inviteBusy.set(true);
+    this.inviteError.set(null);
+    this.inviteMessage.set(null);
+    this.svc.inviteSchool(email).subscribe({
+      next: (res) => {
+        const data = (res as { data?: SchoolInvitationDto }).data ?? (res as SchoolInvitationDto);
+        this.inviteBusy.set(false);
+        this.inviteEmail = '';
+        this.lastSetupUrl.set(data.setupUrl ?? null);
+        this.inviteMessage.set(
+          data.emailSent
+            ? 'Invitación enviada. El colegio recibirá el enlace por correo.'
+            : 'Invitación creada. El correo no se envió (SMTP apagado); copia el enlace.',
+        );
+        this.refreshInvites();
+      },
+      error: (err) => {
+        this.inviteBusy.set(false);
+        this.inviteError.set(err?.error?.message ?? err?.error?.errors?.[0]?.message ?? 'No se pudo invitar.');
+      },
+    });
+  }
+
+  protected resendInvite(publicUuid: string): void {
+    this.svc.resendSchoolInvitation(publicUuid).subscribe({
+      next: (res) => {
+        const data = (res as { data?: SchoolInvitationDto }).data ?? (res as SchoolInvitationDto);
+        this.lastSetupUrl.set(data.setupUrl ?? null);
+        this.inviteMessage.set(data.emailSent ? 'Invitación reenviada.' : 'Enlace regenerado. Cópialo abajo.');
+        this.refreshInvites();
+      },
+      error: (err) => {
+        this.inviteError.set(err?.error?.message ?? 'No se pudo reenviar.');
+      },
+    });
+  }
+
+  protected cancelInvite(publicUuid: string): void {
+    this.svc.cancelSchoolInvitation(publicUuid).subscribe({
+      next: () => this.refreshInvites(),
+      error: (err) => {
+        this.inviteError.set(err?.error?.message ?? 'No se pudo cancelar.');
+      },
+    });
+  }
+
+  protected copyLastUrl(): void {
+    const url = this.lastSetupUrl();
+    if (!url) return;
+    void navigator.clipboard.writeText(url);
+  }
+
+  private refreshInvites(): void {
+    this.svc.loadSchoolInvitations().subscribe({
+      next: (res) => this.pendingInvites.set(res.content ?? []),
+      error: () => this.pendingInvites.set([]),
+    });
   }
 
   private load(): void {

@@ -3,7 +3,7 @@ import { CriterionEditorComponent } from './criterion-editor.component';
 import { CriterionInput, LevelInput } from '../models';
 
 describe('CriterionEditorComponent', () => {
-  let component: CriterionEditorComponent;
+  let component: any;
   let fixture: ComponentFixture<CriterionEditorComponent>;
 
   beforeEach(async () => {

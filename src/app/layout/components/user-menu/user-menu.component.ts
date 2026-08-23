@@ -2,8 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { Router, RouterLink } from '@angular/router';
 import { IconComponent } from '@shared/components';
 import { InitialsPipe } from '@shared/pipes';
-import { AuthService } from '@core/services';
+import { AuthService, TenantService } from '@core/services';
 import { ROUTES } from '@core/constants';
+import { schoolLoginQueryParams } from '@core/navigation/school-login.navigation';
 import { AuthApiService } from '@features/auth/services/auth-api.service';
 
 /**
@@ -101,6 +102,7 @@ import { AuthApiService } from '@features/auth/services/auth-api.service';
           } @else {
             <a
               [routerLink]="loginRoute"
+              [queryParams]="loginQueryParams()"
               role="menuitem"
               class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-primary-700 hover:bg-surface-muted dark:text-primary-300"
               (click)="close()"
@@ -118,6 +120,7 @@ export class UserMenuComponent {
   private readonly auth = inject(AuthService);
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
+  private readonly tenant = inject(TenantService);
 
   private readonly _open = signal(false);
   readonly open = this._open.asReadonly();
@@ -137,6 +140,10 @@ export class UserMenuComponent {
   readonly email = computed(() => this.auth.user()?.email ?? null);
 
   readonly loginRoute = ROUTES.AUTH.LOGIN;
+
+  loginQueryParams() {
+    return schoolLoginQueryParams(this.tenant);
+  }
 
   toggle(): void {
     this._open.update((v) => !v);
@@ -165,7 +172,9 @@ export class UserMenuComponent {
     const finishLocally = () => {
       this.auth.clearSession();
       this.close();
-      this.router.navigate([this.loginRoute]);
+      this.router.navigate([this.loginRoute], {
+        queryParams: this.loginQueryParams(),
+      });
     };
 
     if (!refresh) {

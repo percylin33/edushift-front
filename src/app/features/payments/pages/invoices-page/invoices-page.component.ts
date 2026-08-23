@@ -1,16 +1,19 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { UserRole } from '@core/enums';
+import { AuthService } from '@core/services';
+import { FamilyApiService, FamilyChildSummary } from '@features/family/services/family-api.service';
 import { PaymentsApiService } from '../../services/payments-api.service';
 import { Invoice, STATUS_BADGE, STATUS_LABELS, formatMoney } from '../../models/invoice.model';
 
-/**
- * Invoices list (Sprint 10 / FE-10.1).
- *
- * <p>Guardian-facing: shows all invoices for the current user
- * (PENDING, PAID, OVERDUE, etc.). Click an invoice to see detail
- * + start a checkout flow.</p>
- */
 @Component({
   selector: 'app-invoices-page',
   standalone: true,
@@ -25,6 +28,22 @@ import { Invoice, STATUS_BADGE, STATUS_LABELS, formatMoney } from '../../models/
         </p>
       </header>
 
+      @if (children().length > 1) {
+        <label class="mb-4 block text-sm font-medium text-slate-700 dark:text-slate-200">
+          Hijo
+          <select
+            class="mt-1 w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+            [value]="selectedStudent()"
+            (change)="selectedStudent.set($any($event.target).value)"
+          >
+            <option value="">Todos</option>
+            @for (child of children(); track child.publicUuid) {
+              <option [value]="child.publicUuid">{{ child.fullName }}</option>
+            }
+          </select>
+        </label>
+      }
+
       @if (loading()) {
         <div class="space-y-3">
           @for (i of [1, 2, 3]; track i) {
@@ -36,7 +55,7 @@ import { Invoice, STATUS_BADGE, STATUS_LABELS, formatMoney } from '../../models/
             </div>
           }
         </div>
-      } @else if (items().length === 0) {
+      } @else if (visibleItems().length === 0) {
         <div
           class="rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center dark:border-slate-700"
         >
@@ -46,7 +65,7 @@ import { Invoice, STATUS_BADGE, STATUS_LABELS, formatMoney } from '../../models/
         </div>
       } @else {
         <ul class="space-y-3">
-          @for (i of items(); track i.publicUuid) {
+          @for (i of visibleItems(); track i.publicUuid) {
             <li>
               <a
                 [routerLink]="['/payments/invoices', i.publicUuid]"
@@ -91,15 +110,29 @@ import { Invoice, STATUS_BADGE, STATUS_LABELS, formatMoney } from '../../models/
 })
 export class InvoicesPageComponent implements OnInit {
   private readonly api = inject(PaymentsApiService);
+  private readonly familyApi = inject(FamilyApiService);
+  private readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly items = signal<Invoice[]>([]);
+  readonly children = signal<FamilyChildSummary[]>([]);
+  readonly selectedStudent = signal('');
   readonly loading = signal(true);
   readonly errorMsg = signal<string | null>(null);
 
+  readonly visibleItems = computed(() => {
+    const selected = this.selectedStudent();
+    const all = this.items();
+    if (!selected) return all;
+    return all.filter((invoice) => invoice.studentId === selected);
+  });
+
   ngOnInit(): void {
-    this.api.listMyInvoices().subscribe({
+    const fromQuery = this.route.snapshot.queryParamMap.get('student') ?? '';
+    this.selectedStudent.set(fromQuery);
+    this.api.listMyInvoices(0, 100).subscribe({
       next: (page) => {
-        this.items.set(page.content);
+        this.items.set(page.content ?? []);
         this.loading.set(false);
       },
       error: (e) => {
@@ -107,6 +140,12 @@ export class InvoicesPageComponent implements OnInit {
         this.loading.set(false);
       },
     });
+    if (this.auth.hasRole(UserRole.Parent)) {
+      this.familyApi.listChildren().subscribe({
+        next: (response) => this.children.set(response.data ?? []),
+        error: () => this.children.set([]),
+      });
+    }
   }
 
   statusLabel(s: Invoice['status']) {

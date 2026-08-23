@@ -186,22 +186,14 @@ export class TenantService {
    * tunnel id" bug when the hydration fails (e.g. tenant doesn't exist).</p>
    */
   /**
-   * Pre-login slug override. The login screen calls this with the slug the
-   * user typed in the "Institución" field so the {@code tenant.interceptor}
-   * sends the right {@code X-Tenant-Slug}. We can't call {@link setTenant}
-   * here because we don't yet have the full {@link Tenant} object — that
-   * arrives after the backend authenticates and the session boot fetches
-   * {@code /tenants/me}. The placeholder is replaced once the real tenant
-   * is hydrated.
+   * Ensure {@code X-Tenant-Slug} matches {@code slug} for the next request.
    *
-   * <p>Why this exists at all: in dev (localhost, no subdomain) the
-   * resolution chain falls through to the localStorage cache, which holds
-   * the slug of the <em>last</em> successful login. Without this method,
-   * a user who logs out of tenant A and tries to log into tenant B would
-   * silently send {@code X-Tenant-Slug: A} and get a "BAD_CREDENTIALS"
-   * 401, with no UI to course-correct. In production with subdomain
-   * resolution this branch is rarely taken but the override remains
-   * useful for tenants accessed by query param.
+   * <p>Phase 1 login no longer asks for an "Institución" field — the slug
+   * comes from the URL. Callers still invoke this on submit so the
+   * interceptor header is authoritative. When the boot hydration already
+   * loaded this same tenant we keep the rich snapshot (name / branding)
+   * and only pin storage + {@code resolvedFrom}; otherwise we plant a
+   * lightweight placeholder until {@code /tenants/me} arrives.
    */
   setSlug(slug: string): void {
     const trimmed = slug?.trim().toLowerCase();
@@ -209,6 +201,14 @@ export class TenantService {
     // Reject anything that looks like a deploy-platform URL fragment so we
     // never persist bogus values that would survive across sessions.
     if (!TenantService.isLikelyRealTenantSlug(trimmed)) return;
+
+    const current = this._context().tenant;
+    if (current && current.slug === trimmed && current.id && current.id !== trimmed) {
+      this._context.set({ tenant: current, resolvedFrom: 'header' });
+      this.storage.set(STORAGE_KEYS.CURRENT_TENANT, trimmed);
+      return;
+    }
+
     const placeholder: Tenant = {
       id: '',
       slug: trimmed,

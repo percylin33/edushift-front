@@ -4,6 +4,8 @@ import { InviteUserModalComponent } from './invite-user-modal.component';
 import { InvitationsStore } from '../store';
 import { Invitation } from '../models';
 import { InvitationStatus, UserRole } from '@core/enums';
+import { DocumentType } from '@core/enums';
+import { TenantService } from '@core/services';
 
 describe('InviteUserModalComponent', () => {
   let fixture: ComponentFixture<InviteUserModalComponent>;
@@ -22,6 +24,8 @@ describe('InviteUserModalComponent', () => {
     email: 'a@b.com',
     firstName: 'A',
     lastName: 'B',
+    documentType: DocumentType.Dni,
+    documentNumber: '87654321',
     fullName: 'A B',
     roles: [UserRole.Teacher],
     status: InvitationStatus.Pending,
@@ -40,7 +44,10 @@ describe('InviteUserModalComponent', () => {
     };
     TestBed.configureTestingModule({
       imports: [InviteUserModalComponent],
-      providers: [{ provide: InvitationsStore, useValue: fakeStore }],
+      providers: [
+        { provide: InvitationsStore, useValue: fakeStore },
+        { provide: TenantService, useValue: { tenantSlug: () => 'acme' } },
+      ],
     });
     fixture = TestBed.createComponent(InviteUserModalComponent);
     component = fixture.componentInstance;
@@ -59,26 +66,32 @@ describe('InviteUserModalComponent', () => {
     expect((component as any).selectedRoles()).toEqual([UserRole.Teacher]);
   });
 
-  it('canSubmit requiere email + nombres + roles', () => {
+  it('canSubmit requiere email + nombres + documento + roles', () => {
     configureModule();
     expect((component as any).canSubmit()).toBeFalse();
     (component as any).email.set('a@b.com');
     (component as any).firstName.set('A');
     (component as any).lastName.set('B');
+    (component as any).documentNumber.set('87654321');
     expect((component as any).canSubmit()).toBeTrue();
+    (component as any).documentNumber.set('123');
+    expect((component as any).canSubmit()).toBeFalse();
+    (component as any).documentNumber.set('87654321');
     (component as any).selectedRoles.set([]);
     expect((component as any).canSubmit()).toBeFalse();
   });
 
-  it('acceptLink construye URL con origin', () => {
+  it('acceptLink construye URL con origin y tenant del colegio', () => {
     configureModule();
     fakeStore.lastCreated.set(invitation);
-    expect((component as any).acceptLink()).toContain('/invitation/tok-1');
+    const link = (component as any).acceptLink() as string;
+    expect(link).toContain('/invitation/tok-1');
+    expect(link).toContain('tenant=acme');
   });
 
   it('acceptLink vacío si no hay token', () => {
     configureModule();
-    fakeStore.lastCreated.set({ ...invitation, token: null });
+    fakeStore.lastCreated.set({ ...invitation, token: null as any });
     expect((component as any).acceptLink()).toBe('');
   });
 
@@ -104,12 +117,15 @@ describe('InviteUserModalComponent', () => {
     (component as any).email.set('a@b.com');
     (component as any).firstName.set('A');
     (component as any).lastName.set('B');
+    (component as any).documentNumber.set('87654321');
     (component as any).selectedRoles.set([UserRole.Teacher]);
     await (component as any).onSubmit();
     expect(fakeStore.create).toHaveBeenCalledWith({
       email: 'a@b.com',
       firstName: 'A',
       lastName: 'B',
+      documentType: DocumentType.Dni,
+      documentNumber: '87654321',
       roles: [UserRole.Teacher],
     });
   });

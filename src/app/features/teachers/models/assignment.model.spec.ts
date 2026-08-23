@@ -21,7 +21,7 @@ describe('AssignmentModel', () => {
         courseCode: 'MATH',
         courseName: 'Algebra',
         academicPeriodPublicUuid: 'p-1',
-        periodType: PeriodType.Quarter,
+        periodType: PeriodType.Bimestre,
         periodOrdinal: 1,
         active: true,
       };
@@ -39,7 +39,7 @@ describe('AssignmentModel', () => {
         courseCode: 'MATH',
         courseName: 'Algebra',
         academicPeriodPublicUuid: 'p-1',
-        periodType: PeriodType.Quarter,
+        periodType: PeriodType.Bimestre,
         periodOrdinal: 1,
         assignedAt: new Date('2026-01-01'),
         unassignedAt: new Date('2026-06-30'),
@@ -61,7 +61,7 @@ describe('AssignmentModel', () => {
         courseCode: 'M',
         courseName: 'M',
         academicPeriodPublicUuid: 'p-1',
-        periodType: PeriodType.Quarter,
+        periodType: PeriodType.Bimestre,
         periodOrdinal: 1,
         active: true,
         periodName: 'Q1',
@@ -83,7 +83,7 @@ describe('AssignmentModel', () => {
         courseCode: 'M',
         courseName: 'M',
         academicPeriodPublicUuid: 'p-1',
-        periodType: PeriodType.Quarter,
+        periodType: PeriodType.Bimestre,
         periodOrdinal: 1,
       };
       expect(item.teacherEmail).toBeUndefined();

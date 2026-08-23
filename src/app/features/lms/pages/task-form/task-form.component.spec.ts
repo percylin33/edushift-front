@@ -5,7 +5,7 @@ import { TaskFormComponent } from './task-form.component';
 import { TasksStore } from '../../store';
 
 describe('TaskFormComponent', () => {
-  let component: TaskFormComponent;
+  let component: any;
   let fixture: ComponentFixture<TaskFormComponent>;
   let mockStore: jasmine.SpyObj<TasksStore>;
 

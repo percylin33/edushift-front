@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import '@angular/localize/init';
 
 /**
  * Centralized common UI labels (cierre-D / I4 bulk translation).

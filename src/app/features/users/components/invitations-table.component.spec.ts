@@ -4,6 +4,7 @@ import { InvitationsTableComponent } from './invitations-table.component';
 import { InvitationsStore } from '../store';
 import { Invitation } from '../models';
 import { InvitationStatus, UserRole } from '@core/enums';
+import { DocumentType } from '@core/enums';
 
 describe('InvitationsTableComponent', () => {
   let fixture: ComponentFixture<InvitationsTableComponent>;
@@ -28,6 +29,8 @@ describe('InvitationsTableComponent', () => {
     email: 'a@b.com',
     firstName: 'A',
     lastName: 'B',
+    documentType: DocumentType.Dni,
+    documentNumber: '87654321',
     fullName: 'A B',
     roles: [UserRole.Teacher],
     status: InvitationStatus.Pending,

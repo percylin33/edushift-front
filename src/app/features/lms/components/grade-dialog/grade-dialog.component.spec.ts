@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { GradeDialogComponent } from './grade-dialog.component';
 
 describe('GradeDialogComponent', () => {
-  let component: GradeDialogComponent;
+  let component: any;
   let fixture: ComponentFixture<GradeDialogComponent>;
 
   beforeEach(async () => {

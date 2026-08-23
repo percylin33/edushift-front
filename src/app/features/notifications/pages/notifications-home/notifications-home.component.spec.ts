@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
+import { provideRouter } from '@angular/router';
 import { NotificationsHomeComponent } from './notifications-home.component';
 import { NotificationsStore } from '../../store';
 import { NotificationItem } from '../../models';
@@ -38,7 +39,7 @@ describe('NotificationsHomeComponent', () => {
     // Stub the store's loadAll via dependency injection on the next tick.
     await TestBed.configureTestingModule({
       imports: [NotificationsHomeComponent],
-      providers: [NotificationsStore],
+      providers: [NotificationsStore, provideRouter([])],
     })
       .overrideComponent(NotificationsHomeComponent, {
         set: { template: '<div></div>' },
@@ -55,13 +56,13 @@ describe('NotificationsHomeComponent', () => {
   });
 
   it('llama store.loadAll en ngOnInit', () => {
-    spyOn(store, 'loadAll').and.returnValue(of(null as unknown as NotificationItem[]));
+    spyOn(store, 'loadAll').and.returnValue(of(null as any));
     fixture.detectChanges();
     expect(store.loadAll).toHaveBeenCalled();
   });
 
   it('renderiza empty state cuando el store tiene lista vacía', () => {
-    spyOn(store, 'loadAll').and.returnValue(of(null as unknown as NotificationItem[]));
+    spyOn(store, 'loadAll').and.returnValue(of(null as any));
     store.setItems([]);
     fixture.detectChanges();
     expect(component.notifications().length).toBe(0);

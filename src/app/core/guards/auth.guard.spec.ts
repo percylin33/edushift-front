@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
+import { Router, UrlTree, provideRouter } from '@angular/router';
 import { authGuard, authChildGuard } from './auth.guard';
 import { AuthService } from '@core/services';
 
@@ -28,7 +28,7 @@ describe('authGuard', () => {
     const result = TestBed.runInInjectionContext(() =>
       authGuard({} as any, { url: '/dashboard', root: {} as any } as any),
     );
-    expect(router.isUrlTree(result)).toBeTrue();
+    expect(result instanceof UrlTree).toBeTrue();
   });
 });
 

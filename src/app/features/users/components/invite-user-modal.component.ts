@@ -8,11 +8,13 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { UserRole } from '@core/enums';
+import { DocumentType, InvitationStatus, UserRole } from '@core/enums';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { Invitation } from '../models';
 import { InvitationsStore } from '../store';
 import { UserRoleBadgeComponent } from './user-role-badge.component';
+import { TenantService } from '@core/services';
+import { schoolInvitationAcceptUrl } from '@core/navigation/school-login.navigation';
 
 /**
  * Two-step invitation dialog used by the {@code /users} page header.
@@ -103,8 +105,8 @@ import { UserRoleBadgeComponent } from './user-role-badge.component';
                 </button>
               </div>
               <p class="hint">
-                Sprint 9 enviará el correo automáticamente. Por ahora, copia y comparte el enlace
-                manualmente.
+                También enviamos el enlace por correo (incluye el colegio). Si no llega, copia y
+                comparte este link.
               </p>
             </div>
 
@@ -192,6 +194,48 @@ import { UserRoleBadgeComponent } from './user-role-badge.component';
               </div>
             </div>
 
+            <div class="grid gap-3 sm:grid-cols-12">
+              <div class="field sm:col-span-4">
+                <label class="label" for="invite-documentType">Tipo de documento</label>
+                <select
+                  id="invite-documentType"
+                  class="select"
+                  required
+                  [ngModel]="documentType()"
+                  (ngModelChange)="documentType.set($event)"
+                  name="documentType"
+                >
+                  @for (option of docTypeOptions; track option.value) {
+                    <option [ngValue]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field sm:col-span-8">
+                <label class="label" for="invite-documentNumber">Número de documento</label>
+                <input
+                  id="invite-documentNumber"
+                  type="text"
+                  class="input"
+                  placeholder="Ej. 12345678"
+                  required
+                  maxlength="20"
+                  autocomplete="off"
+                  [ngModel]="documentNumber()"
+                  (ngModelChange)="documentNumber.set($event)"
+                  name="documentNumber"
+                />
+                @if (documentNumber().trim() && !documentValid()) {
+                  <p class="hint text-danger-600">
+                    @if (documentType() === DocumentType.Dni) {
+                      El DNI debe tener exactamente 8 dígitos.
+                    } @else {
+                      Use 4–20 caracteres (letras, dígitos o guiones).
+                    }
+                  </p>
+                }
+              </div>
+            </div>
+
             <div class="field">
               <span class="label">Roles</span>
               <div class="grid gap-2 sm:grid-cols-2">
@@ -241,6 +285,7 @@ import { UserRoleBadgeComponent } from './user-role-badge.component';
 })
 export class InviteUserModalComponent {
   private readonly store = inject(InvitationsStore);
+  private readonly tenant = inject(TenantService);
 
   readonly closed = output<void>();
 
@@ -255,8 +300,13 @@ export class InviteUserModalComponent {
   protected readonly email = signal('');
   protected readonly firstName = signal('');
   protected readonly lastName = signal('');
+  protected readonly documentType = signal<DocumentType>(DocumentType.Dni);
+  protected readonly documentNumber = signal('');
   protected readonly selectedRoles = signal<UserRole[]>([UserRole.Teacher]);
   protected readonly justCopied = signal(false);
+
+  /** Exposed to the template for DNI-specific validation copy. */
+  protected readonly DocumentType = DocumentType;
 
   protected readonly created = this.store.lastCreated;
   protected readonly saving = this.store.saving;
@@ -270,18 +320,30 @@ export class InviteUserModalComponent {
     { value: UserRole.Parent, label: 'Tutor' },
   ];
 
+  protected readonly docTypeOptions: ReadonlyArray<{ value: DocumentType; label: string }> = [
+    { value: DocumentType.Dni, label: 'DNI' },
+    { value: DocumentType.Ce, label: 'Carnet de Extranjería' },
+    { value: DocumentType.Passport, label: 'Pasaporte' },
+    { value: DocumentType.Other, label: 'Otro' },
+  ];
+
+  protected readonly documentValid = computed(() =>
+    InviteUserModalComponent.isDocumentValid(this.documentType(), this.documentNumber()),
+  );
+
   protected readonly canSubmit = computed(
     () =>
       this.selectedRoles().length > 0 &&
       this.email().trim().length > 0 &&
       this.firstName().trim().length > 0 &&
-      this.lastName().trim().length > 0,
+      this.lastName().trim().length > 0 &&
+      this.documentValid(),
   );
 
   protected readonly acceptLink = computed(() => {
     const inv = this.created();
     if (!inv?.token) return '';
-    return `${window.location.origin}/invitation/${inv.token}`;
+    return schoolInvitationAcceptUrl(window.location.origin, inv.token, this.tenant.tenantSlug());
   });
 
   protected readonly copyHint = computed(() =>
@@ -332,6 +394,8 @@ export class InviteUserModalComponent {
       email: this.email().trim(),
       firstName: this.firstName().trim(),
       lastName: this.lastName().trim(),
+      documentType: this.documentType(),
+      documentNumber: this.documentNumber().trim(),
       roles: this.selectedRoles(),
     });
   }
@@ -364,6 +428,17 @@ export class InviteUserModalComponent {
     this.email.set('');
     this.firstName.set('');
     this.lastName.set('');
+    this.documentType.set(DocumentType.Dni);
+    this.documentNumber.set('');
     this.selectedRoles.set([UserRole.Teacher]);
+  }
+
+  private static isDocumentValid(type: DocumentType, raw: string): boolean {
+    const number = raw.trim();
+    if (!number) return false;
+    if (type === DocumentType.Dni) {
+      return /^\d{8}$/.test(number);
+    }
+    return /^[A-Za-z0-9-]{4,20}$/.test(number);
   }
 }

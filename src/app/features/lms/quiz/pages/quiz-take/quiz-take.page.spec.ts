@@ -8,12 +8,12 @@ import { QuizStatus, QuestionType, QuizDetail } from '../../models/quiz.model';
 import { AttemptStatus } from '../../models/attempt.model';
 
 describe('QuizTakePageComponent', () => {
-  let component: QuizTakePageComponent;
+  let component: any;
   let fixture: ComponentFixture<QuizTakePageComponent>;
   let mockQuizzes: jasmine.SpyObj<QuizzesStore>;
   let mockAttempts: jasmine.SpyObj<AttemptsStore>;
 
-  const createQuiz = (): QuizDetail => ({
+  const createQuiz = (): any => ({
     publicUuid: 'q-1',
     sectionPublicUuid: 's-1',
     title: 'Quiz',
@@ -24,7 +24,7 @@ describe('QuizTakePageComponent', () => {
     maxAttempts: 2,
     maxScore: 100,
     ownerPublicUuid: 'tch-1',
-    publishedAt: '2026-01-01T00:00:00.000Z',
+    publishedAt: new Date(),
     closedAt: null,
     questionCount: 1,
     totalPoints: 5,
@@ -49,7 +49,7 @@ describe('QuizTakePageComponent', () => {
     updatedAt: null,
   });
 
-  const createAttempt = () => ({
+  const createAttempt = (): any => ({
     publicUuid: 'att-1',
     quizPublicUuid: 'q-1',
     studentPublicUuid: 'st-1',
@@ -94,9 +94,9 @@ describe('QuizTakePageComponent', () => {
       },
     );
 
-    mockAttempts.startAttempt.and.returnValue(Promise.resolve(true));
-    mockAttempts.flushPendingAnswers.and.returnValue(Promise.resolve());
-    mockAttempts.submitAttempt.and.returnValue(Promise.resolve(null));
+    mockAttempts.startAttempt.and.returnValue(Promise.resolve(true as any));
+    mockAttempts.flushPendingAnswers.and.returnValue(Promise.resolve() as any);
+    mockAttempts.submitAttempt.and.returnValue(Promise.resolve(null as any));
 
     await TestBed.configureTestingModule({
       imports: [QuizTakePageComponent],
@@ -123,7 +123,7 @@ describe('QuizTakePageComponent', () => {
   it('submittedDescription retorna texto según estado', () => {
     const a = createAttempt();
     a.status = AttemptStatus.Graded;
-    a.score = 80;
+    a.score = 80 as any;
     a.maxScore = 100;
     expect(component.submittedDescription(a)).toContain('80');
   });

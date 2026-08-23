@@ -53,7 +53,7 @@ describe('FileUploadService', () => {
       expiresAt: '',
       requiredHeaders: {},
     };
-    service.uploadBytes(ticket, new File([''], 'test.txt')).subscribe({
+    service.uploadBytes(ticket as any, new File([''], 'test.txt')).subscribe({
       error: (err) => expect(err.message).toContain('uploadUrl is null'),
     });
   });

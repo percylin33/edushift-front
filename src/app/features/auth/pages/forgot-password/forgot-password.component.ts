@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -26,10 +26,10 @@ import { TenantService } from '@core/services';
  * after a non-error response, regardless of whether the user actually
  * had an account.
  *
- * <h3>Why a tenant-slug field</h3>
- * The reset link is routed by tenant (each tenant has its own
- * password-reset emails). Without the slug the BE cannot locate the
- * user, so we collect it here the same way the login form does.
+ * <h3>Tenant from URL (same as login)</h3>
+ * Institution identity comes from {@code ?tenant=} / subdomain, resolved
+ * at boot by {@link TenantService}. There is no "Institución" field —
+ * {@code /auth/forgot-password?tenant=tecnosur} already scopes the request.
  */
 @Component({
   selector: 'app-forgot-password',
@@ -48,7 +48,11 @@ import { TenantService } from '@core/services';
       <header class="space-y-1.5">
         <h1 class="text-2xl font-semibold tracking-tight text-content">Recuperar contraseña</h1>
         <p class="text-sm text-content-muted">
-          Te enviaremos un enlace para restablecer tu contraseña.
+          @if (schoolName(); as name) {
+            Te enviaremos un enlace para restablecer tu contraseña en {{ name }}.
+          } @else {
+            Te enviaremos un enlace para restablecer tu contraseña.
+          }
         </p>
       </header>
 
@@ -64,6 +68,7 @@ import { TenantService } from '@core/services';
           </p>
           <a
             routerLink="/auth/login"
+            [queryParams]="loginQueryParams()"
             class="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
           >
             <app-icon name="arrow-left" [size]="14" />
@@ -76,19 +81,6 @@ import { TenantService } from '@core/services';
         }
 
         <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
-          <app-form-field
-            fieldId="tenantSlug"
-            [control]="tenantSlugCtrl"
-            label="Institución"
-            icon="graduation-cap"
-            placeholder="tecnosur"
-            autocomplete="organization"
-            [spellcheck]="false"
-            autocapitalize="off"
-            [error]="tenantSlugError()"
-            hint="Identificador de tu colegio (slug). Ej: tecnosur, demo."
-          />
-
           <app-form-field
             fieldId="email"
             [control]="emailCtrl"
@@ -112,6 +104,7 @@ import { TenantService } from '@core/services';
         <p class="text-center text-sm text-content-muted">
           <a
             routerLink="/auth/login"
+            [queryParams]="loginQueryParams()"
             class="font-medium text-primary-600 hover:text-primary-700 hover:underline"
           >
             Volver a iniciar sesión
@@ -130,26 +123,22 @@ export class ForgotPasswordComponent {
   protected readonly sent = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
+  protected readonly schoolName = computed(() => {
+    const t = this.tenant.tenant();
+    if (!t?.name || !t.id || t.id === t.slug) return null;
+    return t.name;
+  });
+
+  protected loginQueryParams(): Record<string, string> {
+    const slug = this.tenant.tenantSlug();
+    return slug ? { tenant: slug } : {};
+  }
+
   protected readonly form: FormGroup = this.fb.nonNullable.group({
-    tenantSlug: ['', [
-      Validators.required,
-      Validators.maxLength(64),
-      Validators.pattern(/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/i),
-    ]],
     email: ['', [Validators.required, Validators.email, Validators.maxLength(255)]],
   });
 
-  protected readonly tenantSlugCtrl = this.form.get('tenantSlug') as FormControl<string>;
   protected readonly emailCtrl = this.form.get('email') as FormControl<string>;
-
-  tenantSlugError(): string | null {
-    const ctrl = this.tenantSlugCtrl;
-    if (!ctrl.touched || !ctrl.errors) return null;
-    if (ctrl.hasError('required')) return 'Ingresa el identificador de tu institución.';
-    if (ctrl.hasError('pattern')) return 'Solo letras, números y guiones (3-64 caracteres).';
-    if (ctrl.hasError('maxlength')) return 'El identificador es demasiado largo.';
-    return null;
-  }
 
   emailError(): string | null {
     const ctrl = this.emailCtrl;
@@ -165,13 +154,22 @@ export class ForgotPasswordComponent {
       this.form.markAllAsTouched();
       return;
     }
-    const { tenantSlug, email } = this.form.getRawValue();
-    this.tenant.setSlug(tenantSlug.trim().toLowerCase());
+
+    const tenantSlug = this.tenant.tenantSlug()?.trim().toLowerCase();
+    if (!tenantSlug) {
+      this.errorMessage.set(
+        'Abre el enlace de tu institución (con ?tenant=…) para recuperar la contraseña.',
+      );
+      return;
+    }
+
+    const { email } = this.form.getRawValue();
+    this.tenant.setSlug(tenantSlug);
     this.errorMessage.set(null);
     this.submitting.set(true);
 
     this.authApi
-      .forgotPassword({ tenantSlug: tenantSlug.trim().toLowerCase(), email })
+      .forgotPassword({ tenantSlug, email })
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: () => {

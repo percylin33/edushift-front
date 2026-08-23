@@ -14,6 +14,8 @@ export const environment: AppEnvironment = runtimeOverrides({
     enabled: true,
     strategy: 'subdomain',
     headerName: 'X-Tenant-Slug',
+    // Platform fallback for non-auth surfaces. Auth login itself requires a
+    // URL identity: http://localhost:4200/auth/login?tenant=tecnosur
     defaultTenant: 'demo',
   },
   auth: {
@@ -60,6 +62,15 @@ export const environment: AppEnvironment = runtimeOverrides({
     // LMS (Sprint 7a). Off by default in production until BE-7a.0..5 are
     // signed off; flipped on in dev to allow exercising the new tree.
     lms: true,
+    // FIX BUG-2026-07-30-09 / -10 / -18 / -19: routes were registered
+    // with `featureFlagGuard` but the corresponding feature flags were
+    // never declared in this env, so the guard fell back to `false` and
+    // redirected to /404. Add them here so /announcements, /schedule,
+    // /family and /me are reachable in dev.
+    announcements: true,
+    schedule: true,
+    family: true,
+    me: true,
     // PR-2 (gmail send) is still in flight; keep disabled in dev too
     // until BE-11.x lands the refresh-token storage.
     gmailSend: false,
