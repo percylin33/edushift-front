@@ -10,6 +10,7 @@ describe('authGuard', () => {
   const configure = (isAuthenticated: boolean) => {
     authSpy = jasmine.createSpyObj('AuthService', ['isAuthenticated', 'hasRole', 'hasPermission'], {
       isAuthenticated: () => isAuthenticated,
+      user: () => null,
     });
     TestBed.configureTestingModule({
       providers: [provideRouter([]), { provide: AuthService, useValue: authSpy }],
@@ -39,6 +40,7 @@ describe('authChildGuard', () => {
   beforeEach(() => {
     authSpy = jasmine.createSpyObj('AuthService', ['isAuthenticated', 'hasRole', 'hasPermission'], {
       isAuthenticated: () => true,
+      user: () => null,
     });
     TestBed.configureTestingModule({
       providers: [provideRouter([]), { provide: AuthService, useValue: authSpy }],

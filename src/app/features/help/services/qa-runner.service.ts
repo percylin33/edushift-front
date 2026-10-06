@@ -98,7 +98,8 @@ export class QaRunnerService {
       });
     }
 
-    const token = ctx.token ?? this.auth.accessToken();
+    // SECURITY FIX: Tokens are in httpOnly cookies, browser sends them automatically
+    const token = ctx.token ?? '';
     const tenantSlug = ctx.tenantSlug ?? this.tenantService.tenantSlug();
     const base = ctx.baseUrl ?? `${environment.apiUrl}/${environment.apiVersion}`;
     return this.execute(step, base, token, tenantSlug);

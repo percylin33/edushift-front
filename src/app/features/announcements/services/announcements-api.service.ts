@@ -2,7 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ApiService } from '@core/services';
 import { ApiResponse } from '@core/models';
-import { Announcement, CreateAnnouncementPayload } from '../models/announcement.model';
+import {
+  Announcement,
+  AnnouncementStatus,
+  AudiencePreview,
+  CreateAnnouncementPayload,
+  TeachingScope,
+} from '../models/announcement.model';
 
 const BASE = '/api/v1/announcements';
 
@@ -51,5 +57,35 @@ export class AnnouncementsApiService {
 
   markRead(publicUuid: string): Observable<void> {
     return this.api.post<ApiResponse<null>>(`${BASE}/${publicUuid}/read`).pipe(map(() => undefined));
+  }
+
+  listAdmin(status?: AnnouncementStatus, page = 0, size = 50): Observable<Announcement[]> {
+    const params: Record<string, string | number> = { page, size };
+    if (status) params['status'] = status;
+    return this.api
+      .get<ApiResponse<Announcement[]>>(`${BASE}/admin`, params)
+      .pipe(map((env) => env.data ?? []));
+  }
+
+  preview(payload: CreateAnnouncementPayload): Observable<AudiencePreview> {
+    return this.api
+      .post<ApiResponse<AudiencePreview>, CreateAnnouncementPayload>(`${BASE}/preview-audience`, payload)
+      .pipe(map((env) => env.data));
+  }
+
+  teachingScope(): Observable<TeachingScope> {
+    return this.api
+      .get<ApiResponse<TeachingScope>>(`${BASE}/teaching-scope`)
+      .pipe(map((env) => env.data));
+  }
+
+  archive(publicUuid: string): Observable<Announcement> {
+    return this.api
+      .post<ApiResponse<Announcement>>(`${BASE}/${publicUuid}/archive`)
+      .pipe(map((env) => env.data));
+  }
+
+  remove(publicUuid: string): Observable<void> {
+    return this.api.delete<ApiResponse<null>>(`${BASE}/${publicUuid}`).pipe(map(() => undefined));
   }
 }

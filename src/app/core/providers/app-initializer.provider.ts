@@ -2,6 +2,7 @@ import { APP_INITIALIZER, Provider, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { timeout } from 'rxjs/operators';
 import { AuthService, LoggerService, TenantService } from '@core/services';
+import { reconcileTenantWithSession } from '@core/services/tenant-session.reconcile';
 import { APP } from '@core/constants';
 import { TenantStatus } from '@core/enums';
 import { AuthApiService } from '@features/auth/services/auth-api.service';
@@ -103,16 +104,18 @@ function appInitializerFactory(): () => Promise<void> {
       logger.warn(`Failed to hydrate tenant '${slug}' at boot; keeping the placeholder.`, err);
     }
 
-    if (auth.accessToken()) {
-      try {
-        const user = await firstValueFrom(authApi.me().pipe(timeout(BOOT_HTTP_TIMEOUT_MS)));
-        auth.setUser(user);
-      } catch (err) {
-        logger.warn('Failed to rehydrate user at boot; deferring to guards.', err);
-      }
-    }
+    /* When a JWT is present, branding must follow the session tenant — not
+     * a stale ?tenant= / localStorage slug from another school (back-button
+     * / bfcache multi-school bug). On /auth/login?tenant=X with a foreign
+     * session, reconcile clears the session so login paints school X only. */
+    await reconcileTenantWithSession(
+      { tenantService, tenantApi, auth, authApi, logger },
+      'boot',
+    );
 
-    logger.info(`${APP.NAME} v${APP.VERSION} booted (tenant=${slug}, resolved=${resolvedFrom})`);
+    logger.info(
+      `${APP.NAME} v${APP.VERSION} booted (tenant=${tenantService.tenantSlug() ?? slug}, resolved=${resolvedFrom})`,
+    );
   };
 }
 

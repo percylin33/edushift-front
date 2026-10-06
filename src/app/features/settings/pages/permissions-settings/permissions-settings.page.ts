@@ -39,9 +39,8 @@ import { PermissionOverridesStore } from '../../store/permission-overrides.store
           Permisos por rol
         </h1>
         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Personaliza qué authorities (LMS_*) recibe cada rol dentro
-          de tu colegio. Los cambios se aplican a las nuevas sesiones;
-          los usuarios conectados deben volver a iniciar sesión.
+          Elige qué puede hacer cada rol dentro de tu colegio. Los cambios aplican en las nuevas
+          sesiones; quienes ya están conectados deben volver a iniciar sesión.
         </p>
       </header>
 
@@ -62,7 +61,7 @@ import { PermissionOverridesStore } from '../../store/permission-overrides.store
             <thead class="bg-slate-50 dark:bg-slate-800">
               <tr>
                 <th class="px-3 py-2 text-left font-medium text-slate-600 dark:text-slate-300">
-                  Authority
+                  Permiso
                 </th>
                 @for (r of ROLES; track r) {
                   <th
@@ -76,8 +75,9 @@ import { PermissionOverridesStore } from '../../store/permission-overrides.store
             <tbody>
               @for (a of AUTHORITIES; track a) {
                 <tr class="border-t border-slate-200 dark:border-slate-700">
-                  <td class="px-3 py-2 font-mono text-xs text-slate-700 dark:text-slate-200">
-                    {{ a }}
+                  <td class="px-3 py-2 text-slate-700 dark:text-slate-200">
+                    <span class="block text-sm">{{ authorityLabel(a) }}</span>
+                    <span class="block font-mono text-[10px] text-slate-400">{{ a }}</span>
                   </td>
                   @for (r of ROLES; track r) {
                     <td class="px-3 py-2 text-center">
@@ -87,7 +87,7 @@ import { PermissionOverridesStore } from '../../store/permission-overrides.store
                           class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50"
                           [checked]="cellGranted(r, a)"
                           [attr.aria-label]="
-                            'Conceder ' + a + ' a ' + roleLabel(r)
+                            'Conceder ' + authorityLabel(a) + ' a ' + roleLabel(r)
                           "
                           (change)="onToggle(r, a, $event)"
                           data-testid="perm-cell"
@@ -104,9 +104,8 @@ import { PermissionOverridesStore } from '../../store/permission-overrides.store
         </div>
 
         <p class="text-xs text-slate-500 dark:text-slate-400">
-          Las casillas marcadas indican grants explícitos del colegio.
-          Para volver a los defaults de plataforma espera la próxima
-          iteración (POST /permission-overrides/reset-all).
+          Las casillas marcadas indican permisos concedidos por el colegio. Para volver a los
+          valores predeterminados de la plataforma, espera la próxima actualización.
         </p>
       }
     </section>
@@ -187,16 +186,39 @@ export class PermissionsSettingsPageComponent implements OnInit {
   protected roleLabel(role: UserRole): string {
     return ROLE_LABELS[role];
   }
+
+  protected authorityLabel(authority: string): string {
+    return AUTHORITY_LABELS[authority] ?? authority;
+  }
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
-  [UserRole.SuperAdmin]: 'SA',
-  [UserRole.TenantAdmin]: 'Admin',
-  [UserRole.Staff]: 'Staff',
-  [UserRole.Teacher]: 'Teacher',
-  [UserRole.Student]: 'Student',
-  [UserRole.Parent]: 'Parent',
-  [UserRole.Guest]: 'Guest',
+  [UserRole.SuperAdmin]: 'Super admin',
+  [UserRole.TenantAdmin]: 'Administrador',
+  [UserRole.Staff]: 'Personal',
+  [UserRole.Teacher]: 'Docente',
+  [UserRole.Student]: 'Estudiante',
+  [UserRole.Parent]: 'Padre/madre',
+  [UserRole.Guest]: 'Invitado',
+};
+
+const AUTHORITY_LABELS: Record<string, string> = {
+  LMS_TASK_READ: 'Ver tareas',
+  LMS_TASK_CREATE: 'Crear tareas',
+  LMS_TASK_GRADE: 'Calificar tareas',
+  LMS_TASK_SUBMIT: 'Entregar tareas',
+  LMS_MATERIAL_READ: 'Ver materiales',
+  LMS_MATERIAL_WRITE: 'Gestionar materiales',
+  LMS_MATERIAL_DELETE: 'Eliminar materiales',
+  LMS_QUIZ_READ: 'Ver cuestionarios',
+  LMS_QUIZ_CREATE: 'Crear cuestionarios',
+  LMS_QUIZ_GRADE: 'Calificar cuestionarios',
+  LMS_QUIZ_SUBMIT: 'Responder cuestionarios',
+  LMS_AI_GENERATE: 'Generar con IA',
+  LMS_AI_USAGE: 'Ver uso de IA',
+  LMS_PAYMENT_ADMIN: 'Administrar pagos',
+  LMS_ANNOUNCEMENTS_CREATE: 'Crear anuncios',
+  LMS_NOTIFICATIONS_MANAGE: 'Gestionar notificaciones',
 };
 
 // Mirror of LmsRoleAuthorityMapper.DEFAULTS on the BE. Source of truth is

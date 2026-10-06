@@ -48,15 +48,18 @@ export const ROUTES = {
   },
   HELP: {
     /**
-     * Help / manuals feature. Public list at {@code /help}; viewer at
-     * {@code /help/:role(/onboarding|flujos|autoevaluacion)}.
-     * Reached from the user-menu dropdown in the navbar.
+     * Family UAT guide hub (`/help`). Script viewer at
+     * {@code /help/script/:roleKey}; lead agenda at {@code /help/lead}.
      */
     ROOT: '/help',
-    detail: (role: string) => `/help/${role}`,
-    onboarding: (role: string) => `/help/${role}/onboarding`,
-    flujos: (role: string) => `/help/${role}/flujos`,
-    autoevaluacion: (role: string) => `/help/${role}/autoevaluacion`,
+    LEAD: '/help/lead',
+    REPORTS: '/help/reports',
+    script: (roleKey: string) => `/help/script/${roleKey}`,
+    /** @deprecated Prefer {@link ROUTES.HELP.script} — kept for older callers. */
+    detail: (role: string) => `/help/script/${role}`,
+    onboarding: (role: string) => `/help/script/${role}`,
+    flujos: (role: string) => `/help/script/${role}`,
+    autoevaluacion: (role: string) => `/help/script/${role}`,
   },
   STUDENTS: {
     ROOT: '/students',
@@ -99,6 +102,11 @@ export const ROUTES = {
     /** Plantillas del registro formal de notas (F1). */
     GRADE_REGISTER: {
       LIST: '/academic/grade-register',
+      SETTINGS: '/academic/grade-register/settings',
+    },
+    /** Plantillas de sesión de aprendizaje (catálogo MINEDU + propias). */
+    SESSION_TEMPLATES: {
+      LIST: '/academic/session-templates',
     },
   },
   SESSIONS: {
@@ -158,6 +166,11 @@ export const ROUTES = {
     ADMIN: {
       ROOT: '/payments/admin',
       PAYMENTS: '/payments/admin/payments',
+      INVOICES: '/payments/admin/invoices',
+      EMIT: '/payments/admin/emit',
+      PLANS: '/payments/admin/plans',
+      POLICY: '/payments/admin/policy',
+      CONCEPTS: '/payments/admin/concepts',
     },
   },
   AI: {

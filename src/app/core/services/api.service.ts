@@ -15,23 +15,23 @@ export class ApiService {
   private readonly http = inject(HttpClient);
 
   get<T>(url: string, params?: ParamRecord): Observable<T> {
-    return this.http.get<T>(url, { params: this.toParams(params) });
+    return this.http.get<T>(url, { params: this.toParams(params), withCredentials: true });
   }
 
-  post<T, B = unknown>(url: string, body?: B): Observable<T> {
-    return this.http.post<T>(url, body ?? {});
+  post<T, B = unknown>(url: string, body?: B, options?: { withCredentials?: boolean }): Observable<T> {
+    return this.http.post<T>(url, body ?? {}, { withCredentials: options?.withCredentials ?? true });
   }
 
   put<T, B = unknown>(url: string, body?: B): Observable<T> {
-    return this.http.put<T>(url, body ?? {});
+    return this.http.put<T>(url, body ?? {}, { withCredentials: true });
   }
 
   patch<T, B = unknown>(url: string, body?: B): Observable<T> {
-    return this.http.patch<T>(url, body ?? {});
+    return this.http.patch<T>(url, body ?? {}, { withCredentials: true });
   }
 
   delete<T>(url: string, params?: ParamRecord): Observable<T> {
-    return this.http.delete<T>(url, { params: this.toParams(params) });
+    return this.http.delete<T>(url, { params: this.toParams(params), withCredentials: true });
   }
 
   private toParams(params?: ParamRecord): HttpParams {

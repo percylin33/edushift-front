@@ -60,10 +60,7 @@ export const PAYMENTS_ROUTES: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        loadComponent: () =>
-          import('./pages/admin-payments-page/admin-payments-page.component').then(
-            (m) => m.AdminPaymentsPageComponent,
-          ),
+        redirectTo: 'invoices',
       },
       {
         path: 'payments',
@@ -73,11 +70,39 @@ export const PAYMENTS_ROUTES: Routes = [
           ),
       },
       {
+        path: 'invoices',
+        loadComponent: () =>
+          import('./pages/admin-invoices-page/admin-invoices-page.component').then(
+            (m) => m.AdminInvoicesPageComponent,
+          ),
+      },
+      {
         // Sprint cierre-C / F14 — payment concepts catalog.
         path: 'concepts',
         loadComponent: () =>
           import('./pages/payment-concepts-page/payment-concepts-page.component').then(
             (m) => m.PaymentConceptsPageComponent,
+          ),
+      },
+      {
+        path: 'emit',
+        loadComponent: () =>
+          import('./pages/admin-emit-page/admin-emit-page.component').then(
+            (m) => m.AdminEmitPageComponent,
+          ),
+      },
+      {
+        path: 'plans',
+        loadComponent: () =>
+          import('./pages/admin-plans-page/admin-plans-page.component').then(
+            (m) => m.AdminPlansPageComponent,
+          ),
+      },
+      {
+        path: 'policy',
+        loadComponent: () =>
+          import('./pages/admin-payment-policy-page/admin-payment-policy-page.component').then(
+            (m) => m.AdminPaymentPolicyPageComponent,
           ),
       },
     ],

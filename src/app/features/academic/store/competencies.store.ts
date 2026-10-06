@@ -238,6 +238,21 @@ export class CompetenciesStore {
     }
   }
 
+  async promoteCompetency(publicUuid: string): Promise<boolean> {
+    this._saving.set(true);
+    this._error.set(null);
+    try {
+      const detail = await firstValueFrom(this.api.promoteCompetency(publicUuid));
+      this.upsertCompetency(detail);
+      return true;
+    } catch (err) {
+      this._error.set(this.toErrorMessage(err));
+      return false;
+    } finally {
+      this._saving.set(false);
+    }
+  }
+
   async seedCompetencies(): Promise<boolean> {
     const courseUuid = this._courseUuid();
     if (!courseUuid) return false;
@@ -271,6 +286,8 @@ export class CompetenciesStore {
         displayOrder: detail.displayOrder,
         isActive: detail.isActive,
         capacityCount: detail.capacities.length,
+        origin: detail.origin,
+        createdBy: detail.createdBy ?? null,
         capacities: detail.capacities.map((cap) => ({
           publicUuid: cap.publicUuid,
           code: cap.code,

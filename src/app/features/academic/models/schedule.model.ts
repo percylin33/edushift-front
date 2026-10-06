@@ -224,6 +224,48 @@ export const RECESS_POLICY_LABELS: Readonly<Record<RecessPolicy, string>> = {
   STAGGERED: 'Escalonado',
 };
 
+export const RECESS_POLICY_HINTS: Readonly<Record<RecessPolicy, string>> = {
+  SHARED: 'Todos los niveles recrean a la misma hora.',
+  STAGGERED: 'Cada nivel recrea en horarios distintos para no saturar patios.',
+};
+
+/** Shift values stored in BE; labels shown to admin/secretaría. */
+export const DAY_TEMPLATE_SHIFT_OPTIONS: Readonly<
+  { value: string; label: string }[]
+> = [
+  { value: 'MORNING', label: 'Mañana' },
+  { value: 'AFTERNOON', label: 'Tarde' },
+  { value: 'FULL', label: 'Completa' },
+];
+
+export const DAY_TEMPLATE_SHIFT_LABELS: Readonly<Record<string, string>> = {
+  MORNING: 'Mañana',
+  AFTERNOON: 'Tarde',
+  FULL: 'Completa',
+};
+
+export const SCHEDULE_WARNING_LABELS: Readonly<Record<string, string>> = {
+  SCHEDULE_CONFLICT: 'Hay un cruce de horarios',
+  RECESS_OVERLAP: 'El recreo se superpone con una clase',
+  WORKLOAD_EXCEEDED: 'Un docente supera la carga horaria',
+  MISSING_HOMEROOM: 'Falta asignar aula de tutoría',
+  EMPTY_PERIOD: 'Hay periodos sin curso asignado',
+};
+
+export const SCHEDULE_WARNING_SEVERITY_LABELS: Readonly<Record<string, string>> = {
+  ERROR: 'Error',
+  WARNING: 'Advertencia',
+  INFO: 'Información',
+};
+
+export const SCHEDULE_PARSE_STATUS_LABELS: Readonly<Record<string, string>> = {
+  PENDING: 'Pendiente de procesar',
+  PROCESSING: 'Procesando',
+  PARSED: 'Procesado',
+  FAILED: 'Error al procesar',
+  DRAFT: 'Borrador',
+};
+
 /** Non-teaching block in reverse week views (recess/lunch/assembly). */
 export interface NonTeachingBlockItem {
   blockPublicUuid: string;
@@ -324,6 +366,23 @@ export interface ScheduleWarningItem {
   sectionUuid: string | null;
   gradeUuid: string | null;
   teacherUuid: string | null;
+}
+
+export function formatScheduleWarning(w: ScheduleWarningItem): string {
+  return SCHEDULE_WARNING_LABELS[w.code] ?? w.message ?? w.code;
+}
+
+export function formatScheduleWarningSeverity(severity: string): string {
+  return SCHEDULE_WARNING_SEVERITY_LABELS[severity.toUpperCase()] ?? severity;
+}
+
+export function formatScheduleParseStatus(status: string): string {
+  return SCHEDULE_PARSE_STATUS_LABELS[status.toUpperCase()] ?? status;
+}
+
+export function formatDayTemplateShift(shift: string | null | undefined): string {
+  if (!shift) return '';
+  return DAY_TEMPLATE_SHIFT_LABELS[shift.toUpperCase()] ?? shift;
 }
 
 export interface ScheduleSourceDocument {

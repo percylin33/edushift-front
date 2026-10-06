@@ -108,7 +108,10 @@ export class AdminPaymentsStore {
   // Internal helpers
   // -------------------------------------------------------------------------
 
-  private runAction(kind: AdminActionKind, fn: () => import('rxjs').Observable<Payment>): void {
+  private runAction(
+    kind: AdminActionKind,
+    fn: () => import('rxjs').Observable<Payment | null>,
+  ): void {
     this._pendingAction.set(kind);
     this._error.set(null);
     this._lastAction.set(null);
@@ -119,8 +122,8 @@ export class AdminPaymentsStore {
         this._lastAction.set({
           kind,
           ok: true,
-          paymentPublicUuid: payment.publicUuid,
-          newStatus: payment.status,
+          paymentPublicUuid: payment?.publicUuid ?? '',
+          newStatus: payment?.status ?? 'APPROVED',
         });
         // After a successful action, refresh the current page so the
         // table reflects the new state without requiring a manual reload.

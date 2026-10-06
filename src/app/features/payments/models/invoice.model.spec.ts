@@ -13,12 +13,21 @@ import {
   STATUS_LABELS,
   STATUS_BADGE,
   formatMoney,
+  solesToCents,
+  centsToSoles,
 } from './invoice.model';
 
 describe('InvoiceModel', () => {
   describe('InvoiceStatus', () => {
     it('incluye los 5 status esperados', () => {
-      const values: InvoiceStatus[] = ['PENDING', 'PAID', 'OVERDUE', 'CANCELLED', 'REFUNDED'];
+      const values: InvoiceStatus[] = [
+        'PENDING',
+        'PENDING_REVIEW',
+        'PAID',
+        'OVERDUE',
+        'CANCELLED',
+        'REFUNDED',
+      ];
       for (const v of values) expect(STATUS_LABELS[v]).toBeTruthy();
     });
   });
@@ -157,6 +166,24 @@ describe('InvoiceModel', () => {
         'REFUNDED',
       ];
       expect(statuses).toContain('REFUNDED');
+    });
+  });
+
+  describe('formatMoney', () => {
+    it('formatea PEN en soles', () => {
+      expect(formatMoney(2000, 'PEN')).toBe('S/ 20.00');
+    });
+  });
+
+  describe('solesToCents / centsToSoles', () => {
+    it('convierte 20 soles a 2000 centavos', () => {
+      expect(solesToCents(20)).toBe(2000);
+      expect(solesToCents(12.5)).toBe(1250);
+    });
+
+    it('convierte centavos a soles', () => {
+      expect(centsToSoles(2000)).toBe(20);
+      expect(centsToSoles(1250)).toBe(12.5);
     });
   });
 });

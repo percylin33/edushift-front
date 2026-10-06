@@ -118,6 +118,26 @@ export class GradeBookStore {
     this._gradebook.set({ ...gb, cellIndex: nextIndex });
   }
 
+  patchCellLiteral(
+    studentPublicUuid: string,
+    evaluationPublicUuid: string,
+    literal: string | null,
+  ): void {
+    const gb = this._gradebook();
+    if (!gb) return;
+    const key = cellKey(studentPublicUuid, evaluationPublicUuid);
+    const nextIndex = new Map(gb.cellIndex);
+    const prev = nextIndex.get(key);
+    nextIndex.set(key, {
+      studentPublicUuid,
+      evaluationPublicUuid,
+      score: null,
+      literal,
+      recordedAt: prev?.recordedAt ?? new Date(),
+    });
+    this._gradebook.set({ ...gb, cellIndex: nextIndex });
+  }
+
   setSavingCell(key: string | null): void {
     this._savingCell.set(key);
   }

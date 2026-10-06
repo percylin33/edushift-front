@@ -12,13 +12,14 @@ import { ROUTES } from '@core/constants';
 import { UserRole, UserStatus } from '@core/enums';
 import { AuthService } from '@core/services';
 import {
+  ConfirmDialogService,
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
   SpinnerComponent,
 } from '@shared/components';
 import { UserRoleBadgeComponent, UserStatusBadgeComponent } from '../../components';
-import { UpdateUserRequest, UserDetail } from '../../models';
+import { UpdateUserRequest, UserDetail, AdminPasswordResetDelivery } from '../../models';
 import { UsersStore } from '../../store';
 
 /**
@@ -127,6 +128,29 @@ import { UsersStore } from '../../store';
                 Si no llega, el usuario puede usar «Olvidé mi contraseña» en el login. El mensaje es el mismo si el envío falló internamente.
               </p>
             </div>
+          </div>
+        }
+
+        @if (tempPassword(); as temp) {
+          <div class="alert alert-warning mb-4">
+            <app-icon name="lock" [size]="18" />
+            <div class="flex-1">
+              <p class="font-medium">Contraseña temporal generada (cópiala ahora)</p>
+              <p class="mt-2 font-mono text-sm break-all select-all">{{ temp }}</p>
+              <p class="mt-2 text-xs opacity-80">
+                Entrégala en persona o por un canal seguro del colegio. Al ingresar, el usuario deberá elegir una nueva. No se volverá a mostrar.
+              </p>
+              <button
+                type="button"
+                class="btn btn-outline btn-sm mt-3"
+                (click)="copyTempPassword()"
+              >
+                Copiar contraseña
+              </button>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="tempPassword.set(null)">
+              Cerrar
+            </button>
           </div>
         }
 
@@ -316,6 +340,75 @@ import { UsersStore } from '../../store';
         </div>
       }
     </app-page-container>
+
+    @if (resetModalOpen()) {
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reset-access-title"
+        (click)="closeResetModal()"
+      >
+        <div class="card w-full max-w-md shadow-lg" (click)="$event.stopPropagation()">
+          <header class="card-header">
+            <div>
+              <h2 id="reset-access-title" class="card-title">Restablecer acceso</h2>
+              <p class="card-description">
+                Elige cómo entregar la nueva credencial a
+                {{ user()?.fullName || user()?.email }}.
+              </p>
+            </div>
+          </header>
+          <div class="card-body grid gap-3">
+            <button
+              type="button"
+              class="btn btn-outline w-full justify-start text-left"
+              [disabled]="saving() || isSyntheticEmail()"
+              [title]="
+                isSyntheticEmail()
+                  ? 'Correo sintético: no hay buzón real. Usa contraseña temporal.'
+                  : null
+              "
+              (click)="confirmReset('EMAIL')"
+            >
+              <app-icon name="mail" [size]="18" />
+              <span class="flex flex-col items-start gap-0.5">
+                <span class="font-medium">Enviar enlace por email</span>
+                <span class="text-xs font-normal text-content-muted">
+                  Mismo flujo que «Olvidé mi contraseña» (válido ~1 h).
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary w-full justify-start text-left"
+              [disabled]="saving()"
+              (click)="confirmReset('TEMPORARY')"
+            >
+              <app-icon name="lock" [size]="18" />
+              <span class="flex flex-col items-start gap-0.5">
+                <span class="font-medium">Generar contraseña temporal</span>
+                <span class="text-xs font-normal opacity-90">
+                  Se muestra una sola vez. Al entrar deberá elegir una nueva.
+                </span>
+              </span>
+            </button>
+            @if (isSyntheticEmail()) {
+              <p class="text-xs text-content-muted">
+                Este usuario tiene correo sintético
+                <span class="font-mono">(*.accounts.edushift.local)</span>;
+                el envío por email no está disponible.
+              </p>
+            }
+          </div>
+          <footer class="card-footer">
+            <button type="button" class="btn btn-ghost btn-sm" (click)="closeResetModal()">
+              Cancelar
+            </button>
+          </footer>
+        </div>
+      </div>
+    }
   `,
 })
 export class UserDetailComponent implements OnInit {
@@ -323,6 +416,7 @@ export class UserDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly Active = UserStatus.Active;
   protected readonly usersLink = ROUTES.USERS.LIST;
@@ -346,6 +440,8 @@ export class UserDetailComponent implements OnInit {
   // ---- roles form state ----
   protected readonly pendingRoles = signal<UserRole[]>([]);
   protected readonly resetSent = signal(false);
+  protected readonly resetModalOpen = signal(false);
+  protected readonly tempPassword = signal<string | null>(null);
 
   /** Manageable role catalog. SUPER_ADMIN / GUEST are intentionally hidden. */
   protected readonly roleOptions: ReadonlyArray<{
@@ -486,7 +582,14 @@ export class UserDetailComponent implements OnInit {
   protected async onDisable(): Promise<void> {
     const u = this.user();
     if (!u || this.isSelf()) return;
-    if (!confirm(`¿Suspender la cuenta de ${u.fullName || u.email}?`)) return;
+    const ok = await this.confirmDialog.open({
+      title: 'Suspender cuenta',
+      message: `¿Suspender la cuenta de ${u.fullName || u.email}?`,
+      confirmLabel: 'Suspender',
+      variant: 'danger',
+      icon: 'trash',
+    });
+    if (!ok) return;
     await this.store.disable(u.publicUuid);
   }
 
@@ -496,14 +599,48 @@ export class UserDetailComponent implements OnInit {
     await this.store.enable(u.publicUuid);
   }
 
-  protected async onResetPassword(): Promise<void> {
+  protected onResetPassword(): void {
+    if (!this.user()) return;
+    this.tempPassword.set(null);
+    this.resetSent.set(false);
+    this.resetModalOpen.set(true);
+  }
+
+  protected closeResetModal(): void {
+    if (this.saving()) return;
+    this.resetModalOpen.set(false);
+  }
+
+  protected isSyntheticEmail(): boolean {
+    return this.user()?.emailSource === 'SYNTHETIC';
+  }
+
+  protected async confirmReset(delivery: AdminPasswordResetDelivery): Promise<void> {
     const u = this.user();
     if (!u) return;
-    if (!confirm(`¿Enviar un reset de contraseña a ${u.email}?`)) return;
-    const ok = await this.store.resetPassword(u.publicUuid);
-    if (ok) {
+    if (delivery === 'EMAIL' && this.isSyntheticEmail()) return;
+
+    const result = await this.store.resetPassword(u.publicUuid, delivery);
+    if (!result) return;
+
+    this.resetModalOpen.set(false);
+    if (result.delivery === 'TEMPORARY' && result.temporaryPassword) {
+      this.tempPassword.set(result.temporaryPassword);
+      this.resetSent.set(false);
+    } else {
+      this.tempPassword.set(null);
       this.resetSent.set(true);
       setTimeout(() => this.resetSent.set(false), 6000);
+    }
+  }
+
+  protected async copyTempPassword(): Promise<void> {
+    const value = this.tempPassword();
+    if (!value || !navigator.clipboard?.writeText) return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      /* ignore — admin can still select-all */
     }
   }
 

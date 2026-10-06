@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { NotificationsApiService } from '../../services/notifications-api.service';
 import { NotificationItem } from '../../models/notification.model';
@@ -186,6 +186,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   private readonly api = inject(NotificationsApiService);
   private readonly realtime = inject(RealtimeService);
   private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly open = signal(false);
@@ -279,6 +280,10 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
       });
     }
     this.open.set(false);
+    const announcementId = n.payload?.['announcementPublicUuid'];
+    if (n.category === 'ANNOUNCEMENT' && typeof announcementId === 'string' && announcementId) {
+      void this.router.navigate(['/announcements'], { queryParams: { focus: announcementId } });
+    }
   }
 
   markAllRead(): void {

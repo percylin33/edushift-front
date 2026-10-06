@@ -11,20 +11,33 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { firstValueFrom } from 'rxjs';
 import {
+  ConfirmDialogService,
   EmptyStateComponent,
   IconComponent,
   SpinnerComponent,
   PageContainerComponent,
   PageHeaderComponent,
 } from '@shared/components';
+import { AcademicApiService } from '@features/academic/services';
 import { SessionsApiService } from '../../services';
 import {
   LearningSessionRow,
   LearningSessionFilters,
+  SharedLearningSession,
   SessionStatus,
   SESSION_STATUS_LABELS,
   SESSION_STATUS_BADGE_CLASS,
 } from '../../models';
+
+interface GradeAssignment {
+  publicUuid: string;
+  coursePublicUuid: string;
+  academicPeriodPublicUuid: string;
+  gradeName?: string | null;
+  sectionName?: string;
+  courseCode?: string;
+  active?: boolean;
+}
 
 /**
  * `/learning-sessions` — Listado de sesiones de aprendizaje con filtros.
@@ -62,13 +75,87 @@ import {
         </button>
       </app-page-header>
 
+      @if (sharedSessions().length > 0) {
+        <section class="card mb-4">
+          <header class="card-header">
+            <h3 class="card-title">Sesiones del grado</h3>
+            <p class="card-description">
+              Planes que otros docentes compartieron. Puedes copiarlos a tu sección.
+            </p>
+          </header>
+          <div class="card-body grid gap-4">
+            @for (shared of sharedSessions(); track shared.publicUuid) {
+              <div class="rounded-md border border-border-subtle p-3">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p class="font-medium">{{ shared.title }}</p>
+                    <p class="text-xs text-content-muted">
+                      {{ shared.authorName }} · {{ shared.gradeName }} {{ shared.sectionName }} ·
+                      {{ shared.courseCode }}
+                    </p>
+                    @if (shared.objective) {
+                      <p class="mt-1 text-sm text-content">{{ shared.objective }}</p>
+                    }
+                  </div>
+                  <button type="button" class="btn btn-outline btn-sm" (click)="startCopy(shared)">
+                    Usar en mi sección
+                  </button>
+                </div>
+                @if (copyTargetId() === shared.publicUuid) {
+                  @if (matchingAssignments(shared).length === 0) {
+                    <p class="mt-3 text-sm text-content-muted">
+                      No tienes una asignación activa de ese curso y grado.
+                    </p>
+                  } @else {
+                    <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                      <div class="field">
+                        <label class="label">Mi sección</label>
+                        <select
+                          class="select"
+                          [value]="copyAssignmentId()"
+                          (change)="copyAssignmentId.set($any($event.target).value)"
+                        >
+                          @for (assignment of matchingAssignments(shared); track assignment.publicUuid) {
+                            <option [value]="assignment.publicUuid">
+                              {{ assignment.gradeName }} {{ assignment.sectionName }} ·
+                              {{ assignment.courseCode }}
+                            </option>
+                          }
+                        </select>
+                      </div>
+                      <div class="field">
+                        <label class="label">Fecha</label>
+                        <input
+                          type="date"
+                          class="input"
+                          [value]="copyDate()"
+                          (change)="copyDate.set($any($event.target).value)"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        class="btn btn-primary btn-sm w-fit"
+                        [disabled]="copying()"
+                        (click)="confirmCopy(shared)"
+                      >
+                        Crear copia
+                      </button>
+                    </div>
+                  }
+                }
+              </div>
+            }
+          </div>
+        </section>
+      }
+
       <!-- Filtros -->
       <section class="card mb-4">
         <div class="card-body grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div class="field">
             <label class="label">Estado</label>
             <select
-              class="input"
+              class="select"
               [value]="filters().status ?? ''"
               (change)="onFilterChange('status', $any($event.target).value || undefined)"
             >
@@ -296,8 +383,10 @@ import {
 })
 export class SessionsListComponent implements OnInit {
   private readonly api = inject(SessionsApiService);
+  private readonly academicApi = inject(AcademicApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly sessions = signal<LearningSessionRow[]>([]);
   protected readonly loading = signal(false);
@@ -305,6 +394,12 @@ export class SessionsListComponent implements OnInit {
   protected readonly selectedSessions = signal<Set<string>>(new Set());
   protected readonly bulkActionLoading = signal(false);
   protected readonly actionLoading = signal<Set<string>>(new Set());
+  protected readonly sharedSessions = signal<SharedLearningSession[]>([]);
+  protected readonly myAssignments = signal<GradeAssignment[]>([]);
+  protected readonly copyTargetId = signal<string | null>(null);
+  protected readonly copyAssignmentId = signal('');
+  protected readonly copyDate = signal('');
+  protected readonly copying = signal(false);
 
   protected readonly filters = computed<LearningSessionFilters>(() => {
     const qp = this.route.snapshot.queryParamMap;
@@ -323,7 +418,60 @@ export class SessionsListComponent implements OnInit {
   ];
 
   async ngOnInit(): Promise<void> {
-    await this.loadSessions();
+    await Promise.all([this.loadSessions(), this.loadShared()]);
+  }
+
+  private async loadShared(): Promise<void> {
+    try {
+      const [shared, assignments] = await Promise.all([
+        firstValueFrom(this.api.listSharedSessions()),
+        firstValueFrom(this.academicApi.listAssignments({ activeOnly: true })),
+      ]);
+      this.sharedSessions.set(shared);
+      this.myAssignments.set(assignments as GradeAssignment[]);
+    } catch {
+      this.sharedSessions.set([]);
+    }
+  }
+
+  protected matchingAssignments(shared: SharedLearningSession): GradeAssignment[] {
+    return this.myAssignments().filter(
+      (row) =>
+        row.active !== false &&
+        row.coursePublicUuid === shared.coursePublicUuid &&
+        row.academicPeriodPublicUuid === shared.periodPublicUuid &&
+        (row.gradeName ?? '') === shared.gradeName,
+    );
+  }
+
+  protected startCopy(shared: SharedLearningSession): void {
+    if (this.copyTargetId() === shared.publicUuid) {
+      this.copyTargetId.set(null);
+      return;
+    }
+    const matches = this.matchingAssignments(shared);
+    this.copyTargetId.set(shared.publicUuid);
+    this.copyAssignmentId.set(matches[0]?.publicUuid ?? '');
+    this.copyDate.set(shared.scheduledDate);
+  }
+
+  protected async confirmCopy(shared: SharedLearningSession): Promise<void> {
+    if (!this.copyAssignmentId() || !this.copyDate()) return;
+    this.copying.set(true);
+    this.errorMessage.set(null);
+    try {
+      const created = await firstValueFrom(
+        this.api.copySession(shared.publicUuid, {
+          assignmentUuid: this.copyAssignmentId(),
+          scheduledDate: this.copyDate(),
+        }),
+      );
+      await this.router.navigate([ROUTES.SESSIONS.detail(created.publicUuid)]);
+    } catch (err) {
+      this.errorMessage.set(err instanceof Error ? err.message : 'No se pudo copiar la sesión');
+    } finally {
+      this.copying.set(false);
+    }
   }
 
   protected async loadSessions(): Promise<void> {
@@ -481,7 +629,13 @@ export class SessionsListComponent implements OnInit {
   // ===========================================================================
 
   protected async startSession(session: LearningSessionRow): Promise<void> {
-    if (!confirm(`¿Iniciar la sesión "${session.title}"?`)) return;
+    const ok = await this.confirmDialog.open({
+      title: 'Iniciar sesión',
+      message: `¿Iniciar la sesión "${session.title}"?`,
+      confirmLabel: 'Iniciar',
+      variant: 'default',
+    });
+    if (!ok) return;
     this.setActionLoading(session.publicUuid, true);
     try {
       await firstValueFrom(this.api.startSession(session.publicUuid, { version: session.version }));
@@ -494,7 +648,13 @@ export class SessionsListComponent implements OnInit {
   }
 
   protected async completeSession(session: LearningSessionRow): Promise<void> {
-    if (!confirm(`¿Marcar como completada la sesión "${session.title}"?`)) return;
+    const ok = await this.confirmDialog.open({
+      title: 'Completar sesión',
+      message: `¿Marcar como completada la sesión "${session.title}"?`,
+      confirmLabel: 'Completar',
+      variant: 'warning',
+    });
+    if (!ok) return;
     this.setActionLoading(session.publicUuid, true);
     try {
       await firstValueFrom(

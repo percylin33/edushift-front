@@ -1203,17 +1203,28 @@ export class AcademicStore {
   }
 
   /**
-   * Orden estable: año (asc por nombre), grade ordinal asc, name asc.
-   * Es el orden que la tabla muestra y es razonable para el listado
-   * cuando hay múltiples años en pantalla (ej. filtro vacío).
+   * Orden de la tabla: año, luego nivel (Inicial, Primaria, Secundaria),
+   * luego grado dentro del nivel, luego nombre de la sección.
    */
   private sortSections(rows: SectionRow[]): SectionRow[] {
     return rows.slice().sort((a, b) => {
       const yearCmp = a.academicYearName.localeCompare(b.academicYearName);
       if (yearCmp !== 0) return yearCmp;
+      const levelCmp = this.levelRank(a) - this.levelRank(b);
+      if (levelCmp !== 0) return levelCmp;
       if (a.gradeOrdinal !== b.gradeOrdinal) return a.gradeOrdinal - b.gradeOrdinal;
-      return a.name.localeCompare(b.name);
+      const nameCmp = a.name.localeCompare(b.name, 'es');
+      if (nameCmp !== 0) return nameCmp;
+      return (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
     });
+  }
+
+  /** Inicial, luego Primaria, luego Secundaria; el resto sigue el ordinal del colegio. */
+  private levelRank(row: SectionRow): number {
+    const level = this._levels().find((l) => l.publicUuid === row.levelPublicUuid);
+    if (level) return level.ordinal;
+    const known: Record<string, number> = { INICIAL: 1, PRIMARIA: 2, SECUNDARIA: 3 };
+    return known[row.levelCode?.toUpperCase()] ?? 1000;
   }
 
   private toCourseRow(detail: CourseDetail): CourseRow {

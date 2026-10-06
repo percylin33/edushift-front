@@ -65,6 +65,11 @@ export class AdminAuthApiService {
       );
   }
 
+  /** Revoke the refresh cookie and ask the API to clear both auth cookies. */
+  logout(): Observable<void> {
+    return this.api.post<void>(API.ADMIN.AUTH.LOGOUT, {});
+  }
+
   /**
    * Internal: if the BE returned the MFA-required envelope and the
    * current FE build is eligible to bypass, spend the onboarding

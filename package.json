@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve --configuration development --proxy-config proxy.conf.mjs",
+    "start": "ng serve --configuration development --proxy-config proxy.conf.mjs --host 0.0.0.0 --disable-host-check",
+    "start:tunnel": "ng serve --configuration development --proxy-config proxy.conf.mjs --host 0.0.0.0 --disable-host-check",
     "start:prod": "ng serve --configuration production",
     "build": "ng build",
     "build:dev": "ng build --configuration development",

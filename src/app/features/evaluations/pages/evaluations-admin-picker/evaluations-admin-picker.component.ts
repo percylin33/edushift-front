@@ -66,7 +66,7 @@ import {
             <label class="label" for="reg-period">Periodo</label>
             <select
               id="reg-period"
-              class="input"
+              class="select"
               [value]="periodId()"
               (change)="onPeriodChange($any($event.target).value)"
             >
@@ -81,7 +81,7 @@ import {
             <label class="label" for="reg-section">Sección</label>
             <select
               id="reg-section"
-              class="input"
+              class="select"
               [value]="sectionId()"
               (change)="onSectionChange($any($event.target).value)"
             >
@@ -96,7 +96,7 @@ import {
             <label class="label" for="reg-course">Curso</label>
             <select
               id="reg-course"
-              class="input"
+              class="select"
               [value]="courseId()"
               (change)="onCourseChange($any($event.target).value)"
             >
@@ -113,7 +113,7 @@ import {
             <label class="label" for="reg-teacher">Docente</label>
             <select
               id="reg-teacher"
-              class="input"
+              class="select"
               [value]="teacherId()"
               (change)="onTeacherChange($any($event.target).value)"
             >

@@ -10,6 +10,7 @@ import {
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import {
+  ConfirmDialogService,
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
@@ -91,22 +92,29 @@ type SectionTab = 'info' | 'roster' | 'teachers' | 'schedule';
         </app-page-header>
 
         <!-- Tabs -->
-        <nav class="card mb-4">
-          <div role="tablist" class="flex gap-1 px-2 pt-2">
-            @for (t of tabs; track t.id) {
-              <button
-                role="tab"
-                type="button"
-                [attr.aria-selected]="activeTab() === t.id"
-                [class.tab-active]="activeTab() === t.id"
-                class="tab"
-                (click)="setTab(t.id)"
-              >
-                <app-icon [name]="t.icon" [size]="16" />
-                <span>{{ t.label }}</span>
-              </button>
-            }
-          </div>
+        <nav
+          class="mb-4 flex flex-wrap gap-1 border-b border-border-subtle"
+          role="tablist"
+          aria-label="Detalle de la sección"
+        >
+          @for (t of tabs; track t.id) {
+            <button
+              role="tab"
+              type="button"
+              [attr.aria-selected]="activeTab() === t.id"
+              class="flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors"
+              [class.border-primary-600]="activeTab() === t.id"
+              [class.text-primary-700]="activeTab() === t.id"
+              [class.border-transparent]="activeTab() !== t.id"
+              [class.text-content-muted]="activeTab() !== t.id"
+              [class.hover:text-content]="activeTab() !== t.id"
+              [class.hover:border-border]="activeTab() !== t.id"
+              (click)="setTab(t.id)"
+            >
+              <app-icon [name]="t.icon" [size]="16" />
+              <span>{{ t.label }}</span>
+            </button>
+          }
         </nav>
 
         <!-- Tab content -->
@@ -163,7 +171,10 @@ type SectionTab = 'info' | 'roster' | 'teachers' | 'schedule';
             <app-section-roster-tab [sectionPublicUuid]="sec.publicUuid" />
           }
           @case ('teachers') {
-            <app-section-teachers-tab [sectionPublicUuid]="sec.publicUuid" />
+            <app-section-teachers-tab
+              [sectionPublicUuid]="sec.publicUuid"
+              [academicYearPublicUuid]="sec.academicYearPublicUuid"
+            />
           }
           @case ('schedule') {
             <app-section-schedule-tab [sectionPublicUuid]="sec.publicUuid" />
@@ -198,6 +209,7 @@ export class SectionDetailComponent implements OnInit {
   private readonly store = inject(AcademicStore);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly listRoute = ROUTES.ACADEMIC.SECTIONS.LIST;
 
@@ -267,10 +279,15 @@ export class SectionDetailComponent implements OnInit {
   protected async confirmDelete(): Promise<void> {
     const sec = this.section();
     if (!sec) return;
-    const ok = confirm(
-      `¿Eliminar la sección "${sec.gradeName} ${sec.name}" del año "${sec.academicYearName}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar sección',
+      message:
+        `¿Eliminar la sección "${sec.gradeName} ${sec.name}" del año "${sec.academicYearName}"?\n\n` +
         'Esta operación es reversible solo desde el backend.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     const success = await this.store.deleteSection(sec.publicUuid);
     if (success) {

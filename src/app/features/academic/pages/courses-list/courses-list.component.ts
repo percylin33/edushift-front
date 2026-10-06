@@ -3,11 +3,16 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import {
+  ConfirmDialogService,
+  EmptyStateComponent,
+  IconComponent,
+  SpinnerComponent,
+} from '@shared/components';
 import { CourseBulkSetupComponent, CourseFormModalComponent } from '../../components';
 import { AcademicStore } from '../../store';
 import { CourseDetail, CourseRow } from '../../models';
-import { resolveCourseVisual } from '../../utils/course-visual.util';
+import { courseChipForeground, resolveCourseVisual } from '../../utils/course-visual.util';
 
 /**
  * `/academic/courses` — listado, filtros y CRUD de cursos (BE-4.4).
@@ -165,8 +170,9 @@ import { resolveCourseVisual } from '../../utils/course-visual.util';
                   <td>
                     <div class="flex items-center gap-2.5">
                       <span
-                        class="flex size-8 shrink-0 items-center justify-center rounded-lg text-white"
+                        class="flex size-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset ring-black/10"
                         [style.background-color]="courseAvatar(row).color"
+                        [style.color]="chipForeground(courseAvatar(row).color)"
                         aria-hidden="true"
                       >
                         <app-icon [name]="courseAvatar(row).icon" [size]="16" />
@@ -314,6 +320,7 @@ export class CoursesListComponent implements OnInit {
   private readonly store = inject(AcademicStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly levels = this.store.levels;
   protected readonly loading = this.store.loadingCourses;
@@ -325,6 +332,8 @@ export class CoursesListComponent implements OnInit {
 
   protected readonly detailRoute = (publicUuid: string): string =>
     ROUTES.ACADEMIC.COURSES.detail(publicUuid);
+
+  protected readonly chipForeground = courseChipForeground;
 
   protected courseAvatar(row: CourseRow) {
     return resolveCourseVisual(row.code, row.color, row.icon);
@@ -425,11 +434,16 @@ export class CoursesListComponent implements OnInit {
   }
 
   protected async confirmDelete(row: CourseRow): Promise<void> {
-    const ok = confirm(
-      `¿Eliminar el curso "${row.code} — ${row.name}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar curso',
+      message:
+        `¿Eliminar el curso "${row.code} — ${row.name}"?\n\n` +
         'Esta operación es reversible solo desde el backend. Si el curso\n' +
         'tiene asignaciones de docentes, considera desactivarlo en su lugar.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.deleteCourse(row.publicUuid);
   }

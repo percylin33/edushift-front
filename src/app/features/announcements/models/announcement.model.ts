@@ -22,6 +22,27 @@ export interface Announcement {
   publishAt?: string;
   publishedAt?: string;
   createdAt: string;
+  includeGuardians?: boolean;
+  /** False when the caller has not opened it. Null when read state is unknown. */
+  read?: boolean | null;
+}
+
+export interface AudiencePreview {
+  students: number;
+  teachers: number;
+  guardians: number;
+  total: number;
+}
+
+export interface TeachingScopeOption {
+  id: string;
+  label: string;
+  subtitle?: string;
+}
+
+export interface TeachingScope {
+  sections: TeachingScopeOption[];
+  courses: TeachingScopeOption[];
 }
 
 export interface CreateAnnouncementPayload {
@@ -30,5 +51,6 @@ export interface CreateAnnouncementPayload {
   audienceType: AnnouncementAudience;
   audienceIds?: string[];
   pinned?: boolean;
-  publishAt?: string;
+  publishAt?: string | null;
+  includeGuardians?: boolean;
 }

@@ -5,7 +5,7 @@ import { buildPalette, getDocumentRoot } from './color.utils';
 import { ALL_TENANT_VARS, PALETTE_SHADES, THEME_TOKENS } from './theme-tokens';
 
 const FAVICON_ELEMENT_ID = 'app-favicon';
-const DEFAULT_FAVICON_HREF = 'favicon.ico';
+const DEFAULT_FAVICON_HREF = 'branding/icons/icono.png';
 
 /**
  * Applies the tenant's white-label branding to `<html>`.

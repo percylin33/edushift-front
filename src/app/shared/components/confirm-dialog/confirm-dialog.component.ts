@@ -48,7 +48,7 @@ import { ConfirmDialogConfig } from './confirm-dialog.model';
         </header>
 
         <div class="card-body">
-          <p class="text-sm text-content-muted">{{ config().message }}</p>
+          <p class="whitespace-pre-line text-sm text-content-muted">{{ config().message }}</p>
         </div>
 
         <footer class="card-footer flex justify-end gap-2">

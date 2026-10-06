@@ -2,12 +2,13 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
-  OnInit,
   computed,
+  effect,
   inject,
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IconComponent, SpinnerComponent } from '@shared/components';
@@ -39,18 +40,33 @@ function cellKey(gradeUuid: string, letter: SectionLetter): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, IconComponent, SpinnerComponent],
   template: `
-    <section class="card mb-4">
-      <header class="card-header flex flex-wrap items-start justify-between gap-3">
+    <section
+      class="card mb-4 w-full"
+      [class.ml-auto]="compactCollapsed()"
+      [class.max-w-md]="compactCollapsed()"
+    >
+      <header
+        class="card-header flex flex-wrap items-center justify-between gap-3"
+        [class.items-start]="expanded()"
+      >
         <div class="min-w-0">
-          <h3 class="card-title text-base">Configurar secciones del colegio</h3>
-          <p class="card-description">
-            Marca las letras (A, B, C) que tiene cada grado. Las celdas ya creadas aparecen
-            bloqueadas.
-          </p>
+          <h3
+            class="card-title"
+            [class.text-base]="expanded() || !alreadyConfigured()"
+            [class.text-sm]="compactCollapsed()"
+          >
+            Configurar secciones del colegio
+          </h3>
+          @if (expanded()) {
+            <p class="card-description">
+              Marca las letras (A, B, C) que tiene cada grado. Las celdas ya creadas aparecen
+              bloqueadas.
+            </p>
+          }
         </div>
         <button
           type="button"
-          class="btn btn-ghost btn-sm"
+          class="btn btn-ghost btn-sm shrink-0"
           (click)="expanded.set(!expanded())"
           [attr.aria-expanded]="expanded()"
         >
@@ -216,7 +232,7 @@ function cellKey(gradeUuid: string, letter: SectionLetter): string {
     </section>
   `,
 })
-export class SectionBulkSetupComponent implements OnInit {
+export class SectionBulkSetupComponent {
   private readonly store = inject(AcademicStore);
 
   /** Año sugerido al abrir (p.ej. filtro de la lista o ACTIVE). */
@@ -232,13 +248,16 @@ export class SectionBulkSetupComponent implements OnInit {
   protected readonly levels = this.store.levels;
   protected readonly bulkProgress = this.store.bulkProgress;
 
-  protected readonly expanded = signal(true);
+  protected readonly expanded = signal(false);
   protected readonly yearUuid = signal<string | null>(null);
   /** Selección pendiente: keys {@code gradeUuid:letter}. */
   protected readonly selected = signal<Set<string>>(new Set());
   protected readonly busy = signal(false);
   protected readonly resultMessage = signal<string | null>(null);
   protected readonly resultIsError = signal(false);
+
+  /** Evita re-emitir yearChange en cada tick del effect cuando ya estamos alineados. */
+  private lastEmittedYear: string | null = null;
 
   protected readonly mutableYears = computed<AcademicYearRow[]>(() =>
     this.store.years().filter((y) => isSectionMutable(y.status)),
@@ -259,6 +278,14 @@ export class SectionBulkSetupComponent implements OnInit {
     return keys;
   });
 
+  /** Tras el primer uso (hay A/B/C): chip compacto a la derecha cuando está cerrado. */
+  protected readonly alreadyConfigured = computed(() => this.existingKeys().size > 0);
+
+  /** Compacto solo cerrado; al expandir ocupa todo el ancho. */
+  protected readonly compactCollapsed = computed(
+    () => this.alreadyConfigured() && !this.expanded(),
+  );
+
   protected readonly pendingCount = computed(() => {
     const existing = this.existingKeys();
     let n = 0;
@@ -272,21 +299,43 @@ export class SectionBulkSetupComponent implements OnInit {
     () => !!this.yearUuid() && this.pendingCount() > 0 && !this.busy() && !this.bulkProgress(),
   );
 
-  ngOnInit(): void {
-    const def = this.defaultYearUuid();
-    const years = this.mutableYears();
-    const pick =
-      (def && years.some((y) => y.publicUuid === def) ? def : null) ??
-      years.find((y) => y.status === AcademicYearStatus.Active)?.publicUuid ??
-      years[0]?.publicUuid ??
-      null;
-    if (pick) {
-      this.yearUuid.set(pick);
-      this.seedSelectionFromExisting();
-      /* Alinea la lista padre al año del panel (sin filtros grade/level)
-       * para que la presencia A/B/C sea completa. */
-      this.yearChange.emit(pick);
-    }
+  constructor() {
+    /**
+     * El padre hidrata {@code ?yearId} / años de forma async; este effect
+     * aplica el año de la lista (o ACTIVE) en cuanto estén disponibles,
+     * evitando el paso vacío “Elige un año”.
+     */
+    effect(() => {
+      const def = this.defaultYearUuid();
+      const years = this.mutableYears();
+      if (years.length === 0) return;
+
+      const current = this.yearUuid();
+      const currentOk = !!current && years.some((y) => y.publicUuid === current);
+      const defOk = !!def && years.some((y) => y.publicUuid === def);
+
+      // Preferir el año del filtro/URL de la página cuando cambia o aún no hay año.
+      const pick = defOk
+        ? def!
+        : currentOk
+          ? current!
+          : (years.find((y) => y.status === AcademicYearStatus.Active)?.publicUuid ??
+            years[0]?.publicUuid ??
+            null);
+
+      if (!pick || pick === current) return;
+
+      untracked(() => {
+        this.yearUuid.set(pick);
+        this.selected.set(new Set());
+        this.seedSelectionFromExisting();
+        this.syncExpandedForMode();
+        if (this.lastEmittedYear !== pick) {
+          this.lastEmittedYear = pick;
+          this.yearChange.emit(pick);
+        }
+      });
+    });
   }
 
   protected statusLabel(status: AcademicYearStatus): string {
@@ -358,7 +407,11 @@ export class SectionBulkSetupComponent implements OnInit {
     this.selected.set(new Set());
     this.resultMessage.set(null);
     this.seedSelectionFromExisting();
-    if (value) this.yearChange.emit(value);
+    this.syncExpandedForMode();
+    if (value) {
+      this.lastEmittedYear = value;
+      this.yearChange.emit(value);
+    }
   }
 
   protected async submit(): Promise<void> {
@@ -395,10 +448,16 @@ export class SectionBulkSetupComponent implements OnInit {
         );
         this.selected.set(new Set());
         this.completed.emit();
+        this.syncExpandedForMode();
       }
     } finally {
       this.busy.set(false);
     }
+  }
+
+  /** Siempre cerrado al montar / cambiar año / tras crear. */
+  private syncExpandedForMode(): void {
+    this.expanded.set(false);
   }
 
   /** Pre-marca A en grados sin ninguna sección del año (arranque típico). */

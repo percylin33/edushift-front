@@ -72,6 +72,9 @@ export class NavLabels {
 			case 'academic-grade-register':
 			case 'grade-register':
 				return $localize`:@@nav.item.grade-register:Registro de notas`;
+			case 'academic-session-templates':
+			case 'session-templates':
+				return $localize`:@@nav.item.session-templates:Plantillas de sesi\u00f3n`;
 			case 'schedule':
 				return $localize`:@@nav.item.schedule:Horarios`;
 			case 'schedule-jornada':
@@ -110,6 +113,14 @@ export class NavLabels {
 			case 'payments-admin':
 			case 'reconciliation':
 				return $localize`:@@nav.item.reconciliation:Conciliaci\u00f3n`;
+			case 'payments-emit':
+				return $localize`:@@nav.item.payments-emit:Emitir cuotas`;
+			case 'payments-concepts':
+				return $localize`:@@nav.item.payments-concepts:Conceptos`;
+			case 'payments-plans':
+				return $localize`:@@nav.item.payments-plans:Planes autom\u00e1ticos`;
+			case 'payments-policy':
+				return $localize`:@@nav.item.payments-policy:Pol\u00edtica de cobro`;
 			case 'ai':
 				return $localize`:@@nav.item.ai:Asistente IA`;
 			case 'reports':

@@ -14,9 +14,8 @@ import { AuthService } from '@core/services';
  * ("Mis cuotas") is wrong for the admin. This resolver picks the
  * right entry-point per role:</p>
  * <ul>
- *   <li>TENANT_ADMIN / STAFF → {@code /payments/admin/payments}
- *       (the {@code LMS_PAYMENT_ADMIN} guard on the child route
- *       will 403 the user cleanly if they don't have it).</li>
+ *   <li>TENANT_ADMIN / STAFF → {@code /payments/admin/invoices}
+ *       (voucher review queue, gated by {@code LMS_PAYMENT_ADMIN}).</li>
  *   <li>STUDENT / PARENT → {@code /payments/invoices}.</li>
  *   <li>Anything else → {@code /dashboard}.</li>
  * </ul>
@@ -39,7 +38,7 @@ export class PaymentsRoleRedirectComponent implements OnInit {
     const roles = this.auth.roles();
 
     if (roles.includes(UserRole.TenantAdmin) || roles.includes(UserRole.Staff)) {
-      await this.router.navigateByUrl('/payments/admin/payments');
+      await this.router.navigateByUrl('/payments/admin/invoices');
       return;
     }
 

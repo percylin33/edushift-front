@@ -10,6 +10,7 @@ import {
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import {
+  ConfirmDialogService,
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
@@ -257,6 +258,7 @@ export class StudentDetailComponent implements OnInit {
   private readonly store = inject(StudentsStore);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly listRoute = ROUTES.STUDENTS.LIST;
 
@@ -372,13 +374,13 @@ export class StudentDetailComponent implements OnInit {
   }
 
   protected async onDelete(student: StudentDetail): Promise<void> {
-    /* No fancy modal yet — Sprint 3 ships a native confirm() so we
-     * don't bikeshed the dialog component while the rest of the
-     * flow stabilizes. Promote to {@code app-confirm-dialog} the
-     * second another delete flow lands. */
-    const ok = window.confirm(
-      `¿Eliminar a ${student.fullName}? Esta acción es reversible (soft delete).`,
-    );
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar estudiante',
+      message: `¿Eliminar a ${student.fullName}? Esta acción es reversible (soft delete).`,
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
 
     const success = await this.store.delete(student.publicUuid);

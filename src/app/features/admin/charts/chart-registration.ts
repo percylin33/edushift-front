@@ -1,9 +1,12 @@
 import {
   Chart,
   ArcElement,
+  BarController,
   BarElement,
   CategoryScale,
+  DoughnutController,
   LinearScale,
+  LineController,
   PointElement,
   LineElement,
   Filler,
@@ -13,9 +16,12 @@ import {
 
 Chart.register(
   ArcElement,
+  BarController,
   BarElement,
   CategoryScale,
+  DoughnutController,
   LinearScale,
+  LineController,
   PointElement,
   LineElement,
   Filler,

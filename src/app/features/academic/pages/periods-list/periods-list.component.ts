@@ -9,7 +9,13 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import { NotificationService } from '@core/services';
+import {
+  ConfirmDialogService,
+  EmptyStateComponent,
+  IconComponent,
+  SpinnerComponent,
+} from '@shared/components';
 import {
   AcademicYearStatusBadgeComponent,
   PeriodFormModalComponent,
@@ -301,6 +307,8 @@ export class PeriodsListComponent implements OnInit {
   private readonly store = inject(AcademicStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly notifications = inject(NotificationService);
 
   protected readonly years = this.store.years;
   protected readonly currentActive = this.store.currentActive;
@@ -450,11 +458,16 @@ export class PeriodsListComponent implements OnInit {
   }
 
   protected async confirmDelete(row: AcademicPeriodRow): Promise<void> {
-    const ok = confirm(
-      `¿Eliminar el periodo "${row.name}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar periodo',
+      message:
+        `¿Eliminar el periodo "${row.name}"?\n\n` +
         'Solo se puede borrar el último ordinal del par (año, tipo). Si\n' +
         'querés renumerar, borrá de mayor a menor y recreá los que falten.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.deletePeriod(row.publicUuid);
   }
@@ -489,7 +502,12 @@ export class PeriodsListComponent implements OnInit {
           'El backend rechazará los duplicados o solapamientos. ¿Continuar?\n\n'
         : `Se crearán ${plan.parts.length} periodos de tipo ${PERIOD_TYPE_LABELS[type]}:\n\n`;
 
-    const ok = confirm(header + lines.join('\n'));
+    const ok = await this.confirmDialog.open({
+      title: 'Generar periodos',
+      message: header + lines.join('\n'),
+      confirmLabel: 'Crear',
+      variant: existingSameType > 0 ? 'warning' : 'default',
+    });
     if (!ok) return;
 
     const bulkInput = plan.parts.map((p) => ({
@@ -502,7 +520,7 @@ export class PeriodsListComponent implements OnInit {
 
     const result = await this.store.createPeriodsBulk(year.publicUuid, bulkInput);
     if (!result.success && result.failedAt !== undefined) {
-      alert(
+      this.notifications.error(
         `Se crearon ${result.failedAt - 1} periodo(s) y luego falló.\n` +
           'Revisa el banner de error y reintenta el resto manualmente.',
       );

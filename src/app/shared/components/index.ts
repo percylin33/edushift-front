@@ -18,3 +18,4 @@ export * from './confirm-dialog/confirm-dialog.model';
 export * from './prompt-dialog/prompt-dialog.component';
 export * from './prompt-dialog/prompt-dialog.service';
 export * from './prompt-dialog/prompt-dialog.model';
+export * from './toast/toast-host.component';

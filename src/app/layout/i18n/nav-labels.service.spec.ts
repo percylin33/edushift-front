@@ -48,6 +48,10 @@ describe('NavLabels', () => {
     expect(labels.labelFor('grade-register')).toBe('Registro de notas');
     expect(labels.labelFor('reconciliation')).toBe('Conciliación');
     expect(labels.labelFor('payments-admin')).toBe('Conciliación');
+    expect(labels.labelFor('payments-emit')).toBe('Emitir cuotas');
+    expect(labels.labelFor('payments-concepts')).toBe('Conceptos');
+    expect(labels.labelFor('payments-plans')).toBe('Planes automáticos');
+    expect(labels.labelFor('payments-policy')).toBe('Política de cobro');
   });
 
   it('returns the id itself for unknown keys', () => {

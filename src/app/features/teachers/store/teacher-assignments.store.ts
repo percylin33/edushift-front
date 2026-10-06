@@ -317,6 +317,7 @@ export class TeacherAssignmentsStore {
       teacherFullName: detail.teacherFullName,
       sectionPublicUuid: detail.sectionPublicUuid,
       sectionName: detail.sectionName,
+      gradeName: detail.gradeName ?? null,
       coursePublicUuid: detail.coursePublicUuid,
       courseCode: detail.courseCode,
       courseName: detail.courseName,

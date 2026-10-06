@@ -19,7 +19,11 @@ import { TenantService } from '@core/services';
 import { APP } from '@core/constants';
 import { TenantStatus } from '@core/enums';
 import { Tenant } from '@core/models';
-import { TenantAssetsService } from '@core/theming/tenant-assets.service';
+import {
+  PLATFORM_DEFAULT_LOGO_DARK_URL,
+  PLATFORM_DEFAULT_LOGO_URL,
+  TenantAssetsService,
+} from '@core/theming/tenant-assets.service';
 import { AlertComponent, SpinnerComponent, TenantLogoComponent } from '@shared/components';
 import { ThemeToggleComponent } from '../components';
 
@@ -168,10 +172,15 @@ type AuthShellState = 'loading' | 'ready' | 'needs-link' | 'not-found' | 'inacti
             }
           </div>
 
-          <div class="auth-fade-delay text-xs text-white/55">
-            Powered by {{ appName }}
-            <span class="mx-2 text-white/30">·</span>
-            © {{ year }}
+          <div class="auth-fade-delay flex items-center gap-2 text-xs text-white/55">
+            <span>Powered by</span>
+            <img
+              [src]="platformWordmarkOnDark"
+              alt="EduShift"
+              class="h-5 w-auto"
+            />
+            <span class="text-white/30" aria-hidden="true">·</span>
+            <span>© {{ year }}</span>
           </div>
         </aside>
 
@@ -237,8 +246,18 @@ type AuthShellState = 'loading' | 'ready' | 'needs-link' | 'not-found' | 'inacti
               <router-outlet />
             }
 
-            <p class="mt-8 text-center text-[11px] text-content-subtle lg:hidden">
-              Powered by {{ appName }}
+            <p class="mt-8 flex items-center justify-center gap-2 text-[11px] text-content-subtle lg:hidden">
+              <span>Powered by</span>
+              <img
+                [src]="platformWordmark"
+                alt="EduShift"
+                class="h-4 w-auto dark:hidden"
+              />
+              <img
+                [src]="platformWordmarkOnDark"
+                alt=""
+                class="hidden h-4 w-auto dark:block"
+              />
             </p>
           </div>
         </section>
@@ -254,6 +273,10 @@ export class AuthLayoutComponent {
 
   readonly appName = APP.NAME;
   readonly year = new Date().getFullYear();
+  /** Platform wordmark on the dark hero. Always EduShift, never the school logo. */
+  readonly platformWordmarkOnDark = PLATFORM_DEFAULT_LOGO_DARK_URL;
+  /** Color wordmark for the light auth card; the dark variant swaps in with the theme. */
+  readonly platformWordmark = PLATFORM_DEFAULT_LOGO_URL;
 
   readonly loginBgUrl = this.assets.loginBgUrl;
   readonly tenantName = computed(() => {

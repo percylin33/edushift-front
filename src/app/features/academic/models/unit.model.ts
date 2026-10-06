@@ -161,6 +161,28 @@ export interface UnitReorderRequest {
   items: UnitReorderItem[];
 }
 
+/**
+ * Body opcional de {@code POST .../units/seed-defaults}.
+ * {@code count} null/omitido → usa {@code settings.academic.defaultUnitCount} (o 8).
+ */
+export interface SeedUnitsRequest {
+  count?: number;
+  saveAsTenantDefault?: boolean;
+}
+
+/** Respuesta de {@code POST .../units/seed-defaults}. */
+export interface SeedUnitsResponse {
+  seeded: boolean;
+  countRequested: number;
+  unitsCreated: number;
+  created: UnitListItemRaw[];
+}
+
+/** Default / bounds alineados con el BE ({@code TenantSettingsService}). */
+export const DEFAULT_UNIT_COUNT = 8;
+export const MIN_UNIT_COUNT = 1;
+export const MAX_UNIT_COUNT = 20;
+
 // =============================================================================
 // Validation helpers
 // =============================================================================

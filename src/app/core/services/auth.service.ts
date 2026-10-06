@@ -46,12 +46,7 @@ export class AuthService {
   private readonly storage = inject(StorageService);
 
   private readonly _user = signal<User | null>(this.storage.get<User>(STORAGE_KEYS.CURRENT_USER));
-  private readonly _accessToken = signal<string | null>(
-    this.storage.get<string>(STORAGE_KEYS.AUTH_TOKEN),
-  );
-  private readonly _refreshToken = signal<string | null>(
-    this.storage.get<string>(STORAGE_KEYS.REFRESH_TOKEN),
-  );
+  // SECURITY FIX: Tokens are now stored in httpOnly cookies, not localStorage
   private readonly _expiresAt = signal<Date | null>(this.readExpiresAt());
 
   // MFA challenge token (Sprint 17 / BE-17.2). Short-lived JWT
@@ -65,19 +60,26 @@ export class AuthService {
 
   readonly user = this._user.asReadonly();
   readonly user$ = toObservable(this._user);
-  readonly accessToken = this._accessToken.asReadonly();
-  readonly refreshToken = this._refreshToken.asReadonly();
+  // SECURITY FIX: accessToken and refreshToken are now in httpOnly cookies
   readonly expiresAt = this._expiresAt.asReadonly();
   readonly mfaToken = this._mfaToken.asReadonly();
   readonly mfaTokenExpiresAt = this._mfaTokenExpiresAt.asReadonly();
 
-  readonly isAuthenticated = computed(() => !!this._accessToken() && !!this._user());
+  readonly isAuthenticated = computed(() => {
+    // The access token lives in an httpOnly cookie and expires in minutes.
+    // A past expiresAt must NOT look like logout: the refresh cookie can
+    // still be valid, and the first API call rotates it. Treating expiry
+    // as "logged out" skipped that refresh and bounced the user to login.
+    return this._user() !== null;
+  });
   readonly roles = computed<UserRole[]>(() => this._user()?.roles ?? []);
   readonly permissions = computed<Permission[]>(() => this._user()?.permissions ?? []);
 
-  /** Snapshot helper for non-reactive consumers (e.g. STOMP connect headers). */
+  /** Snapshot helper for non-reactive consumers (e.g. STOMP connect headers).
+   *  SECURITY FIX: Tokens are now in httpOnly cookies, so we return null.
+   *  The browser automatically sends cookies with requests. */
   getToken(): string | null {
-    return this._accessToken();
+    return null;
   }
 
   /**
@@ -96,13 +98,10 @@ export class AuthService {
    */
   setSession(session: AuthSession): void {
     this._user.set(session.user as User);
-    this._accessToken.set(session.accessToken);
-    this._refreshToken.set(session.refreshToken);
+    // SECURITY FIX: Tokens are now in httpOnly cookies, not localStorage
     this._expiresAt.set(session.expiresAt);
 
     this.storage.set(STORAGE_KEYS.CURRENT_USER, session.user);
-    this.storage.set(STORAGE_KEYS.AUTH_TOKEN, session.accessToken);
-    this.storage.set(STORAGE_KEYS.REFRESH_TOKEN, session.refreshToken);
     this.storage.set(STORAGE_KEYS.AUTH_EXPIRES_AT, session.expiresAt.toISOString());
   }
 
@@ -120,12 +119,8 @@ export class AuthService {
    * and we keep it as-is.
    */
   rotateTokens(session: AuthSession): void {
-    this._accessToken.set(session.accessToken);
-    this._refreshToken.set(session.refreshToken);
+    // SECURITY FIX: Tokens are now in httpOnly cookies, not localStorage
     this._expiresAt.set(session.expiresAt);
-
-    this.storage.set(STORAGE_KEYS.AUTH_TOKEN, session.accessToken);
-    this.storage.set(STORAGE_KEYS.REFRESH_TOKEN, session.refreshToken);
     this.storage.set(STORAGE_KEYS.AUTH_EXPIRES_AT, session.expiresAt.toISOString());
   }
 
@@ -138,13 +133,10 @@ export class AuthService {
   /** Wipe everything in memory + storage. Called from logout flows and 401 handlers. */
   clearSession(): void {
     this._user.set(null);
-    this._accessToken.set(null);
-    this._refreshToken.set(null);
+    // SECURITY FIX: Tokens are now in httpOnly cookies, not localStorage
     this._expiresAt.set(null);
     this.clearMfaToken();
     this.storage.remove(STORAGE_KEYS.CURRENT_USER);
-    this.storage.remove(STORAGE_KEYS.AUTH_TOKEN);
-    this.storage.remove(STORAGE_KEYS.REFRESH_TOKEN);
     this.storage.remove(STORAGE_KEYS.AUTH_EXPIRES_AT);
     // Keep tenant slug + branding. Logout is "leave the session", not
     // "leave the school" — the next screen is that school's login.

@@ -111,6 +111,12 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
             route: ROUTES.ACADEMIC.GRADE_REGISTER.LIST,
             roles: [UserRole.TenantAdmin],
           },
+          {
+            id: 'academic-session-templates',
+            label: 'Plantillas de sesión',
+            route: ROUTES.ACADEMIC.SESSION_TEMPLATES.LIST,
+            roles: [UserRole.TenantAdmin],
+          },
         ],
       },
       {
@@ -143,18 +149,16 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
       },
       {
         /*
-         * Sprint 5 (FE-5.x) — sesiones de aprendizaje. Solo TENANT_ADMIN
-         * hasta que se implemente el endpoint `/me/sessions` para TEACHER
-         * (BUG-2026-07-31-03: el backend restringe este recurso a admin y
-         * abrirlo a teacher sin filtro por teacherAssignment es un agujero
-         * de aislamiento entre tenants/docentes).
+         * Sprint 5 (FE-5.x) — sesiones de aprendizaje. TEACHER ve solo las
+         * suyas (filtro server-side por teacherAssignment); TENANT_ADMIN ve
+         * todas las del colegio.
          */
         id: 'learning-sessions',
         label: 'Sesiones de clase',
         icon: 'calendar',
         route: ROUTES.SESSIONS.ROOT,
         feature: FeatureKey.Sessions,
-        roles: [UserRole.TenantAdmin],
+        roles: [UserRole.TenantAdmin, UserRole.Teacher],
       },
       {
         /*
@@ -289,6 +293,13 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         roles: [UserRole.TenantAdmin, UserRole.Staff, UserRole.Student, UserRole.Parent],
         children: [
           {
+            id: 'payments-emit',
+            label: 'Emitir',
+            icon: 'plus',
+            route: ROUTES.PAYMENTS.ADMIN.EMIT,
+            permissions: [Permission.LmsPaymentAdmin],
+          },
+          {
             /*
              * Sprint 11 / FE-11.3 — admin power tools (reconcile /
              * refund / mark-paid-cash). Gated by `LMS_PAYMENT_ADMIN`
@@ -301,7 +312,28 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
             id: 'payments-admin',
             label: 'Conciliación',
             icon: 'shield-check',
-            route: ROUTES.PAYMENTS.ADMIN.ROOT,
+            route: ROUTES.PAYMENTS.ADMIN.INVOICES,
+            permissions: [Permission.LmsPaymentAdmin],
+          },
+          {
+            id: 'payments-concepts',
+            label: 'Conceptos',
+            icon: 'layers',
+            route: ROUTES.PAYMENTS.ADMIN.CONCEPTS,
+            permissions: [Permission.LmsPaymentAdmin],
+          },
+          {
+            id: 'payments-plans',
+            label: 'Planes',
+            icon: 'refresh',
+            route: ROUTES.PAYMENTS.ADMIN.PLANS,
+            permissions: [Permission.LmsPaymentAdmin],
+          },
+          {
+            id: 'payments-policy',
+            label: 'Política',
+            icon: 'settings',
+            route: ROUTES.PAYMENTS.ADMIN.POLICY,
             permissions: [Permission.LmsPaymentAdmin],
           },
         ],

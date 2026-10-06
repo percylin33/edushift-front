@@ -20,7 +20,8 @@ export const environment: AppEnvironment = runtimeOverrides({
     tokenStorageKey: 'edushift.auth.token',
     refreshTokenStorageKey: 'edushift.auth.refreshToken',
     tokenHeaderName: 'Authorization',
-    tokenScheme: 'Bearer'
+    tokenScheme: 'Bearer',
+    withCredentials: true
   },
   google: {
     // Disable by default in production until the operator supplies a

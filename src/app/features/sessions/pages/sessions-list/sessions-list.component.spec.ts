@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { AcademicApiService } from '@features/academic/services';
 import { SessionsListComponent } from './sessions-list.component';
 import { SessionsApiService } from '../../services';
 import { LearningSessionRow, SessionStatus } from '../../models';
@@ -27,15 +28,18 @@ describe('SessionsListComponent', () => {
   function configureModule(): void {
     fakeApi = jasmine.createSpyObj<SessionsApiService>('SessionsApiService', [
       'listSessions',
+      'listSharedSessions',
       'startSession',
       'completeSession',
       'cancelSession',
     ]);
+    fakeApi.listSharedSessions.and.returnValue(of([]));
     TestBed.configureTestingModule({
       imports: [SessionsListComponent],
       providers: [
         provideRouter([]),
         { provide: SessionsApiService, useValue: fakeApi },
+        { provide: AcademicApiService, useValue: { listAssignments: () => of([]) } },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { queryParamMap: { get: (_: string) => null } } },

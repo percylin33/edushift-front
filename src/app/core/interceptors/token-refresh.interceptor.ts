@@ -72,20 +72,30 @@ export const tokenRefreshInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith(environment.apiUrl)) return next(req);
   if (isAuthFlowEndpoint(req.url)) return next(req);
 
-  const auth = inject(AuthService);
   const refresher = inject(TokenRefreshService);
+
+  // SECURITY FIX: Refresh token is now in httpOnly cookie, not localStorage
+  // We can't check if it exists, so we just try the refresh on 401
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status !== HttpStatus.Unauthorized) {
         return throwError(() => error);
       }
-      if (!auth.refreshToken()) {
+
+      // SECURITY FIX: Prevent loops — don't retry if already a retry
+      if (req.headers.has('X-Refresh-Retry')) {
         return throwError(() => error);
       }
 
       return refresher.refresh().pipe(
-        switchMap((newAccessToken) => next(applyAuthHeader(req, newAccessToken))),
+        switchMap(() => {
+          // SECURITY FIX: Cookies are set by the browser, just retry the request
+          const retryReqWithFlag = req.clone({
+            setHeaders: { 'X-Refresh-Retry': '1' },
+          });
+          return next(retryReqWithFlag);
+        }),
         catchError(() => throwError(() => error)),
       );
     }),

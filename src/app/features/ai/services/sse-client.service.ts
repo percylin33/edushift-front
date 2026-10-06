@@ -53,10 +53,8 @@ export class SseClientService {
 				'Content-Type': 'application/json',
 				Accept: 'text/event-stream',
 			};
-			const token = this.auth.accessToken();
-			if (token) {
-				headers['Authorization'] = `Bearer ${token}`;
-			}
+			// SECURITY FIX: Tokens are in httpOnly cookies, browser sends them automatically
+			// No need to manually set Authorization header
 			fetch(url, {
 				method: 'POST',
 				headers,

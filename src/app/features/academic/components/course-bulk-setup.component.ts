@@ -34,18 +34,33 @@ interface CatalogRowState {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, IconComponent, SpinnerComponent],
   template: `
-    <section class="card mb-4">
-      <header class="card-header flex flex-wrap items-start justify-between gap-3">
+    <section
+      class="card mb-4 w-full"
+      [class.ml-auto]="compactCollapsed()"
+      [class.max-w-md]="compactCollapsed()"
+    >
+      <header
+        class="card-header flex flex-wrap items-center justify-between gap-3"
+        [class.items-start]="expanded()"
+      >
         <div class="min-w-0">
-          <h3 class="card-title text-base">Cursos usuales (Perú)</h3>
-          <p class="card-description">
-            Selecciona los cursos del currículo nacional que dicta tu colegio y los niveles en los
-            que aplican.
-          </p>
+          <h3
+            class="card-title"
+            [class.text-base]="expanded() || !alreadyConfigured()"
+            [class.text-sm]="compactCollapsed()"
+          >
+            Cursos usuales (Perú)
+          </h3>
+          @if (expanded()) {
+            <p class="card-description">
+              Selecciona los cursos del currículo nacional que dicta tu colegio y los niveles en los
+              que aplican.
+            </p>
+          }
         </div>
         <button
           type="button"
-          class="btn btn-ghost btn-sm"
+          class="btn btn-ghost btn-sm shrink-0"
           (click)="expanded.set(!expanded())"
           [attr.aria-expanded]="expanded()"
         >
@@ -185,7 +200,7 @@ export class CourseBulkSetupComponent implements OnInit {
   protected readonly levels = this.store.levels;
   protected readonly bulkProgress = this.store.bulkProgress;
 
-  protected readonly expanded = signal(true);
+  protected readonly expanded = signal(false);
   protected readonly rows = signal<CatalogRowState[]>([]);
   protected readonly busy = signal(false);
   protected readonly resultMessage = signal<string | null>(null);
@@ -199,6 +214,17 @@ export class CourseBulkSetupComponent implements OnInit {
     return codes;
   });
 
+  /** Tras el primer uso (algún curso del catálogo existe): chip compacto a la derecha si está cerrado. */
+  protected readonly alreadyConfigured = computed(() => {
+    const existing = this.existingCodes();
+    return PERU_COURSE_CATALOG.some((item) => existing.has(item.code.toUpperCase()));
+  });
+
+  /** Compacto solo cerrado; al expandir ocupa todo el ancho. */
+  protected readonly compactCollapsed = computed(
+    () => this.alreadyConfigured() && !this.expanded(),
+  );
+
   protected readonly pendingCount = computed(() =>
     this.rows().filter((r) => r.selected && !r.alreadyExists && r.levelUuids.length > 0).length,
   );
@@ -209,6 +235,7 @@ export class CourseBulkSetupComponent implements OnInit {
 
   ngOnInit(): void {
     this.rebuildRows();
+    this.syncExpandedForMode();
   }
 
   /** Re-sincroniza flags {@code alreadyExists} tras un reload del store. */
@@ -224,6 +251,7 @@ export class CourseBulkSetupComponent implements OnInit {
         };
       }),
     );
+    this.syncExpandedForMode();
   }
 
   protected selectAllMissing(): void {
@@ -294,6 +322,11 @@ export class CourseBulkSetupComponent implements OnInit {
     } finally {
       this.busy.set(false);
     }
+  }
+
+  /** Siempre cerrado al montar / tras crear. */
+  private syncExpandedForMode(): void {
+    this.expanded.set(false);
   }
 
   private rebuildRows(): void {

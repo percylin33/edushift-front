@@ -32,6 +32,7 @@ export interface GradeBookCategoryEntryRaw {
   sortOrder: number;
   weight: string | number;
   contributesToAverage: boolean;
+  allowsTeacherColumns?: boolean;
 }
 
 export interface GradeBookStudentEntryRaw {
@@ -41,6 +42,8 @@ export interface GradeBookStudentEntryRaw {
   enrollmentStatus?: string | null;
   /** Map categoryUuid → average (keys may arrive as strings). */
   categoryAverages?: Record<string, string | number | null> | null;
+  literalAverage?: string | null;
+  categoryLiteralAverages?: Record<string, string | null> | null;
 }
 
 export interface GradeBookEvaluationEntryRaw {
@@ -80,6 +83,7 @@ export interface GradeBookResponseRaw {
   periodName: string;
   templatePublicUuid?: string | null;
   templateName?: string | null;
+  gradingScale?: EvaluationScale | null;
   categories?: GradeBookCategoryEntryRaw[] | null;
   students: GradeBookStudentEntryRaw[];
   evaluations: GradeBookEvaluationEntryRaw[];
@@ -97,6 +101,8 @@ export interface GradeBookCategory {
   sortOrder: number;
   weight: number;
   contributesToAverage: boolean;
+  /** false = la columna la crea el colegio (conducta, examen fijo). */
+  allowsTeacherColumns: boolean;
 }
 
 export interface GradeBookStudent {
@@ -107,6 +113,9 @@ export interface GradeBookStudent {
   enrollmentStatus: EnrollmentStatus;
   /** Promedio por categoría (uuid → valor). */
   categoryAverages: ReadonlyMap<string, number | null>;
+  /** Promedio literal AD/A/B/C. null en planilla 0–20. */
+  literalAverage: string | null;
+  categoryLiteralAverages: ReadonlyMap<string, string | null>;
 }
 
 export interface GradeBookEvaluation {
@@ -166,6 +175,7 @@ export interface GradeBook {
   periodName: string;
   templatePublicUuid: string | null;
   templateName: string | null;
+  gradingScale: EvaluationScale | null;
   categories: GradeBookCategory[];
   students: GradeBookStudent[];
   evaluations: GradeBookEvaluation[];
@@ -343,6 +353,7 @@ export function toGradeBook(raw: GradeBookResponseRaw): GradeBook {
     sortOrder: c.sortOrder ?? 0,
     weight: parseDecimal(c.weight) ?? 0,
     contributesToAverage: !!c.contributesToAverage,
+    allowsTeacherColumns: c.allowsTeacherColumns !== false,
   }));
 
   const evaluations = (raw.evaluations ?? []).map((e) => ({
@@ -376,6 +387,7 @@ export function toGradeBook(raw: GradeBookResponseRaw): GradeBook {
     periodName: raw.periodName ?? '',
     templatePublicUuid: raw.templatePublicUuid ?? null,
     templateName: raw.templateName ?? null,
+    gradingScale: raw.gradingScale ?? null,
     categories,
     students: (raw.students ?? []).map((s) => {
       const avgMap = new Map<string, number | null>();
@@ -384,12 +396,20 @@ export function toGradeBook(raw: GradeBookResponseRaw): GradeBook {
           avgMap.set(k, parseDecimal(v));
         }
       }
+      const literalMap = new Map<string, string | null>();
+      if (s.categoryLiteralAverages) {
+        for (const [k, v] of Object.entries(s.categoryLiteralAverages)) {
+          literalMap.set(k, v ?? null);
+        }
+      }
       return {
         publicUuid: s.publicUuid,
         fullName: s.fullName,
         weightedAverage: parseDecimal(s.weightedAverage),
         enrollmentStatus: (s.enrollmentStatus as EnrollmentStatus) || 'ACTIVE',
         categoryAverages: avgMap,
+        literalAverage: s.literalAverage ?? null,
+        categoryLiteralAverages: literalMap,
       };
     }),
     evaluations,

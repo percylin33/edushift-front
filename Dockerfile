@@ -73,11 +73,12 @@ server {
     try_files $uri $uri/ /index.html;
   }
 
-  # Lightweight security headers (CSP is set by the app).
+  # Security headers
   add_header X-Content-Type-Options "nosniff" always;
   add_header X-Frame-Options          "DENY"   always;
   add_header Referrer-Policy          "no-referrer-when-downgrade" always;
   add_header Permissions-Policy       "camera=(), microphone=(), geolocation=()" always;
+  add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
 }
 EOF
 

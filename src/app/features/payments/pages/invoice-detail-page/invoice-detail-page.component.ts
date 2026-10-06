@@ -1,6 +1,12 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { FileMetadata, FileUploadService } from '@core/services/file-upload.service';
+import {
+  FileUploadComponent,
+  ModuleUploadResponse,
+} from '@shared/components/file-upload/file-upload.component';
 import { PaymentsApiService } from '../../services/payments-api.service';
 import {
   Invoice,
@@ -12,17 +18,13 @@ import {
 } from '../../models/invoice.model';
 
 /**
- * Invoice detail + checkout (Sprint 10 / FE-10.1).
- *
- * <p>Shows the invoice breakdown, a list of payment attempts, and
- * a "Pagar con MercadoPago" button that calls
- * {@code POST /payments/invoices/{uuid}/checkout} and opens the
- * returned {@code init_point} in a new tab.</p>
+ * Invoice detail with voucher upload (manual reconciliation).
+ * MercadoPago checkout is intentionally not exposed in the parent UI.
  */
 @Component({
   selector: 'app-invoice-detail-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe],
+  imports: [CommonModule, RouterLink, DatePipe, FormsModule, FileUploadComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-3xl px-4 py-8 sm:py-10">
@@ -37,10 +39,10 @@ import {
           <header class="flex items-start justify-between gap-4">
             <div>
               <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                Cuota {{ i.periodLabel }}
+                Cuota {{ i.periodLabel || '—' }}
               </h1>
               <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Vence {{ i.dueAt | date: 'longDate' }}
+                Vence {{ i.dueAt ? (i.dueAt | date: 'longDate') : '—' }}
               </p>
             </div>
             <span
@@ -61,7 +63,7 @@ import {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-              @for (it of i.items; track it.id) {
+              @for (it of i.items ?? []; track it.id) {
                 <tr>
                   <td class="py-2 text-slate-800 dark:text-slate-200">{{ it.description }}</td>
                   <td class="py-2 text-right text-slate-600 dark:text-slate-300">
@@ -72,6 +74,12 @@ import {
                   </td>
                   <td class="py-2 text-right font-semibold text-slate-800 dark:text-slate-100">
                     {{ money(it.lineTotalCents, i.currency) }}
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4" class="py-4 text-center text-sm text-slate-500">
+                    Sin detalle de ítems
                   </td>
                 </tr>
               }
@@ -88,19 +96,56 @@ import {
             </tfoot>
           </table>
 
-          @if (canPay()) {
-            <div class="mt-6 flex justify-end">
+          @if (i.evidenceRejectionReason) {
+            <p class="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-900/20 dark:text-rose-300">
+              Voucher rechazado: {{ i.evidenceRejectionReason }}
+            </p>
+          }
+
+          @if (canUploadEvidence()) {
+            <div class="mt-6 space-y-3 border-t border-slate-100 pt-6 dark:border-slate-800">
+              <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">
+                {{ i.status === 'PENDING_REVIEW' ? 'Reemplazar voucher' : 'Subir voucher' }}
+              </h2>
+              <p class="text-sm text-slate-500 dark:text-slate-400">
+                Paga fuera de la app (efectivo, transferencia, Yape, etc.) y adjunta la imagen o PDF
+                del comprobante. El colegio lo revisará antes de marcar la cuota como pagada.
+              </p>
+              <label class="block text-sm">
+                <span class="font-medium text-slate-700 dark:text-slate-300">Nota (opcional)</span>
+                <input
+                  type="text"
+                  class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                  [(ngModel)]="evidenceNotes"
+                  placeholder="Nro. de operación / banco"
+                  maxlength="500"
+                />
+              </label>
+              <app-file-upload
+                module="payments"
+                accept="image/*,application/pdf"
+                [maxSizeMb]="10"
+                (uploaded)="onEvidenceUploaded($event)"
+                (uploadError)="errorMsg.set($event)"
+              />
+              @if (submittingEvidence()) {
+                <p class="text-sm text-slate-500">Enviando voucher…</p>
+              }
+            </div>
+          }
+
+          @if (i.status === 'PENDING_REVIEW' && i.evidenceFilePublicUuid) {
+            <div class="mt-6 rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-800 dark:bg-sky-900/20 dark:text-sky-200">
+              Voucher en revisión
+              @if (i.evidenceSubmittedAt) {
+                · enviado {{ i.evidenceSubmittedAt | date: 'short' }}
+              }
               <button
                 type="button"
-                (click)="onPay()"
-                [disabled]="paying()"
-                class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                class="ml-2 font-semibold underline"
+                (click)="onViewEvidence(i.evidenceFilePublicUuid!)"
               >
-                @if (paying()) {
-                  Abriendo MercadoPago…
-                } @else {
-                  Pagar con MercadoPago
-                }
+                Ver archivo
               </button>
             </div>
           }
@@ -138,9 +183,6 @@ import {
                     <span class="font-medium text-slate-800 dark:text-slate-200">
                       {{ p.provider }} · {{ p.status }}
                     </span>
-                    @if (p.externalId) {
-                      <span class="ml-2 text-xs text-slate-500"> MP #{{ p.externalId }} </span>
-                    }
                     @if (p.failureReason) {
                       <p class="text-xs text-rose-600">{{ p.failureReason }}</p>
                     }
@@ -171,14 +213,16 @@ import {
 })
 export class InvoiceDetailPageComponent implements OnInit {
   private readonly api = inject(PaymentsApiService);
+  private readonly files = inject(FileUploadService);
   private readonly route = inject(ActivatedRoute);
 
   readonly invoice = signal<Invoice | null>(null);
   readonly items = signal<InvoiceItem[]>([]);
   readonly payments = signal<Payment[]>([]);
   readonly loading = signal(true);
-  readonly paying = signal(false);
+  readonly submittingEvidence = signal(false);
   readonly errorMsg = signal<string | null>(null);
+  evidenceNotes = '';
 
   ngOnInit(): void {
     const publicUuid = this.route.snapshot.paramMap.get('publicUuid');
@@ -187,33 +231,45 @@ export class InvoiceDetailPageComponent implements OnInit {
       this.loading.set(false);
       return;
     }
-
-    this.api.getInvoice(publicUuid).subscribe({
-      next: (i) => {
-        this.invoice.set(i);
-        this.items.set(i.items);
-        this.loading.set(false);
-      },
-      error: (e) => {
-        this.errorMsg.set(e?.error?.message ?? 'No se pudo cargar la cuota');
-        this.loading.set(false);
-      },
-    });
-    this.api.listPaymentsForInvoice(publicUuid).subscribe({
-      next: (ps) => this.payments.set(ps),
-      error: () => {
-        /* non-blocking */
-      },
-    });
+    this.reload(publicUuid);
   }
 
-  canPay(): boolean {
+  canUploadEvidence(): boolean {
     const i = this.invoice();
-    return !!i && (i.status === 'PENDING' || i.status === 'OVERDUE');
+    return !!i && (i.status === 'PENDING' || i.status === 'OVERDUE' || i.status === 'PENDING_REVIEW');
   }
 
   canDownloadReceipt(): boolean {
     return this.invoice()?.status === 'PAID';
+  }
+
+  onEvidenceUploaded(meta: FileMetadata | ModuleUploadResponse): void {
+    const i = this.invoice();
+    if (!i) return;
+    this.submittingEvidence.set(true);
+    this.errorMsg.set(null);
+    this.api
+      .submitEvidence(i.publicUuid, {
+        filePublicUuid: meta.publicUuid,
+        notes: this.evidenceNotes?.trim() || undefined,
+      })
+      .subscribe({
+        next: (updated) => {
+          this.invoice.set(updated);
+          this.items.set(updated.items ?? []);
+          this.submittingEvidence.set(false);
+        },
+        error: (e) => {
+          this.submittingEvidence.set(false);
+          this.errorMsg.set(e?.error?.message ?? 'No se pudo enviar el voucher');
+        },
+      });
+  }
+
+  onViewEvidence(filePublicUuid: string): void {
+    this.files.downloadAndSave(filePublicUuid, `voucher-${filePublicUuid}`).catch(() => {
+      this.errorMsg.set('No se pudo abrir el voucher');
+    });
   }
 
   onDownloadReceipt(): void {
@@ -232,26 +288,6 @@ export class InvoiceDetailPageComponent implements OnInit {
     });
   }
 
-  onPay(): void {
-    const i = this.invoice();
-    if (!i) return;
-    this.paying.set(true);
-    this.errorMsg.set(null);
-    this.api.checkout(i.publicUuid).subscribe({
-      next: (resp) => {
-        this.paying.set(false);
-        // Open the MP checkout in a new tab; on return the user
-        // refreshes and the webhook (handled in BE) will have
-        // updated the invoice.
-        window.open(resp.initPoint, '_blank', 'noopener,noreferrer');
-      },
-      error: (e) => {
-        this.paying.set(false);
-        this.errorMsg.set(e?.error?.message ?? 'No se pudo iniciar el pago');
-      },
-    });
-  }
-
   statusLabel(s: Invoice['status']) {
     return STATUS_LABELS[s];
   }
@@ -260,5 +296,27 @@ export class InvoiceDetailPageComponent implements OnInit {
   }
   money(cents: number, c: string) {
     return formatMoney(cents, c);
+  }
+
+  private reload(publicUuid: string): void {
+    this.loading.set(true);
+    this.api.getInvoice(publicUuid).subscribe({
+      next: (i) => {
+        this.invoice.set(i);
+        this.items.set(i.items ?? []);
+        this.evidenceNotes = i.evidenceNotes ?? '';
+        this.loading.set(false);
+      },
+      error: (e) => {
+        this.errorMsg.set(e?.error?.message ?? 'No se pudo cargar la cuota');
+        this.loading.set(false);
+      },
+    });
+    this.api.listPaymentsForInvoice(publicUuid).subscribe({
+      next: (ps) => this.payments.set(ps),
+      error: () => {
+        /* non-blocking */
+      },
+    });
   }
 }

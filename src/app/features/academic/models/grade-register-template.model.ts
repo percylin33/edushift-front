@@ -4,7 +4,7 @@
  * Espejo de DTOs Java en {@code evaluations.graderegister.dto}.
  */
 
-export type GradeRegisterTemplateScope = 'TENANT' | 'COURSE';
+export type GradeRegisterTemplateScope = 'TENANT' | 'COURSE' | 'LEVEL';
 
 /** OPEN = docente crea columnas; SERIES = S1..Sn; SINGLE = una casilla. */
 export type GradeCategoryColumnMode = 'OPEN' | 'SERIES' | 'SINGLE';
@@ -23,6 +23,11 @@ export interface GradeRegisterTemplateListItem {
   academicYearPublicUuid: string | null;
   categoryCount: number;
   recommendedLevels?: GradeRegisterRecommendedLevel[] | string[] | null;
+  levelPublicUuid?: string | null;
+  levelName?: string | null;
+  levelCode?: string | null;
+  sourceTemplatePublicUuid?: string | null;
+  gradingScale?: 'SCORE_0_20' | 'LITERAL_CNEB' | null;
 }
 
 export interface GradeCategory {
@@ -51,17 +56,29 @@ export interface GradeRegisterTemplate {
   academicYearName: string | null;
   coursePublicUuid: string | null;
   courseName: string | null;
+  levelPublicUuid: string | null;
+  levelName: string | null;
+  levelCode: string | null;
   sourceTemplatePublicUuid: string | null;
   categories: GradeCategory[];
   recommendedLevels?: GradeRegisterRecommendedLevel[] | string[] | null;
+  gradingScale: 'SCORE_0_20' | 'LITERAL_CNEB';
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UpdateGradeRegisterTemplateRequest {
+  name?: string;
+  description?: string;
+  isDefault?: boolean;
+  gradingScale?: 'SCORE_0_20' | 'LITERAL_CNEB';
 }
 
 export interface AdoptGradeRegisterTemplateRequest {
   academicYearPublicUuid: string;
   scope: GradeRegisterTemplateScope;
   coursePublicUuid?: string | null;
+  levelPublicUuid?: string | null;
   setAsDefault?: boolean;
   /** Soft-delete current TENANT default before adopting (blocked if in use). */
   replaceActive?: boolean;
@@ -120,9 +137,13 @@ export interface GradeRegisterTemplateRaw {
   academicYearName: string | null;
   coursePublicUuid: string | null;
   courseName: string | null;
+  levelPublicUuid?: string | null;
+  levelName?: string | null;
+  levelCode?: string | null;
   sourceTemplatePublicUuid: string | null;
   categories: GradeCategoryRaw[];
   recommendedLevels?: string[] | null;
+  gradingScale?: 'SCORE_0_20' | 'LITERAL_CNEB' | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -179,9 +200,13 @@ export function toGradeRegisterTemplate(raw: GradeRegisterTemplateRaw): GradeReg
     academicYearName: raw.academicYearName,
     coursePublicUuid: raw.coursePublicUuid,
     courseName: raw.courseName,
+    levelPublicUuid: raw.levelPublicUuid ?? null,
+    levelName: raw.levelName ?? null,
+    levelCode: raw.levelCode ?? null,
     sourceTemplatePublicUuid: raw.sourceTemplatePublicUuid,
     categories: (raw.categories ?? []).map(toGradeCategory),
     recommendedLevels: raw.recommendedLevels ?? [],
+    gradingScale: raw.gradingScale === 'LITERAL_CNEB' ? 'LITERAL_CNEB' : 'SCORE_0_20',
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
   };

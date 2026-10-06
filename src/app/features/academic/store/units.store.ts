@@ -1,7 +1,13 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AcademicApiService } from '../services';
-import { CreateUnitRequest, UnitDetail, UnitRow, UpdateUnitRequest } from '../models';
+import {
+  CreateUnitRequest,
+  SeedUnitsRequest,
+  UnitDetail,
+  UnitRow,
+  UpdateUnitRequest,
+} from '../models';
 
 /**
  * Reactive façade sobre {@link AcademicApiService} dedicado al slice
@@ -250,6 +256,29 @@ export class UnitsStore {
     if (!this.orderSnapshot) return;
     this._units.set(this.orderSnapshot);
     this.orderSnapshot = null;
+  }
+
+  /**
+   * Siembra unidades estándar ({@code Unidad 1}…N). Si {@code seeded=true},
+   * recarga la lista. Idempotente cuando el curso ya tiene unidades.
+   */
+  async seedUnits(request: SeedUnitsRequest = {}): Promise<boolean> {
+    const courseUuid = this._courseUuid();
+    if (!courseUuid) return false;
+    this._saving.set(true);
+    this._error.set(null);
+    try {
+      const res = await firstValueFrom(this.api.seedUnits(courseUuid, request));
+      if (res.seeded) {
+        await this.loadUnits(courseUuid, { force: true });
+      }
+      return true;
+    } catch (err) {
+      this._error.set(this.toErrorMessage(err));
+      return false;
+    } finally {
+      this._saving.set(false);
+    }
   }
 
   // ===========================================================================

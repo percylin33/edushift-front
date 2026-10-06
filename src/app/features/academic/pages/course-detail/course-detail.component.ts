@@ -10,6 +10,7 @@ import {
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import {
+  ConfirmDialogService,
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
@@ -87,22 +88,29 @@ type CourseTab = 'info' | 'units' | 'competencies';
         </app-page-header>
 
         <!-- Tabs -->
-        <nav class="card mb-4">
-          <div role="tablist" class="flex gap-1 px-2 pt-2">
-            @for (t of tabs; track t.id) {
-              <button
-                role="tab"
-                type="button"
-                [attr.aria-selected]="activeTab() === t.id"
-                [class.tab-active]="activeTab() === t.id"
-                class="tab"
-                (click)="setTab(t.id)"
-              >
-                <app-icon [name]="t.icon" [size]="16" />
-                <span>{{ t.label }}</span>
-              </button>
-            }
-          </div>
+        <nav
+          class="mb-4 flex flex-wrap gap-1 border-b border-border-subtle"
+          role="tablist"
+          aria-label="Detalle del curso"
+        >
+          @for (t of tabs; track t.id) {
+            <button
+              role="tab"
+              type="button"
+              [attr.aria-selected]="activeTab() === t.id"
+              class="flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors"
+              [class.border-primary-600]="activeTab() === t.id"
+              [class.text-primary-700]="activeTab() === t.id"
+              [class.border-transparent]="activeTab() !== t.id"
+              [class.text-content-muted]="activeTab() !== t.id"
+              [class.hover:text-content]="activeTab() !== t.id"
+              [class.hover:border-border]="activeTab() !== t.id"
+              (click)="setTab(t.id)"
+            >
+              <app-icon [name]="t.icon" [size]="16" />
+              <span>{{ t.label }}</span>
+            </button>
+          }
         </nav>
 
         <!-- Tab content -->
@@ -203,6 +211,7 @@ export class CourseDetailComponent implements OnInit {
   private readonly store = inject(AcademicStore);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly listRoute = ROUTES.ACADEMIC.COURSES.LIST;
 
@@ -272,11 +281,16 @@ export class CourseDetailComponent implements OnInit {
   protected async confirmDelete(): Promise<void> {
     const c = this.course();
     if (!c) return;
-    const ok = confirm(
-      `¿Eliminar el curso "${c.code} — ${c.name}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar curso',
+      message:
+        `¿Eliminar el curso "${c.code} — ${c.name}"?\n\n` +
         'Si el curso tiene asignaciones de docentes, considera ' +
         'desactivarlo en su lugar.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     const success = await this.store.deleteCourse(c.publicUuid);
     if (success) {

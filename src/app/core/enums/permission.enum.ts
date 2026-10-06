@@ -116,4 +116,9 @@ export enum Permission {
   // + STAFF by default.
   // -------------------------------------------------------------------------
   UsersProvisionSection = 'USERS_PROVISION_SECTION',
+
+  // Announcements. CREATE is school-wide (tenant admin). CREATE_OWN is a
+  // teacher limited to assigned sections and courses. Students never get either.
+  LmsAnnouncementsCreate = 'LMS_ANNOUNCEMENTS_CREATE',
+  LmsAnnouncementsCreateOwn = 'LMS_ANNOUNCEMENTS_CREATE_OWN',
 }

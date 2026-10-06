@@ -87,6 +87,11 @@ const WEIGHT_MAX = 999.99;
                 Edita los campos permitidos por el ciclo de vida actual. Los campos en gris solo se
                 pueden cambiar en estado
                 <strong>Borrador</strong>.
+              } @else if (columnMode()) {
+                Agrega una columna a este registro. El nombre es el que se ve en el acta.
+                @if (sheetScale()) {
+                  Las notas usan la escala de la plantilla.
+                }
               } @else {
                 Crea un registro en borrador. Podrás publicarlo más tarde desde el listado.
               }
@@ -105,12 +110,13 @@ const WEIGHT_MAX = 999.99;
             </div>
           }
 
-          <!-- Kind + Scale -->
+          <!-- Kind + Scale: en el registro la plantilla ya fija tipo y escala. -->
+          @if (!columnMode()) {
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="field">
               <label class="label" for="evaluation-kind">Tipo *</label>
-              <select id="evaluation-kind" class="input" formControlName="kind">
-                @for (k of kinds; track k) {
+              <select id="evaluation-kind" class="select" formControlName="kind">
+                @for (k of visibleKinds(); track k) {
                   <option [value]="k">{{ kindLabel(k) }}</option>
                 }
               </select>
@@ -121,18 +127,21 @@ const WEIGHT_MAX = 999.99;
 
             <div class="field">
               <label class="label" for="evaluation-scale">Escala *</label>
-              <select id="evaluation-scale" class="input" formControlName="scale">
+              <select id="evaluation-scale" class="select" formControlName="scale">
                 @for (s of allowedScales(); track s) {
                   <option [value]="s">{{ scaleLabel(s) }}</option>
                 }
               </select>
               @if (showError('scale'); as msg) {
                 <p class="field-error">{{ msg }}</p>
+              } @else if (sheetScale()) {
+                <p class="field-hint">La plantilla del registro fija esta escala.</p>
               } @else {
                 <p class="field-hint">Filtrada según el tipo elegido.</p>
               }
             </div>
           </div>
+          }
 
           <!-- Name -->
           <div class="field">
@@ -143,16 +152,19 @@ const WEIGHT_MAX = 999.99;
               class="input"
               formControlName="name"
               [maxlength]="nameMaxLength"
-              placeholder="Práctica 1 — Ecuaciones lineales"
+              [placeholder]="columnMode() ? 'Sesión 1' : 'Práctica 1 — Ecuaciones lineales'"
               autocomplete="off"
             />
             @if (showError('name'); as msg) {
               <p class="field-error">{{ msg }}</p>
+            } @else if (columnMode()) {
+              <p class="field-hint">Es el título que se ve en el acta.</p>
             } @else {
               <p class="field-hint">Único dentro de esta asignación (no diferencia mayúsculas).</p>
             }
           </div>
 
+          @if (!columnMode()) {
           <!-- Description -->
           <div class="field">
             <label class="label" for="evaluation-description">Descripción</label>
@@ -168,9 +180,10 @@ const WEIGHT_MAX = 999.99;
               <p class="field-error">{{ msg }}</p>
             }
           </div>
+          }
 
           <!-- Weight + Dates -->
-          <div class="grid gap-4 sm:grid-cols-3">
+          <div class="grid gap-4" [ngClass]="columnMode() ? 'sm:grid-cols-2' : 'sm:grid-cols-3'">
             <div class="field">
               <label class="label" for="evaluation-weight">Peso *</label>
               <input
@@ -204,23 +217,25 @@ const WEIGHT_MAX = 999.99;
               }
             </div>
 
-            <div class="field">
-              <label class="label" for="evaluation-due">Entrega</label>
-              <input id="evaluation-due" type="date" class="input" formControlName="dueDate" />
-              @if (showError('dueDate'); as msg) {
-                <p class="field-error">{{ msg }}</p>
-              } @else {
-                <p class="field-hint">Opcional</p>
-              }
-            </div>
+            @if (!columnMode()) {
+              <div class="field">
+                <label class="label" for="evaluation-due">Entrega</label>
+                <input id="evaluation-due" type="date" class="input" formControlName="dueDate" />
+                @if (showError('dueDate'); as msg) {
+                  <p class="field-error">{{ msg }}</p>
+                } @else {
+                  <p class="field-hint">Opcional</p>
+                }
+              </div>
+            }
           </div>
 
-          @if (categories().length > 0) {
+          @if (writableCategories().length > 0) {
             <div class="field">
               <label class="label" for="evaluation-category">Categoría del registro</label>
-              <select id="evaluation-category" class="input" formControlName="categoryPublicUuid">
+              <select id="evaluation-category" class="select" formControlName="categoryPublicUuid">
                 <option value="">Sin categoría</option>
-                @for (c of categories(); track c.publicUuid) {
+                @for (c of writableCategories(); track c.publicUuid) {
                   <option [value]="c.publicUuid">{{ c.name }}</option>
                 }
               </select>
@@ -315,21 +330,44 @@ export class EvaluationFormModalComponent implements OnInit {
    * Categorías de la plantilla aplicable (F1). Si vacío, no se muestra el
    * selector. El padre suele cargarlas desde el gradebook del assignment.
    */
-  readonly categories = input<ReadonlyArray<{ publicUuid: string; name: string }>>([]);
+  readonly categories = input<
+    ReadonlyArray<{ publicUuid: string; name: string; allowsTeacherColumns?: boolean }>
+  >([]);
+  /** Categoría preseleccionada al crear desde una columna vacía del registro. */
+  readonly initialCategoryPublicUuid = input<string | null>(null);
+  /**
+   * Escala de la plantilla del registro. Si viene, se envía con el alta
+   * y no se muestra. Sin plantilla, la columna queda en 0–20.
+   */
+  readonly sheetScale = input<EvaluationScale | null>(null);
+  /** Alta desde el + del acta: solo nombre, categoría, peso y fecha. */
+  readonly asColumn = input(false);
 
   readonly closed = output<void>();
   readonly saved = output<EvaluationDetail>();
 
   protected readonly saving = this.store.saving;
-  protected readonly errorBanner = this.store.error;
+  protected readonly errorBanner = computed(
+    () => this.store.actionError() ?? this.store.error(),
+  );
 
   protected readonly editing = computed(() => this.evaluation() !== null);
-  protected readonly title = computed(() =>
-    this.editing() ? 'Editar registro' : 'Nuevo registro',
+  /** Alta de columna del acta: el docente no elige tipo ni escala. */
+  protected readonly columnMode = computed(
+    () => !this.editing() && (this.asColumn() || this.sheetScale() !== null),
   );
-  protected readonly submitLabel = computed(() =>
-    this.editing() ? 'Guardar cambios' : 'Crear borrador',
+  /** Conducta y columnas fijas no las crea el docente. */
+  protected readonly writableCategories = computed(() =>
+    this.categories().filter((category) => category.allowsTeacherColumns !== false),
   );
+  protected readonly title = computed(() => {
+    if (this.editing()) return 'Editar registro';
+    return this.columnMode() ? 'Nueva columna' : 'Nuevo registro';
+  });
+  protected readonly submitLabel = computed(() => {
+    if (this.editing()) return 'Guardar cambios';
+    return this.columnMode() ? 'Agregar columna' : 'Crear borrador';
+  });
   protected readonly isReadOnly = computed(
     () => this.evaluation()?.status === EvaluationStatus.CLOSED,
   );
@@ -345,6 +383,26 @@ export class EvaluationFormModalComponent implements OnInit {
     EvaluationKind.RUBRIC,
     EvaluationKind.COMPETENCY,
   ];
+
+  /**
+   * Columna del acta: Tarea con la escala de la plantilla. Si esa pareja no
+   * existe, el primer tipo que sí la acepte.
+   */
+  private kindForSheet(sheet: EvaluationScale): EvaluationKind {
+    if (ALLOWED_SCALES_BY_KIND[EvaluationKind.TASK].includes(sheet)) {
+      return EvaluationKind.TASK;
+    }
+    return (
+      this.kinds.find((kind) => ALLOWED_SCALES_BY_KIND[kind].includes(sheet)) ??
+      EvaluationKind.TASK
+    );
+  }
+
+  protected visibleKinds(): EvaluationKind[] {
+    const sheet = this.sheetScale();
+    if (!sheet) return this.kinds;
+    return this.kinds.filter((kind) => ALLOWED_SCALES_BY_KIND[kind].includes(sheet));
+  }
 
   /** Subset de scales válidas según el kind activo en el form. */
   protected readonly allowedScales = signal<EvaluationScale[]>(
@@ -396,15 +454,32 @@ export class EvaluationFormModalComponent implements OnInit {
         this.form.disable();
       }
     } else {
-      // Track changes de kind para limitar las scales válidas.
-      this.form.get('kind')?.valueChanges.subscribe((kind: EvaluationKind) => {
-        const allowed = ALLOWED_SCALES_BY_KIND[kind] ?? [];
-        this.allowedScales.set(allowed);
-        const current = this.form.get('scale')?.value as EvaluationScale;
-        if (!allowed.includes(current)) {
-          this.form.get('scale')?.setValue(allowed[0]);
-        }
-      });
+      const categoryId = this.initialCategoryPublicUuid();
+      const writable = this.writableCategories().some(
+        (category) => category.publicUuid === categoryId,
+      );
+      if (categoryId && writable) {
+        this.form.patchValue({ categoryPublicUuid: categoryId });
+      }
+      const sheet = this.sheetScale() ?? (this.asColumn() ? EvaluationScale.SCORE_0_20 : null);
+      if (sheet && this.columnMode()) {
+        this.allowedScales.set([sheet]);
+        this.form.patchValue({
+          scale: sheet,
+          kind: this.kindForSheet(sheet),
+        });
+        this.form.get('scale')?.disable();
+        this.form.get('kind')?.disable();
+      } else {
+        this.form.get('kind')?.valueChanges.subscribe((kind: EvaluationKind) => {
+          const allowed = ALLOWED_SCALES_BY_KIND[kind] ?? [];
+          this.allowedScales.set(allowed);
+          const current = this.form.get('scale')?.value as EvaluationScale;
+          if (!allowed.includes(current)) {
+            this.form.get('scale')?.setValue(allowed[0]);
+          }
+        });
+      }
     }
   }
 
@@ -448,14 +523,17 @@ export class EvaluationFormModalComponent implements OnInit {
           patch.name = (v.name as string).trim();
           patch.weight = parseFloat(String(v.weight));
           patch.scheduledDate = (v.scheduledDate as string) || undefined;
-          patch.unitPublicUuid = v.unitPublicUuid ?? '';
-          patch.learningSessionPublicUuid = v.learningSessionPublicUuid ?? '';
-          patch.categoryPublicUuid = (v.categoryPublicUuid as string) || '';
+          const unit = ((v.unitPublicUuid as string) ?? '').trim();
+          const session = ((v.learningSessionPublicUuid as string) ?? '').trim();
+          const category = ((v.categoryPublicUuid as string) ?? '').trim();
+          if (unit) patch.unitPublicUuid = unit;
+          if (session) patch.learningSessionPublicUuid = session;
+          if (category) patch.categoryPublicUuid = category;
           patch.isActive = v.isActive as boolean;
         }
-        // En PUBLISHED y DRAFT estos dos siempre se pueden editar.
         patch.description = ((v.description as string) ?? '').trim();
-        patch.dueDate = (v.dueDate as string) || '';
+        const due = ((v.dueDate as string) ?? '').trim();
+        if (due) patch.dueDate = due;
 
         const updated = await this.store.update(e.publicUuid, patch);
         if (updated) this.saved.emit(updated);
@@ -553,7 +631,9 @@ export class EvaluationFormModalComponent implements OnInit {
     const next: Record<string, string> = {};
     switch (apiErr.code) {
       case 'EVAL_NAME_EXISTS':
-        next['name'] = 'Ya existe un registro con este nombre.';
+        next['name'] = this.columnMode()
+          ? 'Ya existe una columna con este nombre.'
+          : 'Ya existe un registro con este nombre.';
         break;
       case 'EVAL_KIND_SCALE_MISMATCH':
         next['scale'] = 'La escala no es válida para este tipo.';

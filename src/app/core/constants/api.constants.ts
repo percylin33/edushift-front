@@ -118,11 +118,14 @@ export const API = {
     INVITE: (publicUuid: string) => `${BASE}/teachers/${encodeURIComponent(publicUuid)}/invite`,
     /**
      * Sprint cierre-B / F7 — teacher bulk import.
+     *  - {@code GET  /v1/teachers/bulk-import/template} — plantilla .xlsx.
      *  - {@code POST /v1/teachers/bulk-import} (multipart, TENANT_ADMIN).
      *  - {@code GET  /v1/teachers/bulk-import/{publicUuid}} — poll status.
      */
     BULK_IMPORT: {
       ROOT: `${BASE}/teachers/bulk-import`,
+      TEMPLATE: `${BASE}/teachers/bulk-import/template`,
+      PREVIEW: `${BASE}/teachers/bulk-import/preview`,
       BY_ID: (publicUuid: string) =>
         `${BASE}/teachers/bulk-import/${encodeURIComponent(publicUuid)}`,
     },
@@ -256,6 +259,9 @@ export const API = {
       /** {@code PATCH /v1/academic/courses/{courseUuid}/units/reorder} (BE-5A.1). */
       UNITS_REORDER: (courseUuid: string) =>
         `${BASE}/academic/courses/${encodeURIComponent(courseUuid)}/units/reorder`,
+      /** {@code POST /v1/academic/courses/{courseUuid}/units/seed-defaults}. */
+      UNITS_SEED: (courseUuid: string) =>
+        `${BASE}/academic/courses/${encodeURIComponent(courseUuid)}/units/seed-defaults`,
       /** {@code GET|POST /v1/academic/courses/{courseUuid}/competencies} (BE-5A.2). */
       COMPETENCIES: (courseUuid: string) =>
         `${BASE}/academic/courses/${encodeURIComponent(courseUuid)}/competencies`,
@@ -271,6 +277,12 @@ export const API = {
       BY_ID: (publicUuid: string) => `${BASE}/academic/units/${encodeURIComponent(publicUuid)}`,
     },
     COMPETENCIES: {
+      /** {@code POST /v1/academic/competencies/{publicUuid}/deactivate}. */
+      DEACTIVATE: (publicUuid: string) =>
+        `${BASE}/academic/competencies/${encodeURIComponent(publicUuid)}/deactivate`,
+      /** {@code POST /v1/academic/competencies/{publicUuid}/promote}. */
+      PROMOTE: (publicUuid: string) =>
+        `${BASE}/academic/competencies/${encodeURIComponent(publicUuid)}/promote`,
       /** {@code GET|PUT|DELETE /v1/academic/competencies/{publicUuid}} (BE-5A.2). */
       BY_ID: (publicUuid: string) =>
         `${BASE}/academic/competencies/${encodeURIComponent(publicUuid)}`,
@@ -381,6 +393,8 @@ export const API = {
     ROOT: `${BASE}/payments`,
     INVOICES: `${BASE}/payments/invoices`,
     TRANSACTIONS: `${BASE}/payments/transactions`,
+    /** Soft LMS gate status for PARENT/STUDENT (`{ lmsRestricted }`). */
+    ACCESS_STATUS: `${BASE}/payments/access-status`,
     // Sprint 10 / FE-10.1.
     INVOICE_BY_ID: (publicUuid: string) =>
       `${BASE}/payments/invoices/${encodeURIComponent(publicUuid)}`,
@@ -390,10 +404,17 @@ export const API = {
       `${BASE}/payments/invoices/${encodeURIComponent(publicUuid)}/checkout`,
     INVOICE_RECEIPT: (publicUuid: string) =>
       `${BASE}/payments/invoices/${encodeURIComponent(publicUuid)}/receipt`,
+    INVOICE_EVIDENCE: (publicUuid: string) =>
+      `${BASE}/payments/invoices/${encodeURIComponent(publicUuid)}/evidence`,
     // Sprint 11 / FE-11.1 — admin power tools (DEBT-10-PAY-1).
     ADMIN: {
       // Listing all payments in the tenant with optional filters.
       PAYMENTS: `${BASE}/admin/payments`,
+      INVOICES: `${BASE}/admin/payments/invoices`,
+      /** POST /admin/payments/invoices — emit one invoice. */
+      EMIT: `${BASE}/admin/payments/invoices`,
+      /** POST /admin/payments/invoices/bulk — section or all-enrolled. */
+      BULK: `${BASE}/admin/payments/invoices/bulk`,
       // POST /admin/payments/{uuid}/reconcile — force a PENDING/IN_PROCESS
       // payment into APPROVED.
       RECONCILE: (paymentPublicUuid: string) =>
@@ -405,6 +426,32 @@ export const API = {
       // CASH payment for the invoice and flip it to PAID.
       MARK_PAID_CASH: (invoicePublicUuid: string) =>
         `${BASE}/admin/payments/invoices/${encodeURIComponent(invoicePublicUuid)}/mark-paid-cash`,
+      REJECT_EVIDENCE: (invoicePublicUuid: string) =>
+        `${BASE}/admin/payments/invoices/${encodeURIComponent(invoicePublicUuid)}/reject-evidence`,
+      MORA_EXEMPT: (invoicePublicUuid: string) =>
+        `${BASE}/admin/payments/invoices/${encodeURIComponent(invoicePublicUuid)}/mora-exempt`,
+      SUBSCRIPTIONS: {
+        ROOT: `${BASE}/admin/payments/subscriptions`,
+        BULK: `${BASE}/admin/payments/subscriptions/bulk`,
+        SIBLING_SUGGESTIONS: `${BASE}/admin/payments/subscriptions/sibling-suggestions`,
+        SIBLING_REFRESH: `${BASE}/admin/payments/subscriptions/sibling-suggestions/refresh`,
+        SIBLING_DECIDE: `${BASE}/admin/payments/subscriptions/sibling-suggestions/decide`,
+        PAUSE: (publicUuid: string) =>
+          `${BASE}/admin/payments/subscriptions/${encodeURIComponent(publicUuid)}/pause`,
+        RESUME: (publicUuid: string) =>
+          `${BASE}/admin/payments/subscriptions/${encodeURIComponent(publicUuid)}/resume`,
+        CANCEL: (publicUuid: string) =>
+          `${BASE}/admin/payments/subscriptions/${encodeURIComponent(publicUuid)}/cancel`,
+        RUN_DUE: `${BASE}/admin/payments/subscriptions/run-due`,
+      },
+      /** Alias kept for callers that expect a flat RUN_DUE key. */
+      RUN_DUE: `${BASE}/admin/payments/subscriptions/run-due`,
+      POLICY: `${BASE}/admin/payments/policy`,
+      ACCESS_OVERRIDES: `${BASE}/admin/payments/access-overrides`,
+      REPORTS: {
+        EXPORT_CSV: `${BASE}/admin/payments/reports/export.csv`,
+        AGING: `${BASE}/admin/payments/reports/aging`,
+      },
       // -----------------------------------------------------------------
       // Sprint cierre-C / F14 — payment concepts catalog.
       //  - `GET    /admin/payments/concepts`           (list, paged)
@@ -424,6 +471,9 @@ export const API = {
     ROOT: `${BASE}/learning-sessions`,
     /** {@code GET|PUT|DELETE /v1/learning-sessions/{publicUuid}} (BE-5A.4). */
     BY_ID: (publicUuid: string) => `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}`,
+    SHARED: `${BASE}/learning-sessions/shared`,
+    COPY: (publicUuid: string) =>
+      `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}/copy`,
     /** {@code POST /v1/learning-sessions/{publicUuid}/start} (BE-5A.4). */
     START: (publicUuid: string) =>
       `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}/start`,
@@ -439,6 +489,24 @@ export const API = {
     /** {@code GET /v1/academic/units/{unitUuid}/sessions} (BE-5A.4). */
     BY_UNIT: (unitUuid: string) =>
       `${BASE}/academic/units/${encodeURIComponent(unitUuid)}/sessions`,
+    APPLICATION_SHEETS: (publicUuid: string) =>
+      `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}/application-sheets`,
+    APPLICATION_SHEETS_GENERATE: (publicUuid: string) =>
+      `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}/application-sheets/generate`,
+    APPLICATION_SHEET_EXPORT: (publicUuid: string, kind: string) =>
+      `${BASE}/learning-sessions/${encodeURIComponent(publicUuid)}/application-sheets/${encodeURIComponent(kind)}/export`,
+    /** Session templates catalog / adopt / CRUD. */
+    TEMPLATES: {
+      ROOT: `${BASE}/session-templates`,
+      CATALOG: `${BASE}/session-templates/catalog`,
+      ORGANIZED: `${BASE}/session-templates/organized`,
+      BY_ID: (publicUuid: string) =>
+        `${BASE}/session-templates/${encodeURIComponent(publicUuid)}`,
+      ADOPT: (publicUuid: string) =>
+        `${BASE}/session-templates/${encodeURIComponent(publicUuid)}/adopt`,
+      DEFAULT: (publicUuid: string) =>
+        `${BASE}/session-templates/${encodeURIComponent(publicUuid)}/default`,
+    },
   },
   EVALUATIONS: {
     /** {@code GET|POST /v1/academic/assignments/{assignmentUuid}/evaluations} (BE-5B.1). */
@@ -499,6 +567,7 @@ export const API = {
     // Sprint cierre-A / B11 — SSE streaming variants of the generators.
     GENERATE_SESSION_STREAM: `${BASE}/ai/generate-session/stream`,
     GENERATE_RUBRIC_STREAM: `${BASE}/ai/generate-rubric/stream`,
+    GENERATE_APPLICATION_SHEET: `${BASE}/ai/application-sheets/generate`,
     // Sprint 8 / BE-8.4 — usage dashboard (TENANT_ADMIN)
     USAGE_SUMMARY: `${BASE}/ai/usage/summary`,
     USAGE_DAILY: `${BASE}/ai/usage/daily`,
@@ -611,6 +680,8 @@ export const API = {
     AUTH: {
       /** `POST /v1/admin/login` — super-admin authentication (3 req/min rate-limited). */
       LOGIN: `${BASE}/admin/login`,
+      /** `POST /v1/admin/logout` — revokes the refresh cookie and clears both auth cookies. */
+      LOGOUT: `${BASE}/admin/logout`,
       /**
        * `POST /v1/admin/dev/complete-mfa` — dev-only MFA enrolment bypass.
        * Bean-gated to {dev,local} profiles on the BE; in prod this URL
@@ -651,6 +722,11 @@ export const API = {
       `${BASE}/admin/school-invitations/${encodeURIComponent(publicUuid)}`,
     SCHOOL_INVITATION_RESEND: (publicUuid: string) =>
       `${BASE}/admin/school-invitations/${encodeURIComponent(publicUuid)}/resend`,
+    /**
+     * `GET /v1/admin/prep-package?schoolName=&variant=PILOT|PRODUCTION`
+     * — ZIP de preparación de datos personalizado (SUPER_ADMIN).
+     */
+    PREP_PACKAGE: `${BASE}/admin/prep-package`,
     /** `GET|POST /v1/admin/plans` — platform plan CRUD. */
     PLANS_ROOT: `${BASE}/admin/plans`,
     /** `GET|PUT|DELETE /v1/admin/plans/{publicUuid}` — single plan CRUD. */
@@ -667,17 +743,17 @@ export const API = {
       `${BASE}/admin/tenants/${encodeURIComponent(tenantUuid)}/subscription/reactivate`,
     /** `GET /v1/admin/invoices` — paginated invoice listing. */
     INVOICES_ROOT: `${BASE}/admin/invoices`,
-    /** `GET|POST /v1/admin/invoices/{publicUuid}/payments` — payments on invoice. */
+    /** `GET|POST /v1/admin/b2b/invoices/{publicUuid}/payments` — B2B payments on invoice. */
     INVOICE_PAYMENTS: (publicUuid: string) =>
-      `${BASE}/admin/invoices/${encodeURIComponent(publicUuid)}/payments`,
+      `${BASE}/admin/b2b/invoices/${encodeURIComponent(publicUuid)}/payments`,
     /** `POST /v1/admin/invoices/{publicUuid}/mark-paid` — manual PAID. */
     INVOICE_MARK_PAID: (publicUuid: string) =>
       `${BASE}/admin/invoices/${encodeURIComponent(publicUuid)}/mark-paid`,
-    /** `GET /v1/admin/payments` — paginated payment listing. */
-    PAYMENTS_ROOT: `${BASE}/admin/payments`,
-    /** `POST /v1/admin/payments/{publicUuid}/refund` — refund a payment. */
+    /** `GET /v1/admin/b2b/payments` — platform B2B payment listing (SUPER_ADMIN). */
+    PAYMENTS_ROOT: `${BASE}/admin/b2b/payments`,
+    /** `POST /v1/admin/b2b/payments/{publicUuid}/refund` — refund a B2B payment. */
     PAYMENTS_REFUND: (publicUuid: string) =>
-      `${BASE}/admin/payments/${encodeURIComponent(publicUuid)}/refund`,
+      `${BASE}/admin/b2b/payments/${encodeURIComponent(publicUuid)}/refund`,
     /** `GET /v1/admin/metrics/students?tenantUuid=` — student count per tenant. */
     METRICS_STUDENTS: `${BASE}/admin/metrics/students`,
     /** `GET /v1/admin/metrics/teachers?tenantUuid=` — teacher count per tenant. */

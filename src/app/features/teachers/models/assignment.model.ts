@@ -18,6 +18,8 @@ export interface AssignmentListItemRaw {
   teacherFullName: string;
   sectionPublicUuid: string;
   sectionName: string;
+  /** Grade label denormalised from section (e.g. {@code "1ro Primaria"}). */
+  gradeName: string | null;
   coursePublicUuid: string;
   courseCode: string;
   courseName: string;
@@ -47,6 +49,7 @@ export interface AssignmentResponseRaw {
   teacherFullName: string;
   sectionPublicUuid: string;
   sectionName: string;
+  gradeName: string | null;
   coursePublicUuid: string;
   courseCode: string;
   courseName: string;
@@ -96,6 +99,7 @@ export interface AssignmentRow {
   teacherFullName: string;
   sectionPublicUuid: string;
   sectionName: string;
+  gradeName: string | null;
   coursePublicUuid: string;
   courseCode: string;
   courseName: string;

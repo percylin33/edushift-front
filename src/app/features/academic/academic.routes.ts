@@ -148,6 +148,28 @@ export const ACADEMIC_ROUTES: Routes = [
             (m) => m.GradeRegisterPageComponent,
           ),
       },
+      {
+        path: 'grade-register/settings',
+        canActivate: [roleGuard],
+        data: {
+          roles: [UserRole.TenantAdmin],
+          title: 'Configuración del registro',
+          view: 'settings',
+        },
+        loadComponent: () =>
+          import('./pages/grade-register-page/grade-register-page.component').then(
+            (m) => m.GradeRegisterPageComponent,
+          ),
+      },
+      {
+        path: 'session-templates',
+        canActivate: [roleGuard],
+        data: { roles: [UserRole.TenantAdmin], title: 'Plantillas de sesión' },
+        loadComponent: () =>
+          import('./pages/session-templates-page/session-templates-page.component').then(
+            (m) => m.SessionTemplatesPageComponent,
+          ),
+      },
     ],
   },
 ];

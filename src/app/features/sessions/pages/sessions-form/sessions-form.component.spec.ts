@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 import { SessionsFormComponent } from './sessions-form.component';
 import { SessionsApiService } from '../../services';
 import { AcademicApiService } from '@features/academic/services';
+import { SessionTemplatesApiService } from '@features/academic/services/session-templates-api.service';
 import { SessionStatus, LearningSessionDetail } from '../../models';
 
 describe('SessionsFormComponent', () => {
@@ -44,6 +45,7 @@ describe('SessionsFormComponent', () => {
     cancelledAt: undefined,
     createdAt: new Date(),
     updatedAt: new Date(),
+    sharedWithGrade: false,
   };
 
   function configureModule(id: string | null = null): void {
@@ -61,13 +63,25 @@ describe('SessionsFormComponent', () => {
       'listAssignments',
       'listUnits',
       'listCompetencies',
+      'getCompetency',
+      'listYears',
+      'listPeriods',
     ]);
+    fakeAcademic.listYears.and.returnValue(of([]));
+    fakeAcademic.listPeriods.and.returnValue(of([]));
+    fakeAcademic.listAssignments.and.returnValue(of([]));
+    const fakeTemplates = jasmine.createSpyObj<SessionTemplatesApiService>(
+      'SessionTemplatesApiService',
+      ['listMine'],
+    );
+    fakeTemplates.listMine.and.returnValue(of([]));
     TestBed.configureTestingModule({
       imports: [ReactiveFormsModule, SessionsFormComponent],
       providers: [
         provideRouter([]),
         { provide: SessionsApiService, useValue: fakeApi },
         { provide: AcademicApiService, useValue: fakeAcademic },
+        { provide: SessionTemplatesApiService, useValue: fakeTemplates },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: (_: string) => id } } },
@@ -86,16 +100,112 @@ describe('SessionsFormComponent', () => {
   it('ngOnInit carga asignaciones', async () => {
     configureModule();
     fakeAcademic.listAssignments.and.returnValue(
-      of([{ publicUuid: 'a-1', coursePublicUuid: 'c-1', courseUuid: 'c-1' } as any]),
+      of([
+        {
+          publicUuid: 'a-1',
+          coursePublicUuid: 'c-1',
+          academicPeriodPublicUuid: 'p-1',
+        } as any,
+      ]),
     );
     await component.ngOnInit();
     expect((component as any).assignments().length).toBeGreaterThan(0);
   });
 
+  it('filteredAssignments solo incluye el periodo seleccionado', async () => {
+    configureModule();
+    fakeAcademic.listYears.and.returnValue(
+      of([{ publicUuid: 'y-1', status: 'ACTIVE', name: '2026' } as any]),
+    );
+    fakeAcademic.listPeriods.and.returnValue(
+      of([
+        {
+          publicUuid: 'p-1',
+          academicYearPublicUuid: 'y-1',
+          periodType: 'BIMESTRE',
+          ordinal: 1,
+          name: 'I Bimestre',
+          startDate: new Date('2026-03-01'),
+          endDate: new Date('2026-05-31'),
+        } as any,
+        {
+          publicUuid: 'p-2',
+          academicYearPublicUuid: 'y-1',
+          periodType: 'BIMESTRE',
+          ordinal: 2,
+          name: 'II Bimestre',
+          startDate: new Date('2026-06-01'),
+          endDate: new Date('2026-08-31'),
+        } as any,
+      ]),
+    );
+    fakeAcademic.listAssignments.and.returnValue(
+      of([
+        {
+          publicUuid: 'a-p1',
+          coursePublicUuid: 'c-1',
+          academicPeriodPublicUuid: 'p-1',
+          teacherFullName: 'Ana',
+          courseCode: 'MAT',
+          sectionName: 'A',
+        } as any,
+        {
+          publicUuid: 'a-p2',
+          coursePublicUuid: 'c-1',
+          academicPeriodPublicUuid: 'p-2',
+          teacherFullName: 'Ana',
+          courseCode: 'MAT',
+          sectionName: 'A',
+        } as any,
+      ]),
+    );
+    await component.ngOnInit();
+
+    (component as any).selectedPeriodUuid.set('p-1');
+    expect((component as any).filteredAssignments().map((a: any) => a.publicUuid)).toEqual([
+      'a-p1',
+    ]);
+
+    (component as any).onPeriodChange('p-2');
+    expect((component as any).filteredAssignments().map((a: any) => a.publicUuid)).toEqual([
+      'a-p2',
+    ]);
+  });
+
+  it('al elegir asignación carga unidades con coursePublicUuid', async () => {
+    configureModule();
+    fakeAcademic.listAssignments.and.returnValue(
+      of([
+        {
+          publicUuid: 'a-1',
+          coursePublicUuid: 'c-1',
+          academicPeriodPublicUuid: 'p-1',
+          teacherFullName: 'Ana',
+          courseCode: 'MAT',
+          sectionName: 'A',
+        } as any,
+      ]),
+    );
+    fakeAcademic.listUnits.and.returnValue(
+      of([
+        { publicUuid: 'u-1', name: 'Unidad 1', displayOrder: 1, isActive: true } as any,
+        { publicUuid: 'u-2', name: 'Unidad 2', displayOrder: 2, isActive: true } as any,
+      ]),
+    );
+    fakeAcademic.listCompetencies.and.returnValue(of([]));
+    await component.ngOnInit();
+
+    (component as any).form.get('assignmentUuid')?.setValue('a-1');
+    await fixture.whenStable();
+
+    expect(fakeAcademic.listUnits).toHaveBeenCalledWith('c-1');
+    expect((component as any).units().length).toBe(2);
+  });
+
   it('ngOnInit en edit hidrata form', async () => {
     configureModule('sess-1');
     fakeAcademic.listAssignments.and.returnValue(
-      of([{ publicUuid: 'a-1', coursePublicUuid: 'c-1', courseUuid: 'c-1' } as any]),
+      of([{ publicUuid: 'a-1', coursePublicUuid: 'c-1' } as any]),
     );
     fakeAcademic.listUnits.and.returnValue(
       of([{ publicUuid: 'u-1', name: 'U1', displayOrder: 1, isActive: true } as any]),

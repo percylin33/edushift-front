@@ -1,3 +1,4 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { API } from '@core/constants';
@@ -12,6 +13,11 @@ import {
   LifecycleRequest,
   CreateLearningSessionRequest,
   UpdateLearningSessionRequest,
+  CopyLearningSessionRequest,
+  SharedLearningSession,
+  SharedLearningSessionRaw,
+  ApplicationSheetView,
+  GenerateApplicationSheetRequest,
 } from '../models';
 
 /**
@@ -35,6 +41,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class SessionsApiService {
   private readonly api = inject(ApiService);
+  private readonly http = inject(HttpClient);
 
   /**
    * Lista sesiones de aprendizaje con filtros opcionales.
@@ -80,6 +87,43 @@ export class SessionsApiService {
         patch,
       )
       .pipe(map((envelope) => this.toSessionDetail(envelope.data)));
+  }
+
+  generateApplicationSheet(
+    request: GenerateApplicationSheetRequest,
+  ): Observable<ApplicationSheetView> {
+    return this.api
+      .post<ApiResponse<ApplicationSheetView>, GenerateApplicationSheetRequest>(
+        API.AI.GENERATE_APPLICATION_SHEET,
+        request,
+      )
+      .pipe(map((envelope) => envelope.data));
+  }
+
+  listApplicationSheets(sessionUuid: string): Observable<ApplicationSheetView[]> {
+    return this.api
+      .get<ApiResponse<ApplicationSheetView[]>>(API.SESSIONS.APPLICATION_SHEETS(sessionUuid))
+      .pipe(map((envelope) => envelope.data ?? []));
+  }
+
+  generateStoredApplicationSheet(
+    sessionUuid: string,
+    body: { kind: ApplicationSheetView['kind']; grade: string },
+  ): Observable<ApplicationSheetView> {
+    return this.api
+      .post<ApiResponse<ApplicationSheetView>, { kind: ApplicationSheetView['kind']; grade: string }>(
+        API.SESSIONS.APPLICATION_SHEETS_GENERATE(sessionUuid),
+        body,
+      )
+      .pipe(map((envelope) => envelope.data));
+  }
+
+  downloadApplicationSheet(sessionUuid: string, kind: string, grade: string): Observable<Blob> {
+    const url =
+      API.SESSIONS.APPLICATION_SHEET_EXPORT(sessionUuid, kind) +
+      '?grade=' +
+      encodeURIComponent(grade);
+    return this.http.get(url, { responseType: 'blob' });
   }
 
   deleteSession(publicUuid: string): Observable<void> {
@@ -132,6 +176,24 @@ export class SessionsApiService {
     return this.api
       .get<LearningSessionListItemRaw[]>(API.SESSIONS.BY_ASSIGNMENT(assignmentUuid))
       .pipe(map((rows) => rows.map((r) => this.toSessionRow(r))));
+  }
+
+  listSharedSessions(): Observable<SharedLearningSession[]> {
+    return this.api
+      .get<SharedLearningSessionRaw[]>(API.SESSIONS.SHARED)
+      .pipe(map((rows) => rows.map((row) => this.toSharedSession(row))));
+  }
+
+  copySession(
+    publicUuid: string,
+    request: CopyLearningSessionRequest,
+  ): Observable<LearningSessionDetail> {
+    return this.api
+      .post<ApiResponse<LearningSessionResponseRaw>, CopyLearningSessionRequest>(
+        API.SESSIONS.COPY(publicUuid),
+        request,
+      )
+      .pipe(map((envelope) => this.toSessionDetail(envelope.data)));
   }
 
   getSessionsByUnit(unitUuid: string): Observable<LearningSessionRow[]> {
@@ -192,6 +254,26 @@ export class SessionsApiService {
       cancelledAt: raw.cancelledAt ? this.parseDate(raw.cancelledAt) : undefined,
       createdAt: this.parseDate(raw.createdAt),
       updatedAt: this.parseDate(raw.updatedAt),
+      sharedWithGrade: raw.sharedWithGrade === true,
+    };
+  }
+
+  private toSharedSession(raw: SharedLearningSessionRaw): SharedLearningSession {
+    return {
+      publicUuid: raw.publicUuid,
+      title: raw.title,
+      objective: raw.objective ?? '',
+      scheduledDate: raw.scheduledDate,
+      durationMinutes: raw.durationMinutes,
+      activities: raw.activities ?? [],
+      materials: raw.materials ?? [],
+      competencies: raw.competencies ?? [],
+      authorName: raw.authorName ?? '',
+      sectionName: raw.sectionName ?? '',
+      gradeName: raw.gradeName ?? '',
+      courseCode: raw.courseCode ?? '',
+      coursePublicUuid: raw.coursePublicUuid,
+      periodPublicUuid: raw.periodPublicUuid,
     };
   }
 

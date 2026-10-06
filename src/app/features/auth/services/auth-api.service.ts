@@ -73,6 +73,7 @@ export class AuthApiService {
       .post<AuthResponseRaw & { mfaToken?: string | null; expiresInSec?: number }>(
         API.AUTH.LOGIN,
         payload,
+        { withCredentials: true },
       )
       .pipe(
         map((raw) => {
@@ -111,21 +112,23 @@ export class AuthApiService {
 
   /**
    * Revoke the refresh token server-side. Idempotent on the backend (a
-   * malformed / unknown / already-revoked token still returns 204), but
-   * it requires the token in the body — Sprint 1 does not enforce bearer
-   * auth on this endpoint precisely so a client whose access token has
-   * expired can still log out.
+   * malformed / unknown / already-revoked token still returns 204).
+   * The token lives in the httpOnly cookie, which the browser sends
+   * automatically. An explicit body is only for callers that still hold
+   * the token in memory.
    */
-  logout(refreshToken: string): Observable<void> {
-    const body: RefreshTokenRequest = { refreshToken };
+  logout(refreshToken?: string): Observable<void> {
+    const body: RefreshTokenRequest | undefined = refreshToken
+      ? { refreshToken }
+      : undefined;
     return this.api.post<void, RefreshTokenRequest>(API.AUTH.LOGOUT, body);
   }
 
-  /** Rotate the refresh token. Replaying an already-rotated token poisons the chain (theft detection). */
-  refresh(refreshToken: string): Observable<AuthSession> {
-    const body: RefreshTokenRequest = { refreshToken };
+  /** Rotate the refresh token. Replaying an already-rotated token poisons the chain (theft detection).
+   *  SECURITY FIX: Refresh token is now in httpOnly cookie, browser sends it automatically. */
+  refresh(): Observable<AuthSession> {
     return this.api
-      .post<AuthResponseRaw, RefreshTokenRequest>(API.AUTH.REFRESH, body)
+      .post<AuthResponseRaw>(API.AUTH.REFRESH)
       .pipe(map(toAuthSession));
   }
 

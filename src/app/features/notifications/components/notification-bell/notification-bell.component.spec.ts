@@ -3,6 +3,7 @@ import { NotificationBellComponent } from './notification-bell.component';
 import { NotificationsApiService } from '../../services/notifications-api.service';
 import { RealtimeService } from '@core/realtime/realtime.service';
 import { AuthService } from '@core/services/auth.service';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 describe('NotificationBellComponent', () => {
@@ -33,6 +34,7 @@ describe('NotificationBellComponent', () => {
         { provide: NotificationsApiService, useValue: apiSpy },
         { provide: RealtimeService, useValue: realtimeSpy },
         { provide: AuthService, useValue: authSpy },
+        provideRouter([]),
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(NotificationBellComponent);

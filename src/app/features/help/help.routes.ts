@@ -2,18 +2,11 @@
 import { authChildGuard } from '@core/guards';
 
 /**
- * Centro de Pruebas (`/help`) â€” Sprint 17 / F-QA-PLAN 2026-07-17.
+ * Centro de Pruebas (`/help`) — Family UAT hub.
  *
- * <p>Replaces the legacy manual grid with a role-based QA wizard.</p>
- *
- * <h3>Routes</h3>
- * <ul>
- *   <li>{@code /help} â€” overview grid (one card per role).</li>
- *   <li>{@code /help/role/:roleKey} â€” capability grid for one role.</li>
- *   <li>{@code /help/role/:roleKey/:capId} â€” wizard for one capability.</li>
- *   <li>{@code /help/reports} â€” list of bug reports.</li>
- *   <li>{@code /help/legacy* â€” markdown manuals, retained for backwards compat.</li>
- * </ul>
+ * <p>Replaces the Sprint 17 capability wizard with interactive family-test
+ * scripts (checklists + in-app links). Legacy QA / walkthrough / pilot /
+ * manuals paths redirect to the hub.</p>
  */
 export const HELP_ROUTES: Routes = [
   {
@@ -24,22 +17,23 @@ export const HELP_ROUTES: Routes = [
         path: '',
         pathMatch: 'full',
         loadComponent: () =>
-          import('./pages/qa-overview/qa-overview-page.component').then(
-            (m) => m.QaOverviewPageComponent,
+          import('./pages/family-uat-hub/family-uat-hub-page.component').then(
+            (m) => m.FamilyUatHubPageComponent,
           ),
       },
       {
-        path: 'role/:roleKey',
+        path: 'script/:roleKey',
         loadComponent: () =>
-          import('./pages/qa-role-plan/qa-role-plan-page.component').then(
-            (m) => m.QaRolePlanPageComponent,
+          import('./pages/family-uat-script/family-uat-script-page.component').then(
+            (m) => m.FamilyUatScriptPageComponent,
           ),
       },
       {
-        path: 'role/:roleKey/:capId',
+        path: 'lead',
+        pathMatch: 'full',
         loadComponent: () =>
-          import('./pages/qa-wizard/qa-wizard-page.component').then(
-            (m) => m.QaWizardPageComponent,
+          import('./pages/family-uat-lead/family-uat-lead-page.component').then(
+            (m) => m.FamilyUatLeadPageComponent,
           ),
       },
       {
@@ -49,52 +43,16 @@ export const HELP_ROUTES: Routes = [
             (m) => m.QaReportPageComponent,
           ),
       },
-      {
-        path: 'pilot-guide',
-        pathMatch: 'full',
-        loadComponent: () =>
-          import('./pages/pilot-guide/pilot-guide-page.component').then(
-            (m) => m.PilotGuidePageComponent,
-          ),
-      },
-      {
-        path: 'guides',
-        pathMatch: 'full',
-        loadComponent: () =>
-          import('./pages/walkthrough-index/walkthroughs-index-page.component').then(
-            (m) => m.WalkthroughsIndexPageComponent,
-          ),
-      },
-      {
-        path: 'guides/:roleKey',
-        loadComponent: () =>
-          import('./pages/walkthrough-viewer/walkthrough-viewer-page.component').then(
-            (m) => m.WalkthroughViewerPageComponent,
-          ),
-      },
-      {
-        path: 'legacy',
-        pathMatch: 'full',
-        loadComponent: () =>
-          import('./pages/help-index/help-index-page.component').then(
-            (m) => m.HelpIndexPageComponent,
-          ),
-      },
-      {
-        path: 'legacy/:role',
-        loadComponent: () =>
-          import('./pages/help-viewer/help-viewer-page.component').then(
-            (m) => m.HelpViewerPageComponent,
-          ),
-      },
-      {
-        path: 'legacy/:role/:chapter',
-        loadComponent: () =>
-          import('./pages/help-viewer/help-viewer-page.component').then(
-            (m) => m.HelpViewerPageComponent,
-          ),
-      },
+      // Legacy Centro de Pruebas surfaces → hub
+      { path: 'role', pathMatch: 'full', redirectTo: '' },
+      { path: 'role/:roleKey', redirectTo: '' },
+      { path: 'role/:roleKey/:capId', redirectTo: '' },
+      { path: 'pilot-guide', pathMatch: 'full', redirectTo: '' },
+      { path: 'guides', pathMatch: 'full', redirectTo: '' },
+      { path: 'guides/:roleKey', redirectTo: '' },
+      { path: 'legacy', pathMatch: 'full', redirectTo: '' },
+      { path: 'legacy/:role', redirectTo: '' },
+      { path: 'legacy/:role/:chapter', redirectTo: '' },
     ],
   },
 ];
-

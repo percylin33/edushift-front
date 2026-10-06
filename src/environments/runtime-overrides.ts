@@ -33,6 +33,21 @@ function resolveApiUrl(builtInApiUrl: string): string {
       return builtInApiUrl;
     }
   }
+  // Public tunnels: same-origin `/api` so `ng serve` proxy → local BE works.
+  // Without this, the browser would call `http://localhost:8081` on the
+  // remote device and fail.
+  if (
+    host.endsWith('.trycloudflare.com') ||
+    host.endsWith('.loca.lt') ||
+    host.endsWith('.devtunnels.ms') ||
+    host.endsWith('.ngrok-free.app') ||
+    host.endsWith('.ngrok.io') ||
+    host.endsWith('.ngrok.app') ||
+    host.endsWith('.ngrok.dev') ||
+    host.endsWith('.lhr.life')
+  ) {
+    return '/api';
+  }
   return builtInApiUrl;
 }
 

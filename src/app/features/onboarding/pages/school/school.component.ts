@@ -58,7 +58,7 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
     <header class="mb-6">
       <h1 class="text-2xl font-semibold tracking-tight">Datos de la institución</h1>
       <p class="mt-1 text-sm text-content-muted">
-        Personaliza el nombre y el branding que verán tus usuarios.
+        Personaliza el nombre y la identidad visual que verán tus usuarios.
       </p>
     </header>
 
@@ -110,7 +110,7 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
         @if (invalid('primaryColor')) {
           <p class="hint text-danger">{{ errorOf('primaryColor') }}</p>
         } @else {
-          <p class="hint">Hex CSS (ej. <span class="font-mono">#0F62FE</span>).</p>
+          <p class="hint">Código de color (ej. <span class="font-mono">#0F62FE</span>).</p>
         }
       </div>
 

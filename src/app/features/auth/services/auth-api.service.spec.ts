@@ -70,11 +70,9 @@ describe('AuthApiService', () => {
   it('refresh POSTea a /auth/refresh y adapta la respuesta', (done) => {
     apiSpy.post.and.returnValue(of(mockAuthResponseRaw));
 
-    service.refresh('refresh-456').subscribe((session) => {
+    service.refresh().subscribe((session) => {
       expect(session.accessToken).toBe('access-123');
-      expect(apiSpy.post).toHaveBeenCalledWith(jasmine.stringMatching(/\/auth\/refresh$/), {
-        refreshToken: 'refresh-456',
-      });
+      expect(apiSpy.post).toHaveBeenCalledWith(jasmine.stringMatching(/\/auth\/refresh$/));
       done();
     });
   });

@@ -12,6 +12,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom, Subscription } from 'rxjs';
 import { ROUTES } from '@core/constants';
 import {
+  ConfirmDialogService,
   EmptyStateComponent,
   IconComponent,
   PageContainerComponent,
@@ -99,7 +100,7 @@ interface EvaluationCategoryGroup {
           <div class="field">
             <label class="label">Estado</label>
             <select
-              class="input"
+              class="select"
               [value]="filters().status ?? ''"
               (change)="onFilterChange('status', $any($event.target).value || undefined)"
             >
@@ -414,6 +415,7 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
   private readonly store = inject(EvaluationsStore);
   private readonly api = inject(EvaluationsApiService);
   private readonly gradeBookApi = inject(GradeBookApiService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly assignmentUuid = signal<string>('');
   protected readonly assignmentLabel = signal<string>('');
@@ -631,12 +633,17 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
   protected async onLifecycleHop(row: EvaluationRow, target: EvaluationStatus): Promise<void> {
     const fromLabel = EVALUATION_STATUS_LABELS[row.status];
     const toLabel = EVALUATION_STATUS_LABELS[target];
-    const ok = confirm(
-      `¿Cambiar el registro "${row.name}" de ${fromLabel} a ${toLabel}?\n\n` +
-        (target === EvaluationStatus.CLOSED
+    const isClose = target === EvaluationStatus.CLOSED;
+    const ok = await this.confirmDialog.open({
+      title: isClose ? 'Cerrar registro' : 'Publicar registro',
+      message:
+        `¿Cambiar el registro "${row.name}" de ${fromLabel} a ${toLabel}?\n\n` +
+        (isClose
           ? 'Una vez cerrada NO se podrá reabrir.'
           : 'Los registros publicados son visibles para los estudiantes.'),
-    );
+      confirmLabel: isClose ? 'Cerrar' : 'Publicar',
+      variant: isClose ? 'warning' : 'default',
+    });
     if (!ok) return;
 
     this.setBusy(row.publicUuid, true);
@@ -652,10 +659,15 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
   }
 
   protected async onDelete(row: EvaluationRow): Promise<void> {
-    const ok = confirm(
-      `¿Eliminar el registro borrador "${row.name}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar borrador',
+      message:
+        `¿Eliminar el registro borrador "${row.name}"?\n\n` +
         'Solo se permite eliminar borradores sin calificaciones registradas.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
 
     this.setBusy(row.publicUuid, true);

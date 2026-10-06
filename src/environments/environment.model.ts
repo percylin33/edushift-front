@@ -73,6 +73,8 @@ export interface AppEnvironment {
     refreshTokenStorageKey: string;
     tokenHeaderName: string;
     tokenScheme: string;
+    /** SECURITY FIX: Send cookies with every request (httpOnly token storage) */
+    withCredentials: boolean;
   };
   /**
    * Google OAuth client wired by `angularx-social-login`. Only consulted

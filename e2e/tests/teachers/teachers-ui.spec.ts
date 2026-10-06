@@ -124,11 +124,12 @@ test.describe('Teachers — UI', () => {
     const teacher = await makeTeacher(api, { firstName: 'DelSpec' });
     try {
       await page.goto(`/teachers/${teacher.publicUuid}`);
-      // Native confirm() dialog — accept automatically.
-      page.once('dialog', async (dialog) => {
-        await dialog.accept();
-      });
       await page.locator('button:has-text("Eliminar")').first().click();
+
+      // Branded ConfirmDialog — confirm the destructive action.
+      const confirm = page.getByRole('dialog');
+      await expect(confirm).toBeVisible();
+      await confirm.getByRole('button', { name: 'Eliminar' }).click();
 
       // Detail page should redirect to /teachers list (or just remove the row).
       // Some detail pages stay open until the API call resolves; be permissive.

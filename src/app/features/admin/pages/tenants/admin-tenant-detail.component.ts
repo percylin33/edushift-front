@@ -1,13 +1,15 @@
 import { ChangeDetectionStrategy, Component, effect, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DatePipe, JsonPipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ROUTES } from '@core/constants';
-import { AdminTenantsService } from '../../services';
+import { ConfirmDialogService } from '@shared/components';
+import { AdminTenantsService, PrepPackageVariant } from '../../services';
 
 @Component({
   selector: 'app-admin-tenant-detail',
   standalone: true,
-  imports: [RouterLink, DatePipe, JsonPipe],
+  imports: [RouterLink, DatePipe, JsonPipe, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6">
@@ -208,6 +210,34 @@ import { AdminTenantsService } from '../../services';
                       Suspender institución
                     </button>
                   }
+
+                  <div class="mt-2 border-t border-slate-800 pt-3">
+                    <p class="text-xs text-slate-400">Pack de preparación de datos</p>
+                    <label class="mt-2 block text-xs text-slate-500">
+                      Variante
+                      <select
+                        [(ngModel)]="prepVariant"
+                        class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
+                      >
+                        <option value="PILOT">Piloto</option>
+                        <option value="PRODUCTION">Producción</option>
+                      </select>
+                    </label>
+                    <p class="mt-2 text-xs text-slate-500">
+                      Piloto: lo mínimo para probar. Producción: padrón completo e incluye conceptos de pago.
+                    </p>
+                    <button
+                      type="button"
+                      (click)="downloadPrepPackage(t.name)"
+                      [disabled]="prepBusy()"
+                      class="mt-2 w-full rounded-lg border border-indigo-500/60 bg-indigo-950/40 px-4 py-2 text-sm font-medium text-indigo-200 hover:bg-indigo-900/50 disabled:opacity-50"
+                    >
+                      {{ prepBusy() ? 'Generando…' : 'Descargar pack ZIP' }}
+                    </button>
+                    @if (prepError(); as err) {
+                      <p class="mt-2 text-xs text-red-300">{{ err }}</p>
+                    }
+                  </div>
                 </div>
               </div>
             </div>
@@ -220,6 +250,7 @@ import { AdminTenantsService } from '../../services';
 export class AdminTenantDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   protected readonly svc = inject(AdminTenantsService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   protected readonly ROUTES = ROUTES;
 
   /** Stable reference for `Object.keys` inside the template. */
@@ -228,6 +259,10 @@ export class AdminTenantDetailComponent implements OnInit {
   /** Convenience signal — true when ANY of the raw maps has content. */
   private readonly hasRawMapsSig = signal(false);
   protected readonly hasRawMaps = this.hasRawMapsSig.asReadonly();
+
+  protected prepVariant: PrepPackageVariant = 'PRODUCTION';
+  protected readonly prepBusy = signal(false);
+  protected readonly prepError = signal<string | null>(null);
 
   constructor() {
     // Recompute "has raw maps" whenever the selected tenant changes so
@@ -285,11 +320,56 @@ export class AdminTenantDetailComponent implements OnInit {
     return map[status] ?? 'text-white';
   }
 
-  protected suspend(uuid: string): void {
-    if (confirm('¿Suspender esta institución?')) this.svc.suspendTenant(uuid);
+  protected async suspend(uuid: string): Promise<void> {
+    const ok = await this.confirmDialog.open({
+      title: 'Suspender institución',
+      message: '¿Suspender esta institución?',
+      confirmLabel: 'Suspender',
+      variant: 'danger',
+      icon: 'trash',
+    });
+    if (!ok) return;
+    this.svc.suspendTenant(uuid);
   }
 
   protected reactivate(uuid: string): void {
     this.svc.reactivateTenant(uuid);
+  }
+
+  protected downloadPrepPackage(schoolName: string): void {
+    if (this.prepBusy()) return;
+    this.prepBusy.set(true);
+    this.prepError.set(null);
+    this.svc.downloadPrepPackage(schoolName, this.prepVariant).subscribe({
+      next: (blob) => {
+        this.prepBusy.set(false);
+        const slug = (schoolName || 'colegio')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/\p{M}/gu, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 60) || 'colegio';
+        this.triggerBrowserDownload(blob, `prep-datos-${slug}.zip`);
+      },
+      error: (err) => {
+        this.prepBusy.set(false);
+        this.prepError.set(
+          err?.error?.message ?? err?.statusText ?? 'No se pudo descargar el pack.',
+        );
+      },
+    });
+  }
+
+  private triggerBrowserDownload(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
 }

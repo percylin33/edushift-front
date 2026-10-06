@@ -11,6 +11,17 @@
           "/index.html",
           "/manifest.webmanifest",
           "/*.css",
+          "/main*.js",
+          "/polyfills*.js"
+        ]
+      }
+    },
+    {
+      "name": "lazy-chunks",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
           "/*.js"
         ]
       }
@@ -22,6 +33,7 @@
       "resources": {
         "files": [
           "/assets/**",
+          "/branding/**",
           "/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|otf|ttf|woff|woff2)"
         ]
       }

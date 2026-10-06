@@ -168,7 +168,7 @@ import {
 						</div>
 						<div class="field">
 							<label class="label">Tipo *</label>
-							<select class="input" formControlName="type">
+							<select class="select" formControlName="type">
 								@for (t of TYPES; track t.value) {
 									<option [value]="t.value">{{ t.label }}</option>
 								}

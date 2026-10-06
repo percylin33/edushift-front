@@ -10,7 +10,12 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import {
+  ConfirmDialogService,
+  EmptyStateComponent,
+  IconComponent,
+  SpinnerComponent,
+} from '@shared/components';
 import { AcademicYearStatusBadgeComponent, SectionBulkSetupComponent, SectionFormModalComponent } from '../../components';
 import { AcademicStore } from '../../store';
 import {
@@ -280,6 +285,7 @@ export class SectionsListComponent implements OnInit {
   private readonly store = inject(AcademicStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly years = this.store.years;
   protected readonly levels = this.store.levels;
@@ -464,10 +470,15 @@ export class SectionsListComponent implements OnInit {
   }
 
   protected async confirmDelete(row: SectionRow): Promise<void> {
-    const ok = confirm(
-      `¿Eliminar la sección "${row.gradeName} ${row.name}" del año "${row.academicYearName}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar sección',
+      message:
+        `¿Eliminar la sección "${row.gradeName} ${row.name}" del año "${row.academicYearName}"?\n\n` +
         'Esta operación es reversible solo desde el backend.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.deleteSection(row.publicUuid);
   }

@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { AcademicApiService } from '@features/academic/services';
 import { SessionsDetailComponent } from './sessions-detail.component';
 import { SessionsApiService } from '../../services';
 import { LearningSessionDetail, SessionStatus } from '../../models';
@@ -38,6 +39,7 @@ describe('SessionsDetailComponent', () => {
     capacities: [{ publicUuid: 'cap-1', code: 'Ca', name: 'Cap', competencyPublicUuid: 'comp-1' }],
     createdAt: new Date(),
     updatedAt: new Date(),
+    sharedWithGrade: false,
   };
 
   function configureModule(id: string | null = 'sess-1'): void {
@@ -53,6 +55,7 @@ describe('SessionsDetailComponent', () => {
       providers: [
         provideRouter([]),
         { provide: SessionsApiService, useValue: fakeApi },
+        { provide: AcademicApiService, useValue: { listAssignments: () => of([]) } },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: (_: string) => id } } },

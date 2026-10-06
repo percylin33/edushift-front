@@ -17,9 +17,11 @@ import { NotificationItem, NotificationPreferences } from '../models';
  * triggers:
  *
  * <ol>
- *   <li>The bell calls {@link refreshUnreadCount} on mount + on every
- *       {@code NavigationEnd}, so the badge stays in sync with whatever
- *       happened in any other page.</li>
+ *   <li>The bell calls {@link refreshUnreadCount} on mount and when the
+ *       tab regains focus / visibility (not on every
+ *       {@code NavigationEnd} — that spammed {@code GET /unread-count}
+ *       during the school day). Future: STOMP push from
+ *       {@code RealtimeService} (see docs/modules/notifications.md).</li>
  *   <li>The home page calls {@link loadAll} when the user lands on
  *       {@code /notifications}, hydrating the local list and
  *       recomputing the unread count from it.</li>
@@ -47,7 +49,7 @@ import { NotificationItem, NotificationPreferences } from '../models';
  *
  * <h3>Multi-tenant guarantee</h3>
  * The store never persists to localStorage — the unread count is always
- * derived from the backend on mount/navigation. Tenant switches (via
+ * derived from the backend on mount / focus. Tenant switches (via
  * {@code @features/auth}) trigger a {@link reset} in the auth-store
  * observer (out of scope here).
  */
@@ -95,10 +97,10 @@ export class NotificationsStore {
   }
 
   /**
-   * Re-fetch the unread count without hydrating the full list. Cheap
-   * enough to run on every navigation. Sets {@link unreadCount}
-   * <strong>directly</strong> from the server response so the bell
-   * badge reflects the truth even before the home page has loaded.
+   * Re-fetch the unread count without hydrating the full list. Called on
+   * bell mount and when the tab becomes visible again. Sets
+   * {@link unreadCount} <strong>directly</strong> from the server response
+   * so the badge reflects the truth even before the home page has loaded.
    */
   refreshUnreadCount() {
     return this.api

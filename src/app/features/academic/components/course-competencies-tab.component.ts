@@ -11,7 +11,12 @@ import {
   signal,
 } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import {
+  ConfirmDialogService,
+  EmptyStateComponent,
+  IconComponent,
+  SpinnerComponent,
+} from '@shared/components';
 import { CompetenciesStore } from '../store';
 import { CapacityDetail, CompetencyDetail, CompetencyRow } from '../models';
 import { AcademicApiService } from '../services';
@@ -33,7 +38,6 @@ import {
  *       capacidades. Botones CRUD por nivel.</li>
  *   <li>El "Editar" carga el detail vía {@code AcademicApiService}
  *       para hidratar la descripción (no presente en el list item).</li>
- *   <li>El delete usa {@code window.confirm} (mismo patrón que units).</li>
  * </ul>
  */
 @Component({
@@ -125,6 +129,9 @@ import {
                   <p class="font-medium text-content">
                     <span class="mr-2 text-xs text-content-muted"> {{ comp.displayOrder }}. </span>
                     {{ comp.name }}
+                    <span class="badge badge-neutral ml-2 text-[10px]">
+                      {{ originLabel(comp.origin) }}
+                    </span>
                     @if (!comp.isActive) {
                       <span class="badge badge-neutral ml-2 text-[10px]"> Inactiva </span>
                     }
@@ -134,6 +141,16 @@ import {
                   </p>
                 </div>
                 <div class="flex shrink-0 items-center gap-1" (click)="$event.stopPropagation()">
+                  @if (comp.origin === 'TEACHER') {
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm"
+                      [disabled]="saving()"
+                      (click)="confirmPromote(comp)"
+                    >
+                      Pasar al colegio
+                    </button>
+                  }
                   <button
                     type="button"
                     class="btn btn-ghost btn-sm"
@@ -248,6 +265,7 @@ import {
 export class CourseCompetenciesTabComponent implements OnChanges {
   private readonly store = inject(CompetenciesStore);
   private readonly api = inject(AcademicApiService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly courseUuid = input.required<string>();
 
@@ -326,12 +344,36 @@ export class CourseCompetenciesTabComponent implements OnChanges {
     }
   }
 
+  protected originLabel(origin: string | undefined): string {
+    if (origin === 'MINEDU') return 'MINEDU';
+    if (origin === 'TEACHER') return 'Docente';
+    return 'Colegio';
+  }
+
+  protected async confirmPromote(comp: CompetencyRow): Promise<void> {
+    const ok = await this.confirmDialog.open({
+      title: 'Pasar al colegio',
+      message:
+        `¿Pasar "${comp.name}" al catálogo del colegio?\n\n` +
+        'El docente que la creó ya no podrá editarla ni desactivarla.',
+      confirmLabel: 'Pasar al colegio',
+      variant: 'default',
+    });
+    if (!ok) return;
+    await this.store.promoteCompetency(comp.publicUuid);
+  }
+
   protected async confirmDeleteCompetency(comp: CompetencyRow): Promise<void> {
-    const ok = confirm(
-      `¿Eliminar la competencia "${comp.name}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar competencia',
+      message:
+        `¿Eliminar la competencia "${comp.name}"?\n\n` +
         'Esta operación es reversible solo desde el backend. ' +
         'Si tiene sesiones asociadas, el backend devolverá COMPETENCY_IN_USE_BY_SESSIONS.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.deleteCompetency(comp.publicUuid);
   }
@@ -374,10 +416,15 @@ export class CourseCompetenciesTabComponent implements OnChanges {
     competencyUuid: string,
     capacityUuid: string,
   ): Promise<void> {
-    const ok = confirm(
-      '¿Eliminar esta capacidad?\n\n' +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar capacidad',
+      message:
+        '¿Eliminar esta capacidad?\n\n' +
         'Si tiene sesiones asociadas, el backend devolverá CAPACITY_IN_USE_BY_SESSIONS.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.deleteCapacity(capacityUuid, competencyUuid);
   }

@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
-import { IconComponent, SpinnerComponent } from '@shared/components';
+import { ConfirmDialogService, IconComponent, SpinnerComponent } from '@shared/components';
 import { AcademicApiService } from '../services';
 import {
   CreateTimeSlotRequest,
@@ -179,6 +179,7 @@ interface WireApiError {
 export class TimeSlotFormModalComponent implements OnInit {
   private readonly api = inject(AcademicApiService);
   private readonly fb = inject(FormBuilder);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   /** Active assignments available when creating (year-collapsed options). */
   readonly assignments = input<TimeSlotAssignmentOption[]>([]);
@@ -335,9 +336,14 @@ export class TimeSlotFormModalComponent implements OnInit {
   protected async onDelete(): Promise<void> {
     const existing = this.slot();
     if (!existing || this.deleting()) return;
-    const confirmed = confirm(
-      '¿Eliminar este bloque del horario semanal? Se quitará en todos los bimestres del año.',
-    );
+    const confirmed = await this.confirmDialog.open({
+      title: 'Eliminar bloque',
+      message:
+        '¿Eliminar este bloque del horario semanal? Se quitará en todos los bimestres del año.',
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!confirmed) return;
     this.deleting.set(true);
     this.errorBanner.set(null);

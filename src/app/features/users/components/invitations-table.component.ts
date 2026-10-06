@@ -7,7 +7,12 @@ import {
   signal,
 } from '@angular/core';
 import { InvitationStatus } from '@core/enums';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import {
+  ConfirmDialogService,
+  EmptyStateComponent,
+  IconComponent,
+  SpinnerComponent,
+} from '@shared/components';
 import { Invitation } from '../models';
 import { InvitationsStore } from '../store';
 import { InvitationStatusBadgeComponent } from './invitation-status-badge.component';
@@ -161,6 +166,7 @@ import { UserRoleBadgeComponent } from './user-role-badge.component';
 })
 export class InvitationsTableComponent implements OnInit {
   protected readonly store = inject(InvitationsStore);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly Math = Math;
 
@@ -196,7 +202,13 @@ export class InvitationsTableComponent implements OnInit {
 
   protected async onCancel(inv: Invitation): Promise<void> {
     if (!this.canCancel(inv)) return;
-    if (!confirm(`¿Cancelar la invitación a ${inv.email}?`)) return;
+    const ok = await this.confirmDialog.open({
+      title: 'Cancelar invitación',
+      message: `¿Cancelar la invitación a ${inv.email}?`,
+      confirmLabel: 'Cancelar invitación',
+      variant: 'warning',
+    });
+    if (!ok) return;
     this.pendingCancelId.set(inv.publicUuid);
     try {
       await this.store.cancel(inv.publicUuid);

@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { ROUTES } from '@core/constants';
-import { AdminTenantsService, SchoolInvitationDto } from '../../services';
+import { AdminTenantsService, PrepPackageVariant, SchoolInvitationDto } from '../../services';
 
 @Component({
   selector: 'app-admin-tenants',
@@ -62,6 +62,52 @@ import { AdminTenantsService, SchoolInvitationDto } from '../../services';
               {{ inviteBusy() ? 'Enviando…' : 'Enviar invitación' }}
             </button>
           </div>
+
+          <div class="mt-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Pack de preparación de datos
+            </h3>
+            <p class="mt-1 text-xs text-slate-400">
+              Descarga la guía PDF y plantillas Excel personalizadas con el nombre del colegio
+              (antes o después de invitar).
+            </p>
+            <div class="mt-3 flex flex-wrap items-end gap-3">
+              <label class="min-w-[14rem] flex-1 text-xs text-slate-400">
+                Nombre del colegio
+                <input
+                  type="text"
+                  [(ngModel)]="prepSchoolName"
+                  placeholder="Colegio San Marcos"
+                  class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                />
+              </label>
+              <label class="text-xs text-slate-400">
+                Variante
+                <select
+                  [(ngModel)]="prepVariant"
+                  class="mt-1 block rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
+                >
+                  <option value="PILOT">Piloto</option>
+                  <option value="PRODUCTION">Producción</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                (click)="downloadPrepPackage()"
+                [disabled]="prepBusy()"
+                class="rounded-lg border border-indigo-500/60 bg-indigo-950/40 px-4 py-2 text-sm font-medium text-indigo-200 hover:bg-indigo-900/50 disabled:opacity-50"
+              >
+                {{ prepBusy() ? 'Generando…' : 'Descargar pack ZIP' }}
+              </button>
+            </div>
+            <p class="mt-2 text-xs text-slate-500">
+              Piloto: lo mínimo para probar. Producción: padrón completo e incluye conceptos de pago.
+            </p>
+            @if (prepError(); as err) {
+              <p class="mt-2 text-sm text-red-300">{{ err }}</p>
+            }
+          </div>
+
           @if (inviteMessage(); as msg) {
             <p class="mt-3 text-sm text-emerald-300">{{ msg }}</p>
           }
@@ -255,6 +301,10 @@ export class AdminTenantsComponent implements OnInit {
   protected readonly inviteError = signal<string | null>(null);
   protected readonly lastSetupUrl = signal<string | null>(null);
   protected readonly pendingInvites = signal<SchoolInvitationDto[]>([]);
+  protected prepSchoolName = '';
+  protected prepVariant: PrepPackageVariant = 'PRODUCTION';
+  protected readonly prepBusy = signal(false);
+  protected readonly prepError = signal<string | null>(null);
 
   constructor() {
     // Recompute the visible page-window whenever totalPages or the
@@ -332,6 +382,44 @@ export class AdminTenantsComponent implements OnInit {
     const url = this.lastSetupUrl();
     if (!url) return;
     void navigator.clipboard.writeText(url);
+  }
+
+  protected downloadPrepPackage(): void {
+    if (this.prepBusy()) return;
+    this.prepBusy.set(true);
+    this.prepError.set(null);
+    const name = this.prepSchoolName.trim();
+    this.svc.downloadPrepPackage(name, this.prepVariant).subscribe({
+      next: (blob) => {
+        this.prepBusy.set(false);
+        const slug = (name || 'colegio')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/\p{M}/gu, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 60) || 'colegio';
+        this.triggerBrowserDownload(blob, `prep-datos-${slug}.zip`);
+      },
+      error: (err) => {
+        this.prepBusy.set(false);
+        this.prepError.set(
+          err?.error?.message ?? err?.statusText ?? 'No se pudo descargar el pack.',
+        );
+      },
+    });
+  }
+
+  private triggerBrowserDownload(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
 
   private refreshInvites(): void {

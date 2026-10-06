@@ -12,7 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
-import { IconComponent, SpinnerComponent } from '@shared/components';
+import { ConfirmDialogService, IconComponent, SpinnerComponent } from '@shared/components';
 import {
   AcademicPeriodRow,
   AcademicYearStatus,
@@ -290,6 +290,7 @@ interface AssignmentPeriodGroup {
 export class TeacherAssignmentsTabComponent implements OnInit {
   private readonly store = inject(TeacherAssignmentsStore);
   private readonly academicApi = inject(AcademicApiService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly ALL_PERIODS_VALUE = '__ALL_PERIODS__';
 
@@ -430,11 +431,15 @@ export class TeacherAssignmentsTabComponent implements OnInit {
     sectionLabel: string,
     courseCode: string,
   ): Promise<void> {
-    const ok = confirm(
-      `¿Finalizar la asignación de ${courseCode} en ${sectionLabel}?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Finalizar asignación',
+      message:
+        `¿Finalizar la asignación de ${courseCode} en ${sectionLabel}?\n\n` +
         'La row quedará en el histórico (status terminado) y dejará de\n' +
         'aparecer en la lista de asignaciones activas.',
-    );
+      confirmLabel: 'Finalizar',
+      variant: 'warning',
+    });
     if (!ok) return;
     await this.store.softEnd(publicUuid);
   }

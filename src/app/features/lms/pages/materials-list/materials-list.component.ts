@@ -12,8 +12,8 @@ import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/rout
 import { filter, startWith } from 'rxjs/operators';
 import { ROUTES } from '@core/constants';
 import { Permission } from '@core/enums';
-import { AuthService } from '@core/services';
-import { EmptyStateComponent, IconComponent } from '@shared/components';
+import { AuthService, NotificationService } from '@core/services';
+import { ConfirmDialogService, EmptyStateComponent, IconComponent } from '@shared/components';
 import { HasPermissionDirective } from '@shared/directives';
 import { MaterialsStore } from '../../store';
 import { MaterialRow } from '../../models';
@@ -133,6 +133,8 @@ export class MaterialsListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly notifications = inject(NotificationService);
 
   protected readonly rows = this.store.rows;
   protected readonly loading = this.store.loading;
@@ -185,7 +187,9 @@ export class MaterialsListComponent implements OnInit {
 
   protected onOpenDialog(): void {
     if (!this.assignmentUuid()) {
-      window.alert('Selecciona una materia en el selector del aula antes de subir material.');
+      this.notifications.info(
+        'Selecciona una materia en el selector del aula antes de subir material.',
+      );
       return;
     }
     this.dialogOpen.set(true);
@@ -202,9 +206,13 @@ export class MaterialsListComponent implements OnInit {
   }
 
   protected async onDelete(row: MaterialRow): Promise<void> {
-    const ok = window.confirm(
-      `¿Eliminar el material "${row.title}"? Esta acción no se puede deshacer.`,
-    );
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar material',
+      message: `¿Eliminar el material "${row.title}"? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.remove(row.publicUuid);
   }

@@ -29,6 +29,7 @@ import {
 	PaymentConceptRequest,
 	PaymentConceptsApiService,
 } from '../../services/payment-concepts-api.service';
+import { centsToSoles, solesToCents } from '../../models/invoice.model';
 
 /**
  * Sprint cierre-C / F14 — Admin Payment Concepts page.
@@ -43,9 +44,9 @@ import {
  *   <li><b>Single-screen list</b> — the page shows the table + a collapsible
  *       drawer with the create/edit form. Saves a route hop and keeps
  *       the admin's context when iterating.</li>
- *   <li><b>Money in centavos</b> — the BE stores amounts as bigint
- *       cents; the form takes cents as the canonical unit and the UI
- *       displays {@code S/ 1,250.00} via a small formatter.</li>
+ *   <li><b>Money in soles</b> — the BE stores amounts as bigint
+ *       cents; the form takes soles and converts with {@code solesToCents}
+ *       on save. Lists still show {@code S/ 1,250.00} via formatter.</li>
  *   <li><b>Soft-delete</b> — DELETE flips {@code deleted=true}. The row
  *       disappears from the list immediately (the BE list query
  *       filters {@code deleted=false}); admins can recreate the code
@@ -76,6 +77,18 @@ import {
 			>
 				<button
 					type="button"
+					class="btn btn-ghost btn-sm"
+					(click)="examplesOpen.set(!examplesOpen())"
+					[attr.aria-expanded]="examplesOpen()"
+					aria-controls="concept-examples-panel"
+					title="Ver ejemplos de conceptos"
+					data-testid="concepts-examples-toggle"
+				>
+					<app-icon name="info" [size]="16" />
+					<span>Ejemplos</span>
+				</button>
+				<button
+					type="button"
 					class="btn btn-primary btn-sm"
 					(click)="openCreate()"
 					data-testid="concepts-new"
@@ -93,6 +106,66 @@ import {
 					<span>Actualizar</span>
 				</button>
 			</app-page-header>
+
+			@if (examplesOpen()) {
+				<aside
+					id="concept-examples-panel"
+					class="card mb-6 border-l-4 border-l-sky-500"
+					data-testid="concepts-examples-panel"
+				>
+					<header class="card-header flex items-start justify-between gap-3">
+						<div>
+							<h2 class="card-title text-base">Ejemplos para un colegio</h2>
+							<p class="mt-1 text-sm text-content-muted">
+								Ideas de códigos y montos. Adáptalos a tu tarifa; el monto se registra en soles.
+							</p>
+						</div>
+						<button
+							type="button"
+							class="btn btn-ghost btn-sm shrink-0"
+							(click)="examplesOpen.set(false)"
+							aria-label="Cerrar ejemplos"
+						>
+							<app-icon name="x" [size]="16" />
+						</button>
+					</header>
+					<div class="card-body space-y-5 text-sm">
+						@for (group of EXAMPLE_GROUPS; track group.title) {
+							<section>
+								<h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-content-subtle">
+									{{ group.title }}
+								</h3>
+								<ul class="overflow-hidden rounded-lg ring-1 ring-border">
+									<li
+										class="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_auto] gap-2 border-b border-border bg-surface-muted px-3 py-1.5 text-2xs font-medium uppercase tracking-wide text-content-subtle"
+									>
+										<span>Código</span>
+										<span>Nombre</span>
+										<span class="text-right">Monto ej.</span>
+									</li>
+									@for (row of group.items; track row.code) {
+										<li
+											class="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_auto] gap-2 border-b border-border px-3 py-2 last:border-b-0"
+										>
+											<code class="truncate font-mono text-xs text-content">{{ row.code }}</code>
+											<span class="truncate text-content">{{ row.name }}</span>
+											<span class="text-right tabular-nums text-content-muted">{{ row.amount }}</span>
+										</li>
+									}
+								</ul>
+								@if (group.tip) {
+									<p class="mt-1.5 text-xs text-content-muted">{{ group.tip }}</p>
+								}
+							</section>
+						}
+						<p class="rounded-md bg-surface-muted px-3 py-2 text-xs text-content-muted">
+							<strong class="text-content">Tip:</strong> códigos en mayúsculas sin espacios
+							(<code class="font-mono">PENSION_PRIMARIA</code>). Luego, en Emitir eliges el
+							concepto y el monto se rellena solo.
+						</p>
+					</div>
+				</aside>
+			}
 
 			@if (loading() && concepts().length === 0) {
 				<div class="flex items-center justify-center py-16">
@@ -223,23 +296,25 @@ import {
 						</div>
 						<div class="field">
 							<label class="label">Categoría *</label>
-							<select class="input" formControlName="category">
+							<select class="select" formControlName="category">
 								@for (cat of CATEGORIES; track cat) {
 									<option [value]="cat">{{ categoryLabel(cat) }}</option>
 								}
 							</select>
 						</div>
 						<div class="field">
-							<label class="label">Monto por defecto (centavos) *</label>
+							<label class="label">Monto por defecto (S/) *</label>
 							<input
 								type="number"
 								class="input"
-								formControlName="defaultAmountCents"
+								formControlName="defaultAmountSoles"
 								min="0"
-								step="1"
+								step="0.01"
+								placeholder="20.00"
 							/>
 							<p class="field-hint">
-								{{ formatMoney(form.get('defaultAmountCents')?.value ?? 0, form.get('currency')?.value) }}
+								Se guarda como
+								{{ formatMoney(solesPreviewCents(), form.get('currency')?.value) }}
 							</p>
 						</div>
 						<div class="field">
@@ -355,6 +430,69 @@ export class PaymentConceptsPageComponent implements OnInit {
 		'TUITION', 'ENROLLMENT', 'MATERIALS', 'MEALS', 'TRANSPORT', 'EXAM', 'EVENT', 'OTHER',
 	];
 
+	protected readonly examplesOpen = signal(false);
+
+	protected readonly EXAMPLE_GROUPS: readonly {
+		title: string;
+		tip?: string;
+		items: readonly { code: string; name: string; amount: string }[];
+	}[] = [
+		{
+			title: 'Matrícula / inscripción',
+			items: [
+				{ code: 'MATRICULA_2026', name: 'Matrícula 2026', amount: 'S/ 350' },
+				{ code: 'REINSCRIPCION', name: 'Reinscripción', amount: 'S/ 200' },
+			],
+		},
+		{
+			title: 'Pensiones (cuota mensual)',
+			tip: 'Marca “Recurrente” si luego usas Planes de cobro.',
+			items: [
+				{ code: 'PENSION_INICIAL', name: 'Pensión inicial', amount: 'S/ 450' },
+				{ code: 'PENSION_PRIMARIA', name: 'Pensión primaria', amount: 'S/ 520' },
+				{ code: 'PENSION_SECUNDARIA', name: 'Pensión secundaria', amount: 'S/ 580' },
+			],
+		},
+		{
+			title: 'Materiales / útiles',
+			items: [
+				{ code: 'MATERIALES_AULA', name: 'Materiales de aula', amount: 'S/ 80' },
+				{ code: 'LIBROS_2026', name: 'Paquete de libros', amount: 'S/ 150' },
+				{ code: 'UNIFORME', name: 'Uniforme escolar', amount: 'S/ 120' },
+			],
+		},
+		{
+			title: 'Servicios',
+			items: [
+				{ code: 'REFRIGERIO', name: 'Refrigerio', amount: 'S/ 100' },
+				{ code: 'MOVILIDAD', name: 'Movilidad escolar', amount: 'S/ 180' },
+			],
+		},
+		{
+			title: 'Evaluaciones / académicos',
+			items: [
+				{ code: 'EXAMEN_RECUP', name: 'Examen de recuperación', amount: 'S/ 40' },
+				{ code: 'CONSTANCIA', name: 'Constancia de estudios', amount: 'S/ 25' },
+				{ code: 'CERTIFICADO', name: 'Certificado anual', amount: 'S/ 50' },
+			],
+		},
+		{
+			title: 'Eventos / extracurriculares',
+			items: [
+				{ code: 'PASEO_FIN', name: 'Paseo de fin de año', amount: 'S/ 90' },
+				{ code: 'PROMOCION', name: 'Cuota de promoción', amount: 'S/ 200' },
+				{ code: 'TALLER_DANZA', name: 'Taller de danza', amount: 'S/ 60' },
+			],
+		},
+		{
+			title: 'APAFA / aportes',
+			items: [
+				{ code: 'APAFA_ANUAL', name: 'Cuota APAFA anual', amount: 'S/ 50' },
+				{ code: 'FONDO_BIBLIO', name: 'Fondo biblioteca', amount: 'S/ 30' },
+			],
+		},
+	];
+
 	protected readonly loading = signal(false);
 	protected readonly saving = signal(false);
 	protected readonly concepts = signal<readonly PaymentConcept[]>([]);
@@ -368,12 +506,16 @@ export class PaymentConceptsPageComponent implements OnInit {
 		name: ['', [Validators.required, Validators.maxLength(120)]],
 		description: ['', Validators.maxLength(500)],
 		category: ['TUITION' as PaymentConceptCategory, Validators.required],
-		defaultAmountCents: [0, [Validators.required, Validators.min(0)]],
+		defaultAmountSoles: [0, [Validators.required, Validators.min(0)]],
 		currency: ['PEN', [Validators.required, Validators.pattern(/^[A-Z]{3}$/)]],
 		recurring: [false],
 		active: [true],
 		sortOrder: [0],
 	});
+
+	protected solesPreviewCents(): number {
+		return solesToCents(Number(this.form.get('defaultAmountSoles')?.value) || 0);
+	}
 
 	async ngOnInit(): Promise<void> {
 		await this.reload();
@@ -403,7 +545,7 @@ export class PaymentConceptsPageComponent implements OnInit {
 			name: '',
 			description: '',
 			category: 'TUITION',
-			defaultAmountCents: 0,
+			defaultAmountSoles: 0,
 			currency: 'PEN',
 			recurring: false,
 			active: true,
@@ -420,7 +562,7 @@ export class PaymentConceptsPageComponent implements OnInit {
 			name: concept.name,
 			description: concept.description ?? '',
 			category: concept.category,
-			defaultAmountCents: concept.defaultAmountCents,
+			defaultAmountSoles: centsToSoles(concept.defaultAmountCents),
 			currency: concept.currency,
 			recurring: concept.recurring,
 			active: concept.active,
@@ -497,7 +639,7 @@ export class PaymentConceptsPageComponent implements OnInit {
 			name: String(v.name).trim(),
 			description: (v.description ?? '').toString().trim() || null,
 			category: v.category as PaymentConceptCategory,
-			defaultAmountCents: Number(v.defaultAmountCents) || 0,
+			defaultAmountCents: solesToCents(Number(v.defaultAmountSoles) || 0),
 			currency: String(v.currency).trim().toUpperCase(),
 			recurring: Boolean(v.recurring),
 			active: Boolean(v.active),

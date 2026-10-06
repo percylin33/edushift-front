@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   CdkDrag,
   CdkDragDrop,
@@ -17,13 +18,15 @@ import {
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
 import { firstValueFrom } from 'rxjs';
+import { ROUTES } from '@core/constants';
 import {
-  EmptyStateComponent,
+  ConfirmDialogService,
   IconComponent,
+  IconName,
   SpinnerComponent,
 } from '@shared/components';
 import { AcademicStore } from '../../store';
-import { AcademicYearRow, AcademicYearStatus } from '../../models';
+import { AcademicLevel, AcademicYearRow, AcademicYearStatus } from '../../models';
 import {
   GradeCategory,
   GradeCategoryColumnMode,
@@ -44,6 +47,8 @@ export const GRADE_CATEGORY_COLOR_TOKENS = [
 ] as const;
 
 type CatalogLevelFilter = 'ALL' | GradeRegisterRecommendedLevel;
+
+type SettingsPanel = 'model' | 'scale' | 'blocks';
 
 type CategoryDraft = {
   name: string;
@@ -93,10 +98,10 @@ const CATALOG_LEVEL_TABS: { id: CatalogLevelFilter; label: string }[] = [
 ];
 
 /**
- * `/academic/grade-register` — plantillas del registro formal (F1).
+ * `/academic/grade-register` — plantillas del registro formal.
  *
- * Catálogo del sistema + plantilla activa del año; editor planilla
- * de categorías (bandas, slots, peso, promedio, columnas).
+ * Resumen en `/academic/grade-register`. Catálogo, asignación por nivel
+ * y editor de bloques en `/academic/grade-register/settings`.
  */
 @Component({
   selector: 'app-grade-register-page',
@@ -105,7 +110,7 @@ const CATALOG_LEVEL_TABS: { id: CatalogLevelFilter; label: string }[] = [
   imports: [
     CommonModule,
     FormsModule,
-    EmptyStateComponent,
+    RouterLink,
     IconComponent,
     SpinnerComponent,
     CdkDropList,
@@ -115,10 +120,17 @@ const CATALOG_LEVEL_TABS: { id: CatalogLevelFilter; label: string }[] = [
   template: `
     <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div class="min-w-0">
-        <h2 class="text-lg font-semibold text-content">Registro de notas</h2>
-        <p class="text-sm text-content-muted">
-          Adoptá una plantilla del catálogo y ajustá categorías y pesos para el año académico.
-        </p>
+        @if (settingsView()) {
+          <h2 class="text-lg font-semibold text-content">Configuración</h2>
+          <p class="text-sm text-content-muted">
+            Elegí a quién aplica. El modelo, la escala y los bloques están en las pestañas.
+          </p>
+        } @else {
+          <h2 class="text-lg font-semibold text-content">Registro de notas</h2>
+          <p class="text-sm text-content-muted">
+            La plantilla del año aplica a todas las secciones. Cada nivel puede usar otra.
+          </p>
+        }
       </div>
       <div class="flex flex-wrap items-end gap-2 self-start sm:self-auto">
         <div>
@@ -129,7 +141,9 @@ const CATALOG_LEVEL_TABS: { id: CatalogLevelFilter; label: string }[] = [
             [ngModel]="yearFilter()"
             (ngModelChange)="onYearChange($event)"
           >
-            <option [ngValue]="null">— Año activo —</option>
+            @if (!currentActive()) {
+              <option [ngValue]="null">— Año activo —</option>
+            }
             @for (y of years(); track y.publicUuid) {
               <option [ngValue]="y.publicUuid">{{ y.name }} · {{ statusLabel(y.status) }}</option>
             }
@@ -144,6 +158,17 @@ const CATALOG_LEVEL_TABS: { id: CatalogLevelFilter; label: string }[] = [
           <app-icon name="rotate-cw" [size]="16" />
           <span>Actualizar</span>
         </button>
+        @if (settingsView()) {
+          <a [routerLink]="routes.ACADEMIC.GRADE_REGISTER.LIST" class="btn btn-ghost btn-sm">
+            <app-icon name="chevron-left" [size]="16" />
+            <span>Volver</span>
+          </a>
+        } @else {
+          <a [routerLink]="routes.ACADEMIC.GRADE_REGISTER.SETTINGS" class="btn btn-primary btn-sm">
+            <app-icon name="settings" [size]="16" />
+            <span>Configuración</span>
+          </a>
+        }
       </div>
     </header>
 
@@ -160,169 +185,248 @@ const CATALOG_LEVEL_TABS: { id: CatalogLevelFilter; label: string }[] = [
         <app-spinner [size]="24" label="Cargando plantillas…" />
       </div>
     } @else {
-      <section class="mb-8" aria-labelledby="gr-catalog-title">
-        <h3
-          id="gr-catalog-title"
-          class="mb-1 text-sm font-semibold uppercase tracking-wide text-content-muted"
-        >
-          Catálogo
+      @if (!settingsView()) {
+      <section class="card mb-6 p-4" aria-labelledby="gr-summary-title">
+        <h3 id="gr-summary-title" class="text-sm font-semibold text-content">
+          Cómo se aplica
+          @if (resolvedYear(); as y) {
+            <span class="font-normal text-content-muted">· {{ y.name }}</span>
+          }
         </h3>
-        <p class="mb-3 text-xs text-content-muted">
-          Acta SIAGIE oficial usa literales en Inicial/Primaria; estas plantillas son registro
-          interno 0–20.
-        </p>
+        @if (!resolvedYear()) {
+          <p class="mt-2 text-sm text-content-muted">
+            Activá o seleccioná un año académico para ver las plantillas.
+          </p>
+        } @else {
+          <p class="mt-3 text-sm text-content">
+            <span class="text-content-muted">Plantilla del año:</span>
+            {{ activeMine()?.name ?? 'Sin plantilla' }}
+            <span class="text-content-muted"> · {{ scaleLabel(activeMine()?.gradingScale) }}</span>
+          </p>
+          @if (levels().length === 0) {
+            <p class="mt-2 text-sm text-content-muted">
+              Este colegio todavía no tiene niveles. Creálos en Académico → Niveles.
+            </p>
+          } @else {
+            <ul class="mt-3 divide-y divide-border-subtle">
+              @for (level of levels(); track level.publicUuid) {
+                <li class="flex items-center justify-between gap-3 py-2 text-sm">
+                  <span class="font-medium text-content">{{ level.name }}</span>
+                  <span class="text-content-muted">
+                    {{ levelTemplate(level.publicUuid)?.name ?? 'Usa la del año' }}
+                    · {{ scaleLabel(levelTemplate(level.publicUuid)?.gradingScale ?? activeMine()?.gradingScale) }}
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+        }
+      </section>
+      }
 
-        <div
-          class="mb-3 flex flex-wrap gap-1"
-          role="tablist"
-          aria-label="Filtrar catálogo por nivel"
-        >
-          @for (tab of catalogLevelTabs; track tab.id) {
-            <button
-              type="button"
-              role="tab"
-              class="btn btn-sm"
-              [class.btn-primary]="catalogLevelFilter() === tab.id"
-              [class.btn-ghost]="catalogLevelFilter() !== tab.id"
-              [attr.aria-selected]="catalogLevelFilter() === tab.id"
-              (click)="catalogLevelFilter.set(tab.id)"
-            >
-              {{ tab.label }}
-            </button>
+      @if (settingsView()) {
+      <section class="mb-4" aria-labelledby="gr-applies-title">
+        <div class="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h3 id="gr-applies-title" class="text-sm font-semibold text-content">A quién aplica</h3>
+          @if (resolvedYear()) {
+            <p class="text-sm text-content-muted">
+              Modelo:
+              <span class="font-medium text-content">{{ settingsTargetDetail() }}</span>
+              · Escala:
+              <span class="font-medium text-content">{{ settingsTargetScaleLabel() }}</span>
+            </p>
           }
         </div>
-
-        @if (filteredCatalog().length === 0) {
-          <app-empty-state
-            icon="layout-grid"
-            title="Catálogo vacío"
-            description="No hay plantillas del sistema para este filtro."
-          />
+        <p class="mb-3 text-sm text-content-muted">
+          Un nivel sin plantilla propia usa la del año.
+        </p>
+        @if (!resolvedYear()) {
+          <p class="text-sm text-content-muted">Seleccioná un año académico.</p>
         } @else {
-          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            @for (t of filteredCatalog(); track t.publicUuid) {
-              <article class="card flex flex-col p-4">
-                <h4 class="font-semibold text-content">{{ t.name }}</h4>
-                <p class="mt-1 flex-1 text-sm text-content-muted">
-                  {{ t.description || 'Sin descripción.' }}
-                </p>
-                @if (t.recommendedLevels?.length) {
-                  <div class="mt-2 flex flex-wrap gap-1">
-                    @for (lvl of t.recommendedLevels; track lvl) {
-                      <span class="badge badge-neutral text-[10px]">
-                        Recomendado: {{ levelLabel(lvl) }}
-                      </span>
-                    }
-                  </div>
-                }
-                <p class="mt-2 text-xs text-content-subtle">
-                  {{ t.categoryCount }} categorías
-                  @if (t.catalogCode) {
-                    · <span class="font-mono">{{ t.catalogCode }}</span>
-                  }
-                </p>
-                <div class="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    class="btn btn-outline btn-sm"
-                    [disabled]="previewLoading() === t.publicUuid"
-                    (click)="openPreview(t)"
-                  >
-                    @if (previewLoading() === t.publicUuid) {
-                      <app-spinner [size]="14" label="Cargando" />
-                    } @else {
-                      <app-icon name="eye" [size]="14" />
-                    }
-                    <span>Ver</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-primary btn-sm"
-                    [disabled]="!resolvedYear() || adopting() === t.publicUuid"
-                    (click)="adoptOrReplace(t)"
-                  >
-                    @if (adopting() === t.publicUuid) {
-                      <app-spinner [size]="14" label="Adoptando" />
-                    } @else {
-                      <app-icon
-                        [name]="hasActiveTemplate() ? 'rotate-cw' : 'plus'"
-                        [size]="14"
-                      />
-                    }
-                    <span>{{ adoptCtaLabel() }}</span>
-                  </button>
-                </div>
-              </article>
+          <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            <button
+              type="button"
+              class="rounded-lg border px-3 py-3 text-left text-sm transition-colors"
+              [class.border-primary-600]="settingsTarget() === 'YEAR'"
+              [class.bg-surface-muted]="settingsTarget() === 'YEAR'"
+              [class.border-border-subtle]="settingsTarget() !== 'YEAR'"
+              (click)="selectSettingsTarget('YEAR')"
+            >
+              <span class="block font-medium text-content">Plantilla del año</span>
+              <span class="mt-0.5 block truncate text-content-muted">{{ activeMine()?.name ?? 'Sin plantilla' }}</span>
+              <span class="mt-1 block text-xs text-content-muted">{{ scaleLabel(activeMine()?.gradingScale) }}</span>
+            </button>
+            @for (level of levels(); track level.publicUuid) {
+              <button
+                type="button"
+                class="rounded-lg border px-3 py-3 text-left text-sm transition-colors"
+                [class.border-primary-600]="settingsTarget() === level.publicUuid"
+                [class.bg-surface-muted]="settingsTarget() === level.publicUuid"
+                [class.border-border-subtle]="settingsTarget() !== level.publicUuid"
+                (click)="selectSettingsTarget(level.publicUuid)"
+              >
+                <span class="block font-medium text-content">{{ level.name }}</span>
+                <span class="mt-0.5 block truncate text-content-muted">
+                  {{ levelTemplate(level.publicUuid)?.name ?? 'Usa la del año' }}
+                </span>
+                <span class="mt-1 block text-xs text-content-muted">
+                  {{ scaleLabel(levelTemplate(level.publicUuid)?.gradingScale ?? activeMine()?.gradingScale) }}
+                </span>
+              </button>
             }
           </div>
         }
       </section>
-
-      <section aria-labelledby="gr-mine-title">
-        <h3
-          id="gr-mine-title"
-          class="mb-3 text-sm font-semibold uppercase tracking-wide text-content-muted"
-        >
-          {{ hasActiveTemplate() ? 'Plantilla del año' : 'Mis plantillas' }}
-          @if (resolvedYear(); as y) {
-            <span class="font-normal normal-case tracking-normal text-content-subtle">
-              · {{ y.name }}
-            </span>
-          }
-        </h3>
-
-        @if (!resolvedYear()) {
-          <app-empty-state
-            icon="calendar"
-            title="Sin año académico"
-            description="Activá o seleccioná un año académico para ver y adoptar plantillas."
-          />
-        } @else if (!hasActiveTemplate() && mine().length === 0) {
-          <app-empty-state
-            icon="book-open"
-            title="Aún no hay plantilla activa"
-            description="Elegí una del catálogo"
-          />
+      <nav
+        class="mb-4 flex flex-wrap gap-1 border-b border-border-subtle"
+        role="tablist"
+        aria-label="Configuración del registro"
+      >
+        @for (t of settingsTabs; track t.id) {
+          <button
+            role="tab"
+            type="button"
+            [id]="'gr-tab-' + t.id"
+            [attr.aria-selected]="settingsTab() === t.id"
+            [attr.aria-controls]="'gr-panel-' + t.id"
+            class="flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors"
+            [class.border-primary-600]="settingsTab() === t.id"
+            [class.text-primary-700]="settingsTab() === t.id"
+            [class.border-transparent]="settingsTab() !== t.id"
+            [class.text-content-muted]="settingsTab() !== t.id"
+            [class.hover:text-content]="settingsTab() !== t.id"
+            [class.hover:border-border]="settingsTab() !== t.id"
+            (click)="setSettingsTab(t.id)"
+          >
+            <app-icon [name]="t.icon" [size]="16" />
+            <span>{{ t.label }}</span>
+          </button>
+        }
+      </nav>
+      @switch (settingsTab()) {
+      @case ('scale') {
+      <section [id]="'gr-panel-scale'" role="tabpanel" aria-labelledby="gr-tab-scale">
+        <p class="mb-3 text-sm text-content-muted">
+          Numérica 0–20 o literal AD, A, B y C. Si ya hay evaluaciones o notas, el cambio se bloquea.
+        </p>
+        @if (!selectedWorkingCopy()) {
+          <p class="text-sm text-content-muted">
+            Esta fila todavía no tiene plantilla propia. Elegí un modelo para definir su escala.
+          </p>
         } @else {
-          @if (activeMine(); as active) {
-            <div class="card overflow-hidden">
-              <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+          <div class="flex flex-wrap gap-2" role="group" aria-label="Escala de la plantilla">
+            <button
+              type="button"
+              class="btn btn-sm"
+              [class.btn-primary]="currentScale() === 'SCORE_0_20'"
+              [class.btn-outline]="currentScale() !== 'SCORE_0_20'"
+              [disabled]="!!savingScale()"
+              (click)="onScaleChange('SCORE_0_20')"
+            >
+              Numérica 0–20
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm"
+              [class.btn-primary]="currentScale() === 'LITERAL_CNEB'"
+              [class.btn-outline]="currentScale() !== 'LITERAL_CNEB'"
+              [disabled]="!!savingScale()"
+              (click)="onScaleChange('LITERAL_CNEB')"
+            >
+              Literal AD · A · B · C
+            </button>
+          </div>
+        }
+      </section>
+      }
+      @case ('model') {
+      <section [id]="'gr-panel-model'" role="tabpanel" aria-labelledby="gr-tab-model">
+        <p class="mb-3 text-sm text-content-muted">
+          @if (settingsTarget() === 'YEAR') {
+            El modelo del año es el respaldo de los niveles que no tienen el suyo.
+          } @else {
+            Opcional. «Usar la del año» quita la copia de este nivel.
+          }
+        </p>
+        @if (catalog().length === 0) {
+          <p class="text-sm text-content-muted">No hay modelos del sistema.</p>
+        } @else {
+          <ul class="divide-y divide-border-subtle rounded-lg border border-border-subtle">
+            @if (settingsTarget() !== 'YEAR') {
+              <li class="flex items-center justify-between gap-3 px-3 py-2">
                 <div class="min-w-0">
-                  <p class="font-medium text-content">
-                    {{ active.name }}
-                    <span class="badge badge-success ml-2 text-[10px]">Activa</span>
-                  </p>
-                  <p class="text-xs text-content-muted">
-                    {{ active.categoryCount }} categorías · scope {{ active.scope }}
-                  </p>
+                  <p class="text-sm font-medium text-content">Usar la del año</p>
+                  <p class="text-xs text-content-muted">{{ activeMine()?.name ?? 'Sin plantilla del año' }}</p>
                 </div>
                 <button
                   type="button"
-                  class="btn btn-ghost btn-sm"
-                  (click)="toggleExpand(active.publicUuid)"
+                  class="btn btn-outline btn-sm"
+                  [disabled]="!levelTemplate(settingsTarget()) || clearingLevel() !== null"
+                  (click)="clearSelectedLevel()"
                 >
-                  <app-icon
-                    [name]="expandedUuid() === active.publicUuid ? 'chevron-up' : 'chevron-down'"
-                    [size]="16"
-                  />
-                  <span>{{
-                    expandedUuid() === active.publicUuid ? 'Ocultar' : 'Editar categorías'
-                  }}</span>
+                  Usar
                 </button>
-              </div>
+              </li>
+            }
+            @for (t of catalog(); track t.publicUuid) {
+              <li class="flex items-center justify-between gap-3 px-3 py-2">
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-content">{{ t.name }}</p>
+                  <p class="text-xs text-content-muted">
+                    @if (t.recommendedLevels?.length) {
+                      @for (lvl of t.recommendedLevels; track lvl; let last = $last) {
+                        {{ levelLabel(lvl) }}@if (!last) { · }
+                      }
+                    } @else {
+                      Sin nivel recomendado
+                    }
+                  </p>
+                </div>
+                <div class="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm"
+                    [disabled]="previewLoading() === t.publicUuid"
+                    (click)="openPreview(t)"
+                  >
+                    Ver
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm"
+                    [class.btn-primary]="!modelInUse(t)"
+                    [class.btn-outline]="modelInUse(t)"
+                    [disabled]="!resolvedYear() || adopting() === t.publicUuid || modelInUse(t)"
+                    (click)="applyCatalogModel(t)"
+                  >
+                    {{ modelInUse(t) ? 'En uso' : 'Usar' }}
+                  </button>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+      }
+      @case ('blocks') {
+      <section [id]="'gr-panel-blocks'" role="tabpanel" aria-labelledby="gr-tab-blocks">
+        @if (!selectedWorkingCopy()) {
+          <p class="mb-3 text-sm text-content-muted">
+            Esta fila usa la plantilla del año. Elegí un modelo si querés bloques propios.
+          </p>
+        }
 
-              @if (expandedUuid() === active.publicUuid) {
-                <div class="border-t border-border-subtle bg-surface-subtle/40 px-4 py-4">
-                  @if (detailLoading() === active.publicUuid) {
-                    <div class="flex justify-center py-6">
-                      <app-spinner [size]="20" label="Cargando categorías…" />
-                    </div>
-                  } @else {
-                    @if (selectedDetail(); as detail) {
-                    <p class="mb-3 text-sm text-content-muted">
-                      Definí bloques y formato: Libre (docente crea columnas), Serie (S1…Sn) o
-                      Casilla única. Arrastrá los grupos para reordenar; clic para editar.
-                    </p>
+        @if (expandedUuid(); as editingId) {
+          @if (detailLoading() === editingId) {
+            <div class="flex justify-center py-6">
+              <app-spinner [size]="20" label="Cargando categorías…" />
+            </div>
+          } @else {
+            @if (selectedDetail(); as detail) {
+            <p class="mb-3 text-sm text-content-muted">
+              {{ detail.name }} — Casilla única, Serie (S1…Sn) o Libre (docente crea columnas).
+              Arrastrá los grupos para reordenar; clic para editar.
+            </p>
 
                     <div class="planilla-editor-wrap overflow-x-auto rounded-lg border border-border-subtle bg-surface">
                       <div class="planilla-editor-inner inline-flex min-w-full">
@@ -336,9 +440,9 @@ const CATALOG_LEVEL_TABS: { id: CatalogLevelFilter; label: string }[] = [
                           <div class="planilla-prom-col">
                             <div class="planilla-corner-header">
                               Prom.
-                              <span class="block text-[10px] font-normal text-content-muted"
-                                >ponderado</span
-                              >
+                              <span class="block text-[10px] font-normal text-content-muted">{{
+                                selectedDetail()?.gradingScale === 'LITERAL_CNEB' ? 'literal' : 'ponderado'
+                              }}</span>
                             </div>
                             @for (ghost of editorGhostRows; track $index) {
                               <div class="planilla-ghost-cell">—</div>
@@ -524,7 +628,7 @@ const CATALOG_LEVEL_TABS: { id: CatalogLevelFilter; label: string }[] = [
                               [class.border-border-subtle]="
                                 editDraft(c).columnMode !== mode.id
                               "
-                              (click)="patchDraft(c.publicUuid, { columnMode: mode.id })"
+                              (click)="setColumnMode(c, mode.id)"
                             >
                               <span class="block text-sm font-semibold text-content">{{
                                 mode.label
@@ -651,7 +755,7 @@ const CATALOG_LEVEL_TABS: { id: CatalogLevelFilter; label: string }[] = [
 
                         <div class="flex flex-col gap-2 sm:flex-row sm:gap-6">
                           <label
-                            class="inline-flex cursor-pointer items-center gap-2 text-sm text-content"
+                            class="group relative inline-flex cursor-pointer items-center gap-2 text-sm text-content"
                           >
                             <input
                               type="checkbox"
@@ -662,11 +766,25 @@ const CATALOG_LEVEL_TABS: { id: CatalogLevelFilter; label: string }[] = [
                                   contributesToAverage: $event
                                 })
                               "
+                              [attr.aria-describedby]="'gr-hint-average-' + c.publicUuid"
                             />
                             <span>Cuenta en el Prom.</span>
+                            <span
+                              [id]="'gr-hint-average-' + c.publicUuid"
+                              role="tooltip"
+                              class="pointer-events-none absolute left-0 top-full z-30 mt-1.5 hidden w-64 rounded-md border border-border bg-surface px-2.5 py-2 text-xs font-normal leading-snug text-content shadow-md group-hover:block group-focus-within:block"
+                            >
+                              Marcado: las notas de este bloque entran al promedio del curso.
+                              Desmarcado: el bloque sigue en la planilla, pero no suma al promedio.
+                            </span>
                           </label>
+                          @if (editDraft(c).columnMode === 'OPEN') {
+                            <p class="text-sm text-content-muted">
+                              En Libre el docente añade las columnas. No hace falta marcarlo.
+                            </p>
+                          } @else {
                           <label
-                            class="inline-flex cursor-pointer items-center gap-2 text-sm text-content"
+                            class="group relative inline-flex cursor-pointer items-center gap-2 text-sm text-content"
                           >
                             <input
                               type="checkbox"
@@ -677,9 +795,19 @@ const CATALOG_LEVEL_TABS: { id: CatalogLevelFilter; label: string }[] = [
                                   allowsTeacherColumns: $event
                                 })
                               "
+                              [attr.aria-describedby]="'gr-hint-columns-' + c.publicUuid"
                             />
                             <span>El docente puede añadir columnas</span>
+                            <span
+                              [id]="'gr-hint-columns-' + c.publicUuid"
+                              role="tooltip"
+                              class="pointer-events-none absolute left-0 top-full z-30 mt-1.5 hidden w-72 rounded-md border border-border bg-surface px-2.5 py-2 text-xs font-normal leading-snug text-content shadow-md group-hover:block group-focus-within:block"
+                            >
+                              Marcado: el docente puede crear evaluaciones nuevas dentro de este
+                              bloque. Desmarcado: solo usa las columnas que ya define la plantilla.
+                            </span>
                           </label>
+                          }
                         </div>
                       </div>
                     } @else if (detail.categories.length > 0) {
@@ -841,77 +969,12 @@ const CATALOG_LEVEL_TABS: { id: CatalogLevelFilter; label: string }[] = [
                       }
                     </div>
                     }
-                  }
-                </div>
-              }
-            </div>
-          }
-
-          @if (inactiveMine().length > 0) {
-            <div class="mt-4">
-              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-content-subtle">
-                Otras plantillas (no activas)
-              </p>
-              <ul class="card divide-y divide-border-subtle overflow-hidden">
-                @for (t of inactiveMine(); track t.publicUuid) {
-                  <li class="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-                    <div class="min-w-0">
-                      <p class="font-medium text-content">
-                        {{ t.name }}
-                        <span class="badge badge-neutral ml-2 text-[10px]">No activa</span>
-                      </p>
-                      <p class="text-xs text-content-muted">
-                        {{ t.categoryCount }} categorías · scope {{ t.scope }}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      class="btn btn-ghost btn-sm"
-                      (click)="toggleExpand(t.publicUuid)"
-                    >
-                      <app-icon
-                        [name]="expandedUuid() === t.publicUuid ? 'chevron-up' : 'chevron-down'"
-                        [size]="16"
-                      />
-                      <span>{{
-                        expandedUuid() === t.publicUuid ? 'Ocultar' : 'Ver categorías'
-                      }}</span>
-                    </button>
-                  </li>
-                  @if (expandedUuid() === t.publicUuid) {
-                    <li class="border-t border-border-subtle bg-surface-subtle/40 px-4 py-3">
-                      @if (detailLoading() === t.publicUuid) {
-                        <div class="flex justify-center py-4">
-                          <app-spinner [size]="18" label="Cargando…" />
-                        </div>
-                      } @else {
-                        @if (selectedDetail(); as detail) {
-                        <p class="mb-2 text-xs text-content-muted">
-                          Plantilla no activa — podés revisar categorías; la del año es la
-                          marcada como Activa.
-                        </p>
-                        <ul class="space-y-1 text-sm text-content">
-                          @for (c of detail.categories; track c.publicUuid) {
-                            <li class="flex items-center gap-2">
-                              <span
-                                class="inline-block h-2 w-2 rounded-full"
-                                [ngClass]="colorDotClass(c.colorToken)"
-                              ></span>
-                              {{ c.name }}
-                              <span class="text-content-muted">(peso {{ c.weight }})</span>
-                            </li>
-                          }
-                        </ul>
-                        }
-                      }
-                    </li>
-                  }
-                }
-              </ul>
-            </div>
-          }
+            }
         }
       </section>
+      }
+      }
+      }
     }
 
     @if (preview(); as p) {
@@ -1319,26 +1382,41 @@ const CATALOG_LEVEL_TABS: { id: CatalogLevelFilter; label: string }[] = [
   ],
 })
 export class GradeRegisterPageComponent implements OnInit {
+  private readonly route = inject(ActivatedRoute);
   private readonly store = inject(AcademicStore);
+  protected readonly routes = ROUTES;
+  protected readonly settingsView = signal(this.route.snapshot.data['view'] === 'settings');
+  protected readonly settingsTabs: { id: SettingsPanel; label: string; icon: IconName }[] = [
+    { id: 'blocks', label: 'Bloques', icon: 'columns' },
+    { id: 'model', label: 'Modelo', icon: 'layers' },
+    { id: 'scale', label: 'Escala', icon: 'bar-chart' },
+  ];
+  protected readonly settingsTab = signal<SettingsPanel>('blocks');
   private readonly api = inject(GradeRegisterApiService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly years = this.store.years;
   protected readonly currentActive = this.store.currentActive;
   protected readonly colorTokens = GRADE_CATEGORY_COLOR_TOKENS;
   protected readonly catalogLevelTabs = CATALOG_LEVEL_TABS;
   protected readonly columnModes: { id: GradeCategoryColumnMode; label: string }[] = [
-    { id: 'OPEN', label: 'Libre' },
-    { id: 'SERIES', label: 'Serie' },
     { id: 'SINGLE', label: 'Única' },
+    { id: 'SERIES', label: 'Serie' },
+    { id: 'OPEN', label: 'Libre' },
   ];
 
   protected readonly yearFilter = signal<string | null>(null);
+  /** 'YEAR' or an academic level public UUID. */
+  protected readonly settingsTarget = signal<string>('YEAR');
+  protected readonly savingScale = signal(false);
   protected readonly catalog = signal<GradeRegisterTemplateListItem[]>([]);
   protected readonly mine = signal<GradeRegisterTemplateListItem[]>([]);
   protected readonly catalogLevelFilter = signal<CatalogLevelFilter>('ALL');
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly adopting = signal<string | null>(null);
+  protected readonly clearingLevel = signal<string | null>(null);
+  protected readonly levels = this.store.levels;
   protected readonly expandedUuid = signal<string | null>(null);
   protected readonly detailLoading = signal<string | null>(null);
   protected readonly selectedDetail = signal<GradeRegisterTemplate | null>(null);
@@ -1369,18 +1447,27 @@ export class GradeRegisterPageComponent implements OnInit {
     return this.currentActive() ?? null;
   });
 
-  /** Active = mine item with isDefault; fallback first TENANT. */
-  protected readonly activeMine = computed<GradeRegisterTemplateListItem | null>(() => {
-    const items = this.mine();
-    const byDefault = items.find((t) => t.isDefault);
-    if (byDefault) return byDefault;
-    return items.find((t) => t.scope === 'TENANT') ?? null;
+  protected readonly selectedWorkingCopy = computed<GradeRegisterTemplateListItem | null>(() => {
+    const target = this.settingsTarget();
+    if (target === 'YEAR') return this.activeMine();
+    return this.levelTemplate(target);
   });
 
-  protected readonly inactiveMine = computed(() => {
-    const active = this.activeMine();
-    if (!active) return this.mine();
-    return this.mine().filter((t) => t.publicUuid !== active.publicUuid);
+  protected readonly currentScale = computed<'SCORE_0_20' | 'LITERAL_CNEB'>(() => {
+    const copy = this.selectedWorkingCopy();
+    const detail = this.selectedDetail();
+    if (detail && copy && detail.publicUuid === copy.publicUuid) {
+      return detail.gradingScale;
+    }
+    return copy?.gradingScale === 'LITERAL_CNEB' ? 'LITERAL_CNEB' : 'SCORE_0_20';
+  });
+
+  /** Active year template: TENANT default, else the first TENANT copy. */
+  protected readonly activeMine = computed<GradeRegisterTemplateListItem | null>(() => {
+    const items = this.mine();
+    const byDefault = items.find((t) => t.isDefault && t.scope === 'TENANT');
+    if (byDefault) return byDefault;
+    return items.find((t) => t.scope === 'TENANT') ?? null;
   });
 
   protected readonly filteredCatalog = computed(() => {
@@ -1536,7 +1623,91 @@ export class GradeRegisterPageComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.store.loadYears();
+    const active = this.store.currentActive();
+    if (active) this.yearFilter.set(active.publicUuid);
+    await this.store.loadLevels();
     await this.reload();
+  }
+
+  protected scaleLabel(scale: string | null | undefined): string {
+    return scale === 'LITERAL_CNEB' ? 'AD · A · B · C' : '0–20';
+  }
+
+  protected modelInUse(t: GradeRegisterTemplateListItem): boolean {
+    const target = this.settingsTarget();
+    const source =
+      target === 'YEAR'
+        ? this.activeMine()?.sourceTemplatePublicUuid
+        : this.levelTemplate(target)?.sourceTemplatePublicUuid;
+    return source === t.publicUuid;
+  }
+
+  protected setSettingsTab(tab: SettingsPanel): void {
+    this.settingsTab.set(tab);
+  }
+
+  protected settingsTargetDetail(): string {
+    if (this.settingsTarget() === 'YEAR') {
+      return this.activeMine()?.name ?? 'Sin plantilla';
+    }
+    return this.levelTemplate(this.settingsTarget())?.name ?? 'Usa la del año';
+  }
+
+  protected settingsTargetScaleLabel(): string {
+    if (this.settingsTarget() === 'YEAR') {
+      return this.scaleLabel(this.activeMine()?.gradingScale);
+    }
+    const own = this.levelTemplate(this.settingsTarget());
+    return this.scaleLabel(own?.gradingScale ?? this.activeMine()?.gradingScale);
+  }
+
+  protected async selectSettingsTarget(target: string): Promise<void> {
+    this.settingsTarget.set(target);
+    await this.openSettingsSelection();
+  }
+
+  protected async applyCatalogModel(t: GradeRegisterTemplateListItem): Promise<void> {
+    if (this.settingsTarget() === 'YEAR') {
+      await this.adoptOrReplace(t);
+      return;
+    }
+    const level = this.levels().find((l) => l.publicUuid === this.settingsTarget());
+    if (!level) return;
+    await this.onLevelChoice(level, t.publicUuid);
+  }
+
+  protected async clearSelectedLevel(): Promise<void> {
+    const level = this.levels().find((l) => l.publicUuid === this.settingsTarget());
+    if (!level) return;
+    await this.onLevelChoice(level, '');
+  }
+
+  protected async onScaleChange(scale: 'SCORE_0_20' | 'LITERAL_CNEB'): Promise<void> {
+    const copy = this.selectedWorkingCopy();
+    if (!copy || this.currentScale() === scale) return;
+    this.savingScale.set(true);
+    this.error.set(null);
+    try {
+      const updated = await firstValueFrom(
+        this.api.updateTemplate(copy.publicUuid, { gradingScale: scale }),
+      );
+      this.applyDetail(updated);
+      await this.reloadMine();
+    } catch (err) {
+      this.error.set(this.toErrorMessage(err));
+    } finally {
+      this.savingScale.set(false);
+    }
+  }
+
+  protected levelTemplate(levelUuid: string): GradeRegisterTemplateListItem | null {
+    return (
+      this.mine().find((t) => t.scope === 'LEVEL' && t.levelPublicUuid === levelUuid) ?? null
+    );
+  }
+
+  protected levelChoice(levelUuid: string): string {
+    return this.levelTemplate(levelUuid)?.sourceTemplatePublicUuid ?? '';
   }
 
   protected hasActiveTemplate(): boolean {
@@ -1595,6 +1766,7 @@ export class GradeRegisterPageComponent implements OnInit {
 
   protected async onYearChange(yearUuid: string | null): Promise<void> {
     this.yearFilter.set(yearUuid);
+    this.settingsTarget.set('YEAR');
     this.expandedUuid.set(null);
     this.selectedDetail.set(null);
     await this.reloadMine({ expandActive: true });
@@ -1623,12 +1795,8 @@ export class GradeRegisterPageComponent implements OnInit {
     try {
       const mine = await firstValueFrom(this.api.listMine(year.publicUuid));
       this.mine.set(mine);
-      if (opts?.expandActive) {
-        const active =
-          mine.find((t) => t.isDefault) ?? mine.find((t) => t.scope === 'TENANT') ?? null;
-        if (active && this.expandedUuid() !== active.publicUuid) {
-          await this.toggleExpand(active.publicUuid);
-        }
+      if (opts?.expandActive && this.settingsView()) {
+        await this.openSettingsSelection();
       }
     } catch (err) {
       this.error.set(this.toErrorMessage(err));
@@ -1639,10 +1807,14 @@ export class GradeRegisterPageComponent implements OnInit {
   protected async adoptOrReplace(t: GradeRegisterTemplateListItem): Promise<void> {
     const replace = this.hasActiveTemplate();
     if (replace) {
-      const ok = confirm(
-        `¿Cambiar la plantilla activa por «${t.name}»?\n\n` +
+      const ok = await this.confirmDialog.open({
+        title: 'Cambiar plantilla activa',
+        message:
+          `¿Cambiar la plantilla activa por «${t.name}»?\n\n` +
           'La plantilla actual se archivará. Si ya hay evaluaciones o notas ligadas, el cambio puede rechazarse.',
-      );
+        confirmLabel: 'Cambiar',
+        variant: 'warning',
+      });
       if (!ok) return;
     }
     await this.adopt(t, replace);
@@ -1651,6 +1823,8 @@ export class GradeRegisterPageComponent implements OnInit {
   protected async adopt(
     t: GradeRegisterTemplateListItem,
     replaceActive = false,
+    scope: 'TENANT' | 'LEVEL' = 'TENANT',
+    levelPublicUuid: string | null = null,
   ): Promise<void> {
     const year = this.resolvedYear();
     if (!year) {
@@ -1663,8 +1837,9 @@ export class GradeRegisterPageComponent implements OnInit {
       const adopted = await firstValueFrom(
         this.api.adopt(t.publicUuid, {
           academicYearPublicUuid: year.publicUuid,
-          scope: 'TENANT',
-          setAsDefault: true,
+          scope,
+          setAsDefault: scope === 'TENANT',
+          ...(levelPublicUuid ? { levelPublicUuid } : {}),
           ...(replaceActive ? { replaceActive: true } : {}),
         }),
       );
@@ -1677,6 +1852,55 @@ export class GradeRegisterPageComponent implements OnInit {
     } finally {
       this.adopting.set(null);
     }
+  }
+
+  protected async onLevelChoice(level: AcademicLevel, catalogUuid: string): Promise<void> {
+    const current = this.levelTemplate(level.publicUuid);
+    const currentSource = current?.sourceTemplatePublicUuid ?? '';
+    if (catalogUuid === currentSource) return;
+
+    if (!catalogUuid) {
+      if (!current) return;
+      const ok = await this.confirmDialog.open({
+        title: 'Usar la plantilla del año',
+        message:
+          `¿Quitar la plantilla de «${level.name}»?\n\n` +
+          'Sus secciones volverán a usar la plantilla del año. Si ya hay evaluaciones o notas, el cambio puede rechazarse.',
+        confirmLabel: 'Quitar',
+        variant: 'warning',
+      });
+      if (!ok) return;
+      this.clearingLevel.set(level.publicUuid);
+      this.error.set(null);
+      try {
+        await firstValueFrom(this.api.deleteTemplate(current.publicUuid));
+        if (this.expandedUuid() === current.publicUuid) {
+          this.expandedUuid.set(null);
+          this.selectedDetail.set(null);
+        }
+        await this.reloadMine();
+      } catch (err) {
+        this.error.set(this.toErrorMessage(err));
+      } finally {
+        this.clearingLevel.set(null);
+      }
+      return;
+    }
+
+    const catalogItem = this.catalog().find((c) => c.publicUuid === catalogUuid);
+    if (!catalogItem) return;
+    if (current) {
+      const ok = await this.confirmDialog.open({
+        title: 'Cambiar plantilla del nivel',
+        message:
+          `¿Cambiar la plantilla de «${level.name}» por «${catalogItem.name}»?\n\n` +
+          'La copia actual de este nivel se archivará. Si ya hay evaluaciones o notas, el cambio puede rechazarse.',
+        confirmLabel: 'Cambiar',
+        variant: 'warning',
+      });
+      if (!ok) return;
+    }
+    await this.adopt(catalogItem, !!current, 'LEVEL', level.publicUuid);
   }
 
   protected async openPreview(t: GradeRegisterTemplateListItem): Promise<void> {
@@ -1931,6 +2155,22 @@ export class GradeRegisterPageComponent implements OnInit {
     return { groups, rows };
   }
 
+  private async openSettingsSelection(): Promise<void> {
+    const copy = this.selectedWorkingCopy();
+    if (!copy) {
+      this.expandedUuid.set(null);
+      this.selectedDetail.set(null);
+      return;
+    }
+    if (
+      this.expandedUuid() === copy.publicUuid &&
+      this.selectedDetail()?.publicUuid === copy.publicUuid
+    ) {
+      return;
+    }
+    await this.toggleExpand(copy.publicUuid);
+  }
+
   protected async toggleExpand(uuid: string): Promise<void> {
     if (this.expandedUuid() === uuid) {
       this.expandedUuid.set(null);
@@ -1971,6 +2211,18 @@ export class GradeRegisterPageComponent implements OnInit {
         slotLabelsText: (c.slotLabels ?? []).join(', '),
       }
     );
+  }
+
+  /** Libre implica que el docente crea las columnas. En Única y Serie el check manda. */
+  protected setColumnMode(c: GradeCategory, mode: GradeCategoryColumnMode): void {
+    const current = this.editDraft(c).columnMode;
+    const patch: Partial<CategoryDraft> = { columnMode: mode };
+    if (mode === 'OPEN') {
+      patch.allowsTeacherColumns = true;
+    } else if (current === 'OPEN') {
+      patch.allowsTeacherColumns = false;
+    }
+    this.patchDraft(c.publicUuid, patch);
   }
 
   protected patchDraft(uuid: string, patch: Partial<CategoryDraft>): void {
@@ -2032,7 +2284,7 @@ export class GradeRegisterPageComponent implements OnInit {
           colorToken: d.colorToken || null,
           weight: this.customizingWeights() ? d.weight : c.weight,
           contributesToAverage: d.contributesToAverage,
-          allowsTeacherColumns: d.allowsTeacherColumns,
+          allowsTeacherColumns: d.columnMode === 'OPEN' ? true : d.allowsTeacherColumns,
           sortOrder: d.sortOrder,
           columnMode: d.columnMode,
           slotCount: d.columnMode === 'SERIES' ? d.slotCount : d.columnMode === 'SINGLE' ? 1 : null,
@@ -2067,8 +2319,8 @@ export class GradeRegisterPageComponent implements OnInit {
           sortOrder: nextOrder,
           weight: 0,
           contributesToAverage: true,
-          allowsTeacherColumns: true,
-          columnMode: 'OPEN',
+          allowsTeacherColumns: false,
+          columnMode: 'SINGLE',
         }),
       );
       this.applyDetail(updated);
@@ -2100,7 +2352,14 @@ export class GradeRegisterPageComponent implements OnInit {
   }
 
   protected async deleteCategory(c: GradeCategory): Promise<void> {
-    if (!confirm(`¿Eliminar la categoría «${c.name}»?`)) return;
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar categoría',
+      message: `¿Eliminar la categoría «${c.name}»?`,
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
+    if (!ok) return;
     this.deletingCategory.set(c.publicUuid);
     this.error.set(null);
     try {
@@ -2206,13 +2465,12 @@ export class GradeRegisterPageComponent implements OnInit {
         (typeof body?.code === 'string' && body.code) ||
         null;
 
-      if (msg) {
-        if (code === 'GRADE_REGISTER_IN_USE' || http.status === 409) {
-          return msg;
-        }
-        return msg;
-      }
-      if (code === 'GRADE_REGISTER_IN_USE' || http.status === 409) {
+      if (msg) return msg;
+      if (
+        code === 'GRADE_REGISTER_IN_USE' ||
+        code === 'GRADE_REGISTER_LEVEL_EXISTS' ||
+        http.status === 409
+      ) {
         return 'No se puede cambiar la plantilla: está en uso (hay evaluaciones o notas vinculadas).';
       }
     }

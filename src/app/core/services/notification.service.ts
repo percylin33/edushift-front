@@ -11,8 +11,8 @@ export interface AppNotification {
 }
 
 /**
- * Lightweight in-memory toast/notification queue. UI layer can subscribe to
- * the `messages` signal to render toasts. Replace later with a real toast lib.
+ * Lightweight in-memory toast queue. Rendered globally by
+ * {@code ToastHostComponent} mounted in {@code AppComponent}.
  */
 @Injectable({ providedIn: 'root' })
 export class NotificationService {

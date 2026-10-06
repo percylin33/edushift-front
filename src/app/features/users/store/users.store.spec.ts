@@ -160,13 +160,21 @@ describe('UsersStore', () => {
     expect(apiSpy.enable).toHaveBeenCalledWith('u-1');
   });
 
-  it('resetPassword retorna true/false según éxito', async () => {
-    apiSpy.resetPassword.and.returnValue(of(void 0));
-    const ok = await store.resetPassword('u-1');
-    expect(ok).toBeTrue();
+  it('resetPassword retorna response o null según éxito', async () => {
+    apiSpy.resetPassword.and.returnValue(
+      of({
+        delivery: 'EMAIL',
+        email: 'a@acme.test',
+        temporaryPassword: null,
+        mustChangePassword: false,
+      }),
+    );
+    const ok = await store.resetPassword('u-1', 'EMAIL');
+    expect(ok?.delivery).toBe('EMAIL');
+    expect(apiSpy.resetPassword).toHaveBeenCalledWith('u-1', { delivery: 'EMAIL' });
     apiSpy.resetPassword.and.returnValue(throwError(() => new Error('fail')));
     const fail = await store.resetPassword('u-1');
-    expect(fail).toBeFalse();
+    expect(fail).toBeNull();
     expect(store.error()).toBeTruthy();
   });
 

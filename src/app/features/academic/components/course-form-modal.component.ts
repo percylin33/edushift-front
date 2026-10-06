@@ -38,6 +38,7 @@ import {
   COURSE_ICON_ALL,
   COURSE_ICON_OPTIONS,
   COURSE_ICON_OPTIONS_MORE,
+  courseChipForeground,
   isCoursePaletteColor,
   resolveCourseVisual,
   suggestCourseVisual,
@@ -225,8 +226,9 @@ import {
               </div>
               <div class="flex flex-col gap-4 rounded-lg border border-border-subtle p-3 sm:flex-row sm:items-start">
                 <div
-                  class="flex size-14 shrink-0 items-center justify-center rounded-xl text-white shadow-sm"
+                  class="flex size-14 shrink-0 items-center justify-center rounded-xl shadow-sm ring-1 ring-inset ring-black/10"
                   [style.background-color]="previewColor()"
+                  [style.color]="chipForeground(previewColor())"
                   aria-hidden="true"
                 >
                   <app-icon [name]="previewIcon()" [size]="24" />
@@ -440,6 +442,8 @@ export class CourseFormModalComponent implements OnInit {
 
   /** Bumps when color/icon/code change so preview recomputes under OnPush. */
   private readonly visualVersion = signal(0);
+
+  protected readonly chipForeground = courseChipForeground;
 
   protected readonly previewColor = computed(() => {
     this.visualVersion();

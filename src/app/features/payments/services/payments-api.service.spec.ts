@@ -48,6 +48,21 @@ describe('PaymentsApiService', () => {
     });
   });
 
+  it('getInvoice desempaqueta ApiResponse.data', (done) => {
+    apiSpy.get.and.returnValue(
+      of({
+        success: true,
+        data: { publicUuid: 'inv-2', periodLabel: '2026-03', totalCents: 2000, items: [] },
+      }),
+    );
+    service.getInvoice('inv-2').subscribe((inv) => {
+      expect(inv.publicUuid).toBe('inv-2');
+      expect(inv.periodLabel).toBe('2026-03');
+      expect(inv.totalCents).toBe(2000);
+      done();
+    });
+  });
+
   it('listPaymentsForInvoice retorna array', (done) => {
     apiSpy.get.and.returnValue(of([samplePayment]));
     service.listPaymentsForInvoice('inv-1').subscribe((payments) => {

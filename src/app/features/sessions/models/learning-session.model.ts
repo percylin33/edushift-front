@@ -71,6 +71,7 @@ export interface LearningSessionCourseRefRaw {
 export interface LearningSessionSectionRefRaw {
   publicUuid: string;
   name: string;
+  gradeName?: string | null;
 }
 
 export interface LearningSessionPeriodRefRaw {
@@ -134,6 +135,24 @@ export interface LearningSessionResponseRaw {
   cancelledAt: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+  sharedWithGrade?: boolean;
+}
+
+export interface SharedLearningSessionRaw {
+  publicUuid: string;
+  title: string;
+  objective: string | null;
+  scheduledDate: string;
+  durationMinutes: number;
+  activities: string[];
+  materials: string[];
+  competencies: string[];
+  authorName: string | null;
+  sectionName: string | null;
+  gradeName: string | null;
+  courseCode: string | null;
+  coursePublicUuid: string;
+  periodPublicUuid: string;
 }
 
 // =============================================================================
@@ -164,7 +183,7 @@ export interface LearningSessionDetail {
     publicUuid: string;
     teacher: { publicUuid: string; firstName: string; lastName: string };
     course: { publicUuid: string; code: string; name: string };
-    section: { publicUuid: string; name: string };
+    section: { publicUuid: string; name: string; gradeName?: string | null };
     period: {
       publicUuid: string;
       periodType: string;
@@ -193,6 +212,24 @@ export interface LearningSessionDetail {
   cancelledAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
+  sharedWithGrade: boolean;
+}
+
+export interface SharedLearningSession {
+  publicUuid: string;
+  title: string;
+  objective: string;
+  scheduledDate: string;
+  durationMinutes: number;
+  activities: string[];
+  materials: string[];
+  competencies: string[];
+  authorName: string;
+  sectionName: string;
+  gradeName: string;
+  courseCode: string;
+  coursePublicUuid: string;
+  periodPublicUuid: string;
 }
 
 // =============================================================================
@@ -224,6 +261,9 @@ export interface CreateLearningSessionRequest {
     materials: string[];
     observations: string;
   };
+  /** Optional tenant session template UUID. */
+  templateUuid?: string | null;
+  applicationSheets?: ApplicationSheetWrite[];
 }
 
 export interface UpdateLearningSessionRequest {
@@ -239,6 +279,60 @@ export interface UpdateLearningSessionRequest {
     materials: string[];
     observations: string;
   };
+  sharedWithGrade?: boolean;
+  applicationSheets?: ApplicationSheetWrite[];
+}
+
+export interface CopyLearningSessionRequest {
+  assignmentUuid: string;
+  scheduledDate: string;
+}
+
+export type ApplicationSheetKind = 'LEARNING' | 'DIAGNOSTIC';
+
+export interface SheetItem {
+  kind: 'LINE' | 'CHECKBOX' | 'CHOICE' | string;
+  prompt: string;
+  choices?: string[];
+}
+
+export interface ApplicationSheetContent {
+  warmup?: { prompt: string; options: string[] };
+  purpose?: { purpose: string; evidence: string; criterion: string };
+  activities?: { title: string; moment?: string; instruction?: string; items: SheetItem[] }[];
+  selfAssessment?: { prompt?: string; columns: string[]; rows: string[] };
+  reflection?: { questions: SheetItem[] };
+  closingMessage?: string;
+  subtitle?: string;
+  situation?: string;
+  competencyMatrix?: { competency: string; criterion: string }[];
+  tasks?: { competency?: string; title: string; stimulus?: string; items: SheetItem[] }[];
+  achievementLevels?: { competency: string; logro: string; proceso: string; inicio: string }[];
+  teacherComment?: boolean;
+}
+
+export interface ApplicationSheetWrite {
+  kind: ApplicationSheetKind;
+  grade: string;
+  title: string;
+  content: ApplicationSheetContent;
+}
+
+export interface ApplicationSheetView extends ApplicationSheetWrite {
+  publicUuid?: string;
+  sheetNumber?: number;
+}
+
+export interface GenerateApplicationSheetRequest {
+  kind: ApplicationSheetKind;
+  grade: string;
+  courseName: string;
+  topic?: string;
+  sessionTitle: string;
+  sessionSummary?: string;
+  activities: { phase?: string; name: string; description?: string }[];
+  competencyNames?: string[];
+  evaluationCriteria?: { name: string; description?: string }[];
 }
 
 export interface LifecycleRequest {

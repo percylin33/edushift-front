@@ -19,7 +19,7 @@ import { PageHeaderComponent } from '@shared/components';
 import { PageContainerComponent } from '@shared/components';
 import { SpinnerComponent } from '@shared/components';
 import { EmptyStateComponent } from '@shared/components';
-import { IconComponent } from '@shared/components';
+import { ConfirmDialogService, IconComponent } from '@shared/components';
 
 import { AuthService } from '@core/services';
 
@@ -376,6 +376,7 @@ export class HelpViewerPageComponent {
   private readonly helpService = inject(HelpService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly auth = inject(AuthService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly tabs = CHAPTER_TABS;
 
@@ -661,12 +662,18 @@ export class HelpViewerPageComponent {
       });
   }
 
-  protected resetProgress(): void {
+  protected async resetProgress(): Promise<void> {
     const role = this.role();
     if (!role) return;
     const ids = Object.keys(this.progress());
     if (ids.length === 0) return;
-    if (!confirm('¿Reiniciar todos los checks de este capítulo?')) return;
+    const ok = await this.confirmDialog.open({
+      title: 'Reiniciar checks',
+      message: '¿Reiniciar todos los checks de este capítulo?',
+      confirmLabel: 'Reiniciar',
+      variant: 'warning',
+    });
+    if (!ok) return;
     this.saving.set(true);
     // Sequential clears to keep things simple; the list is small (≤ 30 items).
     const clearNext = (i: number): void => {

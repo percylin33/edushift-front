@@ -79,7 +79,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
               <label class="label" for="grade-student">Estudiante *</label>
               <select
                 id="grade-student"
-                class="input"
+                class="select"
                 formControlName="studentPublicUuid"
               >
                 <option value="">— Selecciona un estudiante —</option>
@@ -119,7 +119,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
           } @else {
             <div class="field">
               <label class="label" for="grade-literal">Literal *</label>
-              <select id="grade-literal" class="input" formControlName="literal">
+              <select id="grade-literal" class="select" formControlName="literal">
                 <option value="">— Selecciona —</option>
                 @for (l of allowedLiterals(); track l) {
                   <option [value]="l">{{ l }}</option>

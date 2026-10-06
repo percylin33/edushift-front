@@ -23,6 +23,7 @@ export const environment: AppEnvironment = runtimeOverrides({
     refreshTokenStorageKey: 'edushift.auth.refreshToken',
     tokenHeaderName: 'Authorization',
     tokenScheme: 'Bearer',
+    withCredentials: true,
   },
   google: {
     enabled: true,

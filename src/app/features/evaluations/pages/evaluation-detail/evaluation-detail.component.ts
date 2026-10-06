@@ -12,6 +12,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ROUTES } from '@core/constants';
 import {
+  ConfirmDialogService,
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
@@ -304,6 +305,7 @@ export class EvaluationDetailComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly store = inject(EvaluationsStore);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly evaluation = this.store.selected;
   protected readonly loading = this.store.loadingDetail;
@@ -368,10 +370,15 @@ export class EvaluationDetailComponent implements OnInit, OnDestroy {
     const e = this.evaluation();
     if (!e) return;
     const fromLabel = e.status;
-    const ok = confirm(
-      `¿Cambiar el registro "${e.name}" a ${target}?` +
-        (target === EvaluationStatus.CLOSED ? '\n\nUna vez cerrada NO se podrá reabrir.' : ''),
-    );
+    const isClose = target === EvaluationStatus.CLOSED;
+    const ok = await this.confirmDialog.open({
+      title: isClose ? 'Cerrar registro' : 'Publicar registro',
+      message:
+        `¿Cambiar el registro "${e.name}" a ${target}?` +
+        (isClose ? '\n\nUna vez cerrada NO se podrá reabrir.' : ''),
+      confirmLabel: isClose ? 'Cerrar' : 'Publicar',
+      variant: isClose ? 'warning' : 'default',
+    });
     if (!ok) return;
 
     if (target === EvaluationStatus.PUBLISHED) {
@@ -385,10 +392,15 @@ export class EvaluationDetailComponent implements OnInit, OnDestroy {
   protected async onDelete(): Promise<void> {
     const e = this.evaluation();
     if (!e) return;
-    const ok = confirm(
-      `¿Eliminar el borrador "${e.name}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar borrador',
+      message:
+        `¿Eliminar el borrador "${e.name}"?\n\n` +
         'Solo se permite eliminar borradores sin calificaciones.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     const success = await this.store.remove(e.publicUuid);
     if (success) {

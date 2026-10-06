@@ -35,6 +35,7 @@ export interface UserDetailResponseRaw {
   status: UserStatus;
   emailVerified: boolean;
   mfaEnabled: boolean;
+  emailSource?: 'REAL' | 'SYNTHETIC' | null;
   roles: string[];
   lastLoginAt: string | null;
   createdAt: string | null;
@@ -68,7 +69,25 @@ export interface UserDetail extends UserRow {
   avatarUrl?: string;
   emailVerified: boolean;
   mfaEnabled: boolean;
+  /** REAL = mailbox usable; SYNTHETIC = provisioned login-only address. */
+  emailSource?: 'REAL' | 'SYNTHETIC';
   updatedAt?: Date;
+}
+
+/**
+ * Admin reset delivery mode for {@code POST /users/{uuid}/reset-password}.
+ */
+export type AdminPasswordResetDelivery = 'EMAIL' | 'TEMPORARY';
+
+export interface AdminResetPasswordRequest {
+  delivery: AdminPasswordResetDelivery;
+}
+
+export interface AdminResetPasswordResponse {
+  delivery: AdminPasswordResetDelivery;
+  email: string;
+  temporaryPassword: string | null;
+  mustChangePassword: boolean;
 }
 
 /**

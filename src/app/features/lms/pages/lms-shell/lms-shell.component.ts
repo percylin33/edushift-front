@@ -188,6 +188,8 @@ export class LmsShellComponent implements OnInit {
   readonly selectedPeriodUuid = signal<string | null>(null);
   readonly selectedAssignmentUuid = signal<string | null>(null);
   readonly currentPeriodId = signal<string | null>(null);
+  /** Section whose materias are currently in {@link myAssignments}. */
+  #assignmentsForSection: string | null = null;
 
   readonly currentSectionLabel = computed(() => {
     const uuid = this.sectionUuid();
@@ -201,7 +203,7 @@ export class LmsShellComponent implements OnInit {
     return this.sectionContext.assignmentsForSection(this.myAssignments(), uuid);
   });
 
-  /** Periods that appear in this section's assignments, falling back to year catalog. */
+  /** Periods that have a materia in this section, falling back to the year catalog. */
   readonly periodOptions = computed(() => {
     const catalog = [...this.periods()].sort((a, b) => a.ordinal - b.ordinal);
     if (catalog.length === 0) return [];
@@ -210,11 +212,6 @@ export class LmsShellComponent implements OnInit {
     if (usedIds.size === 0) return catalog;
 
     const fromAssignments = catalog.filter((p) => usedIds.has(p.publicUuid));
-    const currentId = this.currentPeriodId();
-    if (currentId && !fromAssignments.some((p) => p.publicUuid === currentId)) {
-      const current = catalog.find((p) => p.publicUuid === currentId);
-      if (current) return [...fromAssignments, current].sort((a, b) => a.ordinal - b.ordinal);
-    }
     return fromAssignments.length > 0 ? fromAssignments : catalog;
   });
 
@@ -268,6 +265,14 @@ export class LmsShellComponent implements OnInit {
       )
       .subscribe((uuid) => {
         this.sectionUuid.set(uuid);
+        if (
+          uuid &&
+          this.auth.hasRole(UserRole.TenantAdmin) &&
+          uuid !== this.#assignmentsForSection
+        ) {
+          void this.#loadAssignments().then(() => this.#syncFromQuery());
+          return;
+        }
         this.#syncFromQuery();
       });
 
@@ -356,6 +361,15 @@ export class LmsShellComponent implements OnInit {
   }
 
   async #loadAssignments(): Promise<void> {
+    const section = this.sectionUuid() ?? this.#readSectionUuidFromRoute();
+    if (section && this.auth.hasRole(UserRole.TenantAdmin)) {
+      const rows = await this.sectionContext.loadSectionAssignments(section);
+      const current = this.sectionUuid() ?? this.#readSectionUuidFromRoute();
+      if (current !== section) return;
+      this.#assignmentsForSection = section;
+      this.myAssignments.set(rows);
+      return;
+    }
     this.myAssignments.set(await this.sectionContext.loadMyAssignments());
   }
 
@@ -426,6 +440,8 @@ export class LmsShellComponent implements OnInit {
   #defaultPeriodId(): string | null {
     const options = this.periodOptions();
     if (options.length === 0) return null;
+    const inRange = resolveCurrentAcademicPeriod(options);
+    if (inRange) return inRange.publicUuid;
     const currentId = this.currentPeriodId();
     if (currentId && options.some((p) => p.publicUuid === currentId)) {
       return currentId;

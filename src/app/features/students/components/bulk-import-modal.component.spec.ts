@@ -6,6 +6,7 @@ import { StudentsStore } from '../store';
 import { BulkImportJob } from '../models';
 import { BulkImportStatus } from '@core/enums';
 import { AcademicApiService } from '@features/academic/services';
+import { StudentsApiService } from '../services';
 
 describe('BulkImportModalComponent', () => {
   let fixture: ComponentFixture<BulkImportModalComponent>;
@@ -41,6 +42,13 @@ describe('BulkImportModalComponent', () => {
           useValue: {
             listYears: () => of([]),
             listSections: () => of([]),
+          },
+        },
+        {
+          provide: StudentsApiService,
+          useValue: {
+            create: () => of({ publicUuid: 'stu-1' }),
+            createEnrollment: () => of({}),
           },
         },
       ],
@@ -161,6 +169,63 @@ describe('BulkImportModalComponent', () => {
     configureModule();
     fakeStore.error.set('falló la subida');
     expect((component as any).errorMessage()).toBe('falló la subida');
+  });
+
+  it('explica por qué confirmar queda deshabilitado', () => {
+    configureModule();
+    (component as any).selectedFile.set(new File(['x'], 'alumnos.xlsx'));
+    (component as any).mapping.set({
+      documentNumber: 'DNI',
+      firstName: 'Nombres',
+      lastName: 'Apellido',
+      guardianPhone: 'Teléfono apoderado',
+    });
+    const blockers = (component as any).confirmBlockers() as string[];
+    expect(blockers.some((line) => line.includes('Tipo de documento'))).toBeTrue();
+    expect(blockers.some((line) => line.includes('Falta asignar del apoderado'))).toBeTrue();
+    expect((component as any).canConfirmMapping()).toBeFalse();
+  });
+
+  it('permite confirmar si el alumno está completo y el apoderado no se usa', () => {
+    configureModule();
+    (component as any).selectedFile.set(new File(['x'], 'alumnos.xlsx'));
+    (component as any).mapping.set({
+      documentType: 'Tipo de documento',
+      documentNumber: 'DNI',
+      firstName: 'Nombres',
+      lastName: 'Apellido',
+    });
+    expect((component as any).confirmBlockers()).toEqual([]);
+    expect((component as any).canConfirmMapping()).toBeTrue();
+  });
+
+  it('nombre completo no exige nombres y apellidos por separado', () => {
+    configureModule();
+    (component as any).selectedFile.set(new File(['x'], 'alumnos.xlsx'));
+    (component as any).setNameMode('full');
+    (component as any).mapping.set({
+      documentType: 'Tipo',
+      documentNumber: 'DNI',
+      fullName: 'Alumno',
+    });
+    expect((component as any).confirmBlockers()).toEqual([]);
+    expect((component as any).canConfirmMapping()).toBeTrue();
+  });
+
+  it('quitar apoderado libera la confirmación', () => {
+    configureModule();
+    (component as any).selectedFile.set(new File(['x'], 'alumnos.xlsx'));
+    (component as any).mapping.set({
+      documentType: 'Tipo',
+      documentNumber: 'DNI',
+      firstName: 'Ana',
+      lastName: 'López',
+      guardianPhone: 'Teléfono',
+    });
+    expect((component as any).canConfirmMapping()).toBeFalse();
+    (component as any).toggleGuardian();
+    expect((component as any).mapping()['guardianPhone']).toBeUndefined();
+    expect((component as any).canConfirmMapping()).toBeTrue();
   });
 
   it('formatBytes maneja B / KB / MB', () => {

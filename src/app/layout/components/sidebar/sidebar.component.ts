@@ -41,16 +41,15 @@ import { NavLabels } from '../../i18n/nav-labels.service';
       <div class="flex h-16 items-center gap-3 border-b border-border-subtle px-4">
         <a
           [routerLink]="dashboardLink"
-          class="flex items-center gap-2.5 text-content hover:opacity-90 focus:outline-none"
-          [attr.aria-label]="appName"
+          class="flex min-w-0 items-center gap-2.5 text-content hover:opacity-90 focus:outline-none"
+          [attr.aria-label]="collapsed() ? appName : tenantName()"
         >
-          <app-tenant-logo variant="mark" size="md" />
-          @if (!collapsed()) {
-            <span class="flex flex-col leading-tight">
-              <span class="truncate text-sm font-semibold tracking-tight">{{ tenantName() }}</span>
-              <span class="truncate text-2xs uppercase tracking-wider text-content-subtle">
-                {{ appName }}
-              </span>
+          @if (collapsed()) {
+            <app-tenant-logo variant="mark" size="md" />
+          } @else {
+            <span class="flex min-w-0 flex-col gap-0.5 leading-tight">
+              <app-tenant-logo variant="full" size="sm" />
+              <span class="truncate text-2xs font-medium text-content-muted">{{ tenantName() }}</span>
             </span>
           }
         </a>

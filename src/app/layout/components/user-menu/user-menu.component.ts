@@ -75,7 +75,7 @@ import { AuthApiService } from '@features/auth/services/auth-api.service';
             (click)="close()"
           >
             <app-icon name="help-circle" [size]="16" class="text-content-subtle" />
-            Manuales de usuario
+            Centro de pruebas
           </a>
           <a
             [routerLink]="['/settings']"
@@ -135,7 +135,7 @@ export class UserMenuComponent {
     return user.fullName?.trim() || user.email;
   });
   readonly subtitle = computed(() => this.auth.user()?.roles?.[0] ?? null);
-  /** Help manuals index — public route, accessible from the user menu. */
+  /** Family UAT guide hub — same entry as sidebar “Centro de pruebas”. */
   protected readonly helpRoute = ROUTES.HELP.ROOT;
   readonly email = computed(() => this.auth.user()?.email ?? null);
 
@@ -168,7 +168,7 @@ export class UserMenuComponent {
    * because the response is 204 with no payload either way.
    */
   signOut(): void {
-    const refresh = this.auth.refreshToken();
+    // SECURITY FIX: Refresh token is in httpOnly cookie, browser sends it automatically
     const finishLocally = () => {
       this.auth.clearSession();
       this.close();
@@ -177,12 +177,9 @@ export class UserMenuComponent {
       });
     };
 
-    if (!refresh) {
-      finishLocally();
-      return;
-    }
-
-    this.authApi.logout(refresh).subscribe({
+    // The refresh token is an httpOnly cookie. The browser attaches it;
+    // the client never reads it.
+    this.authApi.logout().subscribe({
       complete: () => finishLocally(),
       error: () => finishLocally(),
     });

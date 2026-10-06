@@ -11,7 +11,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { IconComponent, SpinnerComponent } from '@shared/components';
+import { ConfirmDialogService, IconComponent, SpinnerComponent } from '@shared/components';
 import { ProvisionSectionAccountsResponse } from '../models';
 import { SectionProvisionApiService } from '../services';
 
@@ -167,6 +167,7 @@ import { SectionProvisionApiService } from '../services';
 })
 export class ProvisionAccountsModalComponent implements OnInit {
   private readonly api = inject(SectionProvisionApiService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly sectionPublicUuid = input.required<string>();
   readonly closed = output<void>();
@@ -187,14 +188,18 @@ export class ProvisionAccountsModalComponent implements OnInit {
     this.includeGuardians.set(!!target?.checked);
   }
 
-  protected requestClose(): void {
+  protected async requestClose(): Promise<void> {
     if (this.result() && !this.handoutDownloaded()) {
-      const ok = window.confirm(
-        'Aún no descargaste la carpeta de accesos (ZIP).\n\n' +
+      const ok = await this.confirmDialog.open({
+        title: 'Cerrar sin descargar',
+        message:
+          'Aún no descargaste la carpeta de accesos (ZIP).\n\n' +
           'Las cuentas ya están creadas, pero las contraseñas temporales solo se pueden ' +
           'descargar unos ~20 minutos. Si cierras ahora, no podrás ver esas claves otra vez.\n\n' +
           '¿Cerrar de todos modos?',
-      );
+        confirmLabel: 'Cerrar de todos modos',
+        variant: 'warning',
+      });
       if (!ok) return;
     }
     this.closed.emit();

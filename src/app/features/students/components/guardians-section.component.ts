@@ -9,7 +9,12 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import {
+  ConfirmDialogService,
+  EmptyStateComponent,
+  IconComponent,
+  SpinnerComponent,
+} from '@shared/components';
 import { StudentsStore } from '../store/students.store';
 import { Guardian } from '../models';
 import { AddGuardianModalComponent } from './add-guardian-modal.component';
@@ -221,6 +226,7 @@ import { portalStatus } from '../models';
 })
 export class GuardiansSectionComponent implements OnInit {
   private readonly store = inject(StudentsStore);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly studentPublicUuid = input.required<string>();
 
@@ -338,13 +344,13 @@ export class GuardiansSectionComponent implements OnInit {
   }
 
   protected async onUnlink(guardian: Guardian): Promise<void> {
-    /* Native confirm() is intentionally low-effort here — Sprint 3
-     * doesn't ship a confirm-dialog component yet. The backend
-     * still enforces the LAST_PRIMARY_CONTACT guardrail, so the
-     * worst case is an inline error banner. */
-    const ok = window.confirm(
-      `¿Quitar a ${guardian.fullName} como tutor? Se mantendrá el registro del tutor por si está vinculado a un hermano.`,
-    );
+    const ok = await this.confirmDialog.open({
+      title: 'Quitar tutor',
+      message: `¿Quitar a ${guardian.fullName} como tutor? Se mantendrá el registro del tutor por si está vinculado a un hermano.`,
+      confirmLabel: 'Quitar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
 
     await this.store.unlinkGuardian(

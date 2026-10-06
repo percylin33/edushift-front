@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { MeGrade } from '../models/me-grade.model';
+import { MeGradesSummary } from '../models/me-grades-summary.model';
 import { MeProfile } from '../models/me-profile.model';
 import { MeSection, MeSectionDetail, MeSectionPeriod } from '../models/me-section.model';
 import { MeAttendanceRecord } from '../models/me-attendance.model';
@@ -54,6 +55,14 @@ export class MeApiService {
 
   listGrades(): Observable<ApiResponse<MeGrade[]>> {
     return this.http.get<ApiResponse<MeGrade[]>>('/api/v1/me/grades');
+  }
+
+  gradesSummary(periodPublicUuid?: string | null): Observable<ApiResponse<MeGradesSummary>> {
+    const params: Record<string, string> = {};
+    if (periodPublicUuid) {
+      params['period'] = periodPublicUuid;
+    }
+    return this.http.get<ApiResponse<MeGradesSummary>>('/api/v1/me/grades/summary', { params });
   }
 
   listAttendance(params?: { from?: string; to?: string }): Observable<ApiResponse<MeAttendanceRecord[]>> {

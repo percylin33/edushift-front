@@ -13,6 +13,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
 import {
+  ConfirmDialogService,
   EmptyStateComponent,
   IconComponent,
   PageContainerComponent,
@@ -253,7 +254,7 @@ type InlineEditOutcome =
                           />
                         } @else {
                           <select
-                            class="input input-sm w-24"
+                            class="select select-sm w-24"
                             [value]="editState()!.value"
                             (change)="onEditChange($any($event.target).value)"
                             (blur)="saveEdit(row)"
@@ -421,6 +422,7 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
   private readonly store = inject(GradeRecordsStore);
   private readonly evaluationsApi = inject(EvaluationsApiService);
   private readonly gradeBookApi = inject(GradeBookApiService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly scaleScore = EvaluationScale.SCORE_0_20;
   protected readonly scoreMin = SCORE_MIN;
@@ -696,10 +698,15 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
   }
 
   protected async onDelete(row: GradeRecordRow): Promise<void> {
-    const ok = confirm(
-      `¿Borrar la nota de ${row.studentFullName}?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Borrar nota',
+      message:
+        `¿Borrar la nota de ${row.studentFullName}?\n\n` +
         'Soft-delete: queda en BD pero deja de aparecer.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.remove(row.publicUuid);
   }

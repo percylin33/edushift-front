@@ -19,6 +19,7 @@ import {
   PageHeaderComponent,
   SpinnerComponent,
 } from '@shared/components';
+import { EvaluationFormModalComponent } from '@features/evaluations/components';
 import {
   EVALUATION_KIND_LABELS,
   EVALUATION_SCALE_LABELS,
@@ -28,7 +29,10 @@ import {
   EvaluationStatus,
 } from '@features/evaluations/models';
 import { GradeRecordsApiService } from '@features/grade-records/services';
-import { areGradesEditable } from '@features/grade-records/models';
+import {
+  ALLOWED_LITERALS_BY_SCALE,
+  areGradesEditable,
+} from '@features/grade-records/models';
 import {
   ENROLLMENT_STATUS_LABELS,
   GradeBookCategoryGroup,
@@ -53,6 +57,7 @@ import { GradeBookStore } from '../../store';
     CommonModule,
     FormsModule,
     EmptyStateComponent,
+    EvaluationFormModalComponent,
     IconComponent,
     PageContainerComponent,
     PageHeaderComponent,
@@ -68,6 +73,16 @@ import { GradeBookStore } from '../../store';
         <button type="button" class="btn btn-ghost btn-sm" (click)="goBack()">
           <app-icon name="chevron-left" [size]="16" />
           <span>Volver</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          [disabled]="loading()"
+          (click)="openCreateForm()"
+          title="Nueva columna"
+        >
+          <app-icon name="plus" [size]="16" />
+          <span>Nueva columna</span>
         </button>
         <button
           type="button"
@@ -154,6 +169,31 @@ import { GradeBookStore } from '../../store';
                 <app-icon name="arrow-down" [size]="14" />
               </button>
             </div>
+            @if (hasEditableLiterals()) {
+              <div
+                class="fill-dir-toggle"
+                role="group"
+                aria-label="Modo de ingreso de literales"
+                title="Lista (desplegable) o Teclado (escribir AD, A, B, C)"
+              >
+                <button
+                  type="button"
+                  class="fill-dir-option literal-mode-option"
+                  [class.fill-dir-active]="literalEntryMode() === 'select'"
+                  (click)="setLiteralEntryMode('select')"
+                >
+                  Lista
+                </button>
+                <button
+                  type="button"
+                  class="fill-dir-option literal-mode-option"
+                  [class.fill-dir-active]="literalEntryMode() === 'input'"
+                  (click)="setLiteralEntryMode('input')"
+                >
+                  Teclado
+                </button>
+              </div>
+            }
             <label class="inline-flex cursor-pointer items-center gap-1.5 text-xs">
               <input
                 type="checkbox"
@@ -225,12 +265,12 @@ import { GradeBookStore } from '../../store';
         } @else if (gb.evaluations.length === 0 && !gb.hasCategoryLayout) {
           <app-empty-state
             icon="target"
-            title="Sin registros"
-            description="Crea registros desde la pantalla de la asignación para empezar a llenar el libro."
+            title="Sin columnas"
+            description="Agrega la primera columna para empezar a llenar el registro."
           >
-            <button type="button" class="btn btn-primary btn-sm" (click)="goToEvaluations()">
+            <button type="button" class="btn btn-primary btn-sm" (click)="openCreateForm()">
               <app-icon name="plus" [size]="16" />
-              <span>Ir a registros</span>
+              <span>Nueva columna</span>
             </button>
           </app-empty-state>
         } @else {
@@ -239,8 +279,8 @@ import { GradeBookStore } from '../../store';
               <app-icon name="info" [size]="14" />
               <p>
                 Hay categorías sin columnas.
-                <button type="button" class="link-btn" (click)="goToEvaluations()">
-                  Ir a registros
+                <button type="button" class="link-btn" (click)="openCreateForm()">
+                  Nueva columna
                 </button>
               </p>
             </div>
@@ -261,8 +301,16 @@ import { GradeBookStore } from '../../store';
                           class="sticky-top kind-group-header"
                           [attr.colspan]="group.colspan"
                           [ngClass]="categoryBandClass(group.colorToken)"
+                          [attr.title]="
+                            doesNotContribute(group)
+                              ? 'No cuenta en el promedio del curso'
+                              : null
+                          "
                         >
                           {{ group.label }}
+                          @if (doesNotContribute(group)) {
+                            <span class="no-aporta-badge">no aporta</span>
+                          }
                         </th>
                       }
                     } @else {
@@ -285,14 +333,23 @@ import { GradeBookStore } from '../../store';
                             class="sticky-top eval-col eval-col-compact"
                             [ngClass]="categoryBandClass(group.colorToken)"
                           >
-                            <button
-                              type="button"
-                              class="eval-header empty-cat-cta"
-                              (click)="goToEvaluations()"
-                              title="Crear un registro en esta categoría"
-                            >
-                              <app-icon name="plus" [size]="12" />
-                            </button>
+                            @if (canAddColumn(group)) {
+                              <button
+                                type="button"
+                                class="eval-header empty-cat-cta"
+                                (click)="openCreateForm(group.category?.publicUuid ?? null)"
+                                title="Agregar una columna en esta categoría"
+                              >
+                                <app-icon name="plus" [size]="12" />
+                              </button>
+                            } @else {
+                              <span
+                                class="inline-flex text-content-muted"
+                                title="Esta categoría la completa el colegio."
+                              >
+                                <app-icon name="lock" [size]="12" />
+                              </span>
+                            }
                           </th>
                         } @else {
                           @for (e of group.evaluations; track e.publicUuid) {
@@ -370,7 +427,11 @@ import { GradeBookStore } from '../../store';
                         </p>
                       </th>
                       <td class="sticky-left avg-col">
-                        @if (s.weightedAverage !== null) {
+                        @if (s.literalAverage) {
+                          <span class="avg-value" [ngClass]="literalTone(s.literalAverage)">
+                            {{ s.literalAverage }}
+                          </span>
+                        } @else if (s.weightedAverage !== null) {
                           <span
                             class="avg-value"
                             [class.text-success-700]="s.weightedAverage >= 14"
@@ -421,6 +482,39 @@ import { GradeBookStore } from '../../store';
                                     (wheel)="onScoreWheel($event)"
                                     (click)="$event.stopPropagation()"
                                   />
+                                } @else if (canEditLiteral(e)) {
+                                  @if (literalEntryMode() === 'select') {
+                                    <select
+                                      class="select score-input"
+                                      [attr.data-cell-key]="cellKeyOf(s, e)"
+                                      [disabled]="savingCell() === cellKeyOf(s, e)"
+                                      [ngModel]="cellLiteral(s, e) ?? ''"
+                                      (ngModelChange)="onLiteralChange(s, e, $event)"
+                                      (click)="$event.stopPropagation()"
+                                    >
+                                      <option value="">—</option>
+                                      <option value="AD">AD</option>
+                                      <option value="A">A</option>
+                                      <option value="B">B</option>
+                                      <option value="C">C</option>
+                                    </select>
+                                  } @else {
+                                    <input
+                                      type="text"
+                                      class="score-input"
+                                      maxlength="2"
+                                      autocomplete="off"
+                                      spellcheck="false"
+                                      aria-label="Literal AD, A, B o C"
+                                      [attr.data-cell-key]="cellKeyOf(s, e)"
+                                      [disabled]="savingCell() === cellKeyOf(s, e)"
+                                      [ngModel]="literalInputValue(s, e)"
+                                      (ngModelChange)="onLiteralDraft(s, e, $event)"
+                                      (blur)="onLiteralBlur(s, e)"
+                                      (keydown)="onLiteralKeydown($event, s, e)"
+                                      (click)="$event.stopPropagation()"
+                                    />
+                                  }
                                 } @else {
                                   <button
                                     type="button"
@@ -447,10 +541,14 @@ import { GradeBookStore } from '../../store';
                                 class="cell eval-col-compact text-center font-mono tabular-nums"
                                 [ngClass]="categoryBandClass(group.colorToken)"
                               >
-                                @if (categoryAvg(s, group.category.publicUuid); as avg) {
-                                  {{ avg | number: '1.0-2' }}
+                                @if (categoryLiteral(s, group.category.publicUuid); as letter) {
+                                  <span [ngClass]="literalTone(letter)">{{ letter }}</span>
                                 } @else {
-                                  <span class="text-content-muted">—</span>
+                                  @if (categoryAvg(s, group.category.publicUuid); as avg) {
+                                    {{ avg | number: '1.0-2' }}
+                                  } @else {
+                                    <span class="text-content-muted">—</span>
+                                  }
                                 }
                               </td>
                             }
@@ -487,6 +585,38 @@ import { GradeBookStore } from '../../store';
                                   (wheel)="onScoreWheel($event)"
                                   (click)="$event.stopPropagation()"
                                 />
+                              } @else if (canEditLiteral(e)) {
+                                @if (literalEntryMode() === 'select') {
+                                  <select
+                                    class="select score-input"
+                                    [attr.data-cell-key]="cellKeyOf(s, e)"
+                                    [disabled]="savingCell() === cellKeyOf(s, e)"
+                                    [ngModel]="cellLiteral(s, e) ?? ''"
+                                    (ngModelChange)="onLiteralChange(s, e, $event)"
+                                    (click)="$event.stopPropagation()"
+                                  >
+                                    <option value="">—</option>
+                                    <option value="AD">AD</option>
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                  </select>
+                                } @else {
+                                  <input
+                                    type="text"
+                                    class="score-input"
+                                    maxlength="2"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                                    aria-label="Literal AD, A, B o C"
+                                    [attr.data-cell-key]="cellKeyOf(s, e)"
+                                    [disabled]="savingCell() === cellKeyOf(s, e)"
+                                    [ngModel]="literalInputValue(s, e)"
+                                    (ngModelChange)="onLiteralDraft(s, e, $event)"
+                                    (blur)="onLiteralBlur(s, e)"
+                                    (click)="$event.stopPropagation()"
+                                  />
+                                }
                               } @else {
                                 <button
                                   type="button"
@@ -532,7 +662,9 @@ import { GradeBookStore } from '../../store';
                     </p>
                     <p class="text-xs text-content-muted">
                       Prom.:
-                      @if (s.weightedAverage !== null) {
+                      @if (s.literalAverage) {
+                        <strong [ngClass]="literalTone(s.literalAverage)">{{ s.literalAverage }}</strong>
+                      } @else if (s.weightedAverage !== null) {
                         <strong class="tabular-nums">
                           {{ s.weightedAverage | number: '1.0-2' }}
                         </strong>
@@ -559,18 +691,30 @@ import { GradeBookStore } from '../../store';
                         <div>
                           <p
                             class="mb-2 text-xs font-semibold uppercase tracking-wide text-content-muted"
+                            [attr.title]="
+                              doesNotContribute(group)
+                                ? 'No cuenta en el promedio del curso'
+                                : null
+                            "
                           >
                             {{ group.label }}
+                            @if (doesNotContribute(group)) {
+                              <span class="no-aporta-badge">no aporta</span>
+                            }
                           </p>
-                          @if (group.evaluations.length === 0) {
+                          @if (group.evaluations.length === 0 && canAddColumn(group)) {
                             <button
                               type="button"
                               class="btn btn-ghost btn-sm w-full justify-start text-content-muted"
-                              (click)="goToEvaluations()"
+                              (click)="openCreateForm(group.category?.publicUuid ?? null)"
                             >
                               <app-icon name="plus" [size]="14" />
-                              Sin columnas · Añadir registro
+                              Sin columnas · Añadir columna
                             </button>
+                          } @else if (group.evaluations.length === 0) {
+                            <p class="px-3 py-2 text-xs text-content-muted">
+                              Esta categoría la completa el colegio.
+                            </p>
                           } @else {
                             <div class="grid gap-1">
                               @for (e of group.evaluations; track e.publicUuid) {
@@ -594,6 +738,35 @@ import { GradeBookStore } from '../../store';
                                       (keydown)="onScoreKeydown($event, s, e)"
                                       (wheel)="onScoreWheel($event)"
                                     />
+                                  } @else if (canEditLiteral(e)) {
+                                    @if (literalEntryMode() === 'select') {
+                                      <select
+                                        class="select score-input score-input-mobile"
+                                        [disabled]="savingCell() === cellKeyOf(s, e)"
+                                        [ngModel]="cellLiteral(s, e) ?? ''"
+                                        (ngModelChange)="onLiteralChange(s, e, $event)"
+                                      >
+                                        <option value="">—</option>
+                                        <option value="AD">AD</option>
+                                        <option value="A">A</option>
+                                        <option value="B">B</option>
+                                        <option value="C">C</option>
+                                      </select>
+                                    } @else {
+                                      <input
+                                        type="text"
+                                        class="score-input score-input-mobile"
+                                        maxlength="2"
+                                        autocomplete="off"
+                                        spellcheck="false"
+                                        aria-label="Literal AD, A, B o C"
+                                        [disabled]="savingCell() === cellKeyOf(s, e)"
+                                        [ngModel]="literalInputValue(s, e)"
+                                        (ngModelChange)="onLiteralDraft(s, e, $event)"
+                                        (blur)="onLiteralBlur(s, e)"
+                                        (keydown)="onLiteralKeydown($event, s, e)"
+                                      />
+                                    }
                                   } @else {
                                     <button type="button" (click)="goToEvaluation(e.publicUuid)">
                                       @if (cellScore(s, e); as score) {
@@ -641,6 +814,34 @@ import { GradeBookStore } from '../../store';
                                     (keydown)="onScoreKeydown($event, s, e)"
                                     (wheel)="onScoreWheel($event)"
                                   />
+                                } @else if (canEditLiteral(e)) {
+                                  @if (literalEntryMode() === 'select') {
+                                    <select
+                                      class="select score-input score-input-mobile"
+                                      [disabled]="savingCell() === cellKeyOf(s, e)"
+                                      [ngModel]="cellLiteral(s, e) ?? ''"
+                                      (ngModelChange)="onLiteralChange(s, e, $event)"
+                                    >
+                                      <option value="">—</option>
+                                      <option value="AD">AD</option>
+                                      <option value="A">A</option>
+                                      <option value="B">B</option>
+                                      <option value="C">C</option>
+                                    </select>
+                                  } @else {
+                                    <input
+                                      type="text"
+                                      class="score-input score-input-mobile"
+                                      maxlength="2"
+                                      autocomplete="off"
+                                      spellcheck="false"
+                                      aria-label="Literal AD, A, B o C"
+                                      [disabled]="savingCell() === cellKeyOf(s, e)"
+                                      [ngModel]="literalInputValue(s, e)"
+                                      (ngModelChange)="onLiteralDraft(s, e, $event)"
+                                      (blur)="onLiteralBlur(s, e)"
+                                    />
+                                  }
                                 } @else {
                                   <button type="button" (click)="goToEvaluation(e.publicUuid)">
                                     @if (cellScore(s, e); as score) {
@@ -666,6 +867,18 @@ import { GradeBookStore } from '../../store';
         }
       }
     </app-page-container>
+
+    @if (showCreateForm()) {
+      <app-evaluation-form-modal
+        [assignmentUuid]="currentAssignmentUuid"
+        [categories]="formCategories()"
+        [initialCategoryPublicUuid]="createCategoryId()"
+        [asColumn]="true"
+        [sheetScale]="gradebook()?.gradingScale ?? null"
+        (closed)="closeCreateForm()"
+        (saved)="onRegisterCreated()"
+      />
+    }
   `,
   styles: [
     `
@@ -1039,6 +1252,25 @@ import { GradeBookStore } from '../../store';
         outline-offset: -1px;
         z-index: 1;
       }
+      .literal-mode-option {
+        width: auto;
+        min-width: 3.25rem;
+        padding: 0 0.45rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
+      .no-aporta-badge {
+        display: inline-block;
+        margin-left: 0.35rem;
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: lowercase;
+        color: var(--color-content-muted, #6b7280);
+        opacity: 0.9;
+        white-space: nowrap;
+      }
       .kind-band-exam {
         background: rgba(254, 243, 199, 0.55) !important;
       }
@@ -1120,10 +1352,29 @@ export class GradeBookPageComponent implements OnInit, OnDestroy {
   protected readonly expanded = signal<Set<string>>(new Set());
   protected readonly saveError = signal<string | null>(null);
   private readonly scoreDrafts = signal<Record<string, string>>({});
+  private readonly literalDrafts = signal<Record<string, string>>({});
+  /** Celdas con upsert literal en vuelo (evita 409 por doble POST). */
+  private readonly literalSavingKeys = new Set<string>();
   /** Dirección de avance al llenar notas: horizontal (→) o vertical (↓). */
   protected readonly fillDirection = signal<'right' | 'down'>('right');
+  /** Lista (select) o Teclado (input) para literales CNEB. */
+  protected readonly literalEntryMode = signal<'select' | 'input'>(
+    GradeBookPageComponent.readLiteralEntryMode(),
+  );
   /** Celda a enfocar tras guardar (avance automático). */
   private pendingFocusKey: string | null = null;
+
+  private static readonly LITERAL_ENTRY_MODE_KEY = 'edushift.gradebook.literalEntryMode';
+  private static readonly CNEB_LITERALS = ALLOWED_LITERALS_BY_SCALE[EvaluationScale.LITERAL_CNEB];
+
+  private static readLiteralEntryMode(): 'select' | 'input' {
+    try {
+      const stored = localStorage.getItem(GradeBookPageComponent.LITERAL_ENTRY_MODE_KEY);
+      return stored === 'input' ? 'input' : 'select';
+    } catch {
+      return 'select';
+    }
+  }
 
   protected readonly title = computed(() => {
     const gb = this.gradebook();
@@ -1163,7 +1414,32 @@ export class GradeBookPageComponent implements OnInit, OnDestroy {
   });
 
   private routeSub?: Subscription;
-  private currentAssignmentUuid: string | null = null;
+  protected currentAssignmentUuid: string | null = null;
+  protected readonly showCreateForm = signal(false);
+  protected readonly createCategoryId = signal<string | null>(null);
+  protected readonly formCategories = computed(() =>
+    (this.gradebook()?.categories ?? [])
+      .filter((category) => category.allowsTeacherColumns)
+      .map((category) => ({
+        publicUuid: category.publicUuid,
+        name: category.name,
+        allowsTeacherColumns: category.allowsTeacherColumns,
+      })),
+  );
+
+  protected readonly hasEditableLiterals = computed(() => {
+    const gb = this.gradebook();
+    if (!gb) return false;
+    return gb.evaluations.some((e) => this.canEditLiteral(e));
+  });
+
+  protected canAddColumn(group: GradeBookCategoryGroup): boolean {
+    return group.category?.allowsTeacherColumns !== false;
+  }
+
+  protected doesNotContribute(group: GradeBookCategoryGroup): boolean {
+    return !!group.category && !group.category.contributesToAverage;
+  }
 
   async ngOnInit(): Promise<void> {
     this.store.clearError();
@@ -1226,6 +1502,129 @@ export class GradeBookPageComponent implements OnInit, OnDestroy {
 
   protected canInlineEdit(e: GradeBookEvaluation): boolean {
     return e.scale === EvaluationScale.SCORE_0_20 && areGradesEditable(e.status);
+  }
+
+  protected canEditLiteral(e: GradeBookEvaluation): boolean {
+    return e.scale === EvaluationScale.LITERAL_CNEB && areGradesEditable(e.status);
+  }
+
+  protected literalTone(letter: string): string {
+    if (letter === 'AD' || letter === 'A') return 'text-success-700';
+    if (letter === 'C') return 'text-danger-700';
+    return '';
+  }
+
+  protected categoryLiteral(s: GradeBookStudent, categoryUuid: string): string | null {
+    return s.categoryLiteralAverages.get(categoryUuid) ?? null;
+  }
+
+  protected async onLiteralChange(
+    s: GradeBookStudent,
+    e: GradeBookEvaluation,
+    value: string,
+  ): Promise<void> {
+    const next = value.trim().toUpperCase();
+    const current = this.cellLiteral(s, e) ?? '';
+    if (next === current || next === '') return;
+    if (!GradeBookPageComponent.CNEB_LITERALS.includes(next)) return;
+    const key = cellKey(s.publicUuid, e.publicUuid);
+    if (this.literalSavingKeys.has(key)) return;
+    this.literalSavingKeys.add(key);
+    this.store.setSavingCell(key);
+    this.saveError.set(null);
+    this.queueAdvance(s, e);
+    try {
+      await firstValueFrom(
+        this.gradeRecordsApi.upsertGrade(e.publicUuid, {
+          studentPublicUuid: s.publicUuid,
+          literal: next,
+        }),
+      );
+      this.store.patchCellLiteral(s.publicUuid, e.publicUuid, next);
+      this.literalDrafts.update((d) => {
+        const copy = { ...d };
+        delete copy[key];
+        return copy;
+      });
+      if (this.currentAssignmentUuid) {
+        await this.store.refreshQuiet(this.currentAssignmentUuid);
+      }
+    } catch (err) {
+      this.saveError.set(this.toErrorMessage(err));
+      this.pendingFocusKey = null;
+    } finally {
+      this.literalSavingKeys.delete(key);
+      this.store.setSavingCell(null);
+      this.focusPendingCell();
+    }
+  }
+
+  protected literalInputValue(s: GradeBookStudent, e: GradeBookEvaluation): string {
+    const key = cellKey(s.publicUuid, e.publicUuid);
+    const draft = this.literalDrafts()[key];
+    if (draft !== undefined) return draft;
+    return this.cellLiteral(s, e) ?? '';
+  }
+
+  protected onLiteralDraft(s: GradeBookStudent, e: GradeBookEvaluation, value: string): void {
+    const key = cellKey(s.publicUuid, e.publicUuid);
+    const normalized = this.normalizeLiteralDraft(value);
+    this.literalDrafts.update((d) => ({ ...d, [key]: normalized }));
+    if (normalized && GradeBookPageComponent.CNEB_LITERALS.includes(normalized)) {
+      this.queueAdvance(s, e);
+    }
+  }
+
+  protected onLiteralKeydown(ev: KeyboardEvent, s: GradeBookStudent, e: GradeBookEvaluation): void {
+    if (ev.key !== 'Enter') return;
+    ev.preventDefault();
+    this.queueAdvance(s, e);
+    (ev.target as HTMLInputElement).blur();
+  }
+
+  protected onLiteralBlur(s: GradeBookStudent, e: GradeBookEvaluation): void {
+    const key = cellKey(s.publicUuid, e.publicUuid);
+    const draft = this.literalDrafts()[key];
+    const current = this.cellLiteral(s, e) ?? '';
+    if (draft === undefined) {
+      this.focusPendingCell();
+      return;
+    }
+    if (draft === '') {
+      this.literalDrafts.update((d) => {
+        const copy = { ...d };
+        delete copy[key];
+        return copy;
+      });
+      this.focusPendingCell();
+      return;
+    }
+    if (GradeBookPageComponent.CNEB_LITERALS.includes(draft)) {
+      void this.onLiteralChange(s, e, draft);
+      return;
+    }
+    this.literalDrafts.update((d) => ({ ...d, [key]: current }));
+  }
+
+  /** Filtra a prefijos válidos de AD/A/B/C en mayúsculas. */
+  private normalizeLiteralDraft(raw: string): string {
+    const up = raw.toUpperCase().replace(/[^A-D]/g, '');
+    if (up === '' || up === 'A' || up === 'AD' || up === 'B' || up === 'C') return up;
+    if (up.startsWith('AD')) return 'AD';
+    if (up.startsWith('A')) return 'A';
+    if (up.startsWith('B')) return 'B';
+    if (up.startsWith('C')) return 'C';
+    return '';
+  }
+
+  protected setLiteralEntryMode(mode: 'select' | 'input'): void {
+    this.literalEntryMode.set(mode);
+    this.literalDrafts.set({});
+    try {
+      localStorage.setItem(GradeBookPageComponent.LITERAL_ENTRY_MODE_KEY, mode);
+    } catch {
+      /* ignore quota / private mode */
+    }
   }
 
   protected cellKeyOf(s: GradeBookStudent, e: GradeBookEvaluation): string {
@@ -1309,10 +1708,12 @@ export class GradeBookPageComponent implements OnInit, OnDestroy {
   private editableColumns(): GradeBookEvaluation[] {
     const gb = this.gradebook();
     if (!gb) return [];
+    const isEditable = (ev: GradeBookEvaluation): boolean =>
+      this.canInlineEdit(ev) || this.canEditLiteral(ev);
     if (gb.hasCategoryLayout) {
-      return gb.categoryGroups.flatMap((g) => g.evaluations.filter((ev) => this.canInlineEdit(ev)));
+      return gb.categoryGroups.flatMap((g) => g.evaluations.filter(isEditable));
     }
-    return gb.kindGroups.flatMap((g) => g.evaluations.filter((ev) => this.canInlineEdit(ev)));
+    return gb.kindGroups.flatMap((g) => g.evaluations.filter(isEditable));
   }
 
   private findNextEditableCell(
@@ -1484,6 +1885,23 @@ export class GradeBookPageComponent implements OnInit, OnDestroy {
   protected goToEvaluations(): void {
     if (!this.currentAssignmentUuid) return;
     void this.router.navigate([ROUTES.EVALUATIONS.byAssignment(this.currentAssignmentUuid)]);
+  }
+
+  protected openCreateForm(categoryPublicUuid: string | null = null): void {
+    if (!this.currentAssignmentUuid) return;
+    this.createCategoryId.set(categoryPublicUuid);
+    this.showCreateForm.set(true);
+  }
+
+  protected closeCreateForm(): void {
+    this.showCreateForm.set(false);
+    this.createCategoryId.set(null);
+  }
+
+  protected async onRegisterCreated(): Promise<void> {
+    this.closeCreateForm();
+    if (!this.currentAssignmentUuid) return;
+    await this.store.refreshQuiet(this.currentAssignmentUuid);
   }
 
   protected async reload(): Promise<void> {

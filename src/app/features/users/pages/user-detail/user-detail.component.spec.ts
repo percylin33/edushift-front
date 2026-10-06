@@ -204,13 +204,44 @@ describe('UserDetailComponent', () => {
     expect(fakeStore.enable).toHaveBeenCalledWith('u-1');
   });
 
-  it('onResetPassword activa banner', async () => {
+  it('onResetPassword abre modal', async () => {
     configureModule();
     fakeStore.selected.set(detail);
-    spyOn(window, 'confirm').and.returnValue(true);
-    fakeStore.resetPassword.and.returnValue(Promise.resolve(true));
-    await (component as any).onResetPassword();
+    (component as any).onResetPassword();
+    expect((component as any).resetModalOpen()).toBeTrue();
+  });
+
+  it('confirmReset EMAIL activa banner', async () => {
+    configureModule();
+    fakeStore.selected.set(detail);
+    fakeStore.resetPassword.and.returnValue(
+      Promise.resolve({
+        delivery: 'EMAIL',
+        email: detail.email,
+        temporaryPassword: null,
+        mustChangePassword: false,
+      }),
+    );
+    await (component as any).confirmReset('EMAIL');
+    expect(fakeStore.resetPassword).toHaveBeenCalledWith('u-1', 'EMAIL');
     expect((component as any).resetSent()).toBeTrue();
+    expect((component as any).resetModalOpen()).toBeFalse();
+  });
+
+  it('confirmReset TEMPORARY muestra clave', async () => {
+    configureModule();
+    fakeStore.selected.set(detail);
+    fakeStore.resetPassword.and.returnValue(
+      Promise.resolve({
+        delivery: 'TEMPORARY',
+        email: detail.email,
+        temporaryPassword: 'Temp!234567890',
+        mustChangePassword: true,
+      }),
+    );
+    await (component as any).confirmReset('TEMPORARY');
+    expect((component as any).tempPassword()).toBe('Temp!234567890');
+    expect((component as any).resetSent()).toBeFalse();
   });
 
   it('isSelf compara currentUser con detail', () => {

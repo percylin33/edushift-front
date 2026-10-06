@@ -2,7 +2,12 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import {
+  ConfirmDialogService,
+  EmptyStateComponent,
+  IconComponent,
+  SpinnerComponent,
+} from '@shared/components';
 import { AcademicYearStatusBadgeComponent } from '../../components';
 import { AcademicStore } from '../../store';
 import { AcademicYearRow, AcademicYearStatus, isYearMutable } from '../../models';
@@ -13,9 +18,8 @@ import { AcademicYearRow, AcademicYearStatus, isYearMutable } from '../../models
  *
  * <h3>Layout</h3>
  * <ol>
- *   <li><b>Header local</b> — título de la sub-sección (el header
- *       global "Académico" lo monta {@code AcademicShellComponent}) y
- *       acción primaria "Nuevo año".</li>
+ *   <li><b>Header local</b> — título de la sub-sección y acción
+ *       primaria "Nuevo año".</li>
  *   <li><b>Filtro</b> — selector de status (PLANNING / ACTIVE / CLOSED
  *       / Todos). Backend ordena por status+startDate desc.</li>
  *   <li><b>Tabla</b> — nombre, ventana de fechas, status badge y
@@ -195,6 +199,7 @@ import { AcademicYearRow, AcademicYearStatus, isYearMutable } from '../../models
 })
 export class YearsListComponent implements OnInit {
   private readonly store = inject(AcademicStore);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly newRoute = ROUTES.ACADEMIC.YEARS.NEW;
 
@@ -266,18 +271,25 @@ export class YearsListComponent implements OnInit {
   protected async activate(year: AcademicYearRow): Promise<void> {
     const current = this.currentActive();
     if (current && current.publicUuid !== year.publicUuid) {
-      const ok = confirm(
-        `Activar "${year.name}" cerrará automáticamente el año activo "${current.name}".\n\n¿Continuar?`,
-      );
+      const ok = await this.confirmDialog.open({
+        title: 'Activar año académico',
+        message: `Activar "${year.name}" cerrará automáticamente el año activo "${current.name}".\n\n¿Continuar?`,
+        confirmLabel: 'Activar',
+        variant: 'warning',
+      });
       if (!ok) return;
     }
     await this.store.activateYear(year.publicUuid);
   }
 
   protected async confirmDelete(year: AcademicYearRow): Promise<void> {
-    const ok = confirm(
-      `¿Eliminar el año "${year.name}"?\n\nEsta operación es reversible solo desde el backend.`,
-    );
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar año académico',
+      message: `¿Eliminar el año "${year.name}"?\n\nEsta operación es reversible solo desde el backend.`,
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.deleteYear(year.publicUuid);
   }

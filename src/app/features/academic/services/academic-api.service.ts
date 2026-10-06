@@ -50,6 +50,8 @@ import {
   SectionResponseRaw,
   SectionRow,
   SeedCompetenciesResponse,
+  SeedUnitsRequest,
+  SeedUnitsResponse,
   TimeSlotDetail,
   TimeSlotResponseRaw,
   UnitDetail,
@@ -132,6 +134,7 @@ import {
  *   <li>{@link #listUnits}    → {@code GET    /v1/academic/courses/{courseUuid}/units}</li>
  *   <li>{@link #createUnit}   → {@code POST   /v1/academic/courses/{courseUuid}/units}</li>
  *   <li>{@link #reorderUnits} → {@code PATCH  /v1/academic/courses/{courseUuid}/units/reorder}</li>
+ *   <li>{@link #seedUnits}    → {@code POST   /v1/academic/courses/{courseUuid}/units/seed-defaults}</li>
  *   <li>{@link #getUnit}      → {@code GET    /v1/academic/units/{publicUuid}}</li>
  *   <li>{@link #updateUnit}   → {@code PUT    /v1/academic/units/{publicUuid}}</li>
  *   <li>{@link #deleteUnit}   → {@code DELETE /v1/academic/units/{publicUuid}}</li>
@@ -595,6 +598,19 @@ export class AcademicApiService {
       .pipe(map((envelope) => envelope.data.map((r) => this.toUnitDetail(r))));
   }
 
+  /**
+   * Siembra {@code Unidad 1}…{@code Unidad N} en el curso.
+   * Idempotente: si ya hay ≥1 unidad, retorna {@code seeded=false}.
+   */
+  seedUnits(courseUuid: string, request: SeedUnitsRequest = {}): Observable<SeedUnitsResponse> {
+    return this.api
+      .post<ApiResponse<SeedUnitsResponse>, SeedUnitsRequest>(
+        API.ACADEMIC.COURSES.UNITS_SEED(courseUuid),
+        request,
+      )
+      .pipe(map((envelope) => envelope.data));
+  }
+
   // ===========================================================================
   // Competencies & Capacities (BE-5A.2)
   // ===========================================================================
@@ -660,6 +676,24 @@ export class AcademicApiService {
    */
   deleteCompetency(publicUuid: string): Observable<void> {
     return this.api.delete<void>(API.ACADEMIC.COMPETENCIES.BY_ID(publicUuid));
+  }
+
+  deactivateCompetency(publicUuid: string): Observable<CompetencyDetail> {
+    return this.api
+      .post<ApiResponse<CompetencyResponseRaw>, Record<string, never>>(
+        API.ACADEMIC.COMPETENCIES.DEACTIVATE(publicUuid),
+        {},
+      )
+      .pipe(map((envelope) => this.toCompetencyDetail(envelope.data)));
+  }
+
+  promoteCompetency(publicUuid: string): Observable<CompetencyDetail> {
+    return this.api
+      .post<ApiResponse<CompetencyResponseRaw>, Record<string, never>>(
+        API.ACADEMIC.COMPETENCIES.PROMOTE(publicUuid),
+        {},
+      )
+      .pipe(map((envelope) => this.toCompetencyDetail(envelope.data)));
   }
 
   /**
@@ -792,12 +826,16 @@ export class AcademicApiService {
   /**
    * Lista las asignaciones de docentes del tenant.
    * Acepta filtros opcionales para la cascada del formulario de sesiones.
+   *
+   * <p>El query param del BE es {@code active} (no {@code activeOnly}) y
+   * {@code periodId} para acotar a un bimestre/trimestre concreto.</p>
    */
   listAssignments(
     filters: {
       teacherId?: string;
       sectionId?: string;
       courseId?: string;
+      periodId?: string;
       activeOnly?: boolean;
     } = {},
   ): Observable<any[]> {
@@ -805,7 +843,8 @@ export class AcademicApiService {
       teacherId: filters.teacherId,
       sectionId: filters.sectionId,
       courseId: filters.courseId,
-      activeOnly: filters.activeOnly === undefined ? undefined : String(filters.activeOnly),
+      periodId: filters.periodId,
+      active: filters.activeOnly === undefined ? undefined : String(filters.activeOnly),
     };
     return this.api.get<any[]>(API.TEACHER_ASSIGNMENTS.ROOT, params);
   }
@@ -1045,6 +1084,8 @@ export class AcademicApiService {
       isActive: raw.isActive,
       capacityCount: raw.capacityCount,
       capacities: [],
+      origin: raw.origin ?? 'INSTITUTIONAL',
+      createdBy: raw.createdBy ?? null,
     };
   }
 
@@ -1073,6 +1114,8 @@ export class AcademicApiService {
       })),
       createdAt: this.parseDate(raw.createdAt),
       updatedAt: this.parseDate(raw.updatedAt),
+      origin: raw.origin ?? 'INSTITUTIONAL',
+      createdBy: raw.createdBy ?? null,
     };
   }
 

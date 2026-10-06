@@ -10,7 +10,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
-import { PageContainerComponent } from '@shared/components';
+import { PageContainerComponent, ConfirmDialogService } from '@shared/components';
 import { PageHeaderComponent } from '@shared/components';
 import { SpinnerComponent } from '@shared/components';
 import { IconComponent } from '@shared/components';
@@ -223,6 +223,7 @@ export class WalkthroughViewerPageComponent {
 
   private readonly walkthroughService = inject(WalkthroughService);
   private readonly progressService = inject(WalkthroughProgressService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
@@ -342,10 +343,15 @@ export class WalkthroughViewerPageComponent {
     return Object.keys(this.progressService.progress().completed).length > 0;
   }
 
-  resetProgress(): void {
-    if (!confirm('¿Borrar todo el progreso de las guías? Esta acción no se puede deshacer.')) {
-      return;
-    }
+  async resetProgress(): Promise<void> {
+    const ok = await this.confirmDialog.open({
+      title: 'Borrar progreso',
+      message: '¿Borrar todo el progreso de las guías? Esta acción no se puede deshacer.',
+      confirmLabel: 'Borrar',
+      variant: 'danger',
+      icon: 'trash',
+    });
+    if (!ok) return;
     this.progressService.resetAll();
   }
 

@@ -10,6 +10,7 @@ import {
   GradeRegisterTemplateListItem,
   GradeRegisterTemplateRaw,
   UpdateGradeCategoryRequest,
+  UpdateGradeRegisterTemplateRequest,
   toGradeRegisterTemplate,
 } from '../models/grade-register-template.model';
 
@@ -83,6 +84,18 @@ export class GradeRegisterApiService {
 
   deleteCategory(categoryUuid: string): Observable<void> {
     return this.api.delete<void>(API.ACADEMIC.GRADE_CATEGORIES.BY_ID(categoryUuid));
+  }
+
+  updateTemplate(
+    uuid: string,
+    request: UpdateGradeRegisterTemplateRequest,
+  ): Observable<GradeRegisterTemplate> {
+    return this.api
+      .put<ApiResponse<GradeRegisterTemplateRaw>, UpdateGradeRegisterTemplateRequest>(
+        API.ACADEMIC.GRADE_REGISTER_TEMPLATES.BY_ID(uuid),
+        request,
+      )
+      .pipe(map((env) => toGradeRegisterTemplate(env.data)));
   }
 
   deleteTemplate(uuid: string): Observable<void> {

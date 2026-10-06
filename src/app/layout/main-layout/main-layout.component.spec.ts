@@ -1,6 +1,9 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component, ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
 import { MainLayoutComponent } from './main-layout.component';
-import { provideRouter } from '@angular/router';
+
+@Component({ standalone: true, template: 'docentes' })
+class TeachersStubComponent {}
 
 describe('MainLayoutComponent', () => {
   let component: MainLayoutComponent;
@@ -9,7 +12,15 @@ describe('MainLayoutComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [MainLayoutComponent],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([
+          {
+            path: 'teachers',
+            loadComponent: () =>
+              new Promise((resolve) => setTimeout(() => resolve(TeachersStubComponent), 20)),
+          },
+        ]),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(MainLayoutComponent);
@@ -20,4 +31,18 @@ describe('MainLayoutComponent', () => {
   it('se crea correctamente', () => {
     expect(component).toBeTruthy();
   });
+
+  it('muestra Cargando en cuanto empieza a bajar un módulo', fakeAsync(() => {
+    const router = TestBed.inject(Router);
+    void router.navigateByUrl('/teachers');
+    tick(0);
+    fixture.detectChanges();
+
+    expect(component.routeLoading()).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain('Cargando…');
+
+    tick(20);
+    fixture.detectChanges();
+    expect(component.routeLoading()).toBeFalse();
+  }));
 });

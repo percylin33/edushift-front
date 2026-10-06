@@ -3,7 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { of } from 'rxjs';
-import { catchError, finalize, tap } from 'rxjs/operators';
+import { catchError, finalize, switchMap, tap } from 'rxjs/operators';
 
 import { AuthService, TenantService } from '@core/services';
 import { ROUTES } from '@core/constants';
@@ -14,6 +14,7 @@ import {
   SubmitButtonComponent,
 } from '@shared/components';
 import { mapHttpError } from '@shared/utils';
+import { TenantApiService } from '@features/tenants';
 
 import { AuthApiService } from '../../services/auth-api.service';
 import { AuthStore } from '../../store/auth.store';
@@ -135,6 +136,7 @@ export class LoginComponent {
   private readonly authApi = inject(AuthApiService);
   private readonly auth = inject(AuthService);
   private readonly tenant = inject(TenantService);
+  private readonly tenantApi = inject(TenantApiService);
   private readonly store = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -242,6 +244,13 @@ export class LoginComponent {
             .me()
             .pipe(
               tap((user) => this.auth.setUser(user)),
+              switchMap((user) =>
+                this.tenantApi.findCurrent().pipe(
+                  tap((tenant) => this.tenant.setTenant(tenant, 'header')),
+                  catchError(() => of(null)),
+                  switchMap(() => of(user)),
+                ),
+              ),
               catchError(() => of(null)),
             )
             .subscribe((user) => {

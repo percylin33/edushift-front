@@ -207,6 +207,10 @@ export interface BulkImportRowErrorRaw {
   code: string;
   /** Human-readable message — already localized server-side. */
   message: string;
+  /** Who failed, e.g. "Ana López · DNI 12345678". */
+  label?: string | null;
+  /** Values the admin can edit and retry. */
+  fields?: Record<string, string> | null;
 }
 
 /**
@@ -216,7 +220,7 @@ export interface BulkImportRowErrorRaw {
  */
 export interface BulkImportJobResponseRaw {
   publicUuid: string;
-  jobType: 'STUDENTS';
+  jobType: 'STUDENTS' | 'TEACHERS';
   status: BulkImportStatus;
   fileName: string;
   fileSizeBytes: number;
@@ -233,7 +237,7 @@ export interface BulkImportJobResponseRaw {
 /** UI-side bulk-import job (superset of the raw shape with parsed dates). */
 export interface BulkImportJob {
   publicUuid: string;
-  jobType: 'STUDENTS';
+  jobType: 'STUDENTS' | 'TEACHERS';
   status: BulkImportStatus;
   fileName: string;
   fileSizeBytes: number;
@@ -251,6 +255,8 @@ export interface BulkImportRowError {
   row: number;
   code: string;
   message: string;
+  label?: string;
+  fields?: Record<string, string>;
 }
 
 /** Preview of an .xlsx before enqueueing the import job. */

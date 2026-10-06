@@ -1,8 +1,10 @@
 import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable, map, switchMap } from 'rxjs';
 import { API } from '@core/constants';
 import { ApiResponse, SpringPage } from '@core/models';
 import { ApiService } from '@core/services';
+import { BulkImportStatus } from '@core/enums';
 import {
   AssignmentDetail,
   AssignmentListFilters,
@@ -27,6 +29,14 @@ import {
   UpdateTeacherRequest,
   computeTeacherFullName,
 } from '../models';
+import {
+  BulkImportJob,
+  BulkImportJobResponseRaw,
+  BulkImportPreview,
+  BulkImportPreviewRaw,
+  BulkImportRowError,
+  BulkImportRowErrorRaw,
+} from '../../students/models';
 
 /**
  * HTTP boundary para el módulo {@code teachers}
@@ -51,6 +61,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class TeachersApiService {
   private readonly api = inject(ApiService);
+  private readonly http = inject(HttpClient);
 
   // ===========================================================================
   // CRUD
@@ -335,6 +346,7 @@ export class TeachersApiService {
       teacherFullName: raw.teacherFullName,
       sectionPublicUuid: raw.sectionPublicUuid,
       sectionName: raw.sectionName,
+      gradeName: raw.gradeName ?? null,
       coursePublicUuid: raw.coursePublicUuid,
       courseCode: raw.courseCode,
       courseName: raw.courseName,
@@ -356,6 +368,7 @@ export class TeachersApiService {
       teacherFullName: raw.teacherFullName,
       sectionPublicUuid: raw.sectionPublicUuid,
       sectionName: raw.sectionName,
+      gradeName: raw.gradeName ?? null,
       coursePublicUuid: raw.coursePublicUuid,
       courseCode: raw.courseCode,
       courseName: raw.courseName,
@@ -396,5 +409,80 @@ export class TeachersApiService {
     if (!value) return undefined;
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? undefined : d;
+  }
+
+  // ===========================================================================
+  // Bulk import
+  // ===========================================================================
+
+  /** {@code GET /v1/teachers/bulk-import/template} — binary .xlsx. */
+  downloadBulkTemplate(): Observable<Blob> {
+    return this.http.get(API.TEACHERS.BULK_IMPORT.TEMPLATE, {
+      responseType: 'blob',
+    });
+  }
+
+  /** {@code POST /v1/teachers/bulk-import/preview} — headers + suggested mapping. */
+  previewBulkImport(file: File): Observable<BulkImportPreview> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http
+      .post<ApiResponse<BulkImportPreviewRaw>>(API.TEACHERS.BULK_IMPORT.PREVIEW, form)
+      .pipe(
+        map((envelope) => {
+          const raw = envelope.data;
+          return {
+            headers: raw.headers ?? [],
+            sampleRows: raw.sampleRows ?? [],
+            suggestedMapping: raw.suggestedMapping ?? {},
+            unmappedRequired: raw.unmappedRequired ?? [],
+          };
+        }),
+      );
+  }
+
+  /** {@code POST /v1/teachers/bulk-import} — enqueue async job (202). */
+  uploadBulkImport(
+    file: File,
+    columnMapping?: Record<string, string>,
+  ): Observable<BulkImportJob> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    if (columnMapping && Object.keys(columnMapping).length > 0) {
+      form.append('columnMapping', JSON.stringify(columnMapping));
+    }
+    return this.http
+      .post<ApiResponse<BulkImportJobResponseRaw>>(API.TEACHERS.BULK_IMPORT.ROOT, form)
+      .pipe(map((envelope) => this.toBulkImportJob(envelope.data)));
+  }
+
+  /** {@code GET /v1/teachers/bulk-import/{publicUuid}} — poll progress. */
+  getBulkImportJob(publicUuid: string): Observable<BulkImportJob> {
+    return this.api
+      .get<ApiResponse<BulkImportJobResponseRaw>>(API.TEACHERS.BULK_IMPORT.BY_ID(publicUuid))
+      .pipe(map((envelope) => this.toBulkImportJob(envelope.data)));
+  }
+
+  private toBulkImportJob(raw: BulkImportJobResponseRaw): BulkImportJob {
+    return {
+      publicUuid: raw.publicUuid,
+      jobType: raw.jobType,
+      status: raw.status as BulkImportStatus,
+      fileName: raw.fileName,
+      fileSizeBytes: raw.fileSizeBytes,
+      totalRows: raw.totalRows ?? undefined,
+      processedRows: raw.processedRows,
+      errorRows: raw.errorRows,
+      errors: this.toRowErrors(raw.errors),
+      failReason: raw.failReason ?? undefined,
+      startedAt: this.parseDate(raw.startedAt),
+      finishedAt: this.parseDate(raw.finishedAt),
+      createdAt: this.parseDate(raw.createdAt),
+    };
+  }
+
+  private toRowErrors(raw: BulkImportRowErrorRaw[] | null | undefined): BulkImportRowError[] {
+    if (!raw || raw.length === 0) return [];
+    return raw.map((e) => ({ row: e.row, code: e.code, message: e.message }));
   }
 }

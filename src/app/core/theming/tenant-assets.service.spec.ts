@@ -3,6 +3,7 @@ import {
   TenantAssetsService,
   toSameOriginAssetUrl,
   PLATFORM_DEFAULT_LOGO_URL,
+  PLATFORM_DEFAULT_MARK_URL,
   PLATFORM_DEFAULT_LOGIN_BG_URL,
 } from './tenant-assets.service';
 import { TenantService } from '@core/services/tenant.service';
@@ -38,8 +39,8 @@ describe('TenantAssetsService', () => {
     expect(service.fullLogoUrl()).toBe(PLATFORM_DEFAULT_LOGO_URL);
   });
 
-  it('markUrl usa el logo genérico sin tenant', () => {
-    expect(service.markUrl()).toBe(PLATFORM_DEFAULT_LOGO_URL);
+  it('markUrl usa el isotipo de plataforma sin tenant', () => {
+    expect(service.markUrl()).toBe(PLATFORM_DEFAULT_MARK_URL);
   });
 
   it('alt retorna Logo por defecto', () => {

@@ -84,6 +84,8 @@ export interface SessionGeneratorRequest {
   gradeName: string;
   durationMinutes: number;
   competencies?: string[];
+  /** Optional tenant session template — drives required phases in the prompt. */
+  templateUuid?: string | null;
 }
 
 export interface SessionDraft {
@@ -94,7 +96,8 @@ export interface SessionDraft {
 }
 
 export interface SessionActivity {
-  phase: 'INICIO' | 'DESARROLLO' | 'CIERRE';
+  /** Phase label from the chosen session template (e.g. Inicio / Desarrollo / Cierre). */
+  phase: string;
   description: string;
   durationMinutes: number;
 }

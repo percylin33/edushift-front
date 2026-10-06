@@ -1,17 +1,20 @@
+import { HttpClient, HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { catchError, map, of } from 'rxjs';
+import { Observable, from, switchMap } from 'rxjs';
 import { ApiService } from '@core/services';
 import { API } from '@core/constants';
 import {
   AdminTenantDetail,
   AdminTenantSummary,
   TenantFilterParams,
-  TenantListResponse,
 } from '../models';
+
+export type PrepPackageVariant = 'PILOT' | 'PRODUCTION';
 
 @Injectable({ providedIn: 'root' })
 export class AdminTenantsService {
   private readonly api = inject(ApiService);
+  private readonly http = inject(HttpClient);
 
   private readonly _tenants = signal<AdminTenantSummary[]>([]);
   private readonly _totalElements = signal(0);
@@ -108,6 +111,64 @@ export class AdminTenantsService {
 
   cancelSchoolInvitation(publicUuid: string) {
     return this.api.delete<{ data?: SchoolInvitationDto }>(API.ADMIN.SCHOOL_INVITATION_BY_ID(publicUuid));
+  }
+
+  /**
+   * Downloads the personalized school data-prep ZIP for Super Admin handoff.
+   */
+  downloadPrepPackage(
+    schoolName: string,
+    variant: PrepPackageVariant = 'PRODUCTION',
+  ): Observable<Blob> {
+    const params: Record<string, string> = { variant };
+    const name = schoolName?.trim();
+    if (name) params['schoolName'] = name;
+    return this.http
+      .get(API.ADMIN.PREP_PACKAGE, {
+        params,
+        responseType: 'blob',
+        observe: 'response',
+      })
+      .pipe(switchMap((res) => from(this.ensureBinaryBlob(res))));
+  }
+
+  private async ensureBinaryBlob(res: HttpResponse<Blob>): Promise<Blob> {
+    const blob = res.body;
+    if (!blob || blob.size === 0) {
+      throw new HttpErrorResponse({
+        status: res.status || 500,
+        statusText: 'Empty download',
+        url: res.url ?? undefined,
+      });
+    }
+    const type = (blob.type || res.headers.get('Content-Type') || '').toLowerCase();
+    const looksJson =
+      type.includes('application/json') || type.includes('text/json') || type.includes('text/html');
+    if (looksJson) {
+      const text = await blob.text();
+      let message = 'No se pudo descargar el pack';
+      try {
+        const parsed = JSON.parse(text) as {
+          message?: string;
+          error?: string;
+          errors?: Array<{ message?: string }>;
+        };
+        message =
+          parsed.message ||
+          parsed.error ||
+          parsed.errors?.[0]?.message ||
+          message;
+      } catch {
+        if (text.trim()) message = text.slice(0, 200);
+      }
+      throw new HttpErrorResponse({
+        error: { message },
+        status: res.status >= 400 ? res.status : 500,
+        statusText: message,
+        url: res.url ?? undefined,
+      });
+    }
+    return blob;
   }
 }
 

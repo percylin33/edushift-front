@@ -27,6 +27,7 @@ export enum EvaluationScale {
   LITERAL_AD = 'LITERAL_AD',
   LITERAL_NA = 'LITERAL_NA',
   LITERAL_A_B_C_D = 'LITERAL_A_B_C_D',
+  LITERAL_CNEB = 'LITERAL_CNEB',
 }
 
 /**
@@ -54,9 +55,10 @@ export const EVALUATION_KIND_LABELS: Record<EvaluationKind, string> = {
 
 export const EVALUATION_SCALE_LABELS: Record<EvaluationScale, string> = {
   [EvaluationScale.SCORE_0_20]: 'Vigesimal (0-20)',
-  [EvaluationScale.LITERAL_AD]: 'Literal AD/A/B/C',
+  [EvaluationScale.LITERAL_AD]: 'Literal AD/A',
   [EvaluationScale.LITERAL_NA]: 'NA / Logrado / En proceso',
   [EvaluationScale.LITERAL_A_B_C_D]: 'Literal A/B/C/D',
+  [EvaluationScale.LITERAL_CNEB]: 'Literal AD/A/B/C',
 };
 
 export const EVALUATION_STATUS_LABELS: Record<EvaluationStatus, string> = {
@@ -89,17 +91,21 @@ export const EVALUATION_KIND_BADGE_CLASS: Record<EvaluationKind, string> = {
 export const ALLOWED_SCALES_BY_KIND: Record<EvaluationKind, EvaluationScale[]> = {
   [EvaluationKind.TASK]: [
     EvaluationScale.SCORE_0_20,
-    EvaluationScale.LITERAL_NA,
     EvaluationScale.LITERAL_A_B_C_D,
+    EvaluationScale.LITERAL_CNEB,
   ],
-  [EvaluationKind.QUIZ]: [EvaluationScale.SCORE_0_20],
+  [EvaluationKind.QUIZ]: [
+    EvaluationScale.SCORE_0_20,
+    EvaluationScale.LITERAL_A_B_C_D,
+    EvaluationScale.LITERAL_CNEB,
+  ],
   [EvaluationKind.EXAM]: [EvaluationScale.SCORE_0_20],
   [EvaluationKind.RUBRIC]: [
     EvaluationScale.LITERAL_AD,
-    EvaluationScale.LITERAL_A_B_C_D,
     EvaluationScale.LITERAL_NA,
+    EvaluationScale.LITERAL_A_B_C_D,
   ],
-  [EvaluationKind.COMPETENCY]: [EvaluationScale.LITERAL_AD, EvaluationScale.LITERAL_A_B_C_D],
+  [EvaluationKind.COMPETENCY]: [EvaluationScale.LITERAL_NA],
 };
 
 // =============================================================================

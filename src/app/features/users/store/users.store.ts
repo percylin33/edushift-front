@@ -2,6 +2,8 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { UsersApiService } from '../services';
 import {
+  AdminPasswordResetDelivery,
+  AdminResetPasswordResponse,
   AssignRolesRequest,
   UpdateUserRequest,
   UserDetail,
@@ -175,15 +177,17 @@ export class UsersStore {
     return this.runMutation(() => this.api.enable(publicUuid));
   }
 
-  async resetPassword(publicUuid: string): Promise<boolean> {
+  async resetPassword(
+    publicUuid: string,
+    delivery: AdminPasswordResetDelivery = 'EMAIL',
+  ): Promise<AdminResetPasswordResponse | null> {
     this._saving.set(true);
     this._error.set(null);
     try {
-      await firstValueFrom(this.api.resetPassword(publicUuid));
-      return true;
+      return await firstValueFrom(this.api.resetPassword(publicUuid, { delivery }));
     } catch (err) {
       this._error.set(this.toErrorMessage(err));
-      return false;
+      return null;
     } finally {
       this._saving.set(false);
     }

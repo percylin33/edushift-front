@@ -107,8 +107,8 @@ import { ScheduleApiService } from '../../services/schedule-api.service';
 								<h2 class="text-base font-semibold">Jornada y recreos</h2>
 							</div>
 							<p class="text-sm text-content-muted">
-								Configurá la política de recreos, plantillas de día por nivel, sembrado
-								de defaults, bootstrap desde archivo y clonado entre años.
+								Paso 1–2: definí la jornada escolar (recreos, almuerzo y periodos) por
+								nivel. Después volvé acá para asignar cursos en cada sección.
 							</p>
 						</div>
 					</a>

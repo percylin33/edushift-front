@@ -3,25 +3,25 @@ import { IconName } from '@shared/components';
 export const COURSE_DEFAULT_ICON: IconName = 'book-open';
 export const COURSE_DEFAULT_COLOR = '#64748B';
 
-/** Curated hex palette for Peruvian K-12 subjects (2 rows in the form). */
+/**
+ * Curated hex palette for the Peru course catalog.
+ * Personal Social and Ciencias Sociales share orange on purpose.
+ * Subjects without a requested color get a unique swatch.
+ */
 export const COURSE_COLOR_PALETTE: readonly { hex: string; label: string }[] = [
-  /* Row 1 — core curriculum */
+  { hex: '#DC2626', label: 'Comunicación' },
   { hex: '#2563EB', label: 'Matemática' },
-  { hex: '#F59E0B', label: 'Comunicación' },
-  { hex: '#059669', label: 'Ciencia y Tecnología' },
-  { hex: '#7C3AED', label: 'Ciencias Sociales' },
-  { hex: '#0891B2', label: 'Inglés' },
-  { hex: '#DC2626', label: 'Educación Física' },
-  { hex: '#DB2777', label: 'Arte y Cultura' },
-  { hex: '#0D9488', label: 'Personal Social / Tutoria' },
-  /* Row 2 — complementary / specialties */
-  { hex: '#4F46E5', label: 'Computación' },
-  { hex: '#CA8A04', label: 'Educación Religiosa' },
-  { hex: '#EA580C', label: 'Educación para el Trabajo' },
-  { hex: '#65A30D', label: 'Educación Ambiental' },
-  { hex: '#9333EA', label: 'Historia / Geografía' },
-  { hex: '#E11D48', label: 'Música / Danza' },
-  { hex: '#0284C7', label: 'Plan Lector' },
+  { hex: '#F97316', label: 'Personal Social / Ciencias Sociales' },
+  { hex: '#16A34A', label: 'Ciencia y Tecnología' },
+  { hex: '#EAB308', label: 'Inglés' },
+  { hex: '#FFFFFF', label: 'Educación Religiosa' },
+  { hex: '#7C3AED', label: 'Arte y Cultura' },
+  { hex: '#DB2777', label: 'Educación Física' },
+  { hex: '#22D3EE', label: 'Computación' },
+  { hex: '#0F766E', label: 'Desarrollo Personal, Ciudadanía y Cívica' },
+  { hex: '#B45309', label: 'Educación para el Trabajo' },
+  { hex: '#84CC16', label: 'Psicomotricidad' },
+  { hex: '#6366F1', label: 'Tutoría' },
   { hex: '#64748B', label: 'General / Otros' },
 ] as const;
 
@@ -121,35 +121,47 @@ export function suggestCourseVisual(code: string | null | undefined): CourseVisu
   }
   const normalized = code.trim().toUpperCase();
 
-  if (startsWithAny(normalized, 'MAT')) {
+  if (matches(normalized, 'COMP', 'PROG')) {
+    return { icon: 'cpu', color: '#22D3EE' };
+  }
+  if (matches(normalized, 'COMU') || exact(normalized, 'COM')) {
+    return { icon: 'book-open', color: '#DC2626' };
+  }
+  if (matches(normalized, 'PSI')) {
+    return { icon: 'user', color: '#84CC16' };
+  }
+  if (exact(normalized, 'PS')) {
+    return { icon: 'users', color: '#F97316' };
+  }
+  if (matches(normalized, 'CYT', 'CCNN', 'CIE')) {
+    return { icon: 'sparkles', color: '#16A34A' };
+  }
+  if (matches(normalized, 'CCSS', 'HIS', 'GEO')) {
+    return { icon: 'globe', color: '#F97316' };
+  }
+  if (matches(normalized, 'DPCC')) {
+    return { icon: 'award', color: '#0F766E' };
+  }
+  if (matches(normalized, 'EPT')) {
+    return { icon: 'clipboard-list', color: '#B45309' };
+  }
+  if (matches(normalized, 'ING')) {
+    return { icon: 'languages', color: '#EAB308' };
+  }
+  if (exact(normalized, 'EF')) {
+    return { icon: 'dumbbell', color: '#DB2777' };
+  }
+  if (exact(normalized, 'ER') || matches(normalized, 'REL')) {
+    return { icon: 'book', color: '#FFFFFF' };
+  }
+  if (matches(normalized, 'TUT')) {
+    return { icon: 'users', color: '#6366F1' };
+  }
+  if (exact(normalized, 'AC') || matches(normalized, 'ART')) {
+    return { icon: 'palette', color: '#7C3AED' };
+  }
+  if (normalized.startsWith('MAT')) {
     return { icon: 'target', color: '#2563EB' };
-  }
-  if (startsWithAny(normalized, 'COMU', 'COM')) {
-    return { icon: 'book-open', color: '#F59E0B' };
-  }
-  if (startsWithAny(normalized, 'CCNN', 'CIE', 'CYT')) {
-    return { icon: 'sparkles', color: '#059669' };
-  }
-  if (startsWithAny(normalized, 'CCSS', 'HIS', 'GEO')) {
-    return { icon: 'globe', color: '#7C3AED' };
-  }
-  if (startsWithAny(normalized, 'ING')) {
-    return { icon: 'globe', color: '#0891B2' };
-  }
-  if (startsWithAny(normalized, 'EDF', 'EF')) {
-    return { icon: 'award', color: '#DC2626' };
-  }
-  if (startsWithAny(normalized, 'PROG', 'COMP')) {
-    return { icon: 'layers', color: '#4F46E5' };
-  }
-  if (startsWithAny(normalized, 'ART')) {
-    return { icon: 'palette', color: '#DB2777' };
-  }
-  if (startsWithAny(normalized, 'MUS')) {
-    return { icon: 'music', color: '#E11D48' };
-  }
-  if (startsWithAny(normalized, 'VAL', 'PS', 'DPCC', 'REL')) {
-    return { icon: 'award', color: '#0D9488' };
   }
   return { icon: COURSE_DEFAULT_ICON, color: COURSE_DEFAULT_COLOR };
 }
@@ -185,6 +197,25 @@ export function courseTintAvatarBg(color: string): string {
   return `color-mix(in srgb, ${color} 20%, transparent)`;
 }
 
-function startsWithAny(code: string, ...prefixes: string[]): boolean {
-  return prefixes.some((p) => code === p || code.startsWith(p));
+/** Dark icon on white, yellow, lime and celeste chips; white icon otherwise. */
+export function courseChipForeground(hex: string): string {
+  const raw = hex.trim().replace('#', '');
+  if (!/^[0-9A-Fa-f]{6}$/.test(raw)) return '#FFFFFF';
+  const r = parseInt(raw.slice(0, 2), 16);
+  const g = parseInt(raw.slice(2, 4), 16);
+  const b = parseInt(raw.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.62 ? '#0F172A' : '#FFFFFF';
+}
+
+function matches(code: string, ...keys: string[]): boolean {
+  return keys.some(
+    (key) =>
+      exact(code, key) ||
+      (key.length >= 3 && code.startsWith(key) && !code.startsWith(`${key}_`)),
+  );
+}
+
+function exact(code: string, key: string): boolean {
+  return code === key || code.startsWith(`${key}-`);
 }

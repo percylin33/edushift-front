@@ -96,7 +96,14 @@
             },
             "development": {
               "buildTarget": "edushift-front:build:development",
-              "port": 4201
+              "port": 4201,
+              "host": "0.0.0.0",
+              "allowedHosts": [
+                ".loca.lt",
+                ".trycloudflare.com",
+                ".brs.devtunnels.ms",
+                ".devtunnels.ms"
+              ]
             }
           },
           "defaultConfiguration": "development"

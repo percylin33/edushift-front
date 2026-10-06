@@ -2,6 +2,8 @@
 // Raw wire shapes — espejo 1:1 del backend (BE-5A.2)
 // =============================================================================
 
+export type CompetencyOrigin = 'MINEDU' | 'INSTITUTIONAL' | 'TEACHER';
+
 export interface CompetencyListItemRaw {
   publicUuid: string;
   code: string;
@@ -9,6 +11,8 @@ export interface CompetencyListItemRaw {
   displayOrder: number;
   isActive: boolean;
   capacityCount: number;
+  origin?: CompetencyOrigin;
+  createdBy?: string | null;
 }
 
 export interface CompetencyCourseRefRaw {
@@ -36,6 +40,8 @@ export interface CompetencyResponseRaw {
   capacities: CompetencyCapacityRefRaw[];
   createdAt: string | null;
   updatedAt: string | null;
+  origin?: CompetencyOrigin;
+  createdBy?: string | null;
 }
 
 export interface CapacityCompetencyRefRaw {
@@ -77,6 +83,8 @@ export interface CompetencyRow {
   isActive: boolean;
   capacityCount: number;
   capacities: CapacityRow[];
+  origin: CompetencyOrigin;
+  createdBy?: string | null;
 }
 
 export interface CompetencyDetail extends CompetencyRow {
@@ -110,12 +118,18 @@ export type CapacityDetail = CapacityRow;
 // Request shapes
 // =============================================================================
 
+export interface CreateCompetencyCapacityRequest {
+  code?: string;
+  name: string;
+}
+
 export interface CreateCompetencyRequest {
-  code: string;
+  code?: string;
   name: string;
   description?: string;
   displayOrder?: number;
   isActive?: boolean;
+  capacities?: CreateCompetencyCapacityRequest[];
 }
 
 export interface UpdateCompetencyRequest {

@@ -8,9 +8,18 @@ describe('PAYMENTS_ROUTES', () => {
     expect(paths).toContain('admin');
   });
 
-  it('raíz redirige a invoices', () => {
+  it('raíz usa role redirect (no hard redirect)', () => {
     const root = PAYMENTS_ROUTES.find((r) => r.path === '')!;
-    expect(root.redirectTo).toBe('invoices');
+    expect(root.component).toBeDefined();
+  });
+
+  it('admin children incluyen emit, plans y policy', () => {
+    const admin = PAYMENTS_ROUTES.find((r) => r.path === 'admin')!;
+    const childPaths = (admin.children ?? []).map((c) => c.path);
+    expect(childPaths).toContain('emit');
+    expect(childPaths).toContain('plans');
+    expect(childPaths).toContain('policy');
+    expect(childPaths).toContain('concepts');
   });
 
   it('admin usa permissionGuard con LMS_PAYMENT_ADMIN', () => {

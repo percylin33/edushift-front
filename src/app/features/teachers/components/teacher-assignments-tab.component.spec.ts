@@ -41,6 +41,7 @@ describe('TeacherAssignmentsTabComponent', () => {
     teacherFullName: 'Maria Gomez',
     sectionPublicUuid: 'sec-1',
     sectionName: 'A',
+    gradeName: '1ro',
     coursePublicUuid: 'c-1',
     courseCode: 'MATH-101',
     courseName: 'Algebra',

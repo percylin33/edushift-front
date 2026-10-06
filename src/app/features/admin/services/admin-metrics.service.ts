@@ -26,22 +26,34 @@ export class AdminMetricsService {
     this._error.set(null);
 
     this.api.get<any>(API.ADMIN.METRICS_STUDENTS).subscribe({
-      next: (res) => this._students.set(res.data ?? res),
+      next: (res) => this._students.set(this.rows(res)),
       error: () => this._students.set([]),
     });
     this.api.get<any>(API.ADMIN.METRICS_TEACHERS).subscribe({
-      next: (res) => this._teachers.set(res.data ?? res),
+      next: (res) => this._teachers.set(this.rows(res)),
       error: () => this._teachers.set([]),
     });
     this.api.get<any>(API.ADMIN.METRICS_STORAGE).subscribe({
-      next: (res) => this._storage.set(res.data ?? res),
+      next: (res) => this._storage.set(this.rows(res)),
       error: () => this._storage.set([]),
     });
     this.api.get<any>(API.ADMIN.METRICS_AI).subscribe({
-      next: (res) => this._ai.set(res.data ?? res),
+      next: (res) => this._ai.set(this.rows(res)),
       error: () => this._ai.set([]),
     });
 
     this._loading.set(false);
+  }
+
+  /** The API returns `{ total, byTenant }`, not the row list itself. */
+  private rows(res: { data?: { byTenant?: TenantMetric[] } } | TenantMetric[]): TenantMetric[] {
+    if (Array.isArray(res)) {
+      return res;
+    }
+    const payload = res?.data ?? res;
+    const byTenant = payload && typeof payload === 'object' && 'byTenant' in payload
+      ? payload.byTenant
+      : payload;
+    return Array.isArray(byTenant) ? byTenant : [];
   }
 }

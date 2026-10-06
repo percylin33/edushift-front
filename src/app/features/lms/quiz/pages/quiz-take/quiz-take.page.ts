@@ -12,7 +12,12 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import {
+  ConfirmDialogService,
+  EmptyStateComponent,
+  IconComponent,
+  SpinnerComponent,
+} from '@shared/components';
 import { AttemptStatusBadgeComponent } from '../../components/attempt-status-badge/attempt-status-badge.component';
 import { QuestionTypeBadgeComponent } from '../../components/question-type-badge/question-type-badge.component';
 import { AttemptsStore } from '../../store/attempts.store';
@@ -48,8 +53,8 @@ const TICK_INTERVAL_MS = 1000;
  *   <li>Timer (si el quiz tiene {@code timeLimitMinutes}): cuenta atrás
  *       en segundos. Cuando llega a 0 la page dispara un submit forzado
  *       (sin pedir confirmación) que cierra el attempt.</li>
- *   <li>Submit: botón al final pide {@code confirm()}. Si confirma,
- *       flush de pending + POST /submit + redirect a results.</li>
+ *   <li>Submit: botón al final pide confirmación vía {@link ConfirmDialogService}.
+ *       Si confirma, flush de pending + POST /submit + redirect a results.</li>
  *   <li>Resumen post-submit: si el attempt ya no es IN_PROGRESS (p.ej.
  *       vino pre-cargado del store, o el backend lo cerró por timer),
  *       la page renderiza un read-only con los metadatos del attempt
@@ -342,6 +347,7 @@ export class QuizTakePageComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly quizzes = inject(QuizzesStore);
   private readonly attempts = inject(AttemptsStore);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly quizPublicUuid = computed<string>(
     () => this.route.snapshot.paramMap.get('uuid') ?? '',
@@ -565,7 +571,12 @@ export class QuizTakePageComponent implements OnInit, OnDestroy {
     const a = this.attempts.current();
     if (!a) return;
     if (!isAttemptInProgress(a)) return;
-    const ok = window.confirm('¿Enviar el intento? No podrás modificar las respuestas después.');
+    const ok = await this.confirmDialog.open({
+      title: 'Enviar intento',
+      message: '¿Enviar el intento? No podrás modificar las respuestas después.',
+      confirmLabel: 'Enviar',
+      variant: 'warning',
+    });
     if (!ok) return;
     await this.flushNow();
     const updated = await this.attempts.submitAttempt(a.publicUuid);

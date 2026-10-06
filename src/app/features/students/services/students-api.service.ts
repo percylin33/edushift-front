@@ -522,7 +522,13 @@ export class StudentsApiService {
 
   private toRowErrors(raw: BulkImportRowErrorRaw[] | null | undefined): BulkImportRowError[] {
     if (!raw || raw.length === 0) return [];
-    return raw.map((e) => ({ row: e.row, code: e.code, message: e.message }));
+    return raw.map((e) => ({
+      row: e.row,
+      code: e.code,
+      message: e.message,
+      label: e.label ?? undefined,
+      fields: e.fields ?? undefined,
+    }));
   }
 
   private toEnrollmentRow(raw: EnrollmentListItemRaw): EnrollmentRow {

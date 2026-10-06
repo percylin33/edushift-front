@@ -47,6 +47,7 @@ export const ALLOWED_LITERALS_BY_SCALE: Record<EvaluationScale, readonly string[
   [EvaluationScale.LITERAL_AD]: ['AD', 'A'],
   [EvaluationScale.LITERAL_NA]: ['NA', 'A'],
   [EvaluationScale.LITERAL_A_B_C_D]: ['A', 'B', 'C', 'D'],
+  [EvaluationScale.LITERAL_CNEB]: ['AD', 'A', 'B', 'C'],
 };
 
 // ===========================================================================

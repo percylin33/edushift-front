@@ -30,7 +30,7 @@ import { MeApiService } from '../../services/me-api.service';
         <p class="text-sm font-semibold uppercase tracking-wide text-indigo-600">Mi espacio</p>
         <h1 class="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">Mis pagos</h1>
         <p class="mt-2 text-slate-600 dark:text-slate-400">
-          Estado de tu cuenta. Puedes pagar las cuotas pendientes o descargar el comprobante.
+          Estado de tu cuenta. Sube el voucher de pago o descarga el comprobante cuando esté pagada.
         </p>
       </header>
 
@@ -86,7 +86,15 @@ import { MeApiService } from '../../services/me-api.service';
                       [routerLink]="['/payments/invoices', invoice.publicUuid]"
                       class="mt-2 inline-block text-sm font-semibold text-emerald-700"
                     >
-                      Pagar
+                      Subir voucher
+                    </a>
+                  }
+                  @if (invoice.status === 'PENDING_REVIEW') {
+                    <a
+                      [routerLink]="['/payments/invoices', invoice.publicUuid]"
+                      class="mt-2 inline-block text-sm font-semibold text-sky-700"
+                    >
+                      En revisión
                     </a>
                   }
                   @if (invoice.status === 'PAID') {

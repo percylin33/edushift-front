@@ -4,6 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '@core/services';
 import { ROUTES } from '@core/constants';
+import { AdminAuthApiService } from '../services/admin-auth-api.service';
 
 @Component({
   selector: 'app-admin-layout',
@@ -13,8 +14,12 @@ import { ROUTES } from '@core/constants';
   template: `
     <div class="flex min-h-screen bg-slate-950 text-white">
       <aside class="flex w-64 flex-col border-r border-slate-800 bg-slate-900">
-        <div class="flex h-16 items-center gap-2 border-b border-slate-800 px-6">
-          <span class="text-lg font-bold tracking-tight">EduShift</span>
+        <div class="flex h-16 items-center gap-2 border-b border-slate-800 px-4">
+          <img
+            src="/branding/logos/fondo-oscuro.png"
+            alt="EduShift"
+            class="h-8 w-auto"
+          />
           <span class="rounded bg-indigo-600 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider">
             Admin
           </span>
@@ -63,6 +68,7 @@ import { ROUTES } from '@core/constants';
 })
 export class AdminLayoutComponent {
   private readonly auth = inject(AuthService);
+  private readonly authApi = inject(AdminAuthApiService);
 
   readonly userName = computed(() => {
     const user = this.auth.user();
@@ -93,6 +99,13 @@ export class AdminLayoutComponent {
   ];
 
   logout(): void {
+    this.authApi.logout().subscribe({
+      complete: () => this.leave(),
+      error: () => this.leave(),
+    });
+  }
+
+  private leave(): void {
     this.auth.clearSession();
     window.location.href = ROUTES.ADMIN.LOGIN;
   }

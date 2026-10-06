@@ -57,6 +57,26 @@ export class LmsSectionContextService {
     }
   }
 
+  /**
+   * Materias del aula. Un docente ve las suyas; un administrador del colegio
+   * ve todas las asignaciones activas de la sección.
+   */
+  async loadSectionAssignments(sectionUuid: string): Promise<AssignmentRow[]> {
+    const teacherOnly =
+      this.auth.hasRole(UserRole.Teacher) && !this.auth.hasRole(UserRole.TenantAdmin);
+    if (teacherOnly) {
+      const mine = await this.loadMyAssignments();
+      return this.assignmentsForSection(mine, sectionUuid);
+    }
+    try {
+      return await firstValueFrom(
+        this.teachersApi.listTenantAssignments({ sectionId: sectionUuid, active: true }),
+      );
+    } catch {
+      return [];
+    }
+  }
+
   /** Sections available in the LMS section switcher for the current user. */
   async loadSectionOptions(): Promise<LmsSectionOption[]> {
     const sections = await firstValueFrom(this.academicApi.listSections());

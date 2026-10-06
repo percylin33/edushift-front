@@ -7,6 +7,8 @@ import { ApiResponse, AuthResponseRaw, AuthSession, SpringPage } from '@core/mod
 import { ApiService } from '@core/services';
 import {
   AcceptInvitationRequest,
+  AdminResetPasswordRequest,
+  AdminResetPasswordResponse,
   AssignRolesRequest,
   CreateInvitationRequest,
   Invitation,
@@ -111,8 +113,16 @@ export class UsersApiService {
       .pipe(map((envelope) => this.toUserDetail(envelope.data)));
   }
 
-  resetPassword(publicUuid: string): Observable<void> {
-    return this.api.post<void>(API.USERS.RESET_PASSWORD(publicUuid));
+  resetPassword(
+    publicUuid: string,
+    request: AdminResetPasswordRequest = { delivery: 'EMAIL' },
+  ): Observable<AdminResetPasswordResponse> {
+    return this.api
+      .post<ApiResponse<AdminResetPasswordResponse>, AdminResetPasswordRequest>(
+        API.USERS.RESET_PASSWORD(publicUuid),
+        request,
+      )
+      .pipe(map((envelope) => envelope.data));
   }
 
   // ===========================================================================
@@ -218,6 +228,7 @@ export class UsersApiService {
       status: raw.status,
       emailVerified: raw.emailVerified,
       mfaEnabled: raw.mfaEnabled,
+      emailSource: raw.emailSource === 'SYNTHETIC' ? 'SYNTHETIC' : 'REAL',
       roles: this.narrowRoles(raw.roles),
       lastLoginAt: this.parseDate(raw.lastLoginAt),
       createdAt: this.parseDate(raw.createdAt),
