@@ -75,10 +75,10 @@ const TICK_INTERVAL_MS = 1000;
     <header class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div class="min-w-0">
         <p class="text-xs uppercase tracking-wide text-content-muted">
-          <a [routerLink]="quizDetailRoute()" class="hover:underline">← Volver al quiz</a>
+          <a [routerLink]="quizDetailRoute()" class="hover:underline">← Volver a la práctica</a>
         </p>
         <h1 class="text-2xl font-semibold text-content">
-          {{ quizTitle() ?? 'Tomar quiz' }}
+          {{ quizTitle() ?? 'Tomar práctica' }}
         </h1>
         @if (quizDescription(); as d) {
           <p class="mt-1 max-w-2xl text-sm text-content-muted">{{ d }}</p>
@@ -289,7 +289,7 @@ const TICK_INTERVAL_MS = 1000;
               </a>
               <a [routerLink]="quizDetailRoute()" class="btn btn-ghost btn-sm">
                 <app-icon name="arrow-left" [size]="14" />
-                Volver al quiz
+                Volver a la práctica
               </a>
             </app-empty-state>
 
@@ -414,14 +414,8 @@ export class QuizTakePageComponent implements OnInit, OnDestroy {
 
       const ok = await this.attempts.startAttempt(this.quizPublicUuid());
       if (!ok) {
-        const err = this.attempts.error();
-        // 409 / already started → backend has a pending attempt; the store left the
-        // previous current untouched. Surface a friendly banner with a retry that
-        // would resolve a real resume flow once BE-7b.2 exposes a "find my IN_PROGRESS"
-        // helper (out of scope for FE-7b.2). For now we still allow the user to back out.
-        if (err && /already.started|ya.iniciado|en curso|in.progress/i.test(err)) {
-          this.attempts.clearError();
-        }
+        // Backend resumes IN_PROGRESS; ATTEMPTS_EXHAUSTED only when no open attempt remains.
+        // Error banner comes from the store (localized for ATTEMPTS_EXHAUSTED).
       } else {
         this.startTimerIfNeededFromAttempt(this.attempts.current());
       }

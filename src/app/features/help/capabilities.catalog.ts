@@ -12,8 +12,8 @@ const SF = 'staff' as const;
 export const ROLES: ReadonlyArray<{ key: RoleKey; title: string; subtitle: string }> = [
   { key: SA, title: 'SUPER_ADMIN', subtitle: 'Operaciones cross-tenant, planes, impersonación.' },
   { key: TA, title: 'TENANT_ADMIN', subtitle: 'Administración del colegio: usuarios, académico, asistencia.' },
-  { key: TE, title: 'TEACHER', subtitle: 'Sesiones, asistencia, evaluaciones, LMS.' },
-  { key: ST, title: 'STUDENT', subtitle: 'Mi panel, evaluaciones, QR, materiales.' },
+  { key: TE, title: 'TEACHER', subtitle: 'Sesiones, asistencia, registros, LMS.' },
+  { key: ST, title: 'STUDENT', subtitle: 'Mi panel, registros, QR, materiales.' },
   { key: PA, title: 'PARENT', subtitle: 'Ver hijos, justificar, calificaciones, pagos.' },
   { key: SF, title: 'STAFF', subtitle: 'Pagos, reportes operativos, delegadas.' },
 ];
@@ -640,7 +640,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
   {
     id: 'te.evaluations.create',
     roleKey: TE,
-    title: 'Crear evaluación con rúbrica',
+    title: 'Crear registro con rúbrica',
     summary: 'POST /evaluations.',
     group: 'evaluations',
     status: 'live',
@@ -648,12 +648,12 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
       {
         id: 'create',
         label: 'POST /evaluations',
-        description: 'Crear evaluación.',
+        description: 'Crear registro.',
         endpoint: { method: 'POST', path: '/evaluations' },
         autoExecute: false,
         successCriteria: {
           kind: 'manualConfirm',
-          prompt: 'Confirma la creación de la evaluación.',
+          prompt: 'Confirma la creación del registro.',
         },
         defaultPayload: { title: 'QA Eval', courseId: '00000000-0000-0000-0000-000000000000' },
       },
@@ -773,7 +773,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
   {
     id: 'st.quizzes.take',
     roleKey: ST,
-    title: 'Tomar quiz',
+    title: 'Tomar práctica',
     summary: 'POST /quizzes/{id}/attempt.',
     group: 'evaluations',
     status: 'live',
@@ -786,7 +786,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
         autoExecute: false,
         successCriteria: {
           kind: 'manualConfirm',
-          prompt: 'Confirma el intento del quiz.',
+          prompt: 'Confirma el intento de la práctica.',
         },
       },
     ],

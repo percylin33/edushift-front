@@ -10,8 +10,16 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription, timer } from 'rxjs';
-import { switchMap, takeWhile } from 'rxjs/operators';
+import { ActivatedRoute } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+import { Subscription } from 'rxjs';
+import { AcademicApiService } from '@features/academic/services';
+import { AcademicYearStatus, SectionRow } from '@features/academic/models';
+import {
+  AttendanceReportScope,
+  monthRange,
+  serializeReportParams,
+} from '@features/attendance/models/attendance-report-params.model';
 import { ReportsApiService } from '../../services/reports-api.service';
 import { ReportJob, ReportType, ReportFormat } from '../../models/report.model';
 
@@ -70,11 +78,68 @@ import { ReportJob, ReportType, ReportFormat } from '../../models/report.model';
         </div>
       </fieldset>
 
-      <!-- Step 2: format -->
+      @if (type === 'ATTENDANCE_SUMMARY') {
+        <fieldset
+          class="mt-4 rounded-2xl bg-white p-5 shadow ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800"
+        >
+          <legend class="px-2 text-sm font-semibold">2. Parámetros de asistencia</legend>
+          <div class="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label class="text-xs font-medium text-slate-600">Alcance</label>
+              <select class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" [(ngModel)]="attScope" name="attScope">
+                <option value="SECTION_DAILY">Por sección — día</option>
+                <option value="SECTION_MONTHLY">Por sección — mes</option>
+                <option value="SECTION_RANGE">Por sección — rango</option>
+                <option value="STUDENT">Por alumno</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-600">Sección</label>
+              <select class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" [(ngModel)]="sectionPublicUuid" name="section">
+                <option [ngValue]="null">Todas</option>
+                @for (s of sections(); track s.publicUuid) {
+                  <option [ngValue]="s.publicUuid">{{ s.gradeName }} · {{ s.name }}</option>
+                }
+              </select>
+            </div>
+            @if (attScope === 'STUDENT') {
+              <div class="sm:col-span-2">
+                <label class="text-xs font-medium text-slate-600">UUID del alumno</label>
+                <input class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" [(ngModel)]="studentPublicUuid" name="studentUuid" placeholder="student-public-uuid" />
+              </div>
+            }
+            @if (attScope === 'SECTION_MONTHLY') {
+              <div>
+                <label class="text-xs font-medium text-slate-600">Mes</label>
+                <select class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" [(ngModel)]="month" name="month">
+                  @for (m of months; track m.value) {
+                    <option [ngValue]="m.value">{{ m.label }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="text-xs font-medium text-slate-600">Año</label>
+                <input type="number" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" [(ngModel)]="year" name="year" />
+              </div>
+            } @else {
+              <div>
+                <label class="text-xs font-medium text-slate-600">Desde</label>
+                <input type="date" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" [(ngModel)]="fromDate" name="from" />
+              </div>
+              <div>
+                <label class="text-xs font-medium text-slate-600">Hasta</label>
+                <input type="date" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" [(ngModel)]="toDate" name="to" />
+              </div>
+            }
+          </div>
+        </fieldset>
+      }
+
+      <!-- Step format -->
       <fieldset
         class="mt-4 rounded-2xl bg-white p-5 shadow ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800"
       >
-        <legend class="px-2 text-sm font-semibold">2. Formato</legend>
+        <legend class="px-2 text-sm font-semibold">{{ type === 'ATTENDANCE_SUMMARY' ? '3' : '2' }}. Formato</legend>
         <div class="mt-3 flex flex-wrap gap-2">
           @for (f of formats; track f) {
             <label
@@ -97,7 +162,7 @@ import { ReportJob, ReportType, ReportFormat } from '../../models/report.model';
       <fieldset
         class="mt-4 rounded-2xl bg-white p-5 shadow ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800"
       >
-        <legend class="px-2 text-sm font-semibold">3. Estado</legend>
+        <legend class="px-2 text-sm font-semibold">{{ type === 'ATTENDANCE_SUMMARY' ? '4' : '3' }}. Estado</legend>
 
         <div class="mt-3 flex items-center gap-3">
           <button
@@ -150,6 +215,31 @@ import { ReportJob, ReportType, ReportFormat } from '../../models/report.model';
 export class ReportsWizardPageComponent implements OnInit {
   private readonly api = inject(ReportsApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute);
+  private readonly academicApi = inject(AcademicApiService);
+
+  readonly sections = signal<SectionRow[]>([]);
+  attScope: AttendanceReportScope = 'SECTION_MONTHLY';
+  sectionPublicUuid: string | null = null;
+  studentPublicUuid = '';
+  fromDate = '';
+  toDate = '';
+  month = new Date().getMonth() + 1;
+  year = new Date().getFullYear();
+  readonly months = [
+    { value: 1, label: 'Enero' },
+    { value: 2, label: 'Febrero' },
+    { value: 3, label: 'Marzo' },
+    { value: 4, label: 'Abril' },
+    { value: 5, label: 'Mayo' },
+    { value: 6, label: 'Junio' },
+    { value: 7, label: 'Julio' },
+    { value: 8, label: 'Agosto' },
+    { value: 9, label: 'Septiembre' },
+    { value: 10, label: 'Octubre' },
+    { value: 11, label: 'Noviembre' },
+    { value: 12, label: 'Diciembre' },
+  ];
 
   readonly types: { value: ReportType; label: string; hint: string }[] = [
     { value: 'GRADE_BOOK', label: 'Libreta de calificaciones', hint: 'Por curso y sección' },
@@ -184,9 +274,32 @@ export class ReportsWizardPageComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // intentionally no-op: the effect() in the constructor already
-    // pulls the current report-type into form state on every change.
-    void this.job;
+    const qp = this.route.snapshot.queryParamMap;
+    const qpType = qp.get('type') as ReportType | null;
+    if (qpType) this.type = qpType;
+    const qpScope = qp.get('scope') as AttendanceReportScope | null;
+    if (qpScope) this.attScope = qpScope;
+    this.sectionPublicUuid = qp.get('sectionPublicUuid');
+    this.studentPublicUuid = qp.get('studentPublicUuid') ?? '';
+    this.fromDate = qp.get('from') ?? '';
+    this.toDate = qp.get('to') ?? '';
+    if (qp.get('month')) this.month = Number(qp.get('month'));
+    if (qp.get('year')) this.year = Number(qp.get('year'));
+    void this.loadSections();
+  }
+
+  private async loadSections(): Promise<void> {
+    try {
+      const years = await firstValueFrom(this.academicApi.listYears());
+      const active = years.find((y) => y.status === AcademicYearStatus.Active);
+      if (!active) return;
+      const sections = await firstValueFrom(
+        this.academicApi.listSections({ academicYearPublicUuid: active.publicUuid }),
+      );
+      this.sections.set(sections);
+    } catch {
+      this.sections.set([]);
+    }
   }
 
   submit(): void {
@@ -194,11 +307,14 @@ export class ReportsWizardPageComponent implements OnInit {
     this.submitting.set(true);
     this.timedOut.set(false);
     this.pollCount.set(0);
-    const idemKey = `wizard-${this.type}-${this.format}-${new Date().toISOString().slice(0, 10)}`;
+    const params =
+      this.type === 'ATTENDANCE_SUMMARY' ? this.buildAttendanceParams() : undefined;
+    const idemKey = `wizard-${this.type}-${this.format}-${params ?? 'none'}-${new Date().toISOString().slice(0, 10)}`;
     this.api
       .create({
         reportType: this.type,
         format: this.format,
+        params,
         idemKey,
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -255,6 +371,28 @@ export class ReportsWizardPageComponent implements OnInit {
         });
     };
     tick();
+  }
+
+  private buildAttendanceParams(): string {
+    let from = this.fromDate || undefined;
+    let to = this.toDate || undefined;
+    if (this.attScope === 'SECTION_MONTHLY') {
+      const range = monthRange(this.year, this.month);
+      from = range.from;
+      to = range.to;
+    }
+    if (this.attScope === 'SECTION_DAILY' && from && !to) {
+      to = from;
+    }
+    return serializeReportParams({
+      scope: this.attScope,
+      sectionPublicUuid: this.sectionPublicUuid ?? undefined,
+      studentPublicUuid: this.studentPublicUuid || undefined,
+      from,
+      to,
+      month: this.attScope === 'SECTION_MONTHLY' ? this.month : undefined,
+      year: this.attScope === 'SECTION_MONTHLY' ? this.year : undefined,
+    });
   }
 }
 

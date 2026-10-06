@@ -48,7 +48,7 @@ import { ScheduleApiService } from '../../services/schedule-api.service';
       <app-page-header
         eyebrow="Horarios"
         title="Carga horaria docente"
-        subtitle="Minutos semanales de docencia por periodo académico."
+        subtitle="Minutos y horas académicas semanales por periodo (según TimeSlots activos)."
       >
         <a [routerLink]="ROUTES.SCHEDULE.JORNADA" class="btn btn-outline btn-sm">
           <app-icon name="calendar" [size]="14" />
@@ -118,12 +118,25 @@ import { ScheduleApiService } from '../../services/schedule-api.service';
           />
         } @else {
           <div class="overflow-x-auto">
-            <table class="w-full min-w-[640px] text-left text-sm">
+            <table class="w-full min-w-[720px] text-left text-sm">
               <thead class="border-b border-border-subtle bg-surface-subtle text-xs uppercase tracking-wide text-content-muted">
                 <tr>
                   <th class="px-4 py-3 font-semibold">Docente</th>
-                  <th class="px-4 py-3 font-semibold text-right">Min / semana</th>
-                  <th class="px-4 py-3 font-semibold text-right">Bloques</th>
+                  <th class="px-4 py-3 font-semibold text-right" title="Suma de duración de las franjas de clase">
+                    Min / semana
+                  </th>
+                  <th
+                    class="px-4 py-3 font-semibold text-right"
+                    title="Minutos ÷ duración de la hora académica de la jornada de cada sección (p. ej. 45 min)"
+                  >
+                    Horas acad.
+                  </th>
+                  <th
+                    class="px-4 py-3 font-semibold text-right"
+                    title="Cantidad de franjas de clase (TimeSlots) en el horario semanal de este periodo"
+                  >
+                    Franjas
+                  </th>
                   <th class="px-4 py-3 font-semibold text-right">Secciones</th>
                   <th class="px-4 py-3 font-semibold text-right">Cursos</th>
                 </tr>
@@ -137,8 +150,11 @@ import { ScheduleApiService } from '../../services/schedule-api.service';
                     <td class="px-4 py-3 text-right tabular-nums">
                       {{ row.minutesPerWeek }}
                       <span class="text-content-muted">
-                        ({{ formatHours(row.minutesPerWeek) }})
+                        ({{ formatClockHours(row.minutesPerWeek) }})
                       </span>
+                    </td>
+                    <td class="px-4 py-3 text-right tabular-nums font-medium text-content">
+                      {{ formatAcademicHours(row) }}
                     </td>
                     <td class="px-4 py-3 text-right tabular-nums">{{ row.slotCount }}</td>
                     <td class="px-4 py-3 text-right tabular-nums">{{ row.sectionCount }}</td>
@@ -179,10 +195,21 @@ export class WorkloadPageComponent implements OnInit {
     }
   }
 
-  protected formatHours(minutes: number): string {
+  protected formatClockHours(minutes: number): string {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
     return m === 0 ? `${h} h` : `${h} h ${m} min`;
+  }
+
+  protected formatAcademicHours(row: TeacherWorkloadItem): string {
+    const fromApi = Number(row.academicHoursPerWeek);
+    const n = Number.isFinite(fromApi)
+      ? fromApi
+      : row.minutesPerWeek > 0
+        ? row.minutesPerWeek / 45
+        : 0;
+    if (!Number.isFinite(n)) return '0';
+    return Number.isInteger(n) ? String(n) : n.toFixed(1);
   }
 
   protected async onYearChange(yearUuid: string): Promise<void> {

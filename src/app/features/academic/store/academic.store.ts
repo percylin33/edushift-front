@@ -1,5 +1,7 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { extractApiError } from '@shared/utils/auth-error.util';
 import { AcademicApiService } from '../services';
 import {
   AcademicLevel,
@@ -32,6 +34,14 @@ import {
   UpdateGradeRequest,
   UpdateSectionRequest,
 } from '../models';
+
+/** Resultado de un bulk create secuencial (secciones o cursos). */
+export interface AcademicBulkCreateResult {
+  created: number;
+  skipped: number;
+  /** 1-based index del ítem que falló con error no-skipable; ausente si ok. */
+  failedAt?: number;
+}
 
 /**
  * Reactive façade sobre {@link AcademicApiService} para las pantallas
@@ -695,6 +705,45 @@ export class AcademicStore {
     return 'A1';
   }
 
+  /**
+   * Crea N secciones con {@code POST}s secuenciales. Publica progreso en
+   * {@link #bulkProgress}. Ante {@code 409 SECTION_NAME_TAKEN} cuenta
+   * como skip (idempotente) y continúa. Otros errores detienen el lote.
+   */
+  async createSectionsBulk(
+    items: ReadonlyArray<CreateSectionRequest>,
+  ): Promise<AcademicBulkCreateResult> {
+    if (items.length === 0) return { created: 0, skipped: 0 };
+
+    this._error.set(null);
+    this._bulkProgress.set({ current: 0, total: items.length });
+
+    let created = 0;
+    let skipped = 0;
+
+    try {
+      for (let i = 0; i < items.length; i++) {
+        const request = items[i];
+        try {
+          const detail = await firstValueFrom(this.api.createSection(request));
+          this._sections.update((rows) => this.sortSections([this.toSectionRow(detail), ...rows]));
+          created++;
+        } catch (err) {
+          if (this.isConflictCode(err, 'SECTION_NAME_TAKEN')) {
+            skipped++;
+          } else {
+            this._error.set(this.toErrorMessage(err));
+            return { created, skipped, failedAt: i + 1 };
+          }
+        }
+        this._bulkProgress.set({ current: i + 1, total: items.length });
+      }
+      return { created, skipped };
+    } finally {
+      this._bulkProgress.set(null);
+    }
+  }
+
   // ===========================================================================
   // Courses ops (FE-4.4)
   // ===========================================================================
@@ -765,6 +814,45 @@ export class AcademicStore {
       return null;
     } finally {
       this._savingCourse.set(false);
+    }
+  }
+
+  /**
+   * Crea N cursos con {@code POST}s secuenciales. Publica progreso en
+   * {@link #bulkProgress}. Ante {@code 409 COURSE_CODE_TAKEN} cuenta
+   * como skip (idempotente) y continúa. Otros errores detienen el lote.
+   */
+  async createCoursesBulk(
+    items: ReadonlyArray<CreateCourseRequest>,
+  ): Promise<AcademicBulkCreateResult> {
+    if (items.length === 0) return { created: 0, skipped: 0 };
+
+    this._error.set(null);
+    this._bulkProgress.set({ current: 0, total: items.length });
+
+    let created = 0;
+    let skipped = 0;
+
+    try {
+      for (let i = 0; i < items.length; i++) {
+        const request = items[i];
+        try {
+          const detail = await firstValueFrom(this.api.createCourse(request));
+          this._courses.update((rows) => this.sortCourses([this.toCourseRow(detail), ...rows]));
+          created++;
+        } catch (err) {
+          if (this.isConflictCode(err, 'COURSE_CODE_TAKEN')) {
+            skipped++;
+          } else {
+            this._error.set(this.toErrorMessage(err));
+            return { created, skipped, failedAt: i + 1 };
+          }
+        }
+        this._bulkProgress.set({ current: i + 1, total: items.length });
+      }
+      return { created, skipped };
+    } finally {
+      this._bulkProgress.set(null);
     }
   }
 
@@ -1136,6 +1224,8 @@ export class AcademicStore {
       credits: detail.credits,
       hoursPerWeek: detail.hoursPerWeek,
       isActive: detail.isActive,
+      color: detail.color,
+      icon: detail.icon,
       levels: detail.levels,
     };
   }
@@ -1209,11 +1299,22 @@ export class AcademicStore {
 
   private toErrorMessage(err: unknown): string {
     if (typeof err === 'string') return err;
+    if (err instanceof HttpErrorResponse) {
+      const apiErr = extractApiError(err);
+      if (apiErr?.message) return apiErr.message;
+    }
     if (err && typeof err === 'object') {
       const anyErr = err as { message?: unknown; error?: { message?: unknown } };
       if (typeof anyErr.error?.message === 'string') return anyErr.error.message;
       if (typeof anyErr.message === 'string') return anyErr.message;
     }
     return 'Ocurrió un error inesperado.';
+  }
+
+  /** True cuando el backend respondió 409 con el {@code code} indicado. */
+  private isConflictCode(err: unknown, code: string): boolean {
+    if (!(err instanceof HttpErrorResponse) || err.status !== 409) return false;
+    const apiErr = extractApiError(err);
+    return apiErr?.code === code;
   }
 }

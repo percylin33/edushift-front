@@ -220,7 +220,7 @@ export class SectionDetailComponent implements OnInit {
     icon: 'info' | 'users' | 'user' | 'calendar';
   }> = [
     { id: 'info', label: 'Info', icon: 'info' },
-    { id: 'roster', label: 'Roster', icon: 'users' },
+    { id: 'roster', label: 'Lista', icon: 'users' },
     { id: 'teachers', label: 'Docentes', icon: 'user' },
     { id: 'schedule', label: 'Horario', icon: 'calendar' },
   ];

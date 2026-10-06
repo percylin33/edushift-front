@@ -11,8 +11,6 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
-import { AuthService } from '@core/services';
-import { UserRole } from '@core/enums';
 import { AcademicApiService } from '@features/academic/services';
 import { AcademicYearStatus, SectionRow } from '@features/academic/models';
 import {
@@ -22,9 +20,14 @@ import {
   PageHeaderComponent,
   SpinnerComponent,
 } from '@shared/components';
-import { AttendanceStatusBadgeComponent, OpenSessionModalComponent } from '../../components';
+import { AttendanceStatusBadgeComponent, OpenSessionModalComponent, AttendanceExportActionsComponent } from '../../components';
 import { AttendanceSessionListFilters, AttendanceStore } from '../../store';
 import { CreateSessionRequest, AttendanceSessionStatus, AttendanceSessionSlot } from '../../models';
+import { AttendancePrintService } from '../../services/attendance-print.service';
+import { AttendanceReportService } from '../../services/attendance-report.service';
+import { sessionsToPrintRows } from '../../utils/attendance-print.helpers';
+import { ReportFormat } from '@features/reports/models/report.model';
+import { monthRange } from '../../models/attendance-report-params.model';
 
 /**
  * `/attendance/sessions` — list of attendance sessions for the
@@ -64,37 +67,89 @@ import { CreateSessionRequest, AttendanceSessionStatus, AttendanceSessionSlot } 
     SpinnerComponent,
     AttendanceStatusBadgeComponent,
     OpenSessionModalComponent,
+    AttendanceExportActionsComponent,
   ],
   template: `
     <app-page-container>
       <app-page-header
         title="Sesiones de asistencia"
-        subtitle="Listado del año académico activo, filtrable por fecha, sección y slot."
+        subtitle="Revisión y asistencia por sección/aula. Para la puerta usa el escáner (sin elegir sección)."
       >
-        <a [routerLink]="scannerRoute" class="btn btn-outline btn-sm">
+        <a [routerLink]="scannerRoute" class="btn btn-primary btn-sm">
           <app-icon name="target" [size]="16" />
-          <span class="hidden sm:inline">Ir al scanner</span>
+          <span class="hidden sm:inline">Ir al escáner (puerta)</span>
         </a>
-        <button type="button" class="btn btn-primary btn-sm" (click)="openModal()">
+        <button type="button" class="btn btn-outline btn-sm" (click)="openModal()">
           <app-icon name="plus" [size]="16" />
           <span class="hidden sm:inline">Nueva sesión</span>
         </button>
+        @if (store.hasListItems()) {
+          <app-attendance-export-actions
+            [busy]="exportBusy()"
+            (printClick)="onPrint()"
+            (downloadClick)="onDownload($event)"
+          />
+        }
       </app-page-header>
 
       <!-- Filtros URL-synced -->
       <section class="card mb-4">
         <div class="card-body grid gap-3 sm:grid-cols-12">
-          <div class="sm:col-span-3">
-            <label class="label" for="sessions-date">Fecha</label>
-            <input
-              id="sessions-date"
-              type="date"
-              class="input"
-              [(ngModel)]="date"
-              name="date"
-              (change)="applyFilters()"
-            />
+          <div class="sm:col-span-2">
+            <label class="label" for="sessions-mode">Vista</label>
+            <select
+              id="sessions-mode"
+              class="select"
+              [(ngModel)]="filterMode"
+              name="filterMode"
+              (change)="onFilterModeChange()"
+            >
+              <option value="day">Por día</option>
+              <option value="month">Por mes</option>
+            </select>
           </div>
+
+          @if (filterMode === 'day') {
+            <div class="sm:col-span-3">
+              <label class="label" for="sessions-date">Fecha</label>
+              <input
+                id="sessions-date"
+                type="date"
+                class="input"
+                [(ngModel)]="date"
+                name="date"
+                (change)="applyFilters()"
+              />
+            </div>
+          } @else {
+            <div class="sm:col-span-2">
+              <label class="label" for="sessions-month">Mes</label>
+              <select
+                id="sessions-month"
+                class="select"
+                [(ngModel)]="month"
+                name="month"
+                (change)="applyFilters()"
+              >
+                @for (m of months; track m.value) {
+                  <option [ngValue]="m.value">{{ m.label }}</option>
+                }
+              </select>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="label" for="sessions-year">Año</label>
+              <input
+                id="sessions-year"
+                type="number"
+                class="input"
+                [(ngModel)]="year"
+                name="year"
+                min="2020"
+                max="2100"
+                (change)="applyFilters()"
+              />
+            </div>
+          }
 
           <div class="sm:col-span-4">
             <label class="label" for="sessions-section">Sección</label>
@@ -156,12 +211,18 @@ import { CreateSessionRequest, AttendanceSessionStatus, AttendanceSessionSlot } 
           <app-empty-state
             icon="calendar-check"
             title="Aún no hay sesiones"
-            description="Ajusta los filtros o abre la primera sesión del día."
+            description="Si tomas asistencia en la puerta, usa el escáner: marca alumnos sin abrir sesión por sección. Para el aula, abre una sesión aquí."
           >
-            <button type="button" class="btn btn-primary btn-sm" (click)="openModal()">
-              <app-icon name="plus" [size]="14" />
-              <span>Nueva sesión</span>
-            </button>
+            <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <a [routerLink]="scannerRoute" class="btn btn-primary btn-sm">
+                <app-icon name="target" [size]="14" />
+                <span>Ir al escáner (puerta)</span>
+              </a>
+              <button type="button" class="btn btn-outline btn-sm" (click)="openModal()">
+                <app-icon name="plus" [size]="14" />
+                <span>Nueva sesión</span>
+              </button>
+            </div>
           </app-empty-state>
         } @else {
           <div class="overflow-x-auto">
@@ -194,7 +255,7 @@ import { CreateSessionRequest, AttendanceSessionStatus, AttendanceSessionSlot } 
                         [routerLink]="sessionRoute(session.publicUuid)"
                         class="btn btn-ghost btn-xs"
                       >
-                        Ver roster
+                        Ver lista
                         <app-icon name="chevron-right" [size]="14" />
                       </a>
                     </td>
@@ -217,30 +278,54 @@ export class AttendanceSessionsListPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly academicApi = inject(AcademicApiService);
-  private readonly auth = inject(AuthService);
+  private readonly printService = inject(AttendancePrintService);
+  private readonly reportService = inject(AttendanceReportService);
 
   protected readonly scannerRoute = ROUTES.ATTENDANCE.SCANNER;
   protected readonly modalOpen = signal(false);
+  protected readonly exportBusy = signal(false);
 
   protected readonly sections = signal<SectionRow[]>([]);
   protected readonly loadingSections = signal(false);
 
-  /** URL-synced filter signals. */
+  protected filterMode: 'day' | 'month' = 'day';
   protected date: string | null = null;
+  protected month = new Date().getMonth() + 1;
+  protected year = new Date().getFullYear();
+  protected readonly months = [
+    { value: 1, label: 'Enero' },
+    { value: 2, label: 'Febrero' },
+    { value: 3, label: 'Marzo' },
+    { value: 4, label: 'Abril' },
+    { value: 5, label: 'Mayo' },
+    { value: 6, label: 'Junio' },
+    { value: 7, label: 'Julio' },
+    { value: 8, label: 'Agosto' },
+    { value: 9, label: 'Septiembre' },
+    { value: 10, label: 'Octubre' },
+    { value: 11, label: 'Noviembre' },
+    { value: 12, label: 'Diciembre' },
+  ];
   protected sectionPublicUuid: string | null = null;
   protected slot: AttendanceSessionSlot | null = null;
   protected status: AttendanceSessionStatus | null = null;
 
   async ngOnInit(): Promise<void> {
-    // Hydrate filters from the URL.
     const qp = this.route.snapshot.queryParamMap;
+    this.filterMode = (qp.get('filterMode') as 'day' | 'month') ?? 'day';
     this.date = qp.get('date') ?? today();
+    this.month = Number(qp.get('month') ?? this.month);
+    this.year = Number(qp.get('year') ?? this.year);
     this.sectionPublicUuid = qp.get('sectionPublicUuid');
     this.slot = (qp.get('slot') as AttendanceSessionSlot | null) ?? null;
     this.status = (qp.get('status') as AttendanceSessionStatus | null) ?? null;
 
     await this.loadSections();
     await this.applyFilters();
+  }
+
+  protected onFilterModeChange(): void {
+    void this.applyFilters();
   }
 
   protected openModal(): void {
@@ -277,7 +362,10 @@ export class AttendanceSessionsListPageComponent implements OnInit {
    */
   protected async applyFilters(): Promise<void> {
     const filters: AttendanceSessionListFilters = {
-      date: this.date ?? undefined,
+      filterMode: this.filterMode,
+      date: this.filterMode === 'day' ? (this.date ?? undefined) : undefined,
+      month: this.filterMode === 'month' ? this.month : undefined,
+      year: this.filterMode === 'month' ? this.year : undefined,
       sectionPublicUuid: this.sectionPublicUuid ?? undefined,
       slot: this.slot ?? undefined,
       status: this.status ?? undefined,
@@ -285,7 +373,10 @@ export class AttendanceSessionsListPageComponent implements OnInit {
     await this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
-        date: filters.date ?? null,
+        filterMode: this.filterMode,
+        date: this.filterMode === 'day' ? filters.date ?? null : null,
+        month: this.filterMode === 'month' ? this.month : null,
+        year: this.filterMode === 'month' ? this.year : null,
         sectionPublicUuid: filters.sectionPublicUuid ?? null,
         slot: filters.slot ?? null,
         status: filters.status ?? null,
@@ -294,6 +385,50 @@ export class AttendanceSessionsListPageComponent implements OnInit {
       replaceUrl: true,
     });
     await this.store.applyListFilters(filters);
+  }
+
+  protected onPrint(): void {
+    const subtitle =
+      this.filterMode === 'month'
+        ? `Mes ${this.month}/${this.year}`
+        : `Día ${this.date ?? ''}`;
+    this.printService.print({
+      mode: 'sessionsList',
+      meta: {
+        title: 'Sesiones de asistencia',
+        subtitle,
+        generatedAt: new Date(),
+      },
+      rows: sessionsToPrintRows(this.store.listItems()),
+    });
+  }
+
+  protected async onDownload(format: ReportFormat): Promise<void> {
+    this.exportBusy.set(true);
+    try {
+      const scope = this.filterMode === 'month' ? 'SECTION_MONTHLY' : 'SECTION_DAILY';
+      let from = this.date ?? undefined;
+      let to = this.date ?? undefined;
+      if (this.filterMode === 'month') {
+        const range = monthRange(this.year, this.month);
+        from = range.from;
+        to = range.to;
+      }
+      const result = await this.reportService.requestInstitutionalExport(
+        {
+          scope,
+          sectionPublicUuid: this.sectionPublicUuid ?? undefined,
+          from,
+          to,
+          month: this.filterMode === 'month' ? this.month : undefined,
+          year: this.filterMode === 'month' ? this.year : undefined,
+        },
+        format,
+      );
+      this.reportService.downloadJob(result.job.publicUuid, `asistencia-listado.${format.toLowerCase()}`);
+    } finally {
+      this.exportBusy.set(false);
+    }
   }
 
   /**

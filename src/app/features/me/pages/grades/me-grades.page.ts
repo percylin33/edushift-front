@@ -67,7 +67,7 @@ import { MeApiService } from '../../services/me-api.service';
               <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                    {{ grade.evaluationName || 'Evaluación' }}
+                    {{ grade.evaluationName || 'Registro' }}
                   </h2>
                   <p class="mt-1 text-sm text-slate-500">
                     {{ grade.courseName || 'Curso' }}

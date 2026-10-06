@@ -28,6 +28,7 @@ export class MaterialsStore {
   // ---------- by-section slice ----------
   private readonly _rows = signal<MaterialRow[]>([]);
   private readonly _currentSectionUuid = signal<string | null>(null);
+  private readonly _assignmentUuid = signal<string | null>(null);
   private readonly _loading = signal<boolean>(false);
 
   // ---------- selected slice (Fase 8) ----------
@@ -37,6 +38,7 @@ export class MaterialsStore {
   // ---------- upload progress ----------
   private readonly _uploading = signal<boolean>(false);
   private readonly _uploadPercent = signal<number>(0);
+  private _listRequestId = 0;
 
   // ---------- shared ----------
   private readonly _error = signal<string | null>(null);
@@ -60,21 +62,33 @@ export class MaterialsStore {
   // List by section
   // ===========================================================================
 
-  async loadBySection(sectionUuid: string): Promise<void> {
-    if (this._currentSectionUuid() === sectionUuid && this._rows().length > 0) {
+  async loadBySection(
+    sectionUuid: string,
+    filters: { assignmentPublicUuid?: string } = {},
+  ): Promise<void> {
+    const sameSection = this._currentSectionUuid() === sectionUuid;
+    const sameAssignment = this._assignmentUuid() === (filters.assignmentPublicUuid ?? null);
+    if (sameSection && sameAssignment && this._rows().length > 0) {
       return;
     }
+    const requestId = ++this._listRequestId;
     this._currentSectionUuid.set(sectionUuid);
+    this._assignmentUuid.set(filters.assignmentPublicUuid ?? null);
     this._loading.set(true);
     this._error.set(null);
     try {
-      const rows = await firstValueFrom(this.api.listBySection(sectionUuid));
+      const rows = await firstValueFrom(this.api.listBySection(sectionUuid, filters));
+      if (requestId !== this._listRequestId) return;
       this._rows.set(rows);
+      this._error.set(null);
     } catch {
+      if (requestId !== this._listRequestId) return;
       this._rows.set([]);
       this._error.set('No pudimos cargar los materiales de la sección.');
     } finally {
-      this._loading.set(false);
+      if (requestId === this._listRequestId) {
+        this._loading.set(false);
+      }
     }
   }
 
@@ -177,6 +191,7 @@ export class MaterialsStore {
       sizeBytes: material.sizeBytes,
       contentType: material.contentType,
       url: material.url,
+      filePublicUuid: material.filePublicUuid,
       uploadedByTeacherName: material.uploadedByTeacherName,
       sizeBytesDisplay: material.sizeBytes != null ? formatSize(material.sizeBytes) : null,
       createdAt: material.createdAt,

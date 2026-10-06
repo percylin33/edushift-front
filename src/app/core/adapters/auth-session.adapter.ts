@@ -126,6 +126,8 @@ export function toUser(raw: UserResponseRaw): User {
     lastName: raw.lastName ?? undefined,
     phone: raw.phone ?? undefined,
     emailVerified: raw.emailVerified,
+    emailSource: raw.emailSource === 'SYNTHETIC' ? 'SYNTHETIC' : 'REAL',
+    mustChangePassword: !!raw.mustChangePassword,
     mfaEnabled: raw.mfaEnabled,
     roles: toRoles(raw.roles),
     permissions: toPermissions(raw.permissions),

@@ -1,4 +1,6 @@
 import { SubmissionStatus } from './task.model';
+import { API } from '@core/constants';
+import { environment } from '@env/environment';
 
 /**
  * `Submission` model + DTOs for the LMS module (BE-7a.2 / FE-7a.2).
@@ -54,13 +56,15 @@ export interface SubmissionAttachmentRaw {
 export interface SubmissionSummaryRaw {
   publicUuid: string;
   studentPublicUuid: string;
-  studentFullName: string;
-  studentAvatarUrl: string | null;
+  studentFullName?: string;
+  studentAvatarUrl?: string | null;
   status: SubmissionStatus;
-  version: number;
-  submittedAt: string;
+  version?: number;
+  submittedAt?: string;
+  createdAt?: string;
   grade: number | null;
   hasAttachment: boolean;
+  attachment?: SubmissionAttachmentRaw | null;
 }
 
 /**
@@ -106,6 +110,9 @@ export interface SubmissionRow {
   submittedAt: Date;
   grade: number | null;
   hasAttachment: boolean;
+  attachmentPublicUuid: string | null;
+  attachmentFilename: string | null;
+  attachmentDownloadUrl: string | null;
 }
 
 /**
@@ -150,18 +157,7 @@ export interface ReturnSubmissionRequest {
 
 export function toSubmission(raw: SubmissionResponseRaw): Submission {
   const submittedAt = raw.submittedAt ?? raw.createdAt ?? new Date().toISOString();
-  const attachment =
-    raw.attachment
-      ? toAttachment(raw.attachment)
-      : raw.attachmentPublicUuid
-        ? {
-            publicUuid: raw.attachmentPublicUuid,
-            filename: '',
-            sizeBytes: 0,
-            contentType: '',
-            downloadUrl: '',
-          }
-        : null;
+  const attachment = resolveSubmissionAttachment(raw);
   return {
     publicUuid: raw.publicUuid,
     assignmentPublicUuid: raw.assignmentPublicUuid ?? raw.taskPublicUuid ?? '',
@@ -188,21 +184,60 @@ export function toAttachment(raw: SubmissionAttachmentRaw): SubmissionAttachment
     filename: raw.filename,
     sizeBytes: raw.sizeBytes,
     contentType: raw.contentType,
-    downloadUrl: raw.downloadUrl,
+    downloadUrl: resolveFileDownloadUrl(raw.publicUuid, raw.downloadUrl),
   };
 }
 
+function resolveSubmissionAttachment(raw: SubmissionResponseRaw): SubmissionAttachment | null {
+  if (raw.attachment) {
+    return toAttachment(raw.attachment);
+  }
+  if (raw.attachmentPublicUuid) {
+    return {
+      publicUuid: raw.attachmentPublicUuid,
+      filename: 'Adjunto',
+      sizeBytes: 0,
+      contentType: '',
+      downloadUrl: resolveFileDownloadUrl(raw.attachmentPublicUuid, null),
+    };
+  }
+  return null;
+}
+
+function resolveFileDownloadUrl(publicUuid: string, url?: string | null): string {
+  if (url?.startsWith('http://') || url?.startsWith('https://')) {
+    return url;
+  }
+  if (url?.startsWith('/')) {
+    const apiBase = environment.apiUrl.replace(/\/+$/, '');
+    if (url.startsWith('/api/')) {
+      return `${apiBase}${url.substring(4)}`;
+    }
+    return `${apiBase}${url}`;
+  }
+  return API.FILES.DOWNLOAD(publicUuid);
+}
+
 export function toSubmissionRow(raw: SubmissionSummaryRaw): SubmissionRow {
+  const submittedAt = raw.submittedAt ?? raw.createdAt ?? new Date().toISOString();
+  const attachmentFilename = raw.attachment?.filename ?? null;
+  const attachmentPublicUuid = raw.attachment?.publicUuid ?? null;
+  const attachmentDownloadUrl = raw.attachment
+    ? resolveFileDownloadUrl(raw.attachment.publicUuid, raw.attachment.downloadUrl)
+    : null;
   return {
     publicUuid: raw.publicUuid,
     studentPublicUuid: raw.studentPublicUuid,
-    studentFullName: raw.studentFullName,
+    studentFullName: raw.studentFullName?.trim() || 'Estudiante',
     studentAvatarUrl: raw.studentAvatarUrl ?? null,
     status: raw.status,
-    version: raw.version,
-    submittedAt: new Date(raw.submittedAt),
+    version: raw.version ?? 1,
+    submittedAt: new Date(submittedAt),
     grade: raw.grade ?? null,
     hasAttachment: !!raw.hasAttachment,
+    attachmentPublicUuid,
+    attachmentFilename,
+    attachmentDownloadUrl,
   };
 }
 

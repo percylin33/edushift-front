@@ -122,6 +122,14 @@ export class AttemptsStore {
       return attempt;
     } catch (err) {
       this._error.set(this.toMessage(err, 'No se pudo iniciar el intento.'));
+      const raw = err as { status?: number; error?: { message?: string; errors?: Array<{ code?: string }> } };
+      // Friendlier copy when the quota is truly exhausted (no IN_PROGRESS left to resume).
+      if (
+        raw?.error?.errors?.[0]?.code === 'ATTEMPTS_EXHAUSTED' ||
+        /ATTEMPTS_EXHAUSTED|quota exhausted/i.test(this._error() ?? '')
+      ) {
+        this._error.set('Ya usaste todos los intentos permitidos para esta práctica.');
+      }
       return null;
     } finally {
       this._loadingCurrent.set(false);

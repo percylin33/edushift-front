@@ -19,21 +19,24 @@ describe('material.model', () => {
         publicUuid: 'mat-1',
         sectionPublicUuid: 's-1',
         title: 'Guía de estudio',
-        type: MaterialType.Pdf,
-        filename: 'guia.pdf',
-        sizeBytes: 204800,
-        contentType: 'application/pdf',
-        url: null,
-        uploadedByTeacherPublicUuid: 'tch-1',
-        uploadedByTeacherName: 'Prof. García',
-        downloadUrl: 'https://dl.example.com/guia.pdf',
+        kind: 'FILE',
+        file: {
+          publicUuid: 'file-1',
+          originalName: 'guia.pdf',
+          contentType: 'application/pdf',
+          sizeBytes: 204800,
+          url: '/api/v1/files/file-1/download',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+        externalUrl: null,
+        ownerPublicUuid: 'tch-1',
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: null,
       };
       const mat = toMaterial(raw);
       expect(mat.createdAt).toBeInstanceOf(Date);
       expect(mat.type).toBe(MaterialType.Pdf);
-      expect(mat.downloadUrl).toBe('https://dl.example.com/guia.pdf');
+      expect(mat.filePublicUuid).toBe('file-1');
     });
   });
 
@@ -42,19 +45,38 @@ describe('material.model', () => {
       const raw: MaterialSummaryRaw = {
         publicUuid: 'mat-1',
         title: 'Enlace útil',
-        type: MaterialType.Link,
-        filename: null,
-        sizeBytes: null,
-        contentType: null,
-        url: 'https://ejemplo.com',
-        uploadedByTeacherName: 'Prof. García',
-        sizeBytesDisplay: null,
+        kind: 'VIDEO_LINK',
+        fileSizeBytes: null,
+        ownerPublicUuid: 'tch-1',
         createdAt: '2026-01-01T00:00:00.000Z',
+        filePublicUuid: null,
+        filename: null,
+        contentType: null,
+        externalUrl: 'https://ejemplo.com',
       };
       const row = toMaterialRow(raw);
       expect(row.title).toBe('Enlace útil');
       expect(row.url).toBe('https://ejemplo.com');
+      expect(row.type).toBe(MaterialType.Link);
       expect(row.createdAt).toBeInstanceOf(Date);
+    });
+
+    it('incluye filePublicUuid para archivos', () => {
+      const raw: MaterialSummaryRaw = {
+        publicUuid: 'mat-2',
+        title: 'PDF',
+        kind: 'FILE',
+        fileSizeBytes: 1024,
+        ownerPublicUuid: 'tch-1',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        filePublicUuid: 'file-2',
+        filename: 'doc.pdf',
+        contentType: 'application/pdf',
+        externalUrl: null,
+      };
+      const row = toMaterialRow(raw);
+      expect(row.filePublicUuid).toBe('file-2');
+      expect(row.type).toBe(MaterialType.Pdf);
     });
   });
 

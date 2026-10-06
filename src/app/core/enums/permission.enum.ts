@@ -109,4 +109,11 @@ export enum Permission {
   MeQrRead = 'ME_QR_READ',
   MePaymentsRead = 'ME_PAYMENTS_READ',
   MePaymentsCheckout = 'ME_PAYMENTS_CHECKOUT',
+
+  // -------------------------------------------------------------------------
+  // CRED-7 — mass provision of student/parent accounts for a section.
+  // Mirrors LmsAuthorities.USERS_PROVISION_SECTION. Granted to TENANT_ADMIN
+  // + STAFF by default.
+  // -------------------------------------------------------------------------
+  UsersProvisionSection = 'USERS_PROVISION_SECTION',
 }

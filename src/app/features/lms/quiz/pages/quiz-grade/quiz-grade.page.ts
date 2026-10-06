@@ -77,7 +77,7 @@ import {
         </p>
         <h1 class="text-2xl font-semibold text-content">Cola de calificación</h1>
         <p class="text-sm text-content-muted">
-          {{ queue().length }} respuesta(s) corta(s) pendiente(s) en este quiz.
+          {{ queue().length }} respuesta(s) corta(s) pendiente(s) en esta práctica.
         </p>
       </div>
     </header>

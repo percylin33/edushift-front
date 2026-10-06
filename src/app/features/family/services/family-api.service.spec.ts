@@ -42,11 +42,11 @@ describe('FamilyApiService', () => {
     payments.flush({ data: [] });
 
     service.getChildSchedule('child-1').subscribe((response) => {
-      expect(response.data).toEqual({ slots: [], nonTeachingBlocks: [] });
+      expect(response.data).toEqual({ slots: [], nonTeachingBlocks: [], suggestedPeriods: [] });
     });
     const schedule = http.expectOne('/api/v1/family/children/child-1/schedule');
     expect(schedule.request.method).toBe('GET');
-    schedule.flush({ data: { slots: [], nonTeachingBlocks: [] } });
+    schedule.flush({ data: { slots: [], nonTeachingBlocks: [], suggestedPeriods: [] } });
   });
 
   it('posts a justification without attaching a file', () => {

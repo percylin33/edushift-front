@@ -476,7 +476,7 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
                       [attr.data-status]="s.status"
                     >
                       <div class="min-w-0 flex-1">
-                        <p class="truncate font-medium text-content">{{ s.sectionName }}</p>
+                        <p class="truncate font-medium text-content">{{ sectionSectionLabel(s) }}</p>
                         <p class="mt-0.5 text-xs text-content-muted">
                           {{ slotLabel(s.slot) }} ·
                           {{ s.presentCount }}/{{ s.enrolledStudents }} confirmados ·
@@ -814,24 +814,24 @@ export class DashboardHomeComponent implements OnInit {
   protected readonly teacherLinks: readonly QuickLink[] = [
     {
       id: 'scanner',
-      label: 'Escáner QR',
+      label: 'Entrada / Escáner',
       icon: 'qr-code',
       route: ROUTES.ATTENDANCE.SCANNER,
-      description: 'Toma asistencia escaneando el QR del alumno.',
+      description: 'Asistencia en la puerta: QR o búsqueda, sin elegir sección.',
     },
     {
       id: 'sessions',
       label: 'Sesiones de hoy',
       icon: 'calendar-check',
       route: ROUTES.ATTENDANCE.SESSIONS,
-      description: 'Abre, cierra o consulta tus sesiones del día.',
+      description: 'Revisión por sección/aula y abrir sesión manual.',
     },
     {
       id: 'rubrics',
       label: 'Rúbricas',
       icon: 'layers',
       route: ROUTES.RUBRICS.ROOT,
-      description: 'Catálogo de rúbricas para tus evaluaciones.',
+      description: 'Catálogo de rúbricas para tus registros.',
     },
   ];
 
@@ -901,6 +901,11 @@ export class DashboardHomeComponent implements OnInit {
 
   protected slotLabel(slot: AttendanceSessionSlot): string {
     return SLOT_LABEL[slot];
+  }
+
+  /** Grado + sección (ej. {@code 1ro Primaria · A}). */
+  protected sectionSectionLabel(s: TeacherMySession): string {
+    return s.gradeName ? `${s.gradeName} · ${s.sectionName}` : s.sectionName;
   }
 
   protected sessionLink(sessionPublicUuid: string): string {

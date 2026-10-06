@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
-import { AcademicYearStatusBadgeComponent, SectionFormModalComponent } from '../../components';
+import { AcademicYearStatusBadgeComponent, SectionBulkSetupComponent, SectionFormModalComponent } from '../../components';
 import { AcademicStore } from '../../store';
 import {
   AcademicYearStatus,
@@ -40,6 +40,8 @@ import {
  *
  * <h3>Acciones</h3>
  * <ul>
+ *   <li><b>Configurar secciones</b> — panel de matriz nivel×grado×A/B/C
+ *       con creación masiva.</li>
  *   <li><b>Nueva sección</b> — abre {@link SectionFormModalComponent}
  *       con los filtros actuales como defaults.</li>
  *   <li><b>Click en fila</b> → navega a la vista detail (FE-4.3 stub
@@ -60,6 +62,7 @@ import {
     IconComponent,
     SpinnerComponent,
     AcademicYearStatusBadgeComponent,
+    SectionBulkSetupComponent,
     SectionFormModalComponent,
   ],
   template: `
@@ -83,6 +86,12 @@ import {
         <span class="hidden sm:inline" aria-hidden="true">Nueva sección</span>
       </button>
     </header>
+
+    <app-section-bulk-setup
+      [defaultYearUuid]="bulkDefaultYearUuid()"
+      (yearChange)="onBulkYearChange($event)"
+      (completed)="onBulkCompleted()"
+    />
 
     <!-- Toolbar -->
     <section class="card mb-4">
@@ -332,6 +341,11 @@ export class SectionsListComponent implements OnInit {
     return y ? isSectionMutable(y.status) : false;
   });
 
+  /** Año por defecto del panel de setup masivo. */
+  protected readonly bulkDefaultYearUuid = computed(
+    () => this.yearFilter() ?? this.currentActive()?.publicUuid ?? null,
+  );
+
   // ===========================================================================
   // Lifecycle
   // ===========================================================================
@@ -364,6 +378,21 @@ export class SectionsListComponent implements OnInit {
   protected onYearChange(value: string | null): void {
     this.yearFilter.set(value);
     void this.syncAndReload();
+  }
+
+  /**
+   * El panel bulk alinea el filtro de año y limpia level/grade para
+   * cargar todas las secciones del año (presencia A/B/C correcta).
+   */
+  protected onBulkYearChange(yearId: string): void {
+    this.yearFilter.set(yearId);
+    this.levelFilter.set(null);
+    this.gradeFilter.set(null);
+    void this.syncAndReload();
+  }
+
+  protected async onBulkCompleted(): Promise<void> {
+    await this.applyServerFilters();
   }
 
   protected onLevelChange(value: string | null): void {

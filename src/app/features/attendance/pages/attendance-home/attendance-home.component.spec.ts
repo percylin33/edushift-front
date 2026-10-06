@@ -26,8 +26,10 @@ describe('AttendanceHomeComponent', () => {
     expect((component as any).sessionsRoute).toBe(ROUTES.ATTENDANCE.SESSIONS);
   });
 
-  it('renderiza título', () => {
-    const text = fixture.nativeElement.textContent;
+  it('renderiza título y copy de puerta', () => {
+    const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Asistencia');
+    expect(text).toContain('Entrada / Escáner');
+    expect(text).toContain('Sesiones (por aula)');
   });
 });

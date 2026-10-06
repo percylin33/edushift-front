@@ -27,6 +27,7 @@ describe('TaskDetailComponent', () => {
       createdAt: new Date(),
       updatedAt: null,
       submissionsCount: 0,
+      gradedSubmissionsCount: 0,
     };
 
     mockStore = jasmine.createSpyObj<TasksStore>(

@@ -118,6 +118,8 @@ export interface EvaluationResponseRaw {
   assignment: AssignmentRefRaw;
   unitPublicUuid: string | null;
   learningSessionPublicUuid: string | null;
+  categoryPublicUuid?: string | null;
+  categoryName?: string | null;
   kind: EvaluationKind;
   name: string;
   description: string | null;
@@ -150,6 +152,8 @@ export interface EvaluationListItemRaw {
   dueDate: string | null;
   scale: EvaluationScale;
   status: EvaluationStatus;
+  categoryPublicUuid?: string | null;
+  categoryName?: string | null;
   gradeCount: number;
   isActive: boolean;
   createdAt: string;
@@ -176,6 +180,8 @@ export interface EvaluationDetail {
   assignment: AssignmentRef;
   unitPublicUuid?: string;
   learningSessionPublicUuid?: string;
+  categoryPublicUuid?: string | null;
+  categoryName?: string | null;
   kind: EvaluationKind;
   name: string;
   description?: string;
@@ -203,6 +209,8 @@ export interface EvaluationRow {
   dueDate?: Date;
   scale: EvaluationScale;
   status: EvaluationStatus;
+  categoryPublicUuid?: string | null;
+  categoryName?: string | null;
   gradeCount: number;
   isActive: boolean;
   createdAt: Date;
@@ -233,6 +241,8 @@ export interface CreateEvaluationRequest {
   unitPublicUuid?: string;
   /** Public UUID del LearningSession anchor (opcional). */
   learningSessionPublicUuid?: string;
+  /** Categoría de la plantilla de registro (F1). */
+  categoryPublicUuid?: string | null;
 }
 
 /**
@@ -256,6 +266,8 @@ export interface UpdateEvaluationRequest {
   unitPublicUuid?: string;
   /** Pasar `''` para desanclar. */
   learningSessionPublicUuid?: string;
+  /** Pasar `''` para quitar categoría. */
+  categoryPublicUuid?: string | null;
   isActive?: boolean;
 }
 
@@ -291,6 +303,8 @@ export function toEvaluationDetail(raw: EvaluationResponseRaw): EvaluationDetail
     assignment: { ...raw.assignment },
     unitPublicUuid: raw.unitPublicUuid ?? undefined,
     learningSessionPublicUuid: raw.learningSessionPublicUuid ?? undefined,
+    categoryPublicUuid: raw.categoryPublicUuid ?? null,
+    categoryName: raw.categoryName ?? null,
     kind: raw.kind,
     name: raw.name,
     description: raw.description ?? undefined,
@@ -318,6 +332,8 @@ export function toEvaluationRow(raw: EvaluationListItemRaw): EvaluationRow {
     dueDate: parseLocalDate(raw.dueDate),
     scale: raw.scale,
     status: raw.status,
+    categoryPublicUuid: raw.categoryPublicUuid ?? null,
+    categoryName: raw.categoryName ?? null,
     gradeCount: raw.gradeCount ?? 0,
     isActive: raw.isActive,
     createdAt: new Date(raw.createdAt),

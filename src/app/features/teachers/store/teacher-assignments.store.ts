@@ -123,6 +123,97 @@ export class TeacherAssignmentsStore {
   }
 
   /**
+   * Crea asignaciones para el producto cartesiano cursos × periodos.
+   * Duplicados activos ({@code ASSIGNMENT_ALREADY_ACTIVE}) se omiten;
+   * otros errores detienen el lote y reportan el mensaje.
+   */
+  async createCombinations(
+    teacherPublicUuid: string,
+    sectionPublicUuid: string,
+    coursePublicUuids: readonly string[],
+    periodPublicUuids: readonly string[],
+    notes?: string,
+  ): Promise<{ created: number; skipped: number } | null> {
+    if (coursePublicUuids.length === 0) {
+      this._error.set('Selecciona al menos un curso.');
+      return null;
+    }
+    if (periodPublicUuids.length === 0) {
+      this._error.set('No hay periodos del año para asignar.');
+      return null;
+    }
+
+    this._saving.set(true);
+    this._error.set(null);
+
+    let createdCount = 0;
+    let skippedCount = 0;
+    const createdRows: AssignmentRow[] = [];
+
+    try {
+      for (const coursePublicUuid of coursePublicUuids) {
+        for (const academicPeriodPublicUuid of periodPublicUuids) {
+          try {
+            const created = await firstValueFrom(
+              this.api.createAssignment(teacherPublicUuid, {
+                sectionPublicUuid,
+                coursePublicUuid,
+                academicPeriodPublicUuid,
+                notes: notes || undefined,
+              }),
+            );
+            createdCount++;
+            createdRows.push(this.toRow(created));
+          } catch (err) {
+            if (this.isAlreadyActiveConflict(err)) {
+              skippedCount++;
+              continue;
+            }
+            this._error.set(this.toErrorMessage(err));
+            if (this._currentTeacherUuid() === teacherPublicUuid && createdRows.length > 0) {
+              this._assignments.update((rows) => [...createdRows, ...rows]);
+            }
+            return null;
+          }
+        }
+      }
+
+      if (this._currentTeacherUuid() === teacherPublicUuid && createdRows.length > 0) {
+        this._assignments.update((rows) => [...createdRows, ...rows]);
+      }
+
+      if (createdCount === 0 && skippedCount > 0) {
+        this._error.set(
+          'Ya existían asignaciones activas para todas esas combinaciones (sección + curso + periodo).',
+        );
+        return null;
+      }
+
+      return { created: createdCount, skipped: skippedCount };
+    } finally {
+      this._saving.set(false);
+    }
+  }
+
+  /**
+   * Crea una asignación por cada periodo (p. ej. los 4 bimestres).
+   * @deprecated Prefer {@link #createCombinations}; kept for callers with un solo curso.
+   */
+  async createForPeriods(
+    teacherPublicUuid: string,
+    base: Omit<CreateAssignmentRequest, 'academicPeriodPublicUuid'>,
+    periodPublicUuids: readonly string[],
+  ): Promise<{ created: number; skipped: number } | null> {
+    return this.createCombinations(
+      teacherPublicUuid,
+      base.sectionPublicUuid,
+      [base.coursePublicUuid],
+      periodPublicUuids,
+      base.notes,
+    );
+  }
+
+  /**
    * Soft-end. Marca la row como inactiva localmente (transición
    * {@code active: true → false} con {@code unassignedAt = ahora})
    * y, si el filtro vigente es {@code active: true}, la elimina del
@@ -243,11 +334,29 @@ export class TeacherAssignmentsStore {
     if (err && typeof err === 'object') {
       const anyErr = err as {
         message?: unknown;
-        error?: { message?: unknown };
+        error?: { message?: unknown; code?: unknown };
       };
       if (typeof anyErr.error?.message === 'string') return anyErr.error.message;
       if (typeof anyErr.message === 'string') return anyErr.message;
     }
     return 'Ocurrió un error inesperado.';
+  }
+
+  private isAlreadyActiveConflict(err: unknown): boolean {
+    if (!err || typeof err !== 'object') return false;
+    const anyErr = err as {
+      status?: number;
+      error?: { code?: unknown; message?: unknown };
+      message?: unknown;
+    };
+    const code = typeof anyErr.error?.code === 'string' ? anyErr.error.code : '';
+    const msg =
+      (typeof anyErr.error?.message === 'string' ? anyErr.error.message : '') ||
+      (typeof anyErr.message === 'string' ? anyErr.message : '');
+    return (
+      code === 'ASSIGNMENT_ALREADY_ACTIVE' ||
+      msg.includes('ASSIGNMENT_ALREADY_ACTIVE') ||
+      (anyErr.status === 409 && /ya exist|already|duplicad/i.test(msg))
+    );
   }
 }

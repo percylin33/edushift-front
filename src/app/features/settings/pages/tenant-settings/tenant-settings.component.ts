@@ -244,6 +244,78 @@ import { TenantApiService as TenantsApiService } from '@features/tenants/service
           </section>
 
           <section class="space-y-3 border-t border-border pt-4">
+            <h2 class="text-base font-semibold text-content">Hoja de acceso familiar (CRED-7)</h2>
+            <p class="text-xs text-content-subtle">
+              Textos que aparecen en el PDF que secretaría entrega a familias al generar cuentas del
+              aula. Si los dejas vacíos se usan valores por defecto.
+            </p>
+            <div class="space-y-1.5">
+              <label for="handoutWelcomeTitle" class="block text-sm font-medium text-content"
+                >Título</label
+              >
+              <input
+                id="handoutWelcomeTitle"
+                type="text"
+                formControlName="handoutWelcomeTitle"
+                maxlength="200"
+                placeholder="Acceso a la plataforma del colegio"
+                class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-subtle"
+              />
+            </div>
+            <div class="space-y-1.5">
+              <label for="handoutWelcomeBody" class="block text-sm font-medium text-content"
+                >Texto de bienvenida</label
+              >
+              <textarea
+                id="handoutWelcomeBody"
+                formControlName="handoutWelcomeBody"
+                rows="3"
+                maxlength="1000"
+                class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-subtle"
+              ></textarea>
+            </div>
+            <div class="space-y-1.5">
+              <label for="handoutLoginUrl" class="block text-sm font-medium text-content"
+                >URL de login (opcional)</label
+              >
+              <input
+                id="handoutLoginUrl"
+                type="url"
+                formControlName="handoutLoginUrl"
+                maxlength="500"
+                placeholder="Vacío = URL del colegio por slug"
+                class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-subtle"
+              />
+            </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div class="space-y-1.5">
+                <label for="handoutSupportPhone" class="block text-sm font-medium text-content"
+                  >Teléfono de secretaría</label
+                >
+                <input
+                  id="handoutSupportPhone"
+                  type="text"
+                  formControlName="handoutSupportPhone"
+                  maxlength="40"
+                  class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content"
+                />
+              </div>
+              <div class="space-y-1.5 sm:col-span-2">
+                <label for="handoutSupportNote" class="block text-sm font-medium text-content"
+                  >Nota de rescate</label
+                >
+                <textarea
+                  id="handoutSupportNote"
+                  formControlName="handoutSupportNote"
+                  rows="2"
+                  maxlength="500"
+                  class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content"
+                ></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="space-y-3 border-t border-border pt-4">
             <h2 class="text-base font-semibold text-content">Feature flags (read-only)</h2>
             <p class="text-xs text-content-subtle">
               El backend controla el rollout de cada feature. Esta lista se recalcula en cada GET
@@ -321,6 +393,11 @@ export class TenantSettingsComponent implements OnInit {
     primaryColorHex: ['', []],
     accentColor: ['#22c55e', [Validators.pattern(/^#[0-9a-fA-F]{6}$/)]],
     accentColorHex: ['', []],
+    handoutWelcomeTitle: ['', [Validators.maxLength(200)]],
+    handoutWelcomeBody: ['', [Validators.maxLength(1000)]],
+    handoutLoginUrl: ['', [Validators.maxLength(500)]],
+    handoutSupportPhone: ['', [Validators.maxLength(40)]],
+    handoutSupportNote: ['', [Validators.maxLength(500)]],
   });
 
   private readonly _syncColors = effect(() => {
@@ -372,6 +449,7 @@ export class TenantSettingsComponent implements OnInit {
   private applyTenant(t: Tenant): void {
     this.tenant.set(t);
     this.tenantService.setTenant(t);
+    const handout = (t.settings?.['credentialHandout'] ?? {}) as Record<string, unknown>;
     this.form.patchValue(
       {
         name: t.name ?? '',
@@ -381,6 +459,13 @@ export class TenantSettingsComponent implements OnInit {
         primaryColorHex: t.branding?.primaryColor ?? '#0066ff',
         accentColor: t.branding?.accentColor ?? '#22c55e',
         accentColorHex: t.branding?.accentColor ?? '#22c55e',
+        handoutWelcomeTitle: typeof handout['welcomeTitle'] === 'string' ? handout['welcomeTitle'] : '',
+        handoutWelcomeBody: typeof handout['welcomeBody'] === 'string' ? handout['welcomeBody'] : '',
+        handoutLoginUrl:
+          typeof handout['loginUrlOverride'] === 'string' ? handout['loginUrlOverride'] : '',
+        handoutSupportPhone:
+          typeof handout['supportPhone'] === 'string' ? handout['supportPhone'] : '',
+        handoutSupportNote: typeof handout['supportNote'] === 'string' ? handout['supportNote'] : '',
       },
       { emitEvent: false },
     );
@@ -523,6 +608,15 @@ export class TenantSettingsComponent implements OnInit {
     this.successMessage.set(null);
     this.errorMessage.set(null);
 
+    const existingSettings = { ...(this.tenant()?.settings ?? {}) };
+    existingSettings['credentialHandout'] = {
+      welcomeTitle: v.handoutWelcomeTitle?.trim() || null,
+      welcomeBody: v.handoutWelcomeBody?.trim() || null,
+      loginUrlOverride: v.handoutLoginUrl?.trim() || null,
+      supportPhone: v.handoutSupportPhone?.trim() || null,
+      supportNote: v.handoutSupportNote?.trim() || null,
+    };
+
     this.tenantsApi
       .updateCurrent({
         name: v.name?.trim(),
@@ -531,6 +625,7 @@ export class TenantSettingsComponent implements OnInit {
           loginTitle: v.loginTitle?.trim() ?? '',
           loginDescription: v.loginDescription?.trim() ?? '',
         },
+        settings: existingSettings,
       })
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({

@@ -1,9 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { of } from 'rxjs';
 import { BulkImportModalComponent } from './bulk-import-modal.component';
 import { StudentsStore } from '../store';
 import { BulkImportJob } from '../models';
 import { BulkImportStatus } from '@core/enums';
+import { AcademicApiService } from '@features/academic/services';
 
 describe('BulkImportModalComponent', () => {
   let fixture: ComponentFixture<BulkImportModalComponent>;
@@ -15,6 +17,7 @@ describe('BulkImportModalComponent', () => {
     clearError: jasmine.Spy;
     resetBulkImport: jasmine.Spy;
     downloadTemplate: jasmine.Spy;
+    previewBulkImport: jasmine.Spy;
     startBulkImport: jasmine.Spy;
   };
 
@@ -26,11 +29,21 @@ describe('BulkImportModalComponent', () => {
       clearError: jasmine.createSpy('clearError'),
       resetBulkImport: jasmine.createSpy('resetBulkImport'),
       downloadTemplate: jasmine.createSpy('downloadTemplate'),
+      previewBulkImport: jasmine.createSpy('previewBulkImport'),
       startBulkImport: jasmine.createSpy('startBulkImport'),
     };
     TestBed.configureTestingModule({
       imports: [BulkImportModalComponent],
-      providers: [{ provide: StudentsStore, useValue: fakeStore }],
+      providers: [
+        { provide: StudentsStore, useValue: fakeStore },
+        {
+          provide: AcademicApiService,
+          useValue: {
+            listYears: () => of([]),
+            listSections: () => of([]),
+          },
+        },
+      ],
     });
     fixture = TestBed.createComponent(BulkImportModalComponent);
     component = fixture.componentInstance;
@@ -42,9 +55,11 @@ describe('BulkImportModalComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('inicia sin job', () => {
+  it('inicia en destino sin job', async () => {
     configureModule();
+    await fixture.whenStable();
     expect((component as any).job()).toBeNull();
+    expect((component as any).step()).toBe('destination');
     expect((component as any).progressPercent()).toBeNull();
   });
 
@@ -64,6 +79,7 @@ describe('BulkImportModalComponent', () => {
       finishedAt: undefined,
       createdAt: new Date(),
     } as unknown as BulkImportJob);
+    (component as any).step.set('progress');
     expect((component as any).progressPercent()).toBe(70);
   });
 
@@ -94,7 +110,7 @@ describe('BulkImportModalComponent', () => {
     expect(closeSpy).toHaveBeenCalled();
   });
 
-  it('restart resetea store y selectedFileName', () => {
+  it('restart resetea store y vuelve a destino', () => {
     configureModule();
     fakeStore.bulkJob.set({
       publicUuid: 'j-1',
@@ -114,17 +130,31 @@ describe('BulkImportModalComponent', () => {
     (component as any).restart();
     expect(fakeStore.resetBulkImport).toHaveBeenCalled();
     expect((component as any)['selectedFileName']()).toBeNull();
+    expect((component as any).step()).toBe('destination');
   });
 
-  it('onFilePicked setea nombre y llama startBulkImport', async () => {
+  it('onFilePicked hace preview y pasa a mapeo', async () => {
     configureModule();
     const file = new File(['a,b,c'], 'alumnos.xlsx', {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
+    fakeStore.previewBulkImport.and.resolveTo({
+      headers: ['Nombres', 'Apellido paterno', 'Número de documento', 'Tipo de documento'],
+      sampleRows: [],
+      suggestedMapping: {
+        firstName: 'Nombres',
+        lastName: 'Apellido paterno',
+        documentNumber: 'Número de documento',
+        documentType: 'Tipo de documento',
+      },
+      unmappedRequired: [],
+    });
     const event = { target: { files: [file], value: 'ignored' } } as unknown as Event;
     await (component as any).onFilePicked(event);
     expect((component as any)['selectedFileName']()).toBe('alumnos.xlsx');
-    expect(fakeStore.startBulkImport).toHaveBeenCalledWith(file);
+    expect(fakeStore.previewBulkImport).toHaveBeenCalledWith(file);
+    expect((component as any).step()).toBe('mapping');
+    expect(fakeStore.startBulkImport).not.toHaveBeenCalled();
   });
 
   it('errorMessage expone store.error', () => {

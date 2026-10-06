@@ -1,15 +1,19 @@
 import { Routes } from '@angular/router';
-import { permissionGuard } from '@core/guards';
+import { permissionGuard, rejectReservedSegmentsCanMatch } from '@core/guards';
 import { Permission } from '@core/enums';
+import {
+  lmsAulaBreadcrumbsResolver,
+  lmsCourseNameResolver,
+} from './resolvers/lms-breadcrumb.resolvers';
 
 /**
  * Routes para el feature {@code lms} (Sprint 7a + 7b).
  *
  * <h3>Estructura</h3>
  * <ul>
- *   <li>{@code /lms}                                                → landing resolver (FE-7a.5 / BUG-2026-07-30-05) que
- *       redirige a la primera sección real del tenant (o /me/courses
- *       para STUDENT, /family para PARENT).</li>
+ *   <li>{@code /lms}                                                → landing resolver (FE-7a.5 / BUG-2026-07-30-05).</li>
+ *   <li>{@code /lms/courses}                                        → grilla de materias (funnel Mis cursos).</li>
+ *   <li>{@code /lms/courses/:courseUuid/sections}                   → grilla de secciones de una materia.</li>
  *   <li>{@code /lms/sections/:sectionUuid/assignments}              → lista del TEACHER (LMS_TASK_READ).</li>
  *   <li>{@code /lms/students/:studentUuid/assignments}              → "Mis tareas" del STUDENT/PARENT (LMS_TASK_READ).</li>
  *   <li>{@code /lms/assignments/new?section=:sectionUuid}           → crear (LMS_TASK_CREATE).</li>
@@ -26,57 +30,53 @@ import { Permission } from '@core/enums';
  *   <li>{@code /lms/quizzes/:uuid/results}                         → resultados del quiz (LMS_QUIZ_GRADE) — page FE-7b.3.</li>
  *   <li>{@code /lms/quizzes/:uuid/grade}                           → cola de grading (LMS_QUIZ_GRADE) — page FE-7b.3.</li>
  * </ul>
- *
- * <h3>RBAC (FE-7a.4 / FE-7b.0)</h3>
- * El coarse-grain gate (entrar al LMS shell) lo aplica
- * {@code permissionGuard} con {@code Permission.LmsTaskRead} en la
- * ruta padre; la granularidad fina (LMS_TASK_CREATE / GRADE / SUBMIT /
- * LMS_MATERIAL_* / LMS_QUIZ_*) la aplican los {@code permissionGuard}
- * hijos. Usamos {@code canMatch} en vez de {@code canActivate} para
- * que el bundle lazy-loaded de la ruta prohibida NUNCA se descargue
- * en el cliente (rationale en {@code permissionGuard}).
- *
- * <h3>Estado de implementación</h3>
- * FE-7a.1 entrega los componentes de {@code tasks} (lista, form,
- * detail). FE-7a.2 (submissions) y FE-7a.3 (materials) están cerrados.
- * FE-7b.0 entrega la infra RBAC + rutas; FE-7b.1 (builder — list +
- * form + detail) ya está cerrado; FE-7b.2 (player) y FE-7b.3
- * (results) son tickets siguientes; FE-7b.4 (AI assistant stub) se
- * ata al builder.
  */
 export const LMS_ROUTES: Routes = [
   // ---------------------------------------------------------------------------
   // Landing resolver (FE-7a.5 / BUG-2026-07-30-05).
-  //
-  // This route is reachable by ANY authenticated role (no LMS_TASK_READ
-  // guard) because its job is precisely to figure out where the user
-  // should land:
-  //   - STUDENT → /me/courses
-  //   - PARENT  → /family
-  //   - others  → first ACTIVE section's assignments list
-  // Putting the guard here would 403 STUDENT/PARENT before the resolver
-  // can redirect them to a different, role-appropriate page.
   // ---------------------------------------------------------------------------
   {
     path: '',
+    pathMatch: 'full',
     loadComponent: () =>
       import('./pages/lms-landing/lms-landing.component').then((m) => m.LmsLandingComponent),
-    data: { title: 'Aula virtual', breadcrumb: 'Aula virtual' },
+    data: { title: 'Mis cursos' },
+  },
+  // ---------------------------------------------------------------------------
+  // Funnel Mis cursos: materias → secciones (fuera del shell de tabs).
+  // ---------------------------------------------------------------------------
+  {
+    path: 'courses',
+    canMatch: [permissionGuard],
+    data: {
+      permissions: Permission.LmsTaskRead,
+      mode: 'any',
+      title: 'Materias',
+    },
+    loadComponent: () =>
+      import('./pages/lms-courses/lms-courses.component').then((m) => m.LmsCoursesComponent),
+  },
+  {
+    path: 'courses/:courseUuid/sections',
+    canMatch: [permissionGuard],
+    resolve: { breadcrumb: lmsCourseNameResolver },
+    data: {
+      permissions: Permission.LmsTaskRead,
+      mode: 'any',
+      title: 'Secciones',
+    },
+    loadComponent: () =>
+      import('./pages/lms-course-sections/lms-course-sections.component').then(
+        (m) => m.LmsCourseSectionsComponent,
+      ),
   },
   {
     path: '',
     canMatch: [permissionGuard],
     data: {
-      // Coarse-grain gate: any role holding LMS_TASK_READ enters the LMS
-      // shell. Granular per-action checks live on the child routes below
-      // (LMS_TASK_CREATE / LMS_TASK_GRADE / LMS_TASK_SUBMIT / LMS_MATERIAL_*
-      // / LMS_QUIZ_*). `canMatch` (vs `canActivate`) prevents the LMS bundle
-      // from being fetched by roles that don't have any LMS authority —
-      // e.g. STAFF or SUPER_ADMIN.
       permissions: Permission.LmsTaskRead,
       mode: 'any',
-      title: 'Aula virtual',
-      breadcrumb: 'Aula virtual',
+      title: 'Aula',
     },
     loadComponent: () =>
       import('./pages/lms-shell/lms-shell.component').then((m) => m.LmsShellComponent),
@@ -84,6 +84,8 @@ export const LMS_ROUTES: Routes = [
       {
         path: 'sections/:sectionUuid/assignments',
         canMatch: [permissionGuard],
+        runGuardsAndResolvers: 'paramsOrQueryParamsChange',
+        resolve: { breadcrumbs: lmsAulaBreadcrumbsResolver },
         data: { permissions: Permission.LmsTaskRead, title: 'Tareas de la sección' },
         loadComponent: () =>
           import('./pages/tasks-list/tasks-list.component').then((m) => m.TasksListComponent),
@@ -108,7 +110,7 @@ export const LMS_ROUTES: Routes = [
       },
       {
         path: 'assignments/:uuid',
-        canMatch: [permissionGuard],
+        canMatch: [rejectReservedSegmentsCanMatch(), permissionGuard],
         data: { permissions: Permission.LmsTaskRead, title: 'Detalle de tarea' },
         loadComponent: () =>
           import('./pages/task-detail/task-detail.component').then((m) => m.TaskDetailComponent),
@@ -145,22 +147,20 @@ export const LMS_ROUTES: Routes = [
       {
         path: 'sections/:sectionUuid/materials',
         canMatch: [permissionGuard],
+        runGuardsAndResolvers: 'paramsOrQueryParamsChange',
+        resolve: { breadcrumbs: lmsAulaBreadcrumbsResolver },
         data: { permissions: Permission.LmsMaterialRead, title: 'Materiales' },
         loadComponent: () =>
           import('./pages/materials-list/materials-list.component').then(
             (m) => m.MaterialsListComponent,
           ),
       },
-      // -------------------------------------------------------------------------
-      // Quiz routes (Sprint 7b). FE-7b.0 entregó los placeholders + RBAC;
-      // FE-7b.1 reemplaza list / form / detail con componentes reales;
-      // FE-7b.2 (player), FE-7b.3 (results + grade queue) llegan después.
-      // Permisos `LMS_QUIZ_*` ya extendidos en `permission.enum.ts`.
-      // -------------------------------------------------------------------------
       {
         path: 'sections/:sectionUuid/quizzes',
         canMatch: [permissionGuard],
-        data: { permissions: Permission.LmsQuizRead, title: 'Quizzes de la sección' },
+        runGuardsAndResolvers: 'paramsOrQueryParamsChange',
+        resolve: { breadcrumbs: lmsAulaBreadcrumbsResolver },
+        data: { permissions: Permission.LmsQuizRead, title: 'Prácticas de la sección' },
         loadComponent: () =>
           import('./quiz/pages/quiz-list/quiz-list.page').then((m) => m.QuizListPageComponent),
       },
@@ -169,16 +169,16 @@ export const LMS_ROUTES: Routes = [
         canMatch: [permissionGuard],
         data: {
           permissions: Permission.LmsQuizCreate,
-          title: 'Nuevo quiz',
-          breadcrumb: 'Nuevo quiz',
+          title: 'Nueva práctica',
+          breadcrumb: 'Nueva práctica',
         },
         loadComponent: () =>
           import('./quiz/pages/quiz-form/quiz-form.page').then((m) => m.QuizFormPageComponent),
       },
       {
         path: 'quizzes/:uuid',
-        canMatch: [permissionGuard],
-        data: { permissions: Permission.LmsQuizRead, title: 'Detalle de quiz' },
+        canMatch: [rejectReservedSegmentsCanMatch(), permissionGuard],
+        data: { permissions: Permission.LmsQuizRead, title: 'Detalle de práctica' },
         loadComponent: () =>
           import('./quiz/pages/quiz-detail/quiz-detail.page').then(
             (m) => m.QuizDetailPageComponent,
@@ -189,7 +189,7 @@ export const LMS_ROUTES: Routes = [
         canMatch: [permissionGuard],
         data: {
           permissions: Permission.LmsQuizCreate,
-          title: 'Editar quiz',
+          title: 'Editar práctica',
           breadcrumb: 'Editar',
         },
         loadComponent: () =>
@@ -198,14 +198,14 @@ export const LMS_ROUTES: Routes = [
       {
         path: 'quizzes/:uuid/take',
         canMatch: [permissionGuard],
-        data: { permissions: Permission.LmsQuizSubmit, title: 'Tomar quiz' },
+        data: { permissions: Permission.LmsQuizSubmit, title: 'Tomar práctica' },
         loadComponent: () =>
           import('./quiz/pages/quiz-take/quiz-take.page').then((m) => m.QuizTakePageComponent),
       },
       {
         path: 'quizzes/:uuid/results',
         canMatch: [permissionGuard],
-        data: { permissions: Permission.LmsQuizRead, title: 'Resultados del quiz' },
+        data: { permissions: Permission.LmsQuizRead, title: 'Resultados de la práctica' },
         loadComponent: () =>
           import('./quiz/pages/quiz-results/quiz-results.page').then(
             (m) => m.QuizResultsPageComponent,

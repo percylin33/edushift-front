@@ -222,9 +222,8 @@ export class TaskFormComponent implements OnInit {
   private editUuid: string | null = null;
   /** Section UUID captured from the query string on create flow. */
   #sectionUuid: string | null = null;
-  /** Course + period picked by the TEACHER when creating. */
-  #courseUuid: string | null = null;
-  #periodUuid: string | null = null;
+  /** Teacher assignment (materia) required for create (V105). */
+  #assignmentUuid: string | null = null;
 
   protected readonly editing = signal(false);
 
@@ -274,15 +273,15 @@ export class TaskFormComponent implements OnInit {
         return;
       }
       this.#sectionUuid = detail.sectionPublicUuid;
-      this.#courseUuid = detail.coursePublicUuid;
-      this.#periodUuid = detail.periodPublicUuid;
+      this.#assignmentUuid = detail.teacherAssignmentPublicUuid;
       this.hydrateFrom(detail);
     } else {
-      // Create flow — the section comes from the query string.
+      // Create flow — the section + assignment come from the query string.
       this.#sectionUuid =
         this.route.snapshot.queryParamMap.get('section') ??
         this.route.snapshot.paramMap.get('sectionUuid');
-      if (!this.#sectionUuid) {
+      this.#assignmentUuid = this.route.snapshot.queryParamMap.get('assignment');
+      if (!this.#sectionUuid || !this.#assignmentUuid) {
         await this.router.navigate([ROUTES.LMS.ROOT]);
         return;
       }
@@ -308,7 +307,7 @@ export class TaskFormComponent implements OnInit {
           await this.router.navigate([ROUTES.LMS.assignmentDetail(updated.publicUuid)]);
         }
       } else {
-        if (!this.#sectionUuid) {
+        if (!this.#sectionUuid || !this.#assignmentUuid) {
           await this.router.navigate([ROUTES.LMS.ROOT]);
           return;
         }
@@ -325,7 +324,10 @@ export class TaskFormComponent implements OnInit {
 
   protected listRoute(): string {
     if (this.#sectionUuid) {
-      return ROUTES.LMS.sectionAssignments(this.#sectionUuid);
+      const base = ROUTES.LMS.sectionAssignments(this.#sectionUuid);
+      return this.#assignmentUuid
+        ? `${base}?assignment=${encodeURIComponent(this.#assignmentUuid)}`
+        : base;
     }
     return ROUTES.LMS.ROOT;
   }
@@ -377,17 +379,12 @@ export class TaskFormComponent implements OnInit {
     const v = this.form.getRawValue();
     return {
       sectionPublicUuid: this.#sectionUuid!,
-      // MVP: el form no edita course/period; backend los toma del section.
-      // En la integración final se resolverán via un select poblado por
-      // `GET /v1/academic/teacher-assignments?section=...` (FE-7a.1 / ADR-7A.1).
-      coursePublicUuid: this.#courseUuid ?? 'TODO',
-      periodPublicUuid: this.#periodUuid ?? 'TODO',
+      teacherAssignmentPublicUuid: this.#assignmentUuid!,
       title: (v.title ?? '').trim(),
       description: (v.description ?? '').trim() || null,
       dueAt: this.toIsoUtc(v.dueAt as string),
-      maxScore: Number(v.maxScore),
+      maxScore: Math.round(Number(v.maxScore)),
       allowResubmissions: !!v.allowResubmissions,
-      requiresAttachment: !!v.requiresAttachment,
     };
   }
 
@@ -397,9 +394,8 @@ export class TaskFormComponent implements OnInit {
       title: (v.title ?? '').trim(),
       description: (v.description ?? '').trim() || null,
       dueAt: this.toIsoUtc(v.dueAt as string),
-      maxScore: Number(v.maxScore),
+      maxScore: Math.round(Number(v.maxScore)),
       allowResubmissions: !!v.allowResubmissions,
-      requiresAttachment: !!v.requiresAttachment,
     };
   }
 

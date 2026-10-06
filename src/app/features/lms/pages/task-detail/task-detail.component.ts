@@ -101,6 +101,10 @@ import { TaskLifecycleBadgeComponent } from '../../components';
               <dd class="text-sm text-content">{{ detail()!.submissionsCount }}</dd>
             </div>
             <div>
+              <dt class="text-xs font-medium text-content-muted">Revisadas</dt>
+              <dd class="text-sm text-content">{{ detail()!.gradedSubmissionsCount }}</dd>
+            </div>
+            <div>
               <dt class="text-xs font-medium text-content-muted">Re-entregas</dt>
               <dd class="text-sm text-content">
                 {{ detail()!.allowResubmissions ? 'Permitidas' : 'No permitidas' }}
@@ -197,6 +201,16 @@ export class TaskDetailComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('uuid');
     if (!id) {
       void this.router.navigate([ROUTES.LMS.ROOT]);
+      return;
+    }
+    if (id === 'new') {
+      const section =
+        this.route.snapshot.queryParamMap.get('section') ??
+        this.route.snapshot.queryParamMap.get('sectionUuid');
+      void this.router.navigate(['/lms', 'assignments', 'new'], {
+        queryParams: section ? { section } : undefined,
+        replaceUrl: true,
+      });
       return;
     }
     this.editId = id;

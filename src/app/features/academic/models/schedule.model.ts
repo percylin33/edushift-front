@@ -12,11 +12,17 @@ export interface ScheduleCourseRefRaw {
   publicUuid: string;
   code: string;
   name: string;
+  /** Optional hex `#RRGGBB` from Course; null → FE resolves by code. */
+  color?: string | null;
+  /** Optional Lucide icon key from Course; null → FE resolves by code. */
+  icon?: string | null;
 }
 
 export interface ScheduleSectionRefRaw {
   publicUuid: string;
   name: string;
+  /** Denormalised grade label (teacher/student week views). */
+  gradeName?: string | null;
 }
 
 export interface SchedulePeriodRefRaw {
@@ -126,6 +132,51 @@ export function formatTime(time: string): string {
   return time;
 }
 
+/** Grade label for schedule cells (line 1). */
+export function scheduleSectionGrade(
+  section?: Pick<ScheduleSectionRefRaw, 'name' | 'gradeName'> | null,
+): string {
+  return section?.gradeName?.trim() ?? '';
+}
+
+/** Section letter line for schedule cells (line 2, below grade). */
+export function scheduleSectionLine(
+  section?: Pick<ScheduleSectionRefRaw, 'name' | 'gradeName'> | null,
+): string {
+  const letter = section?.name?.trim();
+  return letter ? `Sección ${letter}` : '';
+}
+
+/** Single-line fallback: {@code Primaria · Sección A}. */
+export function formatScheduleSectionLabel(
+  section?: Pick<ScheduleSectionRefRaw, 'name' | 'gradeName'> | null,
+): string {
+  const grade = scheduleSectionGrade(section);
+  const line = scheduleSectionLine(section);
+  if (grade && line) return `${grade} · ${line}`;
+  if (grade) return grade;
+  return line;
+}
+
+/** Fills {@code gradeName} on slot sections from the tenant section catalog. */
+export function enrichScheduleSlotsWithGrades(
+  slots: readonly ScheduleSlotItem[],
+  sections: ReadonlyArray<{ publicUuid: string; gradeName: string }>,
+): ScheduleSlotItem[] {
+  if (slots.length === 0 || sections.length === 0) return [...slots];
+  const byUuid = new Map(sections.map((s) => [s.publicUuid, s.gradeName]));
+  return slots.map((slot) => {
+    const section = slot.section;
+    if (!section?.publicUuid || section.gradeName?.trim()) return slot;
+    const gradeName = byUuid.get(section.publicUuid);
+    if (!gradeName) return slot;
+    return {
+      ...slot,
+      section: { ...section, gradeName },
+    };
+  });
+}
+
 export function toScheduleSlotItem(raw: ScheduleSlotItemRaw): ScheduleSlotItem {
   return {
     slotPublicUuid: raw.slotPublicUuid,
@@ -135,7 +186,13 @@ export function toScheduleSlotItem(raw: ScheduleSlotItemRaw): ScheduleSlotItem {
     endTime: raw.endTime,
     classroom: raw.classroom ?? undefined,
     teacher: raw.teacher ?? undefined,
-    course: raw.course,
+    course: {
+      publicUuid: raw.course.publicUuid,
+      code: raw.course.code,
+      name: raw.course.name,
+      color: raw.course.color ?? null,
+      icon: raw.course.icon ?? null,
+    },
     section: raw.section ?? undefined,
     period: raw.period,
   };
@@ -253,6 +310,8 @@ export interface TeacherWorkloadItem {
   firstName: string;
   lastName: string;
   minutesPerWeek: number;
+  /** Slot minutes ÷ jornada periodMinutes (per section; fallback 45). */
+  academicHoursPerWeek?: number;
   slotCount: number;
   sectionCount: number;
   courseCount: number;

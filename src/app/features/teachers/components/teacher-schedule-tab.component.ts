@@ -20,6 +20,10 @@ import {
   TimeSlotAssignmentOption,
   TimeSlotFormModalComponent,
 } from '@features/academic/components/time-slot-form-modal.component';
+import {
+  dedupeYearScheduleSlots,
+  groupTeacherAssignmentsAsYearOptions,
+} from '@features/academic/utils/schedule-assignment.util';
 import { ScheduleApiService } from '@features/schedule/services/schedule-api.service';
 import { TeachersApiService } from '../services';
 
@@ -99,6 +103,7 @@ import { TeachersApiService } from '../services';
     @if (modalOpen()) {
       <app-time-slot-form-modal
         [assignments]="assignmentOptions()"
+        [yearSlots]="yearSlots()"
         [initialDayOfWeek]="modalDay()"
         [slot]="editingSlot()"
         (closed)="closeModal()"
@@ -124,6 +129,8 @@ export class TeacherScheduleTabComponent implements OnChanges {
   readonly teacherPublicUuid = input.required<string>();
 
   protected readonly slots = signal<ScheduleSlotItem[]>([]);
+  /** Undeduped week slots for year-sibling find in the modal. */
+  protected readonly yearSlots = signal<readonly ScheduleSlotItem[]>([]);
   protected readonly nonTeachingBlocks = signal<NonTeachingBlockItem[]>([]);
   protected readonly assignmentOptions = signal<TimeSlotAssignmentOption[]>([]);
   protected readonly loading = signal(false);
@@ -151,23 +158,23 @@ export class TeacherScheduleTabComponent implements OnChanges {
           firstValueFrom(this.scheduleApi.getTeacherScheduleWeek(uuid)),
           firstValueFrom(this.teachersApi.listAssignments(uuid, { active: true })),
         ]);
-        this.slots.set(view.slots ?? []);
+        const rawSlots = view.slots ?? [];
+        this.yearSlots.set(rawSlots);
+        this.slots.set(dedupeYearScheduleSlots(rawSlots));
         this.nonTeachingBlocks.set(view.nonTeachingBlocks ?? []);
-        this.assignmentOptions.set(
-          assignments.map((a) => ({
-            publicUuid: a.publicUuid,
-            label: `${a.courseCode} — ${a.courseName} · ${a.sectionName}`,
-          })),
-        );
+        this.assignmentOptions.set(groupTeacherAssignmentsAsYearOptions(assignments));
       } else {
         // Teacher self: week if available, else flat schedule
         try {
           const view = await firstValueFrom(this.scheduleApi.getTeacherScheduleWeek(uuid));
-          this.slots.set(view.slots ?? []);
+          const rawSlots = view.slots ?? [];
+          this.yearSlots.set(rawSlots);
+          this.slots.set(dedupeYearScheduleSlots(rawSlots));
           this.nonTeachingBlocks.set(view.nonTeachingBlocks ?? []);
         } catch {
           const data = await firstValueFrom(this.academicApi.getTeacherSchedule(uuid));
-          this.slots.set(data);
+          this.yearSlots.set(data);
+          this.slots.set(dedupeYearScheduleSlots(data));
           this.nonTeachingBlocks.set([]);
         }
       }

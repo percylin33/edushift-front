@@ -51,7 +51,7 @@ import { portalStatus } from '../models';
     InvitePortalDialogComponent,
   ],
   template: `
-    <section class="card lg:col-span-3">
+    <section class="card">
       <header class="card-header">
         <div>
           <h2 class="card-title">Tutores</h2>

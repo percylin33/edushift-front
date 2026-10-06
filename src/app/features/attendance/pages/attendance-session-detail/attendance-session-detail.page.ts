@@ -19,9 +19,13 @@ import {
   PageHeaderComponent,
   SpinnerComponent,
 } from '@shared/components';
-import { AttendanceStatusBadgeComponent, EditRecordModalComponent } from '../../components';
+import { AttendanceStatusBadgeComponent, EditRecordModalComponent, AttendanceExportActionsComponent } from '../../components';
 import { AttendanceStore } from '../../store';
 import { AttendanceRecord, UpdateRecordRequest } from '../../models';
+import { AttendancePrintService } from '../../services/attendance-print.service';
+import { AttendanceReportService } from '../../services/attendance-report.service';
+import { recordsToPrintRows } from '../../utils/attendance-print.helpers';
+import { ReportFormat } from '@features/reports/models/report.model';
 
 /**
  * `/attendance/sessions/:uuid` — roster of a single session
@@ -59,6 +63,7 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
     SpinnerComponent,
     AttendanceStatusBadgeComponent,
     EditRecordModalComponent,
+    AttendanceExportActionsComponent,
   ],
   template: `
     <app-page-container>
@@ -81,6 +86,14 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
             <app-icon name="lock" [size]="16" />
             <span class="hidden sm:inline">Cerrar sesión</span>
           </button>
+        }
+        @if (store.records().length) {
+          <app-attendance-export-actions
+            [disabled]="store.loadingRecords()"
+            [busy]="exportBusy()"
+            (printClick)="onPrint()"
+            (downloadClick)="onDownload($event)"
+          />
         }
       </app-page-header>
 
@@ -134,11 +147,11 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
         </div>
       </section>
 
-      <!-- Roster -->
+      <!-- Lista -->
       <section class="card overflow-hidden">
         @if (store.loadingRecords() && !store.records().length) {
           <div class="flex items-center justify-center py-16">
-            <app-spinner [size]="24" label="Cargando roster…" />
+            <app-spinner [size]="24" label="Cargando lista…" />
           </div>
         } @else if (filteredRecords().length === 0) {
           <app-empty-state
@@ -212,6 +225,10 @@ export class AttendanceSessionDetailPageComponent implements OnInit {
   protected readonly store = inject(AttendanceStore);
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
+  private readonly printService = inject(AttendancePrintService);
+  private readonly reportService = inject(AttendanceReportService);
+
+  protected readonly exportBusy = signal(false);
 
   protected readonly sessionsRoute = ROUTES.ATTENDANCE.SESSIONS;
   protected readonly scannerRoute = ROUTES.ATTENDANCE.SCANNER;
@@ -297,6 +314,45 @@ export class AttendanceSessionDetailPageComponent implements OnInit {
     // error interceptor is the safety net.
     if (updated) {
       await this.store.loadRecords(record.sessionPublicUuid);
+    }
+  }
+
+  protected onPrint(): void {
+    const session = this.store.currentSession();
+    const rows = recordsToPrintRows(this.filteredRecords());
+    this.printService.print({
+      mode: 'sectionDaily',
+      meta: {
+        title: 'Asistencia — lista diaria',
+        subtitle: this.subtitle(),
+        generatedAt: new Date(),
+      },
+      rows,
+    });
+  }
+
+  protected async onDownload(format: ReportFormat): Promise<void> {
+    const session = this.store.currentSession();
+    const sessionUuid = session?.publicUuid ?? this.route.snapshot.paramMap.get('uuid');
+    if (!sessionUuid) return;
+    this.exportBusy.set(true);
+    try {
+      const dateStr =
+        session?.occurredOn.toISOString().slice(0, 10) ??
+        this.store.records()[0]?.occurredAt.toISOString().slice(0, 10);
+      const result = await this.reportService.requestInstitutionalExport(
+        {
+          scope: 'SECTION_DAILY',
+          sectionPublicUuid: session?.sectionPublicUuid,
+          sessionPublicUuid: sessionUuid,
+          from: dateStr,
+          to: dateStr,
+        },
+        format,
+      );
+      this.reportService.downloadJob(result.job.publicUuid, `asistencia-sesion.${format.toLowerCase()}`);
+    } finally {
+      this.exportBusy.set(false);
     }
   }
 }

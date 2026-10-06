@@ -18,7 +18,7 @@ import { FamilyApiService } from '../../services/family-api.service';
       <header class="mt-6">
         <p class="text-sm font-semibold uppercase tracking-wide text-indigo-600">Familia</p>
         <h1 class="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">Calificaciones del estudiante</h1>
-        <p class="mt-2 text-slate-600 dark:text-slate-400">Revisa las evaluaciones registradas y su progreso académico.</p>
+        <p class="mt-2 text-slate-600 dark:text-slate-400">Revisa los registros de notas y su progreso académico.</p>
       </header>
 
       @if (loading()) {
@@ -44,7 +44,7 @@ import { FamilyApiService } from '../../services/family-api.service';
               <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                    {{ grade.evaluationName || 'Evaluación sin nombre' }}
+                    {{ grade.evaluationName || 'Registro sin nombre' }}
                   </h2>
                   <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                     {{ grade.courseName || 'Curso no especificado' }}

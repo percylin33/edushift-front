@@ -50,6 +50,6 @@ describe('MeApiService', () => {
     });
     const request = http.expectOne('/api/v1/me/schedule');
     expect(request.request.method).toBe('GET');
-    request.flush({ data: { slots: [], nonTeachingBlocks: [] } });
+    request.flush({ data: { slots: [], nonTeachingBlocks: [], suggestedPeriods: [] } });
   });
 });

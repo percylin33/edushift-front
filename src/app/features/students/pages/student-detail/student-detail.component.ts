@@ -197,9 +197,12 @@ import { portalStatus, StudentDetail } from '../../models';
             </div>
           </section>
 
-          <app-enrollments-section [student]="s" />
+          <app-enrollments-section class="col-span-full block min-w-0" [student]="s" />
 
-          <app-guardians-section [studentPublicUuid]="s.publicUuid" />
+          <app-guardians-section
+            class="col-span-full block min-w-0"
+            [studentPublicUuid]="s.publicUuid"
+          />
 
           @if (portalInvite(); as inv) {
             <app-invite-portal-dialog

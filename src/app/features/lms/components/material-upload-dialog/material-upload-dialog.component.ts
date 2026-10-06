@@ -185,6 +185,8 @@ import {
 })
 export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestroy {
   @Input() open = false;
+  /** Required to create material under a TeacherAssignment (V105). */
+  @Input() teacherAssignmentPublicUuid: string | null = null;
   @Input() uploading = false;
   @Input() uploadPercent = 0;
   @Input() errorMessage: string | null = null;
@@ -323,6 +325,10 @@ export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestr
     if (this.fileError()) {
       return;
     }
+    if (!this.teacherAssignmentPublicUuid) {
+      this.fileError.set('Selecciona una materia en el selector del aula antes de subir.');
+      return;
+    }
     const v = this.form.getRawValue();
     const type = v.type as MaterialType;
     const request: CreateMaterialRequest = {
@@ -330,6 +336,7 @@ export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestr
       type,
       file: isFileMaterial(type) ? this.selectedFile() : null,
       url: type === MaterialType.Link ? (v.url ?? '').toString().trim() : null,
+      teacherAssignmentPublicUuid: this.teacherAssignmentPublicUuid,
     };
     this.submitted.emit(request);
   }

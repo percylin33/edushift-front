@@ -19,7 +19,14 @@ import {
  * docente can share a filtered link with a peer.
  */
 export interface AttendanceSessionListFilters {
+  /** Single day (maps to from=to=date). */
   date?: string;
+  /** Explicit range — used when filterMode is month or range. */
+  from?: string;
+  to?: string;
+  filterMode?: 'day' | 'month' | 'range';
+  month?: number;
+  year?: number;
   sectionPublicUuid?: string;
   slot?: AttendanceSessionSlot;
   status?: AttendanceSessionStatus;
@@ -192,10 +199,18 @@ export class AttendanceStore {
     this._loadingList.set(true);
     this._error.set(null);
     try {
-      // Translate the URL-friendly filter shape into the API's
-      // snake-case form. `date` is sugar for `from=date&to=date`.
-      const from = filters.date;
-      const to = filters.date;
+      // Translate filters: day → from=to=date; month → full month range.
+      let from = filters.from;
+      let to = filters.to;
+      if (filters.filterMode === 'month' && filters.month && filters.year) {
+        const mm = String(filters.month).padStart(2, '0');
+        const last = new Date(filters.year, filters.month, 0).getDate();
+        from = `${filters.year}-${mm}-01`;
+        to = `${filters.year}-${mm}-${String(last).padStart(2, '0')}`;
+      } else if (!from && !to && filters.date) {
+        from = filters.date;
+        to = filters.date;
+      }
       const result = await firstValueFrom(
         this.api.listSessions(
           {

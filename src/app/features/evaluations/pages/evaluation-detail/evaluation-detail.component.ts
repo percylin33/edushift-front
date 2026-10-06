@@ -77,7 +77,7 @@ const TABS: readonly TabDef[] = [
   ],
   template: `
     <app-page-container size="wide">
-      <app-page-header eyebrow="Evaluaciones" [title]="title()" [subtitle]="subtitle()">
+      <app-page-header eyebrow="Registros" [title]="title()" [subtitle]="subtitle()">
         <button type="button" class="btn btn-ghost btn-sm" (click)="goBack()">
           <app-icon name="chevron-left" [size]="16" />
           <span>Volver</span>
@@ -115,7 +115,7 @@ const TABS: readonly TabDef[] = [
 
       @if (loading()) {
         <div class="flex items-center justify-center py-16">
-          <app-spinner [size]="24" label="Cargando evaluación…" />
+          <app-spinner [size]="24" label="Cargando registro…" />
         </div>
       } @else if (errorBanner() && !evaluation()) {
         <div class="alert alert-danger">
@@ -258,7 +258,7 @@ const TABS: readonly TabDef[] = [
                 <div class="flex-1">
                   <h4 class="text-danger-700 font-medium">Zona peligrosa</h4>
                   <p class="text-danger-600 mt-1 text-sm">
-                    Esta evaluación es un borrador sin calificaciones. Eliminarla la quita del
+                    Este registro es un borrador sin calificaciones. Eliminarlo lo quita del
                     listado del docente.
                   </p>
                 </div>
@@ -314,7 +314,7 @@ export class EvaluationDetailComponent implements OnInit, OnDestroy {
   protected readonly activeTab = signal<TabId>('overview');
   protected readonly editing = signal<EvaluationDetail | null>(null);
 
-  protected readonly title = computed(() => this.evaluation()?.name ?? 'Evaluación');
+  protected readonly title = computed(() => this.evaluation()?.name ?? 'Registro');
   protected readonly subtitle = computed(() => this.evaluation()?.assignment.label ?? '');
 
   private routeSub?: Subscription;
@@ -369,7 +369,7 @@ export class EvaluationDetailComponent implements OnInit, OnDestroy {
     if (!e) return;
     const fromLabel = e.status;
     const ok = confirm(
-      `¿Cambiar la evaluación "${e.name}" a ${target}?` +
+      `¿Cambiar el registro "${e.name}" a ${target}?` +
         (target === EvaluationStatus.CLOSED ? '\n\nUna vez cerrada NO se podrá reabrir.' : ''),
     );
     if (!ok) return;

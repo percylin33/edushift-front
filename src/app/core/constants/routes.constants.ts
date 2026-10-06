@@ -13,6 +13,8 @@ export const ROUTES = {
     RESET_PASSWORD: '/auth/reset-password',
     /** Sprint 17 / FE-17.3 — second-factor challenge page. */
     MFA_CHALLENGE: '/auth/mfa-challenge',
+    /** CRED-7 — forced password + profile onboarding after mass provision. */
+    FIRST_LOGIN: '/auth/first-login',
   },
   INVITATION: {
     /**
@@ -94,6 +96,10 @@ export const ROUTES = {
     PERIODS: {
       LIST: '/academic/periods',
     },
+    /** Plantillas del registro formal de notas (F1). */
+    GRADE_REGISTER: {
+      LIST: '/academic/grade-register',
+    },
   },
   SESSIONS: {
     ROOT: '/learning-sessions',
@@ -115,6 +121,10 @@ export const ROUTES = {
   },
   EVALUATIONS: {
     ROOT: '/evaluations',
+    /** {@code /evaluations/courses} — grilla de materias (funnel Registros). */
+    COURSES: '/evaluations/courses',
+    /** {@code /evaluations/courses/{courseUuid}/sections} — secciones de una materia. */
+    courseSections: (courseUuid: string) => `/evaluations/courses/${courseUuid}/sections`,
     /** {@code /evaluations/by-assignment/{assignmentUuid}} — listing por assignment. */
     byAssignment: (assignmentUuid: string) => `/evaluations/by-assignment/${assignmentUuid}`,
     /** {@code /evaluations/{publicUuid}} — detail con tabs Overview / Rúbrica / Notas. */
@@ -175,6 +185,10 @@ export const ROUTES = {
   },
   LMS: {
     ROOT: '/lms',
+    /** {@code /lms/courses} — grilla de materias (funnel Mis cursos). */
+    COURSES: '/lms/courses',
+    /** {@code /lms/courses/{courseUuid}/sections} — secciones de una materia. */
+    courseSections: (courseUuid: string) => `/lms/courses/${courseUuid}/sections`,
     /** {@code /lms/sections/{sectionUuid}/assignments} — list del docente. */
     sectionAssignments: (sectionUuid: string) => `/lms/sections/${sectionUuid}/assignments`,
     /** {@code /lms/students/{studentUuid}/assignments} — "Mis tareas" del alumno. */

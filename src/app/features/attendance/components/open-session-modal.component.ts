@@ -4,12 +4,11 @@ import {
   Component,
   HostListener,
   OnInit,
-  computed,
   inject,
   output,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { IconComponent } from '@shared/components';
 import { AcademicApiService } from '@features/academic/services';
@@ -19,22 +18,15 @@ import { AttendanceSessionSlot, CreateSessionRequest } from '../models';
 /**
  * Dialog "Abrir sesión" — emits a {@link CreateSessionRequest} on submit.
  *
- * <h3>Why a fire-and-emit modal</h3>
- * The dialog doesn't talk to the backend; the parent page owns the
- * {@link AttendanceStore} and runs the request, so the loading
- * state, error surfacing, and post-create navigation all live in
- * one place. The modal's only job is to collect a valid request.
- *
- * <h3>Why the date defaults to today</h3>
- * 99% of the time the docente opens a session for "ahora" (the
- * current school day). Defaulting to `today` keeps the form
- * one-tap: the only meaningful choice is the section + slot.
+ * The primary button is never {@code disabled}: previous OnPush + signal
+ * / form-validity bindings left it stuck. Validation runs on submit and
+ * surfaces {@link #submitHint} instead.
  */
 @Component({
   selector: 'app-open-session-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [CommonModule, ReactiveFormsModule, IconComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
@@ -51,8 +43,8 @@ import { AttendanceSessionSlot, CreateSessionRequest } from '../models';
           <div>
             <h2 id="open-session-title" class="card-title">Abrir sesión de asistencia</h2>
             <p class="card-description">
-              El backend la hace idempotente: si ya hay una ACTIVA para (sección, día, slot), la
-              trae en lugar de fallar.
+              Selecciona sección, fecha y turno. Si ya existe una sesión ACTIVA para esa
+              combinación, el sistema la reutiliza.
             </p>
           </div>
           <button
@@ -65,20 +57,17 @@ import { AttendanceSessionSlot, CreateSessionRequest } from '../models';
           </button>
         </header>
 
-        <form class="card-body flex flex-col gap-3 overflow-y-auto" (ngSubmit)="submit()">
+        <form
+          class="card-body flex flex-col gap-3 overflow-y-auto"
+          [formGroup]="form"
+          (ngSubmit)="submit()"
+        >
           <div>
             <label class="label" for="open-section">Sección</label>
-            <select
-              id="open-section"
-              class="select"
-              [(ngModel)]="sectionPublicUuid"
-              name="section"
-              [disabled]="loadingSections()"
-              required
-            >
-              <option [ngValue]="null" disabled>Selecciona una sección…</option>
+            <select id="open-section" class="select" formControlName="sectionPublicUuid">
+              <option value="" disabled>Selecciona una sección…</option>
               @for (s of sections(); track s.publicUuid) {
-                <option [ngValue]="s.publicUuid">{{ s.gradeName }} · {{ s.name }}</option>
+                <option [value]="s.publicUuid">{{ s.gradeName }} · {{ s.name }}</option>
               }
             </select>
             @if (!loadingSections() && !activeYear()) {
@@ -86,26 +75,23 @@ import { AttendanceSessionSlot, CreateSessionRequest } from '../models';
                 No hay año académico activo. Crea uno en Académico antes de abrir sesiones.
               </p>
             }
+            @if (!loadingSections() && activeYear() && sections().length === 0) {
+              <p class="hint mt-1 text-xs text-warning">
+                El año activo no tiene secciones. Crea secciones en Académico.
+              </p>
+            }
           </div>
 
           <div class="grid gap-3 sm:grid-cols-2">
             <div>
               <label class="label" for="open-date">Fecha</label>
-              <input
-                id="open-date"
-                type="date"
-                class="input"
-                [(ngModel)]="occurredOn"
-                name="date"
-                [max]="today"
-                required
-              />
+              <input id="open-date" type="date" class="input" formControlName="occurredOn" />
             </div>
             <div>
               <label class="label" for="open-slot">Slot</label>
-              <select id="open-slot" class="select" [(ngModel)]="slot" name="slot" required>
+              <select id="open-slot" class="select" formControlName="slot">
                 @for (opt of slotOptions; track opt.value) {
-                  <option [ngValue]="opt.value">{{ opt.label }}</option>
+                  <option [value]="opt.value">{{ opt.label }}</option>
                 }
               </select>
             </div>
@@ -118,19 +104,21 @@ import { AttendanceSessionSlot, CreateSessionRequest } from '../models';
               class="textarea"
               rows="2"
               maxlength="500"
-              [(ngModel)]="notes"
-              name="notes"
+              formControlName="notes"
               placeholder="Algo que el docente deba saber…"
             ></textarea>
           </div>
+
+          @if (submitHint(); as hint) {
+            <p class="text-sm text-danger" role="alert">{{ hint }}</p>
+          }
         </form>
 
         <footer class="card-footer justify-end gap-2">
           <button type="button" class="btn btn-ghost btn-sm" (click)="close()">Cancelar</button>
           <button
-            type="submit"
+            type="button"
             class="btn btn-primary btn-sm"
-            [disabled]="!canSubmit()"
             (click)="submit()"
           >
             <app-icon name="check" [size]="16" />
@@ -142,21 +130,16 @@ import { AttendanceSessionSlot, CreateSessionRequest } from '../models';
   `,
 })
 export class OpenSessionModalComponent implements OnInit {
-  /** Fires with the validated request on submit. */
   readonly submitRequest = output<CreateSessionRequest>();
-  /** Fires when the docente dismisses the dialog without submitting. */
   readonly cancelled = output<void>();
 
   private readonly academicApi = inject(AcademicApiService);
-
-  protected sectionPublicUuid: string | null = null;
-  protected occurredOn = '';
-  protected slot: AttendanceSessionSlot = 'MORNING';
-  protected notes = '';
+  private readonly fb = inject(FormBuilder);
 
   protected readonly sections = signal<SectionRow[]>([]);
   protected readonly activeYear = signal<AcademicYearRow | null>(null);
   protected readonly loadingSections = signal(false);
+  protected readonly submitHint = signal<string | null>(null);
 
   protected readonly today = formatDate(new Date());
 
@@ -166,12 +149,14 @@ export class OpenSessionModalComponent implements OnInit {
     { value: 'EVENING', label: 'Noche' },
   ];
 
-  protected readonly canSubmit = computed(
-    () => Boolean(this.sectionPublicUuid) && Boolean(this.occurredOn),
-  );
+  protected readonly form = this.fb.nonNullable.group({
+    sectionPublicUuid: ['', Validators.required],
+    occurredOn: [this.today, Validators.required],
+    slot: ['MORNING' as AttendanceSessionSlot, Validators.required],
+    notes: [''],
+  });
 
   async ngOnInit(): Promise<void> {
-    this.occurredOn = this.today;
     await this.loadSections();
   }
 
@@ -189,11 +174,25 @@ export class OpenSessionModalComponent implements OnInit {
   }
 
   protected submit(): void {
-    if (!this.canSubmit() || !this.sectionPublicUuid) return;
+    const v = this.form.getRawValue();
+    const section = (v.sectionPublicUuid ?? '').trim();
+    const occurredOn = (v.occurredOn ?? '').trim();
+
+    if (!section || !occurredOn) {
+      this.form.markAllAsTouched();
+      this.submitHint.set(
+        !section
+          ? 'Selecciona una sección para continuar.'
+          : 'Indica la fecha de la sesión.',
+      );
+      return;
+    }
+
+    this.submitHint.set(null);
     this.submitRequest.emit({
-      sectionPublicUuid: this.sectionPublicUuid,
-      slot: this.slot,
-      occurredOn: this.occurredOn,
+      sectionPublicUuid: section,
+      slot: v.slot,
+      occurredOn,
     });
   }
 
@@ -203,11 +202,17 @@ export class OpenSessionModalComponent implements OnInit {
       const years = await firstValueFrom(this.academicApi.listYears());
       const active = years.find((y) => y.status === AcademicYearStatus.Active) ?? null;
       this.activeYear.set(active);
-      if (!active) return;
+      if (!active) {
+        this.sections.set([]);
+        return;
+      }
       const sections = await firstValueFrom(
         this.academicApi.listSections({ academicYearPublicUuid: active.publicUuid }),
       );
       this.sections.set(sections);
+      if (sections.length > 0) {
+        this.form.patchValue({ sectionPublicUuid: sections[0].publicUuid });
+      }
     } catch {
       this.sections.set([]);
     } finally {

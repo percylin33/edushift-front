@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { IconComponent } from '@shared/components';
+import { FileUploadService } from '@core/services/file-upload.service';
 import { Submission, SubmissionStatus } from '../../models';
 
 /**
@@ -59,16 +60,15 @@ import { Submission, SubmissionStatus } from '../../models';
           @if (submission.attachment; as att) {
             <div>
               <p class="text-xs font-medium uppercase tracking-wide text-content-muted">Adjunto</p>
-              <a
-                [href]="att.downloadUrl"
-                target="_blank"
-                rel="noopener"
+              <button
+                type="button"
                 class="inline-flex items-center gap-2 text-primary hover:underline"
+                (click)="onDownloadAttachment(att.publicUuid, att.filename)"
               >
                 <app-icon name="paperclip" [size]="14" />
                 <span>{{ att.filename }}</span>
                 <span class="text-xs text-content-muted"> ({{ formatSize(att.sizeBytes) }}) </span>
-              </a>
+              </button>
             </div>
           }
 
@@ -126,8 +126,18 @@ export class MySubmissionsCardComponent {
   @Input() showResubmit = false;
   @Output() readonly resubmit = new EventEmitter<void>();
 
+  private readonly files = inject(FileUploadService);
+
   protected onResubmit(): void {
     this.resubmit.emit();
+  }
+
+  protected async onDownloadAttachment(publicUuid: string, filename: string): Promise<void> {
+    try {
+      await this.files.downloadAndSave(publicUuid, filename);
+    } catch {
+      // UI feedback handled by global error interceptor
+    }
   }
 
   protected statusLabel(status: SubmissionStatus): string {

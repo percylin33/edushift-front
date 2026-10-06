@@ -1,17 +1,18 @@
 import { Routes } from '@angular/router';
 import { AuthLayoutComponent, OnboardingLayoutComponent } from '@layout/index';
-import { featureFlagGuard, guestGuard } from '@core/guards';
+import { featureFlagGuard } from '@core/guards';
 import { FeatureKey } from '@core/enums';
 
 /**
- * Routes that don't require an authenticated session.
+ * Routes that don't require an authenticated session (plus auth shell
+ * pages that do, e.g. MFA enroll / CRED-7 first-login).
  *
  * Two distinct shells:
- *   - `AuthLayoutComponent`       → login / forgot / reset (two-pane branding)
+ *   - `AuthLayoutComponent`       → login / forgot / reset / first-login
  *   - `OnboardingLayoutComponent` → multi-step wizard (header + stepper + card)
  *
- * Both apply `guestGuard` so already-signed-in users are redirected away,
- * keeping the public area noise-free for authenticated sessions.
+ * Per-route {@code guestGuard} keeps login/register free of signed-in noise;
+ * authenticated-only auth pages declare {@code authChildGuard} themselves.
  */
 export const PUBLIC_ROUTES: Routes = [
   {
@@ -20,7 +21,7 @@ export const PUBLIC_ROUTES: Routes = [
     children: [
       {
         path: 'auth',
-        canActivate: [guestGuard, featureFlagGuard],
+        canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Auth, title: 'Acceso' },
         loadChildren: () => import('@features/auth/auth.routes').then((m) => m.AUTH_ROUTES),
       },

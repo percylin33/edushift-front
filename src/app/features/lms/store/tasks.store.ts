@@ -60,6 +60,8 @@ export class TasksStore {
   // ---------------------------------------------------------------------------
   private readonly _saving = signal<boolean>(false);
   private readonly _error = signal<string | null>(null);
+  /** Monotonic token so stale list responses cannot overwrite newer loads. */
+  private _listRequestId = 0;
 
   // ---------------------------------------------------------------------------
   // Public read-only API
@@ -95,24 +97,33 @@ export class TasksStore {
    */
   async loadBySection(
     sectionUuid: string,
-    filters: { lifecycle?: TaskLifecycle } = {},
+    filters: { lifecycle?: TaskLifecycle; assignmentPublicUuid?: string } = {},
   ): Promise<void> {
     const sameSection = this._currentSectionUuid() === sectionUuid;
     const sameFilter = this._filters().lifecycle === (filters.lifecycle ?? undefined);
-    if (sameSection && sameFilter && this._rows().length > 0) return;
+    const sameAssignment =
+      (this._filters() as { assignmentPublicUuid?: string }).assignmentPublicUuid ===
+      (filters.assignmentPublicUuid ?? undefined);
+    if (sameSection && sameFilter && sameAssignment && this._rows().length > 0) return;
 
+    const requestId = ++this._listRequestId;
     this._currentSectionUuid.set(sectionUuid);
     this._filters.set(filters);
     this._loading.set(true);
     this._error.set(null);
     try {
       const rows = await firstValueFrom(this.api.listBySection(sectionUuid, filters));
+      if (requestId !== this._listRequestId) return;
       this._rows.set(rows);
+      this._error.set(null);
     } catch {
+      if (requestId !== this._listRequestId) return;
       this._rows.set([]);
       this._error.set('No pudimos cargar las tareas de la sección.');
     } finally {
-      this._loading.set(false);
+      if (requestId === this._listRequestId) {
+        this._loading.set(false);
+      }
     }
   }
 
@@ -263,6 +274,7 @@ export class TasksStore {
                 maxScore: detail.maxScore,
                 lifecycle: detail.lifecycle,
                 submissionsCount: detail.submissionsCount,
+                gradedSubmissionsCount: detail.gradedSubmissionsCount,
               }
             : r,
         ),

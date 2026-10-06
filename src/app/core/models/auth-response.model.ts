@@ -53,6 +53,10 @@ export interface UserResponseRaw {
   avatarUrl?: string | null;
   status: UserStatus;
   emailVerified: boolean;
+  /** CRED-7: REAL | SYNTHETIC */
+  emailSource?: 'REAL' | 'SYNTHETIC' | null;
+  /** CRED-7: force password change after mass provision. */
+  mustChangePassword?: boolean;
   mfaEnabled: boolean;
   /**
    * Backend serializes role names (UPPER_CASE) as a JSON array. We accept the

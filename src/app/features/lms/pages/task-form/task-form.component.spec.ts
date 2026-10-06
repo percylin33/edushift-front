@@ -38,6 +38,7 @@ describe('TaskFormComponent', () => {
         createdAt: new Date(),
         updatedAt: null,
         submissionsCount: 0,
+        gradedSubmissionsCount: 0,
       }),
     );
 

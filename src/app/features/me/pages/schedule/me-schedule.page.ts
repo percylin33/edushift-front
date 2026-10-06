@@ -11,6 +11,7 @@ import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ScheduleGridComponent } from '@features/academic/components/schedule-grid.component';
 import { NonTeachingBlockItem, ScheduleSlotItem } from '@features/academic/models';
+import { dedupeYearScheduleSlots } from '@features/academic/utils/schedule-assignment.util';
 import { MeApiService } from '../../services/me-api.service';
 
 @Component({
@@ -80,7 +81,7 @@ export class MeSchedulePageComponent implements OnInit {
       .subscribe({
         next: (response) => {
           const view = response.data;
-          this.slots.set(view?.slots ?? []);
+          this.slots.set(dedupeYearScheduleSlots(view?.slots ?? []));
           this.nonTeachingBlocks.set(view?.nonTeachingBlocks ?? []);
           this.loading.set(false);
         },

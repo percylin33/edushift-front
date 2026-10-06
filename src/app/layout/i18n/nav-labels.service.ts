@@ -69,6 +69,9 @@ export class NavLabels {
 			case 'academic-courses':
 			case 'courses':
 				return $localize`:@@nav.item.courses:Cursos`;
+			case 'academic-grade-register':
+			case 'grade-register':
+				return $localize`:@@nav.item.grade-register:Registro de notas`;
 			case 'schedule':
 				return $localize`:@@nav.item.schedule:Horarios`;
 			case 'schedule-jornada':
@@ -81,13 +84,13 @@ export class NavLabels {
 			case 'sessions':
 				return $localize`:@@nav.item.sessions:Sesiones de clase`;
 			case 'evaluations':
-				return $localize`:@@nav.item.evaluations:Evaluaciones`;
+				return $localize`:@@nav.item.evaluations:Registros`;
 			case 'lms-mine':
 				return $localize`:@@nav.item.lms-mine:Mis cursos`;
 			case 'attendance-sessions':
 				return $localize`:@@nav.item.attendance-sessions:Sesiones`;
 			case 'attendance-scanner':
-				return $localize`:@@nav.item.attendance-scanner:Esc\u00e1ner QR`;
+				return $localize`:@@nav.item.attendance-scanner:Entrada / Esc\u00e1ner`;
 			case 'family':
 				return $localize`:@@nav.item.family:Mis hijos`;
 			case 'me':

@@ -105,6 +105,12 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
             route: ROUTES.ACADEMIC.PERIODS.LIST,
             roles: [UserRole.TenantAdmin],
           },
+          {
+            id: 'academic-grade-register',
+            label: 'Registro de notas',
+            route: ROUTES.ACADEMIC.GRADE_REGISTER.LIST,
+            roles: [UserRole.TenantAdmin],
+          },
         ],
       },
       {
@@ -123,9 +129,10 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
       },
       {
         /*
-         * Schedule module (F8 + jornada/workload). TENANT_ADMIN gets the
-         * hub + jornada/carga; TEACHER gets the weekly landing (`/schedule`
-         * / `/schedule/me`). Feature flag `schedule` must be on.
+         * Schedule module (F8 + jornada/workload). Single entry → `/schedule`
+         * hub; jornada/carga se navegan desde esa página (no submenu).
+         * TEACHER: landing semanal (`/schedule` / `/schedule/me`).
+         * Feature flag `schedule` must be on.
          */
         id: 'schedule',
         label: 'Horarios',
@@ -133,20 +140,6 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         route: ROUTES.SCHEDULE.ROOT,
         feature: FeatureKey.Schedule,
         roles: [UserRole.TenantAdmin, UserRole.Teacher],
-        children: [
-          {
-            id: 'schedule-jornada',
-            label: 'Jornada y recreos',
-            route: ROUTES.SCHEDULE.JORNADA,
-            roles: [UserRole.TenantAdmin],
-          },
-          {
-            id: 'schedule-workload',
-            label: 'Carga docente',
-            route: ROUTES.SCHEDULE.WORKLOAD,
-            roles: [UserRole.TenantAdmin],
-          },
-        ],
       },
       {
         /*
@@ -171,7 +164,7 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
          * trade-off de role-gating que el resto del árbol.
          */
         id: 'evaluations',
-        label: 'Evaluaciones',
+        label: 'Registros',
         icon: 'clipboard-check',
         route: ROUTES.EVALUATIONS.ROOT,
         feature: FeatureKey.Evaluations,
@@ -196,30 +189,28 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         /*
          * Sprint 6 — el sidebar usa role-gating (mismo trade-off que
          * students/teachers/academic) porque el backend aún no popula
-         * `User.permissions`. Las sub-rutas reales son
-         * `/attendance/sessions` y `/attendance/scanner`; los paths
-         * `/attendance/daily|history|reports` declarados en
-         * ROUTES.ATTENDANCE no tienen entrada en attendance.routes.ts
-         * todavía, así que no se exponen como children hasta que las
-         * pantallas existan (FE-6.4 dashboard / reportes).
+         * `User.permissions`. Flujo primario = escáner en puerta
+         * (`/attendance/scanner`); Sesiones queda como revisión / aula.
+         * Paths `/attendance/daily|history|reports` aún no tienen
+         * pantallas (FE-6.4).
          */
         id: 'attendance',
         label: 'Asistencia',
         icon: 'calendar-check',
-        route: ROUTES.ATTENDANCE.SESSIONS,
+        route: ROUTES.ATTENDANCE.SCANNER,
         feature: FeatureKey.Attendance,
         roles: [UserRole.TenantAdmin, UserRole.Teacher],
         children: [
           {
-            id: 'attendance-sessions',
-            label: 'Sesiones',
-            route: ROUTES.ATTENDANCE.SESSIONS,
+            id: 'attendance-scanner',
+            label: 'Entrada / Escáner',
+            route: ROUTES.ATTENDANCE.SCANNER,
             roles: [UserRole.TenantAdmin, UserRole.Teacher],
           },
           {
-            id: 'attendance-scanner',
-            label: 'Escáner QR',
-            route: ROUTES.ATTENDANCE.SCANNER,
+            id: 'attendance-sessions',
+            label: 'Sesiones',
+            route: ROUTES.ATTENDANCE.SESSIONS,
             roles: [UserRole.TenantAdmin, UserRole.Teacher],
           },
         ],

@@ -27,11 +27,13 @@ import {
 } from '@features/evaluations/models';
 import { EvaluationsApiService } from '@features/evaluations/services';
 import { EvaluationStatusBadgeComponent } from '@features/evaluations/components/evaluation-status-badge.component';
+import { GradeBookApiService } from '@features/gradebook/services';
 import { GradeRecordFormModalComponent, GradeRecordsBulkModalComponent } from '../../components';
 import {
   ALLOWED_LITERALS_BY_SCALE,
   CreateGradeRecordRequest,
   GradeRecordRow,
+  GradeStudentOption,
   SCORE_MAX,
   SCORE_MIN,
   areGradesEditable,
@@ -82,14 +84,11 @@ type InlineEditOutcome =
  *       intenta — aquí lo evitamos disable-side.</li>
  * </ul>
  *
- * <h3>Deuda técnica documentada</h3>
- * <p>El roster de la sección no está expuesto a {@code TEACHER}, por lo
- * que esta pantalla muestra solo estudiantes con nota registrada. Para
- * agregar nuevas notas hace falta el {@code studentPublicUuid} (modal o
- * CSV). Se trackea como deuda <strong>DEBT-FE-EVAL-1</strong> a
- * resolver en sprint posterior con un endpoint
- * {@code GET /v1/academic/sections/{uuid}/students-light} con RBAC
- * {@code TENANT_ADMIN | TEACHER}.</p>
+ * <h3>Roster</h3>
+ * <p>El select de "Registrar nota" se alimenta del roster de la
+ * sección vía {@code GET …/teacher-assignments/{uuid}/gradebook}
+ * (mismo listado que el libro de calificaciones; RBAC
+ * {@code TENANT_ADMIN | TEACHER}).</p>
  */
 @Component({
   selector: 'app-grade-records-page',
@@ -150,7 +149,7 @@ type InlineEditOutcome =
           <div class="alert alert-warning mb-4">
             <app-icon name="lock" [size]="16" />
             <p class="flex-1 text-sm">
-              Esta evaluación está
+              Este registro está
               <strong>{{ statusLabel(e.status) }}</strong
               >: no se pueden registrar, editar ni borrar notas. Para reabrir, contacta al
               administrador.
@@ -201,7 +200,7 @@ type InlineEditOutcome =
           <app-empty-state
             icon="target"
             title="Sin notas registradas"
-            description="Aún no hay calificaciones para esta evaluación. Registra la primera o usa Bulk CSV para varias a la vez."
+            description="Aún no hay calificaciones para este registro. Registra la primera o usa Bulk CSV para varias a la vez."
           >
             @if (canEdit()) {
               <button type="button" class="btn btn-primary btn-sm" (click)="openCreate()">
@@ -358,6 +357,7 @@ type InlineEditOutcome =
     @if (showCreate() && evaluation(); as e) {
       <app-grade-record-form-modal
         [scale]="e.scale"
+        [students]="rosterStudents()"
         [saving]="saving()"
         [errorBanner]="errorBanner()"
         (closed)="closeCreate()"
@@ -420,6 +420,7 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly store = inject(GradeRecordsStore);
   private readonly evaluationsApi = inject(EvaluationsApiService);
+  private readonly gradeBookApi = inject(GradeBookApiService);
 
   protected readonly scaleScore = EvaluationScale.SCORE_0_20;
   protected readonly scoreMin = SCORE_MIN;
@@ -427,6 +428,8 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
   protected readonly commentsMaxLength = 1000;
 
   protected readonly evaluation = signal<EvaluationDetail | null>(null);
+  /** Roster de la sección (desde gradebook del assignment). */
+  protected readonly rosterStudents = signal<GradeStudentOption[]>([]);
 
   protected readonly rows = this.store.rows;
   protected readonly loading = this.store.loading;
@@ -726,9 +729,26 @@ export class GradeRecordsPageComponent implements OnInit, OnDestroy {
     try {
       const evaluation = await firstValueFrom(this.evaluationsApi.getEvaluation(evaluationUuid));
       this.evaluation.set(evaluation);
+      await this.loadRoster(evaluation.assignment.publicUuid);
     } catch {
       this.evaluation.set(null);
+      this.rosterStudents.set([]);
     }
     await this.store.loadByEvaluation(evaluationUuid);
+  }
+
+  private async loadRoster(assignmentPublicUuid: string): Promise<void> {
+    try {
+      const gb = await firstValueFrom(this.gradeBookApi.getByAssignment(assignmentPublicUuid));
+      this.rosterStudents.set(
+        [...gb.students]
+          .map((s) => ({ publicUuid: s.publicUuid, fullName: s.fullName }))
+          .sort((a, b) =>
+            (a.fullName ?? '').localeCompare(b.fullName ?? '', 'es', { sensitivity: 'base' }),
+          ),
+      );
+    } catch {
+      this.rosterStudents.set([]);
+    }
   }
 }

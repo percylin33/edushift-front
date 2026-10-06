@@ -140,6 +140,45 @@ export class AuthApiService {
       .pipe(map((envelope) => toUser(envelope.data)));
   }
 
+  /** CRED-7 — change password; clears mustChangePassword. */
+  changePassword(currentPassword: string, newPassword: string): Observable<User> {
+    return this.api
+      .patch<ApiResponse<UserResponseRaw>, { currentPassword: string; newPassword: string }>(
+        API.AUTH.ME_PASSWORD,
+        { currentPassword, newPassword },
+      )
+      .pipe(map((envelope) => toUser(envelope.data)));
+  }
+
+  /** CRED-7 — first-login onboarding status (role-aware required fields). */
+  getOnboarding(): Observable<OnboardingMe> {
+    return this.api
+      .get<ApiResponse<OnboardingMe>>(API.AUTH.ME_ONBOARDING)
+      .pipe(map((envelope) => envelope.data));
+  }
+
+  /** CRED-7 — complete first-login (password + light profile + padrón write-back). */
+  completeOnboarding(payload: CompleteOnboardingPayload): Observable<User> {
+    return this.api
+      .patch<ApiResponse<UserResponseRaw>, CompleteOnboardingPayload>(
+        API.AUTH.ME_ONBOARDING,
+        payload,
+      )
+      .pipe(map((envelope) => toUser(envelope.data)));
+  }
+
+  /** CRED-7 — self-service profile / email update. */
+  updateMe(payload: {
+    firstName?: string | null;
+    lastName?: string | null;
+    phone?: string | null;
+    email?: string | null;
+  }): Observable<User> {
+    return this.api
+      .patch<ApiResponse<UserResponseRaw>, typeof payload>(API.AUTH.ME, payload)
+      .pipe(map((envelope) => toUser(envelope.data)));
+  }
+
   forgotPassword(payload: ForgotPasswordRequest): Observable<void> {
     return this.api.post<void>(API.AUTH.FORGOT_PASSWORD, payload);
   }
@@ -220,4 +259,31 @@ export class AuthApiService {
       payload,
     );
   }
+}
+
+/** Wire shape of GET /auth/me/onboarding (CRED-7). */
+export interface OnboardingMe {
+  role: string;
+  mustChangePassword: boolean;
+  emailSource: string | null;
+  emailIsSynthetic: boolean;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  email: string | null;
+  birthDate: string | null;
+  address: string | null;
+  requiredFields: string[];
+  optionalFields: string[];
+}
+
+export interface CompleteOnboardingPayload {
+  currentPassword: string;
+  newPassword: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  birthDate?: string | null;
+  address?: string | null;
 }

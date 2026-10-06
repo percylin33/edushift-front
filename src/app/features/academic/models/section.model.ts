@@ -142,3 +142,12 @@ export interface SectionListFilters {
 export function isSectionMutable(status: AcademicYearStatus): boolean {
   return status !== AcademicYearStatus.Closed;
 }
+
+/** Etiqueta legible {@code grado · sección} para tablas y selectores. */
+export function formatSectionDisplayLabel(
+  sectionName: string,
+  gradeName?: string | null,
+): string {
+  const grade = gradeName?.trim();
+  return grade ? `${grade} · ${sectionName}` : sectionName;
+}

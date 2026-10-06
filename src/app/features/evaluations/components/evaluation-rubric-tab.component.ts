@@ -260,7 +260,7 @@ export class EvaluationRubricTabComponent {
     const ok = confirm(
       `¿Desvincular la rúbrica "${r.name}"?\n\n` +
         'No se borrará nada de la rúbrica original. Solo se quita el ' +
-        'enlace con esta evaluación.',
+        'enlace con este registro.',
     );
     if (!ok) return;
     await this.store.detachRubric(this.evaluation().publicUuid);

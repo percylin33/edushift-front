@@ -2,37 +2,32 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import {
-  EmptyStateComponent,
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
 } from '@shared/components';
 
 /**
- * `/attendance` — landing page for the attendance module.
+ * `/attendance/hub` — optional hub for the attendance module.
  *
- * <p>Kept intentionally light: it's a hub that links into the
- * scanner (the primary docente flow) and the sessions list (the
- * admin / review flow). Heavier dashboard widgets (KPIs, charts)
- * land in FE-6.5.</p>
+ * <p>Primary entry is the gate scanner ({@code /attendance} redirects
+ * there). This page remains for users who want an explicit choice
+ * between puerta (escáner) and aula (sesiones por sección).</p>
  */
 @Component({
   selector: 'app-attendance-home',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    RouterLink,
-    PageContainerComponent,
-    PageHeaderComponent,
-    EmptyStateComponent,
-    IconComponent,
-  ],
+  imports: [RouterLink, PageContainerComponent, PageHeaderComponent, IconComponent],
   template: `
     <app-page-container>
-      <app-page-header title="Asistencia" subtitle="Control diario, historial y reportes.">
+      <app-page-header
+        title="Asistencia"
+        subtitle="En la puerta: escanea o busca al alumno. Por aula: abre una sesión por sección."
+      >
         <a [routerLink]="scannerRoute" class="btn btn-primary btn-sm">
           <app-icon name="target" [size]="16" />
-          <span class="hidden sm:inline">Abrir scanner</span>
+          <span class="hidden sm:inline">Entrada / Escáner</span>
         </a>
       </app-page-header>
 
@@ -41,9 +36,10 @@ import {
           <div class="card-body flex flex-row items-center gap-3">
             <app-icon name="target" [size]="32" class="text-primary" />
             <div class="flex-1">
-              <p class="font-semibold">Scanner</p>
+              <p class="font-semibold">Entrada / Escáner</p>
               <p class="text-sm text-content-muted">
-                Toma asistencia escaneando el QR de cada alumno.
+                Asistencia en la puerta: QR o búsqueda por nombre. No eliges sección; el sistema la
+                resuelve solo.
               </p>
             </div>
             <app-icon name="chevron-right" [size]="20" class="text-content-subtle" />
@@ -53,24 +49,14 @@ import {
           <div class="card-body flex flex-row items-center gap-3">
             <app-icon name="calendar-check" [size]="32" class="text-primary" />
             <div class="flex-1">
-              <p class="font-semibold">Sesiones</p>
+              <p class="font-semibold">Sesiones (por aula)</p>
               <p class="text-sm text-content-muted">
-                Lista de sesiones, abre nuevas, edita rosters.
+                Revisar el día, abrir sesión por sección y editar la lista.
               </p>
             </div>
             <app-icon name="chevron-right" [size]="20" class="text-content-subtle" />
           </div>
         </a>
-      </div>
-
-      <div class="card mt-4">
-        <div class="card-body">
-          <app-empty-state
-            icon="bar-chart"
-            title="Dashboard (FE-6.5)"
-            description="KPIs y widgets llegan en el siguiente sub-ticket."
-          />
-        </div>
       </div>
     </app-page-container>
   `,

@@ -145,7 +145,7 @@ export class SubmissionSubmitComponent implements OnInit {
     if (!studentUuid && this.auth.hasRole(UserRole.Student)) {
       try {
         const profile = await firstValueFrom(this.meApi.getProfile());
-        studentUuid = profile.data?.publicUuid ?? null;
+        studentUuid = profile.data?.userPublicUuid ?? profile.data?.publicUuid ?? null;
       } catch {
         studentUuid = null;
       }

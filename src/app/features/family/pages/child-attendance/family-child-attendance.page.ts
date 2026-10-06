@@ -1,9 +1,16 @@
 import { CommonModule, DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Permission } from '@core/enums';
 import { SpringPage } from '@core/models/api-response.model';
 import { AuthService } from '@core/services';
+import { AttendanceExportActionsComponent } from '@features/attendance/components';
+import { monthRange } from '@features/attendance/models/attendance-report-params.model';
+import { AttendancePrintService } from '@features/attendance/services/attendance-print.service';
+import { AttendanceReportService } from '@features/attendance/services/attendance-report.service';
+import { simpleRowsToPrintRows } from '@features/attendance/utils/attendance-print.helpers';
+import { ReportFormat } from '@features/reports/models/report.model';
 import { FamilyAttendanceRecord } from '../../models/family-attendance.model';
 import { FamilyApiService } from '../../services/family-api.service';
 import { FileUploadComponent } from '@shared/components/file-upload/file-upload.component';
@@ -12,7 +19,7 @@ import { FileMetadata } from '@core/services/file-upload.service';
 @Component({
   selector: 'app-family-child-attendance-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe, FileUploadComponent],
+  imports: [CommonModule, FormsModule, RouterLink, DatePipe, FileUploadComponent, AttendanceExportActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-6xl px-4 py-8 sm:py-10">
@@ -26,10 +33,32 @@ import { FileMetadata } from '@core/services/file-upload.service';
           <h1 class="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">Asistencia del estudiante</h1>
           <p class="mt-2 text-slate-600 dark:text-slate-400">Consulta faltas, tardanzas y el estado de sus justificaciones.</p>
         </div>
-        @if (!loading() && page()) {
-          <p class="text-sm text-slate-500 dark:text-slate-400">Registros: {{ page()!.totalElements }}</p>
+        @if (!loading() && page() && page()!.content.length) {
+          <app-attendance-export-actions
+            [busy]="exportBusy()"
+            (printClick)="onPrint()"
+            (downloadClick)="onDownload($event)"
+          />
         }
       </header>
+
+      @if (!loading() && page() && page()!.content.length) {
+        <div class="mt-4 flex flex-wrap items-end gap-3">
+          <div>
+            <label class="text-xs font-medium text-slate-500" for="fam-month">Mes</label>
+            <select id="fam-month" class="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" [(ngModel)]="month" name="month" (ngModelChange)="onPeriodChange()">
+              <option [ngValue]="null">Todos los meses</option>
+              @for (m of months; track m.value) {
+                <option [ngValue]="m.value">{{ m.label }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-500" for="fam-year">Año</label>
+            <input id="fam-year" type="number" class="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" [(ngModel)]="year" name="year" (ngModelChange)="onPeriodChange()" />
+          </div>
+        </div>
+      }
 
       @if (loading()) {
         <div class="mt-8 space-y-3" aria-label="Cargando asistencia">
@@ -141,17 +170,37 @@ import { FileMetadata } from '@core/services/file-upload.service';
 export class FamilyChildAttendancePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(FamilyApiService);
+  private readonly printService = inject(AttendancePrintService);
+  private readonly reportService = inject(AttendanceReportService);
   protected readonly auth = inject(AuthService);
 
   readonly studentPublicUuid = signal(this.route.snapshot.paramMap.get('studentPublicUuid') ?? '');
   readonly page = signal<SpringPage<FamilyAttendanceRecord> | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly exportBusy = signal(false);
   readonly justifying = signal<FamilyAttendanceRecord | null>(null);
   readonly justifyText = signal('');
   readonly justifyAttachment = signal<string | null>(null);
   readonly justifyError = signal<string | null>(null);
   readonly submitting = signal(false);
+
+  month: number | null = null;
+  year = new Date().getFullYear();
+  readonly months = [
+    { value: 1, label: 'Enero' },
+    { value: 2, label: 'Febrero' },
+    { value: 3, label: 'Marzo' },
+    { value: 4, label: 'Abril' },
+    { value: 5, label: 'Mayo' },
+    { value: 6, label: 'Junio' },
+    { value: 7, label: 'Julio' },
+    { value: 8, label: 'Agosto' },
+    { value: 9, label: 'Septiembre' },
+    { value: 10, label: 'Octubre' },
+    { value: 11, label: 'Noviembre' },
+    { value: 12, label: 'Diciembre' },
+  ];
 
   ngOnInit(): void {
     this.load();
@@ -167,7 +216,12 @@ export class FamilyChildAttendancePageComponent implements OnInit {
 
     this.loading.set(true);
     this.error.set(null);
-    this.api.getChildAttendance(studentPublicUuid, { page: 0, size: 20 }).subscribe({
+    const range = this.activeRange();
+    this.api.getChildAttendance(studentPublicUuid, {
+      page: 0,
+      size: 200,
+      ...(range ? { from: range.from, to: range.to } : {}),
+    }).subscribe({
       next: (response) => {
         this.page.set(this.api.adaptAttendancePage(response));
         this.loading.set(false);
@@ -267,6 +321,55 @@ export class FamilyChildAttendancePageComponent implements OnInit {
         return 'Aprobada';
       case 'REJECTED':
         return 'Rechazada';
+    }
+  }
+
+  onPeriodChange(): void {
+    this.load();
+  }
+
+  private activeRange(): { from: string; to: string } | null {
+    if (this.month == null) return null;
+    return monthRange(this.year, this.month);
+  }
+
+  private periodSubtitle(): string {
+    if (this.month == null) return 'Todos los meses';
+    return `Mes ${this.month}/${this.year}`;
+  }
+
+  onPrint(): void {
+    const content = this.page()?.content ?? [];
+    this.printService.print({
+      mode: 'studentHistory',
+      meta: {
+        title: 'Asistencia del estudiante',
+        subtitle: this.periodSubtitle(),
+        generatedAt: new Date(),
+      },
+      rows: simpleRowsToPrintRows(
+        content.map((r) => ({
+          occurredAt: r.occurredAt,
+          status: r.status,
+          notes: r.notes ?? r.justificationText,
+        })),
+      ),
+    });
+  }
+
+  async onDownload(format: ReportFormat): Promise<void> {
+    const range = this.activeRange();
+    this.exportBusy.set(true);
+    try {
+      await this.reportService.downloadScopedAttendance(
+        'family',
+        this.studentPublicUuid(),
+        range?.from,
+        range?.to,
+        format,
+      );
+    } finally {
+      this.exportBusy.set(false);
     }
   }
 }

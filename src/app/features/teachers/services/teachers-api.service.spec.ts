@@ -159,6 +159,8 @@ describe('TeachersApiService', () => {
         coursePublicUuid: 'c-1',
         courseCode: 'MATH-101',
         courseName: 'Algebra',
+        courseColor: '#3B82F6',
+        courseIcon: 'target',
         academicPeriodPublicUuid: 'p-1',
         periodType: 'QUARTER',
         periodOrdinal: 1,
@@ -171,6 +173,8 @@ describe('TeachersApiService', () => {
     service.listAssignments('t-1', {}).subscribe((rows) => {
       expect(rows).toHaveSize(1);
       expect(rows[0].courseCode).toBe('MATH-101');
+      expect(rows[0].courseColor).toBe('#3B82F6');
+      expect(rows[0].courseIcon).toBe('target');
       expect(rows[0].assignedAt).toBeInstanceOf(Date);
       done();
     });

@@ -39,14 +39,18 @@ export class MaterialApiService {
   /* Listings                                                                 */
   /* ------------------------------------------------------------------------ */
 
-  listBySection(sectionPublicUuid: string): Observable<MaterialRow[]> {
-    // BUG-2026-07-31-05: backend returns Spring `Page<MaterialSummary>`
-    // serialised as { content: [...], totalElements, ... } — not a flat
-    // array. Read the `content` array and fall back to [] if absent
-    // (defensive against future backend shape changes).
+  listBySection(
+    sectionPublicUuid: string,
+    filters: { assignmentPublicUuid?: string } = {},
+  ): Observable<MaterialRow[]> {
+    const params: Record<string, string> = {};
+    if (filters.assignmentPublicUuid) {
+      params['assignmentPublicUuid'] = filters.assignmentPublicUuid;
+    }
     return this.http
       .get<PageResponse<MaterialSummaryRaw>>(
         API.LMS.SECTION_MATERIALS_LIST(sectionPublicUuid),
+        { params },
       )
       .pipe(map((page) => (page.content ?? []).map(toMaterialRow)));
   }
@@ -76,8 +80,10 @@ export class MaterialApiService {
     if (request.type === 'LINK' || !request.file) {
       const json = {
         title: request.title,
-        type: request.type,
-        url: request.url ?? null,
+        description: request.description ?? null,
+        kind: 'VIDEO_LINK',
+        externalUrl: request.url ?? null,
+        teacherAssignmentPublicUuid: request.teacherAssignmentPublicUuid,
       };
       return this.toUploadProgress(
         this.http.post<ApiResponse<MaterialResponseRaw>>(
@@ -89,8 +95,19 @@ export class MaterialApiService {
     }
 
     const fd = new FormData();
-    fd.append('title', request.title);
-    fd.append('type', request.type);
+    fd.append(
+      'metadata',
+      new Blob(
+        [
+          JSON.stringify({
+            title: request.title,
+            description: request.description ?? null,
+            teacherAssignmentPublicUuid: request.teacherAssignmentPublicUuid,
+          }),
+        ],
+        { type: 'application/json' },
+      ),
+    );
     fd.append('file', request.file, request.file.name);
 
     return this.toUploadProgress(

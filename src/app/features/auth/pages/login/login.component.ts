@@ -244,9 +244,13 @@ export class LoginComponent {
               tap((user) => this.auth.setUser(user)),
               catchError(() => of(null)),
             )
-            .subscribe(() => {
+            .subscribe((user) => {
               const returnUrl =
                 this.route.snapshot.queryParamMap.get('returnUrl') ?? ROUTES.DASHBOARD.ROOT;
+              if (user?.mustChangePassword) {
+                this.router.navigateByUrl(ROUTES.AUTH.FIRST_LOGIN);
+                return;
+              }
               this.router.navigateByUrl(returnUrl);
             });
         },

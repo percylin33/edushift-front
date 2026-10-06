@@ -20,7 +20,7 @@ import {
 } from '@shared/components';
 import { NotificationsStore } from '../../store';
 import { NotificationItem } from '../../models';
-import { notificationDeepLink, resolvePayload } from '../../utils/notification-deep-link';
+import { notificationDeepLink, notificationDisplaySubject, resolvePayload } from '../../utils/notification-deep-link';
 
 /**
  * In-app notifications home (Sprint 9 / FE-9.3 + Sprint 5C cascade wiring).
@@ -120,7 +120,7 @@ import { notificationDeepLink, resolvePayload } from '../../utils/notification-d
                 >
                 <div class="flex items-center justify-between gap-3">
                   <p class="truncate text-sm font-semibold text-content">
-                    {{ n.subject }}
+                    {{ displaySubject(n) }}
                   </p>
                   <span class="shrink-0 text-xs text-content-subtle">
                     @if (n.sentAt) {
@@ -214,6 +214,10 @@ export class NotificationsHomeComponent implements OnInit {
     return notificationDeepLink(n);
   }
 
+  displaySubject(n: NotificationItem): string {
+    return notificationDisplaySubject(n);
+  }
+
   isRead(n: NotificationItem): boolean {
     return n.status === 'READ' || Boolean(n.readAt);
   }
@@ -235,7 +239,7 @@ export class NotificationsHomeComponent implements OnInit {
         {
           ABSENCE: 'Ausencias',
           GRADE: 'Calificaciones',
-          QUIZ: 'Quizzes',
+          QUIZ: 'Prácticas',
           TASK: 'Tareas',
           AI_FEEDBACK: 'Feedback IA',
           ANNOUNCEMENT: 'Anuncios',
@@ -251,7 +255,11 @@ export class NotificationsHomeComponent implements OnInit {
     const section = parsed['sectionName'];
     const teacher = parsed['teacherName'];
     const course = parsed['courseCode'] ?? parsed['courseName'];
-    const title = parsed['title'] ?? parsed['taskTitle'] ?? parsed['evaluationTitle'];
+    const title =
+      parsed['title'] ??
+      parsed['taskTitle'] ??
+      parsed['evaluationTitle'] ??
+      parsed['quizTitle'];
     const body = parsed['body'];
     const parts: string[] = [];
     if (typeof course === 'string' && course) parts.push(`Curso ${course}`);

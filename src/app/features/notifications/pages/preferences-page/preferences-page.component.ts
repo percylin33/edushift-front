@@ -183,7 +183,7 @@ export class NotificationPreferencesPageComponent implements OnInit {
         {
           ABSENCE: 'Ausencias',
           GRADE: 'Calificaciones',
-          QUIZ: 'Quizzes',
+          QUIZ: 'Prácticas',
           TASK: 'Tareas',
           AI_FEEDBACK: 'Feedback IA',
           ANNOUNCEMENT: 'Anuncios',

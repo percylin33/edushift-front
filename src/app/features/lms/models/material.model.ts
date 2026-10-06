@@ -1,30 +1,7 @@
 /**
  * LMS Material model + DTOs (FE-7a.3 / BE-7a.1).
- *
- * <h3>Por qué un archivo separado</h3>
- * El material tiene su propio lifecycle (no lleva la noción de
- * "lifecycle" del task, sólo de visibilidad) y su DTO de upload es
- * multipart con un {@code type} discriminador que decide la forma
- * (file vs link). Mantener los modelos aislados evita que el
- * componente de Materials arrastre el modelo de Submission y
- * vice-versa.
  */
 
-/**
- * Tipos de material soportados por el backend.
- *
- * <ul>
- *   <li>{@code PDF} — PDF binario.</li>
- *   <li>{@code IMAGE} — JPG/PNG/WebP.</li>
- *   <li>{@code DOC} — Word/Excel/Sheets, etc.</li>
- *   <li>{@code LINK} — URL externa (no binario).</li>
- *   <li>{@code OTHER} — fallback.</li>
- * </ul>
- *
- * <p>El backend deriva el tipo del MIME cuando es file; el cliente
- * lo declara explícitamente para {@code LINK} (en ese caso no hay
- * archivo, sólo URL).</p>
- */
 export enum MaterialType {
   Pdf = 'PDF',
   Image = 'IMAGE',
@@ -33,46 +10,53 @@ export enum MaterialType {
   Other = 'OTHER',
 }
 
-/** {@code MaterialResponseRaw} — full payload (BE-7a.1). */
+/** Nested file projection from {@link MaterialResponseRaw}. */
+export interface MaterialFileRaw {
+  publicUuid: string;
+  originalName: string;
+  contentType: string;
+  sizeBytes: number;
+  checksumSha256?: string | null;
+  url: string | null;
+  createdAt: string;
+}
+
+/** Full payload (BE-7a.1). */
 export interface MaterialResponseRaw {
   publicUuid: string;
   sectionPublicUuid: string;
   title: string;
-  type: MaterialType;
-  /** Only for {@code type=FILE_*}; null for {@code LINK}. */
-  filename: string | null;
-  sizeBytes: number | null;
-  contentType: string | null;
-  /** Only for {@code type=LINK}. */
-  url: string | null;
-  /** Public UUID of the teacher who uploaded it. */
-  uploadedByTeacherPublicUuid: string;
-  uploadedByTeacherName: string;
-  /** Signed Firebase URL, time-limited (5 min). Null until first download. */
-  downloadUrl: string | null;
+  description?: string | null;
+  kind: string;
+  file: MaterialFileRaw | null;
+  externalUrl: string | null;
+  ownerPublicUuid: string;
   createdAt: string;
   updatedAt: string | null;
+  teacherAssignmentPublicUuid?: string | null;
+  coursePublicUuid?: string | null;
+  courseName?: string | null;
+  periodLabel?: string | null;
 }
 
-/** {@code MaterialSummaryRaw} — listing projection. */
+/** Listing projection — aligned with BE {@code MaterialSummary}. */
 export interface MaterialSummaryRaw {
   publicUuid: string;
   title: string;
-  type: MaterialType;
-  filename: string | null;
-  sizeBytes: number | null;
-  contentType: string | null;
-  url: string | null;
-  uploadedByTeacherName: string;
-  /** 0 if {@code type=LINK} (no file). */
-  sizeBytesDisplay: string | null;
+  kind: string;
+  fileSizeBytes: number | null;
+  ownerPublicUuid: string | null;
   createdAt: string;
+  teacherAssignmentPublicUuid?: string | null;
+  coursePublicUuid?: string | null;
+  courseName?: string | null;
+  periodLabel?: string | null;
+  filePublicUuid: string | null;
+  filename: string | null;
+  contentType: string | null;
+  externalUrl: string | null;
 }
 
-/**
- * Domain {@code Material}. Mirrors {@link MaterialResponseRaw} with
- * ISO strings → {@code Date}.
- */
 export interface Material {
   publicUuid: string;
   sectionPublicUuid: string;
@@ -82,6 +66,7 @@ export interface Material {
   sizeBytes: number | null;
   contentType: string | null;
   url: string | null;
+  filePublicUuid: string | null;
   uploadedByTeacherPublicUuid: string;
   uploadedByTeacherName: string;
   downloadUrl: string | null;
@@ -98,71 +83,59 @@ export interface MaterialRow {
   sizeBytes: number | null;
   contentType: string | null;
   url: string | null;
+  filePublicUuid: string | null;
   uploadedByTeacherName: string;
   sizeBytesDisplay: string | null;
   createdAt: Date;
 }
 
-/**
- * Multipart body for {@code POST /v1/lms/sections/{uuid}/materials}.
- *
- * <p>Send as {@code multipart/form-data}. For {@code LINK} materials
- * {@code file} is omitted and {@code url} is required. For file
- * materials {@code url} is omitted and {@code file} is required.
- */
 export interface CreateMaterialRequest {
   title: string;
   type: MaterialType;
   file?: File | null;
   url?: string | null;
+  description?: string | null;
+  teacherAssignmentPublicUuid: string;
 }
 
-/* --------------------------------------------------------------------------
- * Adapters
- * ------------------------------------------------------------------------ */
-
 export function toMaterial(raw: MaterialResponseRaw): Material {
+  const file = raw.file;
+  const type = kindToMaterialType(raw.kind, file?.contentType ?? null, file?.originalName ?? null);
   return {
     publicUuid: raw.publicUuid,
     sectionPublicUuid: raw.sectionPublicUuid,
     title: raw.title,
-    type: raw.type,
-    filename: raw.filename ?? null,
-    sizeBytes: raw.sizeBytes ?? null,
-    contentType: raw.contentType ?? null,
-    url: raw.url ?? null,
-    uploadedByTeacherPublicUuid: raw.uploadedByTeacherPublicUuid,
-    uploadedByTeacherName: raw.uploadedByTeacherName,
-    downloadUrl: raw.downloadUrl ?? null,
+    type,
+    filename: file?.originalName ?? null,
+    sizeBytes: file?.sizeBytes ?? null,
+    contentType: file?.contentType ?? null,
+    url: raw.externalUrl ?? null,
+    filePublicUuid: file?.publicUuid ?? null,
+    uploadedByTeacherPublicUuid: raw.ownerPublicUuid,
+    uploadedByTeacherName: '',
+    downloadUrl: file?.url ?? null,
     createdAt: new Date(raw.createdAt),
     updatedAt: raw.updatedAt ? new Date(raw.updatedAt) : null,
   };
 }
 
 export function toMaterialRow(raw: MaterialSummaryRaw): MaterialRow {
+  const type = kindToMaterialType(raw.kind, raw.contentType, raw.filename);
   return {
     publicUuid: raw.publicUuid,
     title: raw.title,
-    type: raw.type,
+    type,
     filename: raw.filename ?? null,
-    sizeBytes: raw.sizeBytes ?? null,
+    sizeBytes: raw.fileSizeBytes ?? null,
     contentType: raw.contentType ?? null,
-    url: raw.url ?? null,
-    uploadedByTeacherName: raw.uploadedByTeacherName,
-    sizeBytesDisplay: raw.sizeBytesDisplay ?? null,
+    url: raw.externalUrl ?? null,
+    filePublicUuid: raw.filePublicUuid ?? null,
+    uploadedByTeacherName: '',
+    sizeBytesDisplay: raw.fileSizeBytes != null ? formatSizeBytes(raw.fileSizeBytes) : null,
     createdAt: new Date(raw.createdAt),
   };
 }
 
-/* --------------------------------------------------------------------------
- * Pure helpers
- * ------------------------------------------------------------------------ */
-
-/**
- * Whitelist of file MIME types aceptados para upload (todo lo
- * distinto es rechazado client-side). El backend vuelve a
- * enforcear — el cliente es defensa en profundidad.
- */
 export const ALLOWED_FILE_MIME: ReadonlyArray<string> = [
   'application/pdf',
   'image/png',
@@ -179,16 +152,9 @@ export const ALLOWED_FILE_MIME: ReadonlyArray<string> = [
   'application/zip',
 ] as const;
 
-/** Max upload size (50 MB) — mirrors backend `lms.material.max-file-size`. */
 export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-
-/** Human-readable form of {@link MAX_FILE_SIZE_BYTES}. */
 export const MAX_FILE_SIZE_LABEL = '50 MB';
 
-/**
- * Returns the icon name (from the registry) to render on the
- * {@link MaterialCardComponent} for the given {@link MaterialType}.
- */
 export function materialTypeIcon(type: MaterialType): string {
   switch (type) {
     case MaterialType.Pdf:
@@ -204,7 +170,6 @@ export function materialTypeIcon(type: MaterialType): string {
   }
 }
 
-/** Human-readable label per {@link MaterialType}. */
 export function materialTypeLabel(type: MaterialType): string {
   switch (type) {
     case MaterialType.Pdf:
@@ -220,10 +185,6 @@ export function materialTypeLabel(type: MaterialType): string {
   }
 }
 
-/**
- * Suggest a {@link MaterialType} based on a file's MIME type. Used
- * by the upload dialog to pre-fill the type selector.
- */
 export function inferMaterialTypeFromMime(mime: string): MaterialType {
   if (mime === 'application/pdf') return MaterialType.Pdf;
   if (mime.startsWith('image/')) return MaterialType.Image;
@@ -240,7 +201,36 @@ export function inferMaterialTypeFromMime(mime: string): MaterialType {
   return MaterialType.Other;
 }
 
-/** Is the material a binary file (vs a link)? */
 export function isFileMaterial(type: MaterialType): boolean {
   return type !== MaterialType.Link;
+}
+
+function kindToMaterialType(
+  kind: string,
+  contentType: string | null,
+  filename: string | null,
+): MaterialType {
+  if (kind === 'VIDEO_LINK') return MaterialType.Link;
+  const mime = contentType ?? guessMimeFromFilename(filename);
+  return inferMaterialTypeFromMime(mime);
+}
+
+function guessMimeFromFilename(filename: string | null): string {
+  if (!filename) return 'application/octet-stream';
+  const lower = filename.toLowerCase();
+  if (lower.endsWith('.pdf')) return 'application/pdf';
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.doc')) return 'application/msword';
+  if (lower.endsWith('.docx')) {
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  }
+  return 'application/octet-stream';
+}
+
+function formatSizeBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

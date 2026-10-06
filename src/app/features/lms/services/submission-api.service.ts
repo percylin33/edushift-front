@@ -47,8 +47,12 @@ export class SubmissionApiService {
 
   listByAssignment(assignmentPublicUuid: string): Observable<SubmissionRow[]> {
     return this.http
-      .get<SubmissionSummaryRaw[]>(API.LMS.ASSIGNMENT_SUBMISSIONS_LIST(assignmentPublicUuid))
-      .pipe(map((rows) => rows.map(toSubmissionRow)));
+      .get<
+        | SubmissionSummaryRaw[]
+        | ApiResponse<SubmissionSummaryRaw[]>
+        | { content?: SubmissionSummaryRaw[] }
+      >(API.LMS.ASSIGNMENT_SUBMISSIONS_LIST(assignmentPublicUuid))
+      .pipe(map((body) => unwrapSubmissionSummaries(body).map(toSubmissionRow)));
   }
 
   listByStudent(studentPublicUuid: string): Observable<SubmissionRow[]> {
@@ -204,3 +208,21 @@ export type UploadProgress<T> =
   | { kind: 'Sent' }
   | { kind: 'Progress'; percent: number | null; loaded: number; total: number }
   | { kind: 'Response'; value: T };
+
+function unwrapSubmissionSummaries(
+  body:
+    | SubmissionSummaryRaw[]
+    | ApiResponse<SubmissionSummaryRaw[]>
+    | { content?: SubmissionSummaryRaw[] },
+): SubmissionSummaryRaw[] {
+  if (Array.isArray(body)) {
+    return body;
+  }
+  if ('data' in body && Array.isArray(body.data)) {
+    return body.data;
+  }
+  if ('content' in body && Array.isArray(body.content)) {
+    return body.content;
+  }
+  return [];
+}

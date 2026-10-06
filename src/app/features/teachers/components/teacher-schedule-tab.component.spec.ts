@@ -52,7 +52,7 @@ describe('TeacherScheduleTabComponent', () => {
   it('ngOnChanges carga horario (teacher)', async () => {
     configureModule(false);
     fakeSchedule.getTeacherScheduleWeek.and.returnValue(
-      of({ slots: [], nonTeachingBlocks: [] }),
+      of({ slots: [], nonTeachingBlocks: [], suggestedPeriods: [] }),
     );
     const changes = {
       teacherPublicUuid: { previousValue: undefined, currentValue: 't-1', firstChange: true },
@@ -68,6 +68,7 @@ describe('TeacherScheduleTabComponent', () => {
       of({
         slots: [{ slotPublicUuid: 'slot-1', dayOfWeek: 1, startTime: '08:00', endTime: '09:00' } as any],
         nonTeachingBlocks: [],
+        suggestedPeriods: [],
       }),
     );
     await (component as any).loadAll();
@@ -87,7 +88,7 @@ describe('TeacherScheduleTabComponent', () => {
   it('retry recarga horario', async () => {
     configureModule(false);
     fakeSchedule.getTeacherScheduleWeek.and.returnValue(
-      of({ slots: [], nonTeachingBlocks: [] }),
+      of({ slots: [], nonTeachingBlocks: [], suggestedPeriods: [] }),
     );
     await (component as any).retry();
     expect(fakeSchedule.getTeacherScheduleWeek).toHaveBeenCalled();
@@ -96,7 +97,7 @@ describe('TeacherScheduleTabComponent', () => {
   it('admin carga week + assignments', async () => {
     configureModule(true);
     fakeSchedule.getTeacherScheduleWeek.and.returnValue(
-      of({ slots: [], nonTeachingBlocks: [] }),
+      of({ slots: [], nonTeachingBlocks: [], suggestedPeriods: [] }),
     );
     fakeTeachers.listAssignments.and.returnValue(of([]));
     await (component as any).loadAll();

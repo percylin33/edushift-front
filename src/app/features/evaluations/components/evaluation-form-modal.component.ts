@@ -88,7 +88,7 @@ const WEIGHT_MAX = 999.99;
                 pueden cambiar en estado
                 <strong>Borrador</strong>.
               } @else {
-                Crea una evaluación borrador. Podrás publicarla más tarde desde el listado.
+                Crea un registro en borrador. Podrás publicarlo más tarde desde el listado.
               }
             </p>
           </div>
@@ -215,6 +215,25 @@ const WEIGHT_MAX = 999.99;
             </div>
           </div>
 
+          @if (categories().length > 0) {
+            <div class="field">
+              <label class="label" for="evaluation-category">Categoría del registro</label>
+              <select id="evaluation-category" class="input" formControlName="categoryPublicUuid">
+                <option value="">Sin categoría</option>
+                @for (c of categories(); track c.publicUuid) {
+                  <option [value]="c.publicUuid">{{ c.name }}</option>
+                }
+              </select>
+              @if (showError('categoryPublicUuid'); as msg) {
+                <p class="field-error">{{ msg }}</p>
+              } @else {
+                <p class="field-hint">
+                  Agrupa esta columna bajo la plantilla de registro del colegio.
+                </p>
+              }
+            </div>
+          }
+
           @if (showFormError(); as msg) {
             <p class="field-error -mt-2">{{ msg }}</p>
           }
@@ -255,7 +274,7 @@ const WEIGHT_MAX = 999.99;
 
             <label class="flex items-center gap-2 text-sm">
               <input type="checkbox" formControlName="isActive" />
-              <span>Evaluación activa</span>
+              <span>Registro activo</span>
               <span class="text-xs text-content-muted">
                 (las inactivas siguen visibles para el docente pero no aparecen en cómputos por
                 defecto)
@@ -292,6 +311,11 @@ export class EvaluationFormModalComponent implements OnInit {
   readonly evaluation = input<EvaluationDetail | null>(null);
   /** Requerido en modo create. Ignorado en edit. */
   readonly assignmentUuid = input<string | null>(null);
+  /**
+   * Categorías de la plantilla aplicable (F1). Si vacío, no se muestra el
+   * selector. El padre suele cargarlas desde el gradebook del assignment.
+   */
+  readonly categories = input<ReadonlyArray<{ publicUuid: string; name: string }>>([]);
 
   readonly closed = output<void>();
   readonly saved = output<EvaluationDetail>();
@@ -301,7 +325,7 @@ export class EvaluationFormModalComponent implements OnInit {
 
   protected readonly editing = computed(() => this.evaluation() !== null);
   protected readonly title = computed(() =>
-    this.editing() ? 'Editar evaluación' : 'Nueva evaluación',
+    this.editing() ? 'Editar registro' : 'Nuevo registro',
   );
   protected readonly submitLabel = computed(() =>
     this.editing() ? 'Guardar cambios' : 'Crear borrador',
@@ -312,7 +336,7 @@ export class EvaluationFormModalComponent implements OnInit {
 
   protected readonly nameMaxLength = NAME_MAX_LENGTH;
   protected readonly descriptionMaxLength = DESCRIPTION_MAX_LENGTH;
-  protected readonly todayIso = new Date().toISOString().slice(0, 10);
+  protected readonly todayIso = toDateInput(new Date());
 
   protected readonly kinds: EvaluationKind[] = [
     EvaluationKind.TASK,
@@ -338,6 +362,7 @@ export class EvaluationFormModalComponent implements OnInit {
       weight: [25, [Validators.required, Validators.min(WEIGHT_MIN), Validators.max(WEIGHT_MAX)]],
       scheduledDate: [this.todayIso, [Validators.required]],
       dueDate: [''],
+      categoryPublicUuid: [''],
       unitPublicUuid: [''],
       learningSessionPublicUuid: [''],
       isActive: [true],
@@ -358,6 +383,7 @@ export class EvaluationFormModalComponent implements OnInit {
         weight: e.weight,
         scheduledDate: toDateInput(e.scheduledDate),
         dueDate: e.dueDate ? toDateInput(e.dueDate) : '',
+        categoryPublicUuid: e.categoryPublicUuid ?? '',
         unitPublicUuid: e.unitPublicUuid ?? '',
         learningSessionPublicUuid: e.learningSessionPublicUuid ?? '',
         isActive: e.isActive,
@@ -424,6 +450,7 @@ export class EvaluationFormModalComponent implements OnInit {
           patch.scheduledDate = (v.scheduledDate as string) || undefined;
           patch.unitPublicUuid = v.unitPublicUuid ?? '';
           patch.learningSessionPublicUuid = v.learningSessionPublicUuid ?? '';
+          patch.categoryPublicUuid = (v.categoryPublicUuid as string) || '';
           patch.isActive = v.isActive as boolean;
         }
         // En PUBLISHED y DRAFT estos dos siempre se pueden editar.
@@ -435,6 +462,7 @@ export class EvaluationFormModalComponent implements OnInit {
       } else {
         const assignmentUuid = this.assignmentUuid();
         if (!assignmentUuid) return;
+        const categoryUuid = ((v.categoryPublicUuid as string) ?? '').trim();
         const payload: CreateEvaluationRequest = {
           kind: v.kind,
           scale: v.scale,
@@ -443,6 +471,7 @@ export class EvaluationFormModalComponent implements OnInit {
           weight: parseFloat(String(v.weight)),
           scheduledDate: v.scheduledDate as string,
           dueDate: (v.dueDate as string) || undefined,
+          categoryPublicUuid: categoryUuid || undefined,
         };
         const created = await this.store.create(assignmentUuid, payload);
         if (created) this.saved.emit(created);
@@ -500,6 +529,7 @@ export class EvaluationFormModalComponent implements OnInit {
       'name',
       'weight',
       'scheduledDate',
+      'categoryPublicUuid',
       'unitPublicUuid',
       'learningSessionPublicUuid',
       'isActive',
@@ -523,7 +553,7 @@ export class EvaluationFormModalComponent implements OnInit {
     const next: Record<string, string> = {};
     switch (apiErr.code) {
       case 'EVAL_NAME_EXISTS':
-        next['name'] = 'Ya existe una evaluación con este nombre.';
+        next['name'] = 'Ya existe un registro con este nombre.';
         break;
       case 'EVAL_KIND_SCALE_MISMATCH':
         next['scale'] = 'La escala no es válida para este tipo.';
@@ -536,6 +566,16 @@ export class EvaluationFormModalComponent implements OnInit {
         break;
       case 'EVAL_SESSION_NOT_IN_ASSIGNMENT':
         next['learningSessionPublicUuid'] = 'La sesión debe pertenecer a esta asignación.';
+        break;
+      case 'GRADE_CATEGORY_LOCKED':
+        next['categoryPublicUuid'] =
+          'Esta categoría no permite columnas creadas por el docente.';
+        break;
+      case 'GRADE_CATEGORY_SYSTEM_READONLY':
+        next['categoryPublicUuid'] = 'Adoptá la plantilla antes de asignar esta categoría.';
+        break;
+      case 'MUST_BE_PAST_OR_PRESENT':
+        next['scheduledDate'] = 'La fecha programada no puede ser futura.';
         break;
     }
     this.fieldErrors.set(next);

@@ -30,7 +30,7 @@ describe('NavLabels', () => {
     expect(labels.labelFor('schedule')).toBe('Horarios');
     expect(labels.labelFor('schedule-jornada')).toBe('Jornada y recreos');
     expect(labels.labelFor('schedule-workload')).toBe('Carga docente');
-    expect(labels.labelFor('evaluations')).toBe('Evaluaciones');
+    expect(labels.labelFor('evaluations')).toBe('Registros');
     expect(labels.labelFor('family')).toBe('Mis hijos');
     expect(labels.labelFor('me')).toBe('Mi espacio');
     expect(labels.labelFor('me-schedule')).toBe('Mi horario');
@@ -44,6 +44,8 @@ describe('NavLabels', () => {
     expect(labels.labelFor('periods')).toBe('Periodos');
     expect(labels.labelFor('academic-periods')).toBe('Periodos');
     expect(labels.labelFor('academic-years')).toBe('Años académicos');
+    expect(labels.labelFor('academic-grade-register')).toBe('Registro de notas');
+    expect(labels.labelFor('grade-register')).toBe('Registro de notas');
     expect(labels.labelFor('reconciliation')).toBe('Conciliación');
     expect(labels.labelFor('payments-admin')).toBe('Conciliación');
   });

@@ -115,5 +115,11 @@ export class AcademicShellComponent {
       icon: 'clock',
       route: ROUTES.ACADEMIC.PERIODS.LIST,
     },
+    {
+      id: 'grade-register',
+      label: 'Registro',
+      icon: 'layout-grid',
+      route: ROUTES.ACADEMIC.GRADE_REGISTER.LIST,
+    },
   ];
 }

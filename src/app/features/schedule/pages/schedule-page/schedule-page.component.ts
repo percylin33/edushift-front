@@ -26,6 +26,7 @@ import {
 	ScheduleSlotItem,
 	SectionRow,
 	SuggestedPeriodItem,
+	enrichScheduleSlotsWithGrades,
 } from '@features/academic/models';
 import {
 	ScheduleGridComponent,
@@ -35,6 +36,10 @@ import {
 	TimeSlotAssignmentOption,
 	TimeSlotFormModalComponent,
 } from '@features/academic/components/time-slot-form-modal.component';
+import {
+	dedupeYearScheduleSlots,
+	groupSectionTeachersAsYearOptions,
+} from '@features/academic/utils/schedule-assignment.util';
 import { MeApiService } from '@features/me/services/me-api.service';
 import { TeachersApiService } from '@features/teachers/services';
 import { ScheduleApiService } from '../../services/schedule-api.service';
@@ -227,6 +232,7 @@ import { ScheduleApiService } from '../../services/schedule-api.service';
 		@if (modalOpen()) {
 			<app-time-slot-form-modal
 				[assignments]="assignmentOptions()"
+				[yearSlots]="yearSlots()"
 				[initialDayOfWeek]="modalDay()"
 				[initialStartTime]="modalStart()"
 				[initialEndTime]="modalEnd()"
@@ -251,6 +257,8 @@ export class SchedulePageComponent implements OnInit {
 	protected readonly loading = signal(false);
 	protected readonly errorMessage = signal<string | null>(null);
 	protected readonly slots = signal<readonly ScheduleSlotItem[]>([]);
+	/** Raw (undeduped) week slots — used by the modal to find sibling year replicas. */
+	protected readonly yearSlots = signal<readonly ScheduleSlotItem[]>([]);
 	protected readonly nonTeachingBlocks = signal<readonly NonTeachingBlockItem[]>([]);
 	protected readonly suggestedPeriods = signal<readonly SuggestedPeriodItem[]>([]);
 
@@ -353,9 +361,6 @@ export class SchedulePageComponent implements OnInit {
 	}
 
 	protected openEdit(slot: ScheduleSlotItem): void {
-		// #region agent log
-		fetch('http://127.0.0.1:7639/ingest/f4773d1b-17bd-44c3-8d39-badf894fd980',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5d2603'},body:JSON.stringify({sessionId:'5d2603',runId:'pre-fix',hypothesisId:'A',location:'schedule-page.component.ts:openEdit',message:'open edit slot',data:{slotPublicUuid:slot?.slotPublicUuid??null,assignmentPublicUuid:slot?.assignmentPublicUuid??null,dayOfWeek:slot?.dayOfWeek??null,startTime:slot?.startTime??null,endTime:slot?.endTime??null},timestamp:Date.now()})}).catch(()=>{});
-		// #endregion
 		this.editingSlot.set(slot);
 		this.modalDay.set(null);
 		this.modalStart.set(null);
@@ -372,11 +377,9 @@ export class SchedulePageComponent implements OnInit {
 	}
 
 	protected onModalSaved(): void {
-		// #region agent log
-		fetch('http://127.0.0.1:7639/ingest/f4773d1b-17bd-44c3-8d39-badf894fd980',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5d2603'},body:JSON.stringify({sessionId:'5d2603',runId:'pre-fix',hypothesisId:'D',location:'schedule-page.component.ts:onModalSaved',message:'modal saved/deleted handler',data:{sectionUuid:this.selectedSectionUuid()},timestamp:Date.now()})}).catch(()=>{});
-		// #endregion
 		this.closeModal();
-		this.reloadSection();
+		const uuid = this.selectedSectionUuid();
+		if (uuid) void this.loadSectionSchedule(uuid);
 	}
 
 	private async loadSections(): Promise<void> {
@@ -396,15 +399,12 @@ export class SchedulePageComponent implements OnInit {
 				firstValueFrom(this.scheduleApi.getSectionScheduleWeek(sectionUuid)),
 				firstValueFrom(this.teachersApi.listSectionTeachers(sectionUuid)),
 			]);
-			this.slots.set(view.slots ?? []);
+			const rawSlots = view.slots ?? [];
+			this.yearSlots.set(rawSlots);
+			this.slots.set(dedupeYearScheduleSlots(rawSlots));
 			this.nonTeachingBlocks.set(view.nonTeachingBlocks ?? []);
 			this.suggestedPeriods.set(view.suggestedPeriods ?? []);
-			this.assignmentOptions.set(
-				teachers.map((t) => ({
-					publicUuid: t.assignmentPublicUuid,
-					label: `${t.courseCode} — ${t.courseName} · ${t.teacherFullName}`,
-				})),
-			);
+			this.assignmentOptions.set(groupSectionTeachersAsYearOptions(teachers));
 		} catch (err: unknown) {
 			this.sectionError.set(
 				err && typeof err === 'object' && 'message' in err
@@ -420,18 +420,25 @@ export class SchedulePageComponent implements OnInit {
 		this.loading.set(true);
 		this.errorMessage.set(null);
 		try {
-			const user = this.auth.user();
-			const teacherUuid: string | undefined = (user as { teacherPublicUuid?: string } | null)
-				?.teacherPublicUuid;
-			if (!teacherUuid) {
-				this.loading.set(false);
-				return;
-			}
-			const view = await firstValueFrom(this.scheduleApi.getTeacherScheduleWeek(teacherUuid));
-			this.slots.set(view.slots ?? []);
+			const [teacher, sections] = await Promise.all([
+				firstValueFrom(this.teachersApi.getMe()),
+				firstValueFrom(this.academicApi.listSections()).catch(() => [] as SectionRow[]),
+			]);
+			const view = await firstValueFrom(
+				this.scheduleApi.getTeacherScheduleWeek(teacher.publicUuid),
+			);
+			const rawSlots = dedupeYearScheduleSlots(view.slots ?? []);
+			this.slots.set(enrichScheduleSlotsWithGrades(rawSlots, sections));
 			this.nonTeachingBlocks.set(view.nonTeachingBlocks ?? []);
 			this.suggestedPeriods.set(view.suggestedPeriods ?? []);
 		} catch (err: unknown) {
+			// Unlinked TEACHER user → empty state, not a hard error.
+			if (this.isNotFoundError(err)) {
+				this.slots.set([]);
+				this.nonTeachingBlocks.set([]);
+				this.suggestedPeriods.set([]);
+				return;
+			}
 			this.errorMessage.set(
 				err && typeof err === 'object' && 'message' in err
 					? String((err as { message: unknown }).message)
@@ -442,13 +449,23 @@ export class SchedulePageComponent implements OnInit {
 		}
 	}
 
+	private isNotFoundError(err: unknown): boolean {
+		if (!err || typeof err !== 'object') return false;
+		const status = (err as { status?: unknown }).status;
+		return status === 404;
+	}
+
 	private async loadStudentSchedule(): Promise<void> {
 		this.loading.set(true);
 		this.errorMessage.set(null);
 		try {
-			const response = await firstValueFrom(this.meApi.listSchedule());
+			const [response, sections] = await Promise.all([
+				firstValueFrom(this.meApi.listSchedule()),
+				firstValueFrom(this.academicApi.listSections()).catch(() => [] as SectionRow[]),
+			]);
 			const view = response.data;
-			this.slots.set(view?.slots ?? []);
+			const rawSlots = dedupeYearScheduleSlots(view?.slots ?? []);
+			this.slots.set(enrichScheduleSlotsWithGrades(rawSlots, sections));
 			this.nonTeachingBlocks.set(view?.nonTeachingBlocks ?? []);
 			this.suggestedPeriods.set(view?.suggestedPeriods ?? []);
 		} catch (err: unknown) {

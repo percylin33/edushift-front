@@ -21,11 +21,13 @@ export class FamilyApiService {
 
   getChildAttendance(
     studentPublicUuid: string,
-    params: { page?: number; size?: number } = {},
+    params: { page?: number; size?: number; from?: string; to?: string } = {},
   ): Observable<SpringPage<FamilyAttendanceRecordRaw>> {
     const query = new URLSearchParams();
     if (params.page !== undefined) query.set('page', String(params.page));
     if (params.size !== undefined) query.set('size', String(params.size));
+    if (params.from) query.set('from', params.from);
+    if (params.to) query.set('to', params.to);
     const suffix = query.size > 0 ? `?${query.toString()}` : '';
     return this.http.get<SpringPage<FamilyAttendanceRecordRaw>>(
       `/api/v1/family/children/${studentPublicUuid}/attendance${suffix}`,

@@ -54,12 +54,17 @@ export class TaskApiService {
    */
   listBySection(
     sectionPublicUuid: string,
-    filters: { lifecycle?: TaskLifecycle; dueBefore?: string } = {},
+    filters: {
+      lifecycle?: TaskLifecycle;
+      dueBefore?: string;
+      assignmentPublicUuid?: string;
+    } = {},
   ): Observable<TaskRow[]> {
     return this.api
       .get<SpringPage<TaskSummaryRaw>>(API.LMS.ASSIGNMENTS_BY_SECTION(sectionPublicUuid), {
         lifecycle: filters.lifecycle,
         dueBefore: filters.dueBefore,
+        assignmentPublicUuid: filters.assignmentPublicUuid,
       })
       .pipe(map((page) => page.content.map(toTaskRow)));
   }

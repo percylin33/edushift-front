@@ -9,8 +9,11 @@ import {
   AddGuardianRequest,
   BulkImportJob,
   BulkImportJobResponseRaw,
+  BulkImportPreview,
+  BulkImportPreviewRaw,
   BulkImportRowError,
   BulkImportRowErrorRaw,
+  BulkImportUploadOptions,
   CreateEnrollmentRequest,
   CreateStudentRequest,
   EnrollmentDetail,
@@ -31,6 +34,7 @@ import {
   StudentListPagination,
   StudentResponseRaw,
   StudentRow,
+  UpdateEnrollmentRequest,
   UpdateGuardianLinkRequest,
   UpdateStudentRequest,
   WithdrawEnrollmentRequest,
@@ -144,14 +148,48 @@ export class StudentsApiService {
   }
 
   /**
+   * Preview spreadsheet headers and suggested column mapping without
+   * creating a job.
+   */
+  previewBulkImport(file: File): Observable<BulkImportPreview> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http
+      .post<ApiResponse<BulkImportPreviewRaw>>(API.STUDENTS.BULK_IMPORT.PREVIEW, form)
+      .pipe(
+        map((envelope) => {
+          const raw = envelope.data;
+          return {
+            headers: raw.headers ?? [],
+            sampleRows: raw.sampleRows ?? [],
+            suggestedMapping: raw.suggestedMapping ?? {},
+            unmappedRequired: raw.unmappedRequired ?? [],
+          };
+        }),
+      );
+  }
+
+  /**
    * Enqueue a bulk-import job from an {@code .xlsx} workbook. Backend
    * responds {@code 202 Accepted} with the freshly-created job
    * (status {@code PENDING}, counters at zero); callers poll
    * {@link #getBulkImportJob} for progress.
    */
-  uploadBulkImport(file: File): Observable<BulkImportJob> {
+  uploadBulkImport(file: File, options?: BulkImportUploadOptions): Observable<BulkImportJob> {
     const form = new FormData();
     form.append('file', file, file.name);
+    if (options?.columnMapping) {
+      form.append('columnMapping', JSON.stringify(options.columnMapping));
+    }
+    if (options?.sectionPublicUuid) {
+      form.append('sectionPublicUuid', options.sectionPublicUuid);
+    }
+    if (options?.academicYearPublicUuid) {
+      form.append('academicYearPublicUuid', options.academicYearPublicUuid);
+    }
+    if (options?.enrolledAt) {
+      form.append('enrolledAt', options.enrolledAt);
+    }
     return this.http
       .post<ApiResponse<BulkImportJobResponseRaw>>(API.STUDENTS.BULK_IMPORT.ROOT, form)
       .pipe(map((envelope) => this.toBulkImportJob(envelope.data)));
@@ -301,6 +339,23 @@ export class StudentsApiService {
     return this.api
       .post<ApiResponse<EnrollmentResponseRaw>, CreateEnrollmentRequest>(
         API.STUDENTS.ENROLLMENTS(studentPublicUuid),
+        request,
+      )
+      .pipe(map((envelope) => this.toEnrollmentDetail(envelope.data)));
+  }
+
+  /**
+   * Actualiza {@code enrolledAt} de una matrícula ACTIVE.
+   * Errores: 409 {@code ENROLLMENT_DATE_OUT_OF_YEAR},
+   * 409 {@code ENROLLMENT_NOT_ACTIVE}, 404.
+   */
+  updateEnrollment(
+    enrollmentPublicUuid: string,
+    request: UpdateEnrollmentRequest,
+  ): Observable<EnrollmentDetail> {
+    return this.api
+      .patch<ApiResponse<EnrollmentResponseRaw>, UpdateEnrollmentRequest>(
+        API.ENROLLMENTS.BY_ID(enrollmentPublicUuid),
         request,
       )
       .pipe(map((envelope) => this.toEnrollmentDetail(envelope.data)));
@@ -477,6 +532,7 @@ export class StudentsApiService {
       studentFullName: raw.studentFullName,
       sectionPublicUuid: raw.sectionPublicUuid,
       sectionName: raw.sectionName,
+      gradeName: raw.gradeName ?? null,
       academicYearPublicUuid: raw.academicYearPublicUuid,
       academicYearName: raw.academicYearName,
       enrolledAt: this.parseDate(raw.enrolledAt),
@@ -494,6 +550,7 @@ export class StudentsApiService {
       studentDocumentNumber: raw.studentDocumentNumber,
       sectionPublicUuid: raw.sectionPublicUuid,
       sectionName: raw.sectionName,
+      gradeName: raw.gradeName ?? null,
       academicYearPublicUuid: raw.academicYearPublicUuid,
       academicYearName: raw.academicYearName,
       enrolledAt: this.parseDate(raw.enrolledAt),

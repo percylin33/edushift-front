@@ -42,7 +42,7 @@ import { RubricFilters, RubricRow } from '../../models';
   template: `
     <app-page-container size="wide">
       <app-page-header
-        eyebrow="Evaluación"
+        eyebrow="Registros"
         title="Rúbricas"
         subtitle="Plantillas de criterios y niveles para calificar de forma cualitativa."
       >
@@ -279,7 +279,7 @@ export class RubricsListComponent implements OnInit {
     if (row.isSystem) return;
     const ok = confirm(
       `¿Eliminar la rúbrica "${row.name}"?\n\n` +
-        'Si está vinculada a una evaluación, el servidor lo rechazará con\n' +
+        'Si está vinculada a un registro, el servidor lo rechazará con\n' +
         '"RUB_IN_USE". Las inactivas se mantienen para reportes históricos.',
     );
     if (!ok) return;

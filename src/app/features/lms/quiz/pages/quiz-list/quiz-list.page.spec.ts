@@ -47,11 +47,11 @@ describe('QuizListPageComponent', () => {
   });
 
   it('emptyTitle retorna string', () => {
-    expect(component.emptyTitle()).toBe('Aún no hay quizzes');
+    expect(component.emptyTitle()).toBe('Aún no hay prácticas');
   });
 
   it('emptyDescription sin filtro', () => {
-    expect(component.emptyDescription()).toContain('primer quiz');
+    expect(component.emptyDescription()).toContain('primera práctica');
   });
 
   it('onStatusChange actualiza filtro', () => {

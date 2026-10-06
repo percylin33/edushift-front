@@ -7,12 +7,19 @@ import {
   signal,
 } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Permission } from '@core/enums';
 import { AuthService } from '@core/services';
 import { FileMetadata } from '@core/services/file-upload.service';
 import { FileUploadComponent } from '@shared/components/file-upload/file-upload.component';
+import { AttendanceExportActionsComponent } from '@features/attendance/components';
+import { AttendancePrintService } from '@features/attendance/services/attendance-print.service';
+import { AttendanceReportService } from '@features/attendance/services/attendance-report.service';
+import { simpleRowsToPrintRows } from '@features/attendance/utils/attendance-print.helpers';
+import { monthRange } from '@features/attendance/models/attendance-report-params.model';
+import { ReportFormat } from '@features/reports/models/report.model';
 import {
   MeAttendanceRecord,
   MeAttendanceStatus,
@@ -22,7 +29,7 @@ import { MeApiService } from '../../services/me-api.service';
 @Component({
   selector: 'app-me-attendance',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe, FileUploadComponent],
+  imports: [CommonModule, FormsModule, RouterLink, DatePipe, FileUploadComponent, AttendanceExportActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-6xl px-4 py-8 sm:py-10">
@@ -33,14 +40,41 @@ import { MeApiService } from '../../services/me-api.service';
         <span aria-hidden="true">←</span>
         <span>Volver a Mi perfil</span>
       </a>
-      <header class="mt-6">
-        <p class="text-sm font-semibold uppercase tracking-wide text-indigo-600">Mi espacio</p>
-        <h1 class="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">Mi asistencia</h1>
-        <p class="mt-2 text-slate-600 dark:text-slate-400">
-          Historial de presentes, tardanzas y faltas. Puedes justificar una falta o tardanza
-          con un motivo y, si quieres, un adjunto.
-        </p>
+      <header class="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-wide text-indigo-600">Mi espacio</p>
+          <h1 class="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">Mi asistencia</h1>
+          <p class="mt-2 text-slate-600 dark:text-slate-400">
+            Historial de presentes, tardanzas y faltas. Puedes justificar una falta o tardanza
+            con un motivo y, si quieres, un adjunto.
+          </p>
+        </div>
+        @if (!loading() && records().length) {
+          <app-attendance-export-actions
+            [busy]="exportBusy()"
+            (printClick)="onPrint()"
+            (downloadClick)="onDownload($event)"
+          />
+        }
       </header>
+
+      @if (!loading() && records().length) {
+        <div class="mt-4 flex flex-wrap items-end gap-3">
+          <div>
+            <label class="text-xs font-medium text-slate-500" for="me-month">Mes</label>
+            <select id="me-month" class="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" [(ngModel)]="month" name="month" (ngModelChange)="onPeriodChange()">
+              <option [ngValue]="null">Todos los meses</option>
+              @for (m of months; track m.value) {
+                <option [ngValue]="m.value">{{ m.label }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-500" for="me-year">Año</label>
+            <input id="me-year" type="number" class="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" [(ngModel)]="year" name="year" (ngModelChange)="onPeriodChange()" />
+          </div>
+        </div>
+      }
 
       @if (loading()) {
         <div class="mt-8 space-y-3" aria-label="Cargando asistencia">
@@ -166,15 +200,35 @@ export class MeAttendancePageComponent implements OnInit {
   private readonly api = inject(MeApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
+  private readonly printService = inject(AttendancePrintService);
+  private readonly reportService = inject(AttendanceReportService);
 
   readonly records = signal<MeAttendanceRecord[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly exportBusy = signal(false);
   readonly justifying = signal<MeAttendanceRecord | null>(null);
   readonly justifyText = signal('');
   readonly justifyAttachment = signal<string | null>(null);
   readonly justifyError = signal<string | null>(null);
   readonly submitting = signal(false);
+
+  month: number | null = null;
+  year = new Date().getFullYear();
+  readonly months = [
+    { value: 1, label: 'Enero' },
+    { value: 2, label: 'Febrero' },
+    { value: 3, label: 'Marzo' },
+    { value: 4, label: 'Abril' },
+    { value: 5, label: 'Mayo' },
+    { value: 6, label: 'Junio' },
+    { value: 7, label: 'Julio' },
+    { value: 8, label: 'Agosto' },
+    { value: 9, label: 'Septiembre' },
+    { value: 10, label: 'Octubre' },
+    { value: 11, label: 'Noviembre' },
+    { value: 12, label: 'Diciembre' },
+  ];
 
   ngOnInit(): void {
     this.load();
@@ -183,8 +237,9 @@ export class MeAttendancePageComponent implements OnInit {
   load(): void {
     this.loading.set(true);
     this.error.set(null);
+    const range = this.activeRange();
     this.api
-      .listAttendance()
+      .listAttendance(range ? { from: range.from, to: range.to } : undefined)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
@@ -274,6 +329,54 @@ export class MeAttendancePageComponent implements OnInit {
         return 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300';
       case 'EXCUSED':
         return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300';
+    }
+  }
+
+  onPeriodChange(): void {
+    this.load();
+  }
+
+  private activeRange(): { from: string; to: string } | null {
+    if (this.month == null) return null;
+    return monthRange(this.year, this.month);
+  }
+
+  private periodSubtitle(): string {
+    if (this.month == null) return 'Todos los meses';
+    return `Mes ${this.month}/${this.year}`;
+  }
+
+  onPrint(): void {
+    this.printService.print({
+      mode: 'studentHistory',
+      meta: {
+        title: 'Mi asistencia',
+        subtitle: this.periodSubtitle(),
+        generatedAt: new Date(),
+      },
+      rows: simpleRowsToPrintRows(
+        this.records().map((r) => ({
+          occurredAt: r.occurredAt,
+          status: r.status,
+          notes: r.notes,
+        })),
+      ),
+    });
+  }
+
+  async onDownload(format: ReportFormat): Promise<void> {
+    const range = this.activeRange();
+    this.exportBusy.set(true);
+    try {
+      await this.reportService.downloadScopedAttendance(
+        'me',
+        null,
+        range?.from,
+        range?.to,
+        format,
+      );
+    } finally {
+      this.exportBusy.set(false);
     }
   }
 }

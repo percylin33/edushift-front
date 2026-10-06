@@ -120,6 +120,83 @@ describe('TeacherAssignmentsStore', () => {
     expect(store.assignments()).toEqual([]);
   });
 
+  it('createForPeriods crea una por periodo y omite duplicados', async () => {
+    apiSpy.listAssignments.and.returnValue(of([]));
+    await store.loadAssignmentsFor('t-1');
+
+    apiSpy.createAssignment.and.callFake((_t: string, req: any) => {
+      if (req.academicPeriodPublicUuid === 'p-2') {
+        return throwError(() => ({
+          status: 409,
+          error: { code: 'ASSIGNMENT_ALREADY_ACTIVE', message: 'Ya existe' },
+        }));
+      }
+      return of({
+        ...mockDetail,
+        publicUuid: `a-${req.academicPeriodPublicUuid}`,
+        academicPeriodPublicUuid: req.academicPeriodPublicUuid,
+      });
+    });
+
+    const result = await store.createForPeriods(
+      't-1',
+      {
+        sectionPublicUuid: 'sec-2',
+        coursePublicUuid: 'c-2',
+      },
+      ['p-1', 'p-2', 'p-3'],
+    );
+
+    expect(result).toEqual({ created: 2, skipped: 1 });
+    expect(apiSpy.createAssignment).toHaveBeenCalledTimes(3);
+    expect(store.assignments()).toHaveSize(2);
+    expect(store.error()).toBeNull();
+  });
+
+  it('createCombinations crea cursos × periodos', async () => {
+    apiSpy.listAssignments.and.returnValue(of([]));
+    await store.loadAssignmentsFor('t-1');
+    apiSpy.createAssignment.and.callFake((_t: string, req: any) =>
+      of({
+        ...mockDetail,
+        publicUuid: `a-${req.coursePublicUuid}-${req.academicPeriodPublicUuid}`,
+        coursePublicUuid: req.coursePublicUuid,
+        academicPeriodPublicUuid: req.academicPeriodPublicUuid,
+      }),
+    );
+
+    const result = await store.createCombinations(
+      't-1',
+      'sec-2',
+      ['c-1', 'c-2'],
+      ['p-1', 'p-2'],
+    );
+
+    expect(result).toEqual({ created: 4, skipped: 0 });
+    expect(apiSpy.createAssignment).toHaveBeenCalledTimes(4);
+    expect(store.assignments()).toHaveSize(4);
+  });
+
+  it('createForPeriods falla si todos ya existían', async () => {
+    apiSpy.listAssignments.and.returnValue(of([]));
+    await store.loadAssignmentsFor('t-1');
+    apiSpy.createAssignment.and.returnValue(
+      throwError(() => ({
+        status: 409,
+        error: { code: 'ASSIGNMENT_ALREADY_ACTIVE', message: 'Ya existe' },
+      })),
+    );
+
+    const result = await store.createForPeriods(
+      't-1',
+      { sectionPublicUuid: 'sec-2', coursePublicUuid: 'c-2' },
+      ['p-1', 'p-2'],
+    );
+
+    expect(result).toBeNull();
+    expect(store.error()).toContain('Ya existían');
+  });
+
   it('softEnd remueve row si active=true', async () => {
     apiSpy.softEndAssignment.and.returnValue(of(void 0));
     apiSpy.listAssignments.and.returnValue(of(mockRows));

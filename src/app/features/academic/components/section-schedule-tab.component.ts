@@ -21,6 +21,10 @@ import {
   TimeSlotAssignmentOption,
   TimeSlotFormModalComponent,
 } from './time-slot-form-modal.component';
+import {
+  dedupeYearScheduleSlots,
+  groupSectionTeachersAsYearOptions,
+} from '../utils/schedule-assignment.util';
 
 /**
  * Sub-tab "Horario" dentro de {@code section-detail}.
@@ -98,6 +102,7 @@ import {
     @if (modalOpen()) {
       <app-time-slot-form-modal
         [assignments]="assignmentOptions()"
+        [yearSlots]="yearSlots()"
         [initialDayOfWeek]="modalDay()"
         [initialStartTime]="modalStart()"
         [initialEndTime]="modalEnd()"
@@ -124,6 +129,8 @@ export class SectionScheduleTabComponent implements OnChanges {
   readonly sectionPublicUuid = input.required<string>();
 
   protected readonly slots = signal<ScheduleSlotItem[]>([]);
+  /** Undeduped week slots for year-sibling find in the modal. */
+  protected readonly yearSlots = signal<readonly ScheduleSlotItem[]>([]);
   protected readonly nonTeachingBlocks = signal<NonTeachingBlockItem[]>([]);
   protected readonly suggestedPeriods = signal<SuggestedPeriodItem[]>([]);
   protected readonly assignmentOptions = signal<TimeSlotAssignmentOption[]>([]);
@@ -155,15 +162,12 @@ export class SectionScheduleTabComponent implements OnChanges {
           ? firstValueFrom(this.teachersApi.listSectionTeachers(uuid))
           : Promise.resolve([]),
       ]);
-      this.slots.set(view.slots ?? []);
+      const rawSlots = view.slots ?? [];
+      this.yearSlots.set(rawSlots);
+      this.slots.set(dedupeYearScheduleSlots(rawSlots));
       this.nonTeachingBlocks.set(view.nonTeachingBlocks ?? []);
       this.suggestedPeriods.set(view.suggestedPeriods ?? []);
-      this.assignmentOptions.set(
-        teachers.map((t) => ({
-          publicUuid: t.assignmentPublicUuid,
-          label: `${t.courseCode} — ${t.courseName} · ${t.teacherFullName}`,
-        })),
-      );
+      this.assignmentOptions.set(groupSectionTeachersAsYearOptions(teachers));
     } catch (err) {
       this.errorMessage.set(err instanceof Error ? err.message : 'Error de red');
     } finally {

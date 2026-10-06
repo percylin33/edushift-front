@@ -18,6 +18,7 @@ import {
   COMMENTS_MAX_LENGTH,
   CreateGradeRecordRequest,
   GradeRecordRow,
+  GradeStudentOption,
   SCORE_MAX,
   SCORE_MIN,
   validateGradeShape,
@@ -30,10 +31,11 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
  *
  * <h3>Modos</h3>
  * <ul>
- *   <li>{@link #row} {@code null} ⇒ create / upsert por UUID de estudiante.</li>
- *   <li>{@link #row} presente ⇒ edit del existente; el campo de UUID
- *       queda read-only (el (eval, student) tuple es inmutable —
- *       BE-5B.3).</li>
+ *   <li>{@link #row} {@code null} ⇒ create / upsert; el estudiante se
+ *       elige con {@code <select>} desde {@link #students} (roster de
+ *       la sección vía gradebook).</li>
+ *   <li>{@link #row} presente ⇒ edit del existente; el estudiante no
+ *       se cambia (el tuple (eval, student) es inmutable — BE-5B.3).</li>
  * </ul>
  *
  * <p>El campo "valor" se renderiza como input numérico para
@@ -72,25 +74,28 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
             </div>
           }
 
-          <div class="field">
-            <label class="label" for="grade-uuid">Estudiante (UUID) *</label>
-            <input
-              id="grade-uuid"
-              type="text"
-              class="input font-mono text-xs"
-              formControlName="studentPublicUuid"
-              [readonly]="editing()"
-              placeholder="ej: a3f7e2c8-1234-4abc-9999-aaaaaaaaaaaa"
-              autocomplete="off"
-            />
-            @if (showError('studentPublicUuid'); as msg) {
-              <p class="field-error">{{ msg }}</p>
-            } @else if (!editing()) {
-              <p class="field-hint">
-                Pega el publicUuid del estudiante. (Roster por sección llegará en sprint posterior.)
-              </p>
-            }
-          </div>
+          @if (!editing()) {
+            <div class="field">
+              <label class="label" for="grade-student">Estudiante *</label>
+              <select
+                id="grade-student"
+                class="input"
+                formControlName="studentPublicUuid"
+              >
+                <option value="">— Selecciona un estudiante —</option>
+                @for (s of students(); track s.publicUuid) {
+                  <option [value]="s.publicUuid">{{ s.fullName }}</option>
+                }
+              </select>
+              @if (showError('studentPublicUuid'); as msg) {
+                <p class="field-error">{{ msg }}</p>
+              } @else if (students().length === 0) {
+                <p class="field-hint">
+                  No hay estudiantes en la lista de esta sección. Revisa las matrículas activas.
+                </p>
+              }
+            </div>
+          }
 
           @if (scale() === scaleScore) {
             <div class="field">
@@ -171,6 +176,8 @@ export class GradeRecordFormModalComponent implements OnInit {
 
   readonly scale = input.required<EvaluationScale>();
   readonly row = input<GradeRecordRow | null>(null);
+  /** Roster activo de la sección (create mode). Vacío ⇒ select deshabilitado. */
+  readonly students = input<GradeStudentOption[]>([]);
   readonly saving = input<boolean>(false);
   readonly errorBanner = input<string | null>(null);
 

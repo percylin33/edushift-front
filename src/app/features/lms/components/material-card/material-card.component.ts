@@ -1,6 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { API } from '@core/constants';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  inject,
+  signal,
+} from '@angular/core';
+import { FileUploadService } from '@core/services/file-upload.service';
 import { IconComponent, IconName } from '@shared/components';
 import { HasPermissionDirective } from '@shared/directives';
 import { Permission } from '@core/enums';
@@ -12,22 +20,6 @@ import {
   materialTypeLabel,
 } from '../../models';
 
-/**
- * Card de un material (FE-7a.3).
- *
- * <h3>Responsabilidades</h3>
- * <ul>
- *   <li>Icono según {@link MaterialType} (PDF/IMAGE/DOC/LINK/OTHER).</li>
- *   <li>Título, autor, fecha y tamaño (si aplica).</li>
- *   <li>Para {@code type=LINK}: botón "Abrir enlace" (target="_blank"
- *       rel="noopener"). Para binarios: botón "Descargar" que dispara
- *       el download via 302 al signed URL.</li>
- *   <li>Botón "Eliminar" gated por {@code LMS_MATERIAL_WRITE}.</li>
- * </ul>
- *
- * <p>El delete se delega al padre (la page) — la card es dumb,
- * emite {@code delete} y {@code download} con el row como payload.</p>
- */
 @Component({
   selector: 'app-material-card',
   standalone: true,
@@ -51,10 +43,12 @@ import {
                 {{ material.title }}
               </h3>
               <p class="text-xs text-content-muted">
-                {{ material.uploadedByTeacherName }} ·
                 {{ material.createdAt | date: 'mediumDate' }}
                 @if (material.sizeBytesDisplay) {
                   · {{ material.sizeBytesDisplay }}
+                }
+                @if (material.filename) {
+                  · {{ material.filename }}
                 }
               </p>
             </div>
@@ -75,10 +69,15 @@ import {
             Abrir enlace
           </a>
         } @else {
-          <a [href]="downloadUrl()" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            [disabled]="downloading()"
+            (click)="onDownload()"
+          >
             <app-icon name="download" [size]="14" />
-            Descargar
-          </a>
+            {{ downloading() ? 'Descargando…' : 'Descargar' }}
+          </button>
         }
         <button
           *appHasPermission="permission.LmsMaterialWrite"
@@ -97,7 +96,10 @@ export class MaterialCardComponent {
   @Input({ required: true }) material!: MaterialRow;
   @Output() readonly delete = new EventEmitter<MaterialRow>();
 
+  private readonly files = inject(FileUploadService);
+
   protected readonly permission = Permission;
+  protected readonly downloading = signal(false);
 
   iconName(): IconName {
     return materialTypeIcon(this.material.type) as IconName;
@@ -111,8 +113,19 @@ export class MaterialCardComponent {
     return !isFileMaterial(this.material.type);
   }
 
-  downloadUrl(): string {
-    return API.LMS.MATERIAL_DOWNLOAD(this.material.publicUuid);
+  async onDownload(): Promise<void> {
+    if (!this.material.filePublicUuid) return;
+    this.downloading.set(true);
+    try {
+      await this.files.downloadAndSave(
+        this.material.filePublicUuid,
+        this.material.filename || this.material.title || 'material',
+      );
+    } catch {
+      // global error interceptor
+    } finally {
+      this.downloading.set(false);
+    }
   }
 
   protected iconBgClass(): string {

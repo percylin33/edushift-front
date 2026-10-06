@@ -9,3 +9,4 @@ export * from './enroll-student-modal.component';
 export * from './withdraw-enrollment-modal.component';
 export * from './enrollments-section.component';
 export * from './invite-portal-dialog.component';
+export * from './provision-accounts-modal.component';

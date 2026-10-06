@@ -39,6 +39,7 @@ describe('TaskApiService', () => {
       maxScore: 20,
       lifecycle: TaskLifecycle.Draft,
       submissionsCount: 0,
+      gradedSubmissionsCount: 0,
       sectionLabel: null,
       courseLabel: null,
       createdAt: '2026-01-01T00:00:00.000Z',

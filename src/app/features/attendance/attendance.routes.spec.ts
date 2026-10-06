@@ -5,24 +5,21 @@ describe('ATTENDANCE_ROUTES', () => {
     const paths = ATTENDANCE_ROUTES.map((r) => r.path);
     expect(paths).toContain('');
     expect(paths).toContain('scanner');
+    expect(paths).toContain('hub');
     expect(paths).toContain('sessions');
     expect(paths).toContain('sessions/:uuid');
   });
 
-  it('home usa permissionGuard', () => {
+  it('path vacío redirige al escáner (flujo puerta)', () => {
     const home = ATTENDANCE_ROUTES.find((r) => r.path === '')!;
-    expect(home.canActivate).toBeDefined();
+    expect(home.redirectTo).toBe('scanner');
+    expect(home.pathMatch).toBe('full');
   });
 
-  it('scanner, sessions y sessions/:uuid usan roleGuard', () => {
-    for (const p of ['scanner', 'sessions', 'sessions/:uuid']) {
+  it('scanner, hub, sessions y sessions/:uuid usan roleGuard', () => {
+    for (const p of ['scanner', 'hub', 'sessions', 'sessions/:uuid']) {
       const r = ATTENDANCE_ROUTES.find((x) => x.path === p)!;
       expect(r.canActivate).toBeDefined();
-    }
-  });
-
-  it('rutas cargan componentes lazy', () => {
-    for (const r of ATTENDANCE_ROUTES) {
       expect(typeof r.loadComponent).toBe('function');
     }
   });

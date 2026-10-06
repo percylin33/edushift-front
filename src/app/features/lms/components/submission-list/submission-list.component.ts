@@ -8,9 +8,11 @@ import {
   Output,
   SimpleChanges,
   signal,
+  inject,
 } from '@angular/core';
 import { IconComponent } from '@shared/components';
 import { Permission } from '@core/enums';
+import { FileUploadService } from '@core/services/file-upload.service';
 import { HasPermissionDirective } from '@shared/directives';
 import { SubmissionRow, SubmissionStatus } from '../../models';
 
@@ -105,8 +107,19 @@ import { SubmissionRow, SubmissionStatus } from '../../models';
                       </p>
                       @if (row.hasAttachment) {
                         <p class="text-xs text-content-muted">
-                          <app-icon name="paperclip" [size]="12" />
-                          Adjunto
+                          @if (row.attachmentPublicUuid) {
+                            <button
+                              type="button"
+                              class="inline-flex items-center gap-1 text-primary hover:underline"
+                              (click)="onDownloadAttachment(row)"
+                            >
+                              <app-icon name="paperclip" [size]="12" />
+                              {{ row.attachmentFilename || 'Adjunto' }}
+                            </button>
+                          } @else {
+                            <app-icon name="paperclip" [size]="12" />
+                            Adjunto
+                          }
                         </p>
                       }
                     </div>
@@ -174,6 +187,7 @@ export class SubmissionListComponent implements OnChanges {
   @Output() readonly return = new EventEmitter<SubmissionRow>();
 
   protected readonly permission = Permission;
+  private readonly files = inject(FileUploadService);
   private readonly _maxScore = signal(20);
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -198,6 +212,18 @@ export class SubmissionListComponent implements OnChanges {
 
   protected onReturn(row: SubmissionRow): void {
     this.return.emit(row);
+  }
+
+  protected async onDownloadAttachment(row: SubmissionRow): Promise<void> {
+    if (!row.attachmentPublicUuid) return;
+    try {
+      await this.files.downloadAndSave(
+        row.attachmentPublicUuid,
+        row.attachmentFilename || 'adjunto',
+      );
+    } catch {
+      // global error interceptor
+    }
   }
 
   protected statusLabel(status: SubmissionStatus): string {

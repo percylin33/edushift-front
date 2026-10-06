@@ -3,13 +3,15 @@ import {
   Component,
   DestroyRef,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MeSection } from '../../models/me-section.model';
+import { forkJoin } from 'rxjs';
+import { MeSection, MeSectionPeriod } from '../../models/me-section.model';
 import { MeApiService } from '../../services/me-api.service';
 
 @Component({
@@ -30,8 +32,50 @@ import { MeApiService } from '../../services/me-api.service';
         <p class="text-sm font-semibold uppercase tracking-wide text-indigo-600">Mi espacio</p>
         <h1 class="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">Mis cursos</h1>
         <p class="mt-2 text-slate-600 dark:text-slate-400">
-          Materias que cursas este año, con tu docente y tu sección.
+          @if (viewingCurrentPeriod()) {
+            Materias del periodo vigente, con tu docente y tu sección.
+          } @else {
+            Materias del bimestre seleccionado.
+          }
         </p>
+
+        @if (pastPeriods().length > 0) {
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            @if (!showPeriodPicker()) {
+              <button
+                type="button"
+                class="text-sm font-semibold text-indigo-600 underline hover:text-indigo-700"
+                (click)="openPeriodPicker()"
+              >
+                Ver bimestres anteriores
+              </button>
+            } @else {
+              <label class="flex flex-col gap-1 text-sm text-slate-600 dark:text-slate-400">
+                <span class="font-semibold text-slate-700 dark:text-slate-300">Bimestre</span>
+                <select
+                  class="min-w-[12rem] rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                  [value]="selectedPeriodUuid() ?? ''"
+                  (change)="onPeriodChange($event)"
+                >
+                  @for (period of periods(); track period.publicUuid) {
+                    <option [value]="period.publicUuid">
+                      {{ period.name }}{{ period.current ? ' (vigente)' : '' }}
+                    </option>
+                  }
+                </select>
+              </label>
+              @if (!viewingCurrentPeriod()) {
+                <button
+                  type="button"
+                  class="text-sm font-semibold text-indigo-600 underline hover:text-indigo-700"
+                  (click)="selectCurrentPeriod()"
+                >
+                  Volver al periodo vigente
+                </button>
+              }
+            }
+          </div>
+        }
       </header>
 
       @if (loading()) {
@@ -52,10 +96,18 @@ import { MeApiService } from '../../services/me-api.service';
           class="mt-8 rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center dark:border-slate-700"
         >
           <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            Aún no hay cursos
+            @if (viewingCurrentPeriod()) {
+              Aún no hay cursos
+            } @else {
+              Sin cursos en este bimestre
+            }
           </h2>
           <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            Cuando el colegio te matricule en una sección, aparecerán aquí.
+            @if (viewingCurrentPeriod()) {
+              Cuando el colegio te matricule en una sección, aparecerán aquí.
+            } @else {
+              Prueba otro bimestre o vuelve al periodo vigente.
+            }
           </p>
         </div>
       } @else {
@@ -63,6 +115,7 @@ import { MeApiService } from '../../services/me-api.service';
           @for (section of sections(); track courseCardId(section)) {
             <a
               [routerLink]="['/me/courses', section.publicUuid]"
+              [queryParams]="courseQuery(section)"
               class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:ring-2 hover:ring-indigo-400 dark:bg-slate-900 dark:ring-slate-800"
             >
               <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Curso</p>
@@ -80,8 +133,13 @@ import { MeApiService } from '../../services/me-api.service';
                   Docente: {{ section.teacherName }}
                 </p>
               }
+              @if (section.periodLabel) {
+                <p class="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {{ section.periodLabel }}
+                </p>
+              }
               <p class="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Ver materiales, tareas y quizzes
+                Ver materiales, tareas y prácticas
               </p>
             </a>
           }
@@ -95,27 +153,84 @@ export class MeCoursesPageComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly sections = signal<MeSection[]>([]);
+  readonly periods = signal<MeSectionPeriod[]>([]);
+  readonly selectedPeriodUuid = signal<string | null>(null);
+  readonly showPeriodPicker = signal(false);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+
+  readonly pastPeriods = computed(() => this.periods().filter((p) => !p.current));
+  readonly viewingCurrentPeriod = computed(() => {
+    const selected = this.selectedPeriodUuid();
+    if (!selected) {
+      return true;
+    }
+    return this.periods().some((p) => p.publicUuid === selected && p.current);
+  });
 
   ngOnInit(): void {
     this.load();
   }
 
   courseCardId(section: MeSection): string {
-    return `${section.publicUuid}:${section.courseName ?? ''}:${section.teacherName ?? ''}`;
+    return `${section.publicUuid}:${section.teacherAssignmentPublicUuid ?? ''}:${section.courseName ?? ''}`;
+  }
+
+  courseQuery(section: MeSection): { assignment: string } | Record<string, never> {
+    return section.teacherAssignmentPublicUuid
+      ? { assignment: section.teacherAssignmentPublicUuid }
+      : {};
+  }
+
+  openPeriodPicker(): void {
+    this.showPeriodPicker.set(true);
+  }
+
+  selectCurrentPeriod(): void {
+    const current = this.periods().find((p) => p.current);
+    this.selectedPeriodUuid.set(current?.publicUuid ?? null);
+    this.loadSections(current?.publicUuid ?? null);
+  }
+
+  onPeriodChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.selectedPeriodUuid.set(value || null);
+    this.loadSections(value || null);
   }
 
   load(): void {
     this.loading.set(true);
     this.error.set(null);
+    forkJoin({
+      periods: this.api.listSectionPeriods(),
+      sections: this.api.listSections(),
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ periods, sections }) => {
+          const periodRows = periods.data ?? [];
+          this.periods.set(periodRows);
+          const current = periodRows.find((p) => p.current);
+          this.selectedPeriodUuid.set(current?.publicUuid ?? null);
+          this.sections.set(sections.data ?? []);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set('No se pudieron cargar tus cursos.');
+          this.loading.set(false);
+        },
+      });
+  }
+
+  private loadSections(periodPublicUuid: string | null): void {
+    this.loading.set(true);
+    this.error.set(null);
     this.api
-      .listSections()
+      .listSections(periodPublicUuid)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
-          const rows = response.data ?? [];
-          this.sections.set(rows);
+          this.sections.set(response.data ?? []);
           this.loading.set(false);
         },
         error: () => {

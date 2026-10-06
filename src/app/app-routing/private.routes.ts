@@ -70,8 +70,8 @@ export const PRIVATE_ROUTES: Routes = [
         canActivate: [featureFlagGuard],
         data: {
           feature: FeatureKey.Evaluations,
-          breadcrumb: 'Evaluaciones',
-          title: 'Evaluaciones',
+          breadcrumb: 'Registros',
+          title: 'Registros',
         },
         loadChildren: () =>
           import('@features/evaluations/evaluations.routes').then((m) => m.EVALUATIONS_ROUTES),
@@ -150,7 +150,7 @@ export const PRIVATE_ROUTES: Routes = [
       {
         path: 'lms',
         canActivate: [featureFlagGuard],
-        data: { feature: FeatureKey.Lms, breadcrumb: 'LMS', title: 'LMS' },
+        data: { feature: FeatureKey.Lms, breadcrumb: 'Mis cursos', title: 'Mis cursos' },
         loadChildren: () => import('@features/lms/lms.routes').then((m) => m.LMS_ROUTES),
       },
       /*

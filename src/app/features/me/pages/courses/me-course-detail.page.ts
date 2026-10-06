@@ -10,8 +10,9 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ROUTES } from '@core/constants';
-import { MeSectionDetail } from '../../models/me-section.model';
+import { MeSectionDetail, MeMaterialItem } from '../../models/me-section.model';
 import { MeApiService } from '../../services/me-api.service';
+import { FileUploadService } from '@core/services/file-upload.service';
 
 @Component({
   selector: 'app-me-course-detail',
@@ -46,6 +47,9 @@ import { MeApiService } from '../../services/me-api.service';
           </h1>
           <p class="mt-2 text-slate-600 dark:text-slate-400">
             {{ d.gradeName }} · Sección {{ d.name }}
+            @if (d.periodLabel) {
+              <span> · {{ d.periodLabel }}</span>
+            }
             @if (d.teacherName) {
               <span> · {{ d.teacherName }}</span>
             }
@@ -86,9 +90,9 @@ import { MeApiService } from '../../services/me-api.service';
           </ul>
         }
 
-        <h2 class="mt-10 text-lg font-semibold text-slate-900 dark:text-slate-100">Quizzes</h2>
+        <h2 class="mt-10 text-lg font-semibold text-slate-900 dark:text-slate-100">Prácticas</h2>
         @if (d.quizzes.length === 0) {
-          <p class="mt-2 text-sm text-slate-500">No hay quizzes publicados.</p>
+          <p class="mt-2 text-sm text-slate-500">No hay prácticas publicadas.</p>
         } @else {
           <ul class="mt-3 grid gap-3">
             @for (quiz of d.quizzes; track quiz.publicUuid) {
@@ -119,9 +123,37 @@ import { MeApiService } from '../../services/me-api.service';
         } @else {
           <ul class="mt-3 grid gap-3">
             @for (material of d.materials; track material.publicUuid) {
-              <li class="rounded-2xl bg-white p-4 ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
-                <p class="font-semibold text-slate-900 dark:text-slate-100">{{ material.title }}</p>
-                <p class="text-sm text-slate-500">{{ material.kind }}</p>
+              <li
+                class="flex flex-col gap-2 rounded-2xl bg-white p-4 ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p class="font-semibold text-slate-900 dark:text-slate-100">{{ material.title }}</p>
+                  <p class="text-sm text-slate-500">
+                    {{ materialKindLabel(material) }}
+                    @if (material.filename) {
+                      · {{ material.filename }}
+                    }
+                  </p>
+                </div>
+                @if (material.externalUrl) {
+                  <a
+                    [href]="material.externalUrl"
+                    target="_blank"
+                    rel="noopener"
+                    class="text-sm font-semibold text-indigo-600"
+                  >
+                    Abrir enlace
+                  </a>
+                } @else if (material.filePublicUuid) {
+                  <button
+                    type="button"
+                    class="text-sm font-semibold text-indigo-600 disabled:opacity-50"
+                    [disabled]="downloadingMaterial() === material.publicUuid"
+                    (click)="onDownloadMaterial(material)"
+                  >
+                    {{ downloadingMaterial() === material.publicUuid ? 'Descargando…' : 'Descargar' }}
+                  </button>
+                }
               </li>
             }
           </ul>
@@ -132,12 +164,14 @@ import { MeApiService } from '../../services/me-api.service';
 })
 export class MeCourseDetailPageComponent implements OnInit {
   private readonly api = inject(MeApiService);
+  private readonly files = inject(FileUploadService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly detail = signal<MeSectionDetail | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly downloadingMaterial = signal<string | null>(null);
 
   ngOnInit(): void {
     this.load();
@@ -150,10 +184,11 @@ export class MeCourseDetailPageComponent implements OnInit {
       this.loading.set(false);
       return;
     }
+    const assignment = this.route.snapshot.queryParamMap.get('assignment');
     this.loading.set(true);
     this.error.set(null);
     this.api
-      .getSection(uuid)
+      .getSection(uuid, assignment)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
@@ -173,5 +208,26 @@ export class MeCourseDetailPageComponent implements OnInit {
 
   takeLink(quizUuid: string): string {
     return ROUTES.LMS.quizTake(quizUuid);
+  }
+
+  materialKindLabel(material: MeMaterialItem): string {
+    if (material.kind === 'VIDEO_LINK') return 'Enlace';
+    if (material.kind === 'FILE') return 'Archivo';
+    return material.kind;
+  }
+
+  async onDownloadMaterial(material: MeMaterialItem): Promise<void> {
+    if (!material.filePublicUuid) return;
+    this.downloadingMaterial.set(material.publicUuid);
+    try {
+      await this.files.downloadAndSave(
+        material.filePublicUuid,
+        material.filename || material.title || 'material',
+      );
+    } catch {
+      // global error interceptor
+    } finally {
+      this.downloadingMaterial.set(null);
+    }
   }
 }

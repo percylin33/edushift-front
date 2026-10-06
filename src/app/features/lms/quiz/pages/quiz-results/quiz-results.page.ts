@@ -69,9 +69,9 @@ import { Permission } from '@core/enums';
     <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div class="min-w-0">
         <p class="text-xs uppercase tracking-wide text-content-muted">
-          <a [routerLink]="quizDetailRoute()" class="hover:underline">← Volver al quiz</a>
+          <a [routerLink]="quizDetailRoute()" class="hover:underline">← Volver a la práctica</a>
         </p>
-        <h1 class="text-2xl font-semibold text-content">Resultados del quiz</h1>
+        <h1 class="text-2xl font-semibold text-content">Resultados de la práctica</h1>
         @if (quizTitle(); as t) {
           <p class="text-sm text-content-muted">{{ t }}</p>
         }
@@ -111,7 +111,7 @@ import { Permission } from '@core/enums';
         >
           <a [routerLink]="takeRoute()" class="btn btn-primary btn-sm">
             <app-icon name="play" [size]="14" />
-            Tomar quiz
+            Tomar práctica
           </a>
         </app-empty-state>
       } @else {
@@ -410,9 +410,9 @@ export class QuizResultsPageComponent implements OnInit {
 
   protected readonly emptyDescription = computed<string>(() => {
     if (this.canGrade()) {
-      return 'Ningún estudiante ha tomado este quiz todavía.';
+      return 'Ningún estudiante ha tomado esta práctica todavía.';
     }
-    return 'Todavía no has tomado este quiz. ¡Anímate!';
+    return 'Todavía no has tomado esta práctica. ¡Anímate!';
   });
 
   protected reload(): void {

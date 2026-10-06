@@ -20,6 +20,7 @@ describe('task.model', () => {
         maxScore: 20,
         lifecycle: TaskLifecycle.Published,
         submissionsCount: 3,
+        gradedSubmissionsCount: 1,
         sectionLabel: 'Sección A',
         courseLabel: 'Matemáticas',
         createdAt: '2026-01-01T00:00:00.000Z',
@@ -29,6 +30,7 @@ describe('task.model', () => {
       expect(row.dueAt?.toISOString()).toBe('2030-01-15T00:00:00.000Z');
       expect(row.createdAt.toISOString()).toBe('2026-01-01T00:00:00.000Z');
       expect(row.lifecycle).toBe(TaskLifecycle.Published);
+      expect(row.gradedSubmissionsCount).toBe(1);
     });
 
     it('maneja dueAt null', () => {
@@ -74,7 +76,7 @@ describe('task.model', () => {
       expect(detail.description).toBe('Descripción');
     });
 
-    it('usa default 0 para submissionsCount ausente', () => {
+    it('usa default 0 para submissionsCount y gradedSubmissionsCount ausentes', () => {
       const raw = {
         publicUuid: 't-1',
         sectionPublicUuid: 's-1',
@@ -93,6 +95,7 @@ describe('task.model', () => {
       } as TaskResponseRaw;
       const detail = toTaskDetail(raw);
       expect(detail.submissionsCount).toBe(0);
+      expect(detail.gradedSubmissionsCount).toBe(0);
     });
   });
 

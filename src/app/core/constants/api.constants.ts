@@ -4,6 +4,11 @@ const BASE = `${environment.apiUrl}/${environment.apiVersion}`;
 
 export const API = {
   BASE,
+  /** FileObjectService — uploads + downloads (BE-7a.0). */
+  FILES: {
+    DOWNLOAD: (publicUuid: string) =>
+      `${BASE}/files/${encodeURIComponent(publicUuid)}/download`,
+  },
   AUTH: {
     ROOT: `${BASE}/auth`,
     LOGIN: `${BASE}/auth/login`,
@@ -17,6 +22,10 @@ export const API = {
     LOGOUT: `${BASE}/auth/logout`,
     REFRESH: `${BASE}/auth/refresh`,
     ME: `${BASE}/auth/me`,
+    /** CRED-7 — change password (clears mustChangePassword). */
+    ME_PASSWORD: `${BASE}/auth/me/password`,
+    /** CRED-7 — first-login onboarding status + complete. */
+    ME_ONBOARDING: `${BASE}/auth/me/onboarding`,
     FORGOT_PASSWORD: `${BASE}/auth/forgot-password`,
     RESET_PASSWORD: `${BASE}/auth/reset-password`,
     /** `GET /v1/auth/reset-password/validate?token=...` (Sprint 17 / BE-17.1). */
@@ -98,6 +107,8 @@ export const API = {
   TEACHERS: {
     /** {@code GET|POST /v1/teachers}. {@code GET} acepta {@code ?search&employmentStatus&hasUserAccount} + paginación Spring. */
     ROOT: `${BASE}/teachers`,
+    /** {@code GET /v1/teachers/me} — perfil docente del caller (TEACHER, self-only). */
+    ME: `${BASE}/teachers/me`,
     /** {@code GET|PUT|DELETE /v1/teachers/{publicUuid}}. */
     BY_ID: (publicUuid: string) => `${BASE}/teachers/${encodeURIComponent(publicUuid)}`,
     /** {@code POST /v1/teachers/{publicUuid}/link-user} — vincula a un User existente con rol TEACHER. */
@@ -123,9 +134,12 @@ export const API = {
       `${BASE}/teachers/${encodeURIComponent(publicUuid)}/assignments`,
   },
   TEACHER_ASSIGNMENTS: {
-    /** {@code GET /v1/teacher-assignments} — lista asignaciones con filtros. */
+    /**
+     * {@code GET /v1/teacher-assignments?teacherId&sectionId&courseId&periodId&active}
+     * — listado tenant-wide (admin Registros picker).
+     */
     ROOT: `${BASE}/teacher-assignments`,
-    /** {@code GET|PUT|DELETE /v1/teacher-assignments/{publicUuid}}. */
+    /** Nested resources use this root + {@code /{publicUuid}/…} (sessions, time-slots). */
     BY_ID: (publicUuid: string) => `${BASE}/teacher-assignments/${encodeURIComponent(publicUuid)}`,
   },
   ASSIGNMENTS: {
@@ -133,6 +147,9 @@ export const API = {
     BY_ID: (publicUuid: string) => `${BASE}/assignments/${encodeURIComponent(publicUuid)}`,
   },
   ENROLLMENTS: {
+    /** {@code PATCH /v1/enrollments/{publicUuid}} — update enrolledAt (ACTIVE). */
+    BY_ID: (publicUuid: string) =>
+      `${BASE}/enrollments/${encodeURIComponent(publicUuid)}`,
     /** {@code POST /v1/enrollments/{publicUuid}/withdraw} — soft-end de enrollment (BE-4.8). */
     WITHDRAW: (publicUuid: string) =>
       `${BASE}/enrollments/${encodeURIComponent(publicUuid)}/withdraw`,
@@ -148,6 +165,8 @@ export const API = {
     BULK_IMPORT: {
       /** {@code POST /v1/students/bulk-import} (multipart). */
       ROOT: `${BASE}/students/bulk-import`,
+      /** {@code POST /v1/students/bulk-import/preview} (multipart). */
+      PREVIEW: `${BASE}/students/bulk-import/preview`,
       /** {@code GET /v1/students/bulk-import/template} (binary .xlsx). */
       TEMPLATE: `${BASE}/students/bulk-import/template`,
       /** {@code GET /v1/students/bulk-import/{publicUuid}}. */
@@ -213,6 +232,15 @@ export const API = {
       /** {@code GET /v1/academic/sections/{publicUuid}/students} (BE-4.8) — roster activo. */
       STUDENTS: (sectionPublicUuid: string) =>
         `${BASE}/academic/sections/${encodeURIComponent(sectionPublicUuid)}/students`,
+      /** CRED-7 — {@code POST /v1/academic/sections/{uuid}/provision-accounts}. */
+      PROVISION_ACCOUNTS: (sectionPublicUuid: string) =>
+        `${BASE}/academic/sections/${encodeURIComponent(sectionPublicUuid)}/provision-accounts`,
+      /** CRED-7 — {@code GET .../provision-accounts/{jobUuid}/sheet.xlsx}. */
+      PROVISION_SHEET: (jobPublicUuid: string) =>
+        `${BASE}/academic/sections/provision-accounts/${encodeURIComponent(jobPublicUuid)}/sheet.xlsx`,
+      /** CRED-7 — {@code GET .../provision-accounts/{jobUuid}/handout.zip}. */
+      PROVISION_HANDOUT_ZIP: (jobPublicUuid: string) =>
+        `${BASE}/academic/sections/provision-accounts/${encodeURIComponent(jobPublicUuid)}/handout.zip`,
     },
     COURSES: {
       /** {@code GET|POST /v1/academic/courses}. {@code GET} acepta filtros {@code ?levelId&isActive}. */
@@ -324,6 +352,30 @@ export const API = {
       /** {@code GET|PUT|DELETE /v1/academic/periods/{publicUuid}}. */
       BY_ID: (publicUuid: string) => `${BASE}/academic/periods/${encodeURIComponent(publicUuid)}`,
     },
+    /**
+     * Formal grade-register templates (F1).
+     * Controllers under {@code com.edushift.modules.evaluations.graderegister}.
+     */
+    GRADE_REGISTER_TEMPLATES: {
+      /** {@code GET /v1/academic/grade-register-templates/catalog} */
+      CATALOG: `${BASE}/academic/grade-register-templates/catalog`,
+      /** {@code GET /v1/academic/grade-register-templates?yearUuid=} */
+      ROOT: `${BASE}/academic/grade-register-templates`,
+      /** {@code GET|PUT|DELETE /v1/academic/grade-register-templates/{uuid}} */
+      BY_ID: (uuid: string) =>
+        `${BASE}/academic/grade-register-templates/${encodeURIComponent(uuid)}`,
+      /** {@code POST /v1/academic/grade-register-templates/{uuid}/adopt} */
+      ADOPT: (uuid: string) =>
+        `${BASE}/academic/grade-register-templates/${encodeURIComponent(uuid)}/adopt`,
+      /** {@code POST /v1/academic/grade-register-templates/{uuid}/categories} */
+      CATEGORIES: (uuid: string) =>
+        `${BASE}/academic/grade-register-templates/${encodeURIComponent(uuid)}/categories`,
+    },
+    /** {@code GET|PUT|DELETE /v1/academic/grade-categories/{uuid}} */
+    GRADE_CATEGORIES: {
+      BY_ID: (uuid: string) =>
+        `${BASE}/academic/grade-categories/${encodeURIComponent(uuid)}`,
+    },
   },
   PAYMENTS: {
     ROOT: `${BASE}/payments`,
@@ -416,9 +468,15 @@ export const API = {
       `${BASE}/academic/grade-records/${encodeURIComponent(publicUuid)}`,
   },
   GRADE_BOOK: {
-    /** {@code GET /v1/academic/teacher-assignments/{publicUuid}/gradebook} (BE-5B.4). */
+    /** {@code GET /v1/academic/teacher-assignments/{publicUuid}/gradebook} (BE-5B.4 / F2). */
     BY_ASSIGNMENT: (assignmentUuid: string) =>
       `${BASE}/academic/teacher-assignments/${encodeURIComponent(assignmentUuid)}/gradebook`,
+    /** {@code GET …/gradebook/export.xlsx} (F4). */
+    EXPORT_XLSX: (assignmentUuid: string) =>
+      `${BASE}/academic/teacher-assignments/${encodeURIComponent(assignmentUuid)}/gradebook/export.xlsx`,
+    /** {@code GET …/gradebook/export.pdf} (F4). */
+    EXPORT_PDF: (assignmentUuid: string) =>
+      `${BASE}/academic/teacher-assignments/${encodeURIComponent(assignmentUuid)}/gradebook/export.pdf`,
   },
   RUBRICS: {
     /** {@code GET|POST /v1/academic/rubrics} (BE-5B.2). Acepta {@code ?systemOnly&isActive&q}. */

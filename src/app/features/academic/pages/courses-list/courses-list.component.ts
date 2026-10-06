@@ -4,9 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
-import { CourseFormModalComponent } from '../../components';
+import { CourseBulkSetupComponent, CourseFormModalComponent } from '../../components';
 import { AcademicStore } from '../../store';
 import { CourseDetail, CourseRow } from '../../models';
+import { resolveCourseVisual } from '../../utils/course-visual.util';
 
 /**
  * `/academic/courses` — listado, filtros y CRUD de cursos (BE-4.4).
@@ -20,8 +21,11 @@ import { CourseDetail, CourseRow } from '../../models';
  *       <em>client-side</em>; persistido en {@code ?q}.</li>
  * </ul>
  *
- * <h3>Acciones por fila</h3>
+ * <h3>Acciones</h3>
  * <ul>
+ *   <li><b>Cursos usuales (Perú)</b> — panel de catálogo con creación
+ *       masiva.</li>
+ *   <li><b>Nuevo curso</b> — modal unitario.</li>
  *   <li><b>Toggle isActive</b>: switch inline con UI optimista. Si el
  *       backend falla, el toggle hace rollback automático y muestra el
  *       error en el banner global del store.</li>
@@ -43,6 +47,7 @@ import { CourseDetail, CourseRow } from '../../models';
     EmptyStateComponent,
     IconComponent,
     SpinnerComponent,
+    CourseBulkSetupComponent,
     CourseFormModalComponent,
   ],
   template: `
@@ -63,6 +68,8 @@ import { CourseDetail, CourseRow } from '../../models';
         <span class="hidden sm:inline">Nuevo curso</span>
       </button>
     </header>
+
+    <app-course-bulk-setup (completed)="onBulkCompleted()" />
 
     <!-- Toolbar -->
     <section class="card mb-4">
@@ -156,9 +163,18 @@ import { CourseDetail, CourseRow } from '../../models';
               @for (row of filteredRows(); track row.publicUuid) {
                 <tr>
                   <td>
-                    <span class="font-mono text-xs font-semibold uppercase">
-                      {{ row.code }}
-                    </span>
+                    <div class="flex items-center gap-2.5">
+                      <span
+                        class="flex size-8 shrink-0 items-center justify-center rounded-lg text-white"
+                        [style.background-color]="courseAvatar(row).color"
+                        aria-hidden="true"
+                      >
+                        <app-icon [name]="courseAvatar(row).icon" [size]="16" />
+                      </span>
+                      <span class="font-mono text-xs font-semibold uppercase">
+                        {{ row.code }}
+                      </span>
+                    </div>
                   </td>
                   <td>
                     <p class="font-medium text-content">{{ row.name }}</p>
@@ -310,6 +326,10 @@ export class CoursesListComponent implements OnInit {
   protected readonly detailRoute = (publicUuid: string): string =>
     ROUTES.ACADEMIC.COURSES.detail(publicUuid);
 
+  protected courseAvatar(row: CourseRow) {
+    return resolveCourseVisual(row.code, row.color, row.icon);
+  }
+
   protected readonly levelFilter = signal<string | null>(null);
   protected readonly activeFilter = signal<boolean | null>(null);
   protected readonly searchFilter = signal<string>('');
@@ -398,6 +418,10 @@ export class CoursesListComponent implements OnInit {
     this.closeModal();
     /* Refresh para reflejar el orden por name asc post-cambio. */
     await this.store.loadCourses();
+  }
+
+  protected async onBulkCompleted(): Promise<void> {
+    await this.applyServerFilters();
   }
 
   protected async confirmDelete(row: CourseRow): Promise<void> {

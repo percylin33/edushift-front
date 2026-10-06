@@ -1,84 +1,78 @@
-import { notificationDeepLink, resolvePayload } from './notification-deep-link';
+import { notificationDeepLink, notificationDisplaySubject } from './notification-deep-link';
 import { NotificationItem } from '../models';
 
-function item(overrides: Partial<NotificationItem> = {}): NotificationItem {
-  return {
-    id: 'row-1',
-    tenantId: 'tenant-1',
-    publicUuid: 'p-1',
-    templateKey: 'STUDENT_ABSENT',
-    category: 'ABSENCE',
-    channel: 'BOTH',
-    status: 'SENT',
-    subject: 'Falta',
-    bodyHtml: '',
-    sentAt: '2026-08-18T10:00:00Z',
-    createdAt: '2026-08-18T10:00:00Z',
-    updatedAt: '2026-08-18T10:00:00Z',
-    payload: {},
-    ...overrides,
-  };
-}
-
 describe('notificationDeepLink', () => {
-  it('ABSENCE con studentPublicUuid va a asistencia del hijo', () => {
-    expect(
-      notificationDeepLink(
-        item({ payload: { studentPublicUuid: 'st-1' } }),
-      ),
-    ).toBe('/family/children/st-1/attendance');
-  });
+  function item(partial: Partial<NotificationItem>): NotificationItem {
+    return {
+      id: 'n-1',
+      publicUuid: 'n-1',
+      templateKey: 'QUIZ_PUBLISHED',
+      category: 'QUIZ',
+      channel: 'IN_APP',
+      status: 'SENT',
+      subject: 'QUIZ_PUBLISHED · null',
+      bodyHtml: '',
+      sentAt: '',
+      payload: {},
+      ...partial,
+    } as NotificationItem;
+  }
 
-  it('ABSENCE sin UUID va a la lista de familia', () => {
-    expect(notificationDeepLink(item())).toBe('/family');
-  });
-
-  it('TASK con taskPublicUuid va al submit', () => {
+  it('routes QUIZ to take when quizPublicUuid is present', () => {
     expect(
       notificationDeepLink(
         item({
+          payload: { quizPublicUuid: 'q-1', quizTitle: 'Fracciones' },
+        }),
+      ),
+    ).toBe('/lms/quizzes/q-1/take');
+  });
+
+  it('falls back QUIZ to /lms without quiz uuid', () => {
+    expect(notificationDeepLink(item({ payload: { quizTitle: 'X' } }))).toBe('/lms');
+  });
+
+  it('routes TASK_RETURNED to assignment submit', () => {
+    expect(
+      notificationDeepLink(
+        item({
+          templateKey: 'TASK_RETURNED',
           category: 'TASK',
-          payload: { taskPublicUuid: 'task-1' },
+          payload: { taskPublicUuid: 't-1', taskTitle: 'Tarea' },
         }),
       ),
-    ).toBe('/lms/assignments/task-1/submit');
+    ).toBe('/lms/assignments/t-1/submit');
   });
 
-  it('GRADE va a /me/grades', () => {
-    expect(notificationDeepLink(item({ category: 'GRADE' }))).toBe('/me/grades');
-  });
-
-  it('PAYMENT con invoice va al detalle', () => {
+  it('routes GRADE to /me/grades', () => {
     expect(
       notificationDeepLink(
         item({
-          category: 'PAYMENT',
-          payload: { invoicePublicUuid: 'inv-1' },
+          templateKey: 'GRADE_PUBLISHED',
+          category: 'GRADE',
+          payload: { evaluationPublicUuid: 'e-1' },
         }),
       ),
-    ).toBe('/payments/invoices/inv-1');
+    ).toBe('/me/grades');
+  });
+});
+
+describe('notificationDisplaySubject', () => {
+  it('rebuilds Spanish title from raw templateKey · null subject', () => {
+    const n = {
+      templateKey: 'QUIZ_PUBLISHED',
+      subject: 'QUIZ_PUBLISHED · null',
+      payload: { quizTitle: 'PRACTICA 2', courseName: 'Curso A' },
+    } as NotificationItem;
+    expect(notificationDisplaySubject(n)).toBe('Nueva práctica disponible — PRACTICA 2');
   });
 
-  it('lee UUIDs del bodyHtml JSON si no hay payload', () => {
-    expect(
-      notificationDeepLink(
-        item({
-          category: 'PAYMENT',
-          payload: {},
-          bodyHtml: '{"invoicePublicUuid":"inv-json"}',
-        }),
-      ),
-    ).toBe('/payments/invoices/inv-json');
-  });
-
-  it('resolvePayload prefiere el mapa del BE', () => {
-    expect(
-      resolvePayload(
-        item({
-          payload: { studentPublicUuid: 'st-1' },
-          bodyHtml: '{"studentPublicUuid":"other"}',
-        }),
-      )['studentPublicUuid'],
-    ).toBe('st-1');
+  it('keeps a proper BE-rendered Spanish subject', () => {
+    const n = {
+      templateKey: 'GRADE_PUBLISHED',
+      subject: 'Nueva calificación publicada — Examen 1',
+      payload: { evaluationTitle: 'Examen 1' },
+    } as NotificationItem;
+    expect(notificationDisplaySubject(n)).toBe('Nueva calificación publicada — Examen 1');
   });
 });

@@ -6,12 +6,9 @@ import { UserRole } from '@core/enums';
  * Routes for the {@code attendance} module (Sprint 6).
  *
  * <h3>Layout</h3>
- * Flat list of three primary routes — home, scanner, sessions —
- * plus the dynamic sessions/:uuid detail. The list of sessions is
- * the one that introduces URL-synced filters
- * (`?date=…&sectionPublicUuid=…&slot=…&status=…`); sharing a
- * filtered URL reproduces the same view on the recipient's screen
- * (FE-6.2).
+ * Primary landing is the gate scanner (`/attendance` → redirect to
+ * {@code scanner}). Sessions list remains the by-section / review
+ * flow. Detail is {@code sessions/:uuid}.
  *
  * <h3>Guards</h3>
  * <ul>
@@ -26,12 +23,8 @@ import { UserRole } from '@core/enums';
 export const ATTENDANCE_ROUTES: Routes = [
   {
     path: '',
-    canActivate: [roleGuard],
-    data: { roles: [UserRole.Teacher, UserRole.TenantAdmin] },
-    loadComponent: () =>
-      import('./pages/attendance-home/attendance-home.component').then(
-        (m) => m.AttendanceHomeComponent,
-      ),
+    pathMatch: 'full',
+    redirectTo: 'scanner',
   },
   {
     path: 'scanner',
@@ -40,6 +33,15 @@ export const ATTENDANCE_ROUTES: Routes = [
     loadComponent: () =>
       import('./pages/attendance-scanner/attendance-scanner.page').then(
         (m) => m.AttendanceScannerPageComponent,
+      ),
+  },
+  {
+    path: 'hub',
+    canActivate: [roleGuard],
+    data: { roles: [UserRole.Teacher, UserRole.TenantAdmin] },
+    loadComponent: () =>
+      import('./pages/attendance-home/attendance-home.component').then(
+        (m) => m.AttendanceHomeComponent,
       ),
   },
   {
@@ -58,6 +60,15 @@ export const ATTENDANCE_ROUTES: Routes = [
     loadComponent: () =>
       import('./pages/attendance-session-detail/attendance-session-detail.page').then(
         (m) => m.AttendanceSessionDetailPageComponent,
+      ),
+  },
+  {
+    path: 'reports',
+    canActivate: [roleGuard],
+    data: { roles: [UserRole.Teacher, UserRole.TenantAdmin, UserRole.Staff] },
+    loadComponent: () =>
+      import('./pages/attendance-reports/attendance-reports.page').then(
+        (m) => m.AttendanceReportsPageComponent,
       ),
   },
 ];

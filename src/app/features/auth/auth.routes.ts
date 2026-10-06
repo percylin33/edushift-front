@@ -70,4 +70,14 @@ export const AUTH_ROUTES: Routes = [
     loadComponent: () =>
       import('./pages/mfa-enroll/mfa-enroll.component').then((m) => m.MfaEnrollComponent),
   },
+  /*
+   * CRED-7 — forced onboarding after mass provision (temp password).
+   * Must be authenticated; parent guestGuard was removed so this is reachable.
+   */
+  {
+    path: 'first-login',
+    canActivate: [authChildGuard],
+    loadComponent: () =>
+      import('./pages/first-login/first-login.component').then((m) => m.FirstLoginComponent),
+  },
 ];

@@ -46,6 +46,10 @@ describe('GradeRecordFormModalComponent', () => {
 
   describe('onSubmit', () => {
     it('emite submitted con datos válidos', () => {
+      fixture.componentRef.setInput('students', [
+        { publicUuid: 'a3f7e2c8-1234-4abc-9999-aaaaaaaaaaaa', fullName: 'Pérez, Ana' },
+      ]);
+      fixture.detectChanges();
       const emitSpy = spyOn(component.submitted, 'emit');
       component.form.patchValue({
         studentPublicUuid: 'a3f7e2c8-1234-4abc-9999-aaaaaaaaaaaa',
@@ -73,6 +77,29 @@ describe('GradeRecordFormModalComponent', () => {
       const emitSpy = spyOn(component.submitted, 'emit');
       component.onSubmit();
       expect(emitSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('student select', () => {
+    it('renderiza select de estudiantes en modo creación', () => {
+      fixture.componentRef.setInput('students', [
+        { publicUuid: 'a3f7e2c8-1234-4abc-9999-aaaaaaaaaaaa', fullName: 'Pérez, Ana' },
+      ]);
+      fixture.detectChanges();
+      const select: HTMLSelectElement | null =
+        fixture.nativeElement.querySelector('#grade-student');
+      expect(select).toBeTruthy();
+      expect(select!.options.length).toBe(2); // placeholder + 1 student
+      expect(select!.options[1].textContent).toContain('Pérez, Ana');
+    });
+
+    it('no muestra select de estudiante en modo edición', () => {
+      fixture.componentRef.setInput('row', {
+        studentFullName: 'Juan',
+        studentPublicUuid: 'a3f7e2c8-1234-4abc-9999-aaaaaaaaaaaa',
+      } as any);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('#grade-student')).toBeNull();
     });
   });
 

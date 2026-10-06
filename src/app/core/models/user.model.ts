@@ -32,11 +32,17 @@ export interface UserSummary {
  * client-side scope checks but is not required because the backend always
  * re-validates server-side.
  */
+export type EmailSource = 'REAL' | 'SYNTHETIC';
+
 export interface User extends UserSummary {
   firstName?: string;
   lastName?: string;
   phone?: string;
   emailVerified?: boolean;
+  /** CRED-7 — synthetic mailboxes must not receive mail until replaced. */
+  emailSource?: EmailSource;
+  /** CRED-7 — block the app until the user sets a new password. */
+  mustChangePassword?: boolean;
   mfaEnabled?: boolean;
   lastLoginAt?: string;
   createdAt?: string;

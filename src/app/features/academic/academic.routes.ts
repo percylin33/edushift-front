@@ -139,6 +139,15 @@ export const ACADEMIC_ROUTES: Routes = [
             (m) => m.ClassroomsPageComponent,
           ),
       },
+      {
+        path: 'grade-register',
+        canActivate: [roleGuard],
+        data: { roles: [UserRole.TenantAdmin], title: 'Registro de notas' },
+        loadComponent: () =>
+          import('./pages/grade-register-page/grade-register-page.component').then(
+            (m) => m.GradeRegisterPageComponent,
+          ),
+      },
     ],
   },
 ];

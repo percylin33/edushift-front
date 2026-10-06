@@ -11,6 +11,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { StudentEnrollmentStatus } from '@core/enums';
+import { formatSectionDisplayLabel } from '@features/academic/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { EnrollmentRow, StudentDetail } from '../models';
 import { StudentsStore } from '../store';
@@ -65,7 +66,7 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
     WithdrawEnrollmentModalComponent,
   ],
   template: `
-    <section class="card lg:col-span-3">
+    <section class="card">
       <header class="card-header">
         <div>
           <h2 class="card-title">Matrícula y sección</h2>
@@ -132,7 +133,7 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
                   [routerLink]="sectionRoute(a.sectionPublicUuid)"
                   class="mt-1 inline-flex items-center gap-1 text-sm font-medium text-content hover:underline"
                 >
-                  {{ a.sectionName }}
+                  {{ sectionLabel(a) }}
                   <app-icon name="arrow-right" [size]="12" />
                 </a>
               </div>
@@ -154,7 +155,7 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
               <app-icon name="info" [size]="20" class="mx-auto mb-2 text-content-subtle" />
               <p class="text-sm font-medium text-content">Sin matrícula activa</p>
               <p class="mt-1 text-xs text-content-muted">
-                Asigna una sección para que aparezca en el roster del año activo.
+                Asigna una sección para que aparezca en la lista del año activo.
               </p>
             </div>
           }
@@ -181,7 +182,7 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
                             [routerLink]="sectionRoute(e.sectionPublicUuid)"
                             class="font-medium hover:underline"
                           >
-                            {{ e.sectionName }}
+                            {{ sectionLabel(e) }}
                           </a>
                         </td>
                         <td>
@@ -264,6 +265,10 @@ export class EnrollmentsSectionComponent implements OnInit {
 
   protected sectionRoute(sectionUuid: string): string {
     return ROUTES.ACADEMIC.SECTIONS.detail(sectionUuid);
+  }
+
+  protected sectionLabel(row: EnrollmentRow): string {
+    return formatSectionDisplayLabel(row.sectionName, row.gradeName);
   }
 
   protected statusLabel(s: StudentEnrollmentStatus): string {

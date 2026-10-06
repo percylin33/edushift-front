@@ -23,7 +23,9 @@ import {
 import { AcademicApiService } from '@features/academic/services';
 import { AcademicYearRow, AcademicYearStatus, SectionRow } from '@features/academic/models';
 import { StudentsStore } from '../../store';
+import { StudentsApiService } from '../../services';
 import { CreateStudentRequest, StudentDetail, UpdateStudentRequest } from '../../models';
+import { StudentEnrollmentStatus } from '@core/enums';
 
 /**
  * Shared form for {@code /students/new} and {@code /students/:id/edit}.
@@ -225,8 +227,9 @@ import { CreateStudentRequest, StudentDetail, UpdateStudentRequest } from '../..
             <header class="card-header">
               <h2 class="card-title">Matrícula</h2>
               <p class="card-description">
-                Si lo dejas en blanco, el sistema lo crea como
-                <strong>Pendiente</strong>.
+                Estado institucional del estudiante. La
+                <strong>fecha</strong> también actualiza la matrícula activa
+                en sección (la que usa el libro de notas).
               </p>
             </header>
             <div class="card-body grid gap-4 sm:grid-cols-12">
@@ -241,13 +244,18 @@ import { CreateStudentRequest, StudentDetail, UpdateStudentRequest } from '../..
               </div>
 
               <div class="field sm:col-span-6">
-                <label class="label" for="enrollmentDate">Fecha</label>
+                <label class="label" for="enrollmentDate">Fecha de matrícula</label>
                 <input
                   id="enrollmentDate"
                   type="date"
                   class="input"
                   formControlName="enrollmentDate"
                 />
+                <p class="field-hint">
+                  Debe caer dentro del año académico de la sección (ej. desde el
+                  inicio del año). Para poder calificar, también ≤ la fecha de la
+                  evaluación en el libro de notas.
+                </p>
               </div>
 
               @if (!editing()) {
@@ -316,6 +324,7 @@ import { CreateStudentRequest, StudentDetail, UpdateStudentRequest } from '../..
 export class StudentFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(StudentsStore);
+  private readonly studentsApi = inject(StudentsApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly academicApi = inject(AcademicApiService);
@@ -453,6 +462,9 @@ export class StudentFormComponent implements OnInit {
       if (id) {
         const patch = this.toUpdateRequest();
         const updated = await this.store.update(id, patch);
+        if (updated && patch.enrollmentDate) {
+          await this.syncActiveSectionEnrolledAt(id, patch.enrollmentDate);
+        }
         if (updated) {
           await this.router.navigate([ROUTES.STUDENTS.detail(updated.publicUuid)]);
         }
@@ -600,6 +612,52 @@ export class StudentFormComponent implements OnInit {
   }
 
   /**
+   * Aligns ACTIVE section enrollment {@code enrolledAt} with the
+   * institutional {@code enrollmentDate} so gradebook gates stay in sync.
+   */
+  private async syncActiveSectionEnrolledAt(
+    studentUuid: string,
+    enrolledAt: string,
+  ): Promise<void> {
+    try {
+      const rows = await firstValueFrom(this.studentsApi.listEnrollments(studentUuid));
+      const active = rows.find(
+        (r) => r.active || r.status === StudentEnrollmentStatus.Active,
+      );
+      if (!active) return;
+
+      const current = active.enrolledAt
+        ? this.toDateInput(active.enrolledAt)
+        : null;
+      if (current === enrolledAt) return;
+
+      await firstValueFrom(
+        this.studentsApi.updateEnrollment(active.publicUuid, { enrolledAt }),
+      );
+    } catch (err) {
+      this.applyServerErrors(err);
+      // Student profile already saved; keep user on the form with a clear field error
+      // instead of silently navigating with a stale section enrolledAt.
+      if (err instanceof HttpErrorResponse) {
+        const apiErr = (err.error as { errors?: ApiError[]; message?: string } | null | undefined)
+          ?.errors?.[0];
+        const msg =
+          apiErr?.message ??
+          (err.error as { message?: string } | null)?.message ??
+          'No se pudo actualizar la fecha de matrícula en la sección.';
+        this.fieldErrors.update((prev) => ({
+          ...prev,
+          enrollmentDate:
+            apiErr?.code === 'ENROLLMENT_DATE_OUT_OF_YEAR'
+              ? msg
+              : prev['enrollmentDate'] ?? msg,
+        }));
+      }
+      throw err;
+    }
+  }
+
+  /**
    * Map server errors. The interceptor wraps responses in our standard
    * envelope; we look for {@code STUDENT_*} codes to surface them
    * inline next to the relevant field, with a generic top banner for
@@ -617,6 +675,10 @@ export class StudentFormComponent implements OnInit {
         break;
       case 'STUDENT_EMAIL_TAKEN':
         next['email'] = 'Ya existe un estudiante con este email.';
+        break;
+      case 'ENROLLMENT_DATE_OUT_OF_YEAR':
+        next['enrollmentDate'] =
+          'La fecha está fuera del año académico de la sección activa.';
         break;
       default:
         break;

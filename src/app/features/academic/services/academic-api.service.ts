@@ -948,6 +948,8 @@ export class AcademicApiService {
       credits: raw.credits ?? undefined,
       hoursPerWeek: raw.hoursPerWeek ?? undefined,
       isActive: raw.isActive,
+      color: raw.color ?? undefined,
+      icon: raw.icon ?? undefined,
       levels: raw.levels.slice().sort((a, b) => a.ordinal - b.ordinal),
     };
   }
@@ -961,6 +963,8 @@ export class AcademicApiService {
       credits: raw.credits ?? undefined,
       hoursPerWeek: raw.hoursPerWeek ?? undefined,
       isActive: raw.isActive,
+      color: raw.color ?? undefined,
+      icon: raw.icon ?? undefined,
       levels: raw.levels.slice().sort((a, b) => a.ordinal - b.ordinal),
       createdAt: this.parseDate(raw.createdAt),
       updatedAt: this.parseDate(raw.updatedAt),

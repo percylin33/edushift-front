@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, from, throwError, defer } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { Observable, firstValueFrom, from, throwError, defer } from 'rxjs';
+import { map, switchMap, catchError } from 'rxjs/operators';
 
+import { API } from '@core/constants';
 import { environment } from '../../../environments/environment';
 
 /** Result of {@link FileUploadService.requestUpload}. */
@@ -116,7 +117,9 @@ export class FileUploadService {
 
   /**
    * High-level convenience: choose the right path per provider.
-   * On FIREBASE: signed-URL round-trip (3 calls). On LOCAL_FS: multipart.
+   * On FIREBASE: try signed-URL PUT first; on failure (typical cause:
+   * missing GCS bucket CORS for the SPA origin) fall back to BE-proxied
+   * multipart so uploads still work in local dev.
    */
   upload(module: string, file: File): Observable<FileMetadata> {
     return this.requestUpload(module, file).pipe(
@@ -124,11 +127,33 @@ export class FileUploadService {
         if (ticket.provider === 'FIREBASE' && ticket.uploadUrl) {
           return this.uploadBytes(ticket, file).pipe(
             switchMap(() => this.confirmUpload(ticket.publicUuid, file)),
+            catchError(() => this.uploadMultipart(module, file)),
           );
         }
         return this.uploadMultipart(module, file);
       }),
     );
+  }
+
+  /**
+   * Authenticated download — uses HttpClient so the auth interceptor
+   * attaches the bearer token. Plain {@code <a href>} links fail with
+   * 401 on {@code GET /files/{uuid}/download}.
+   */
+  download(publicUuid: string): Observable<Blob> {
+    return this.http.get(API.FILES.DOWNLOAD(publicUuid), { responseType: 'blob' });
+  }
+
+  /** Fetch bytes and trigger a browser save-as dialog. */
+  async downloadAndSave(publicUuid: string, filename: string): Promise<void> {
+    const blob = await firstValueFrom(this.download(publicUuid));
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename || 'adjunto';
+    link.rel = 'noopener';
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   /** Compute SHA-256 of a File in the browser. Returns lowercase hex. */

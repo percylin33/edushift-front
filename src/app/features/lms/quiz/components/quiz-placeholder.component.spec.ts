@@ -24,7 +24,7 @@ describe('QuizPlaceholderComponent', () => {
   });
 
   it('renders title, kicker and permission label', () => {
-    fixture.componentRef.setInput('title', 'Nuevo quiz');
+    fixture.componentRef.setInput('title', 'Nueva práctica');
     fixture.componentRef.setInput('kicker', 'Sección ABC');
     fixture.componentRef.setInput('description', 'Llega en FE-7b.1');
     fixture.componentRef.setInput('icon', 'edit-2');
@@ -32,7 +32,7 @@ describe('QuizPlaceholderComponent', () => {
     fixture.detectChanges();
 
     const html = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(html).toContain('Nuevo quiz');
+    expect(html).toContain('Nueva práctica');
     expect(html).toContain('Sección ABC');
     expect(html).toContain('Llega en FE-7b.1');
     expect(html).toContain('LMS_QUIZ_CREATE');
@@ -40,7 +40,7 @@ describe('QuizPlaceholderComponent', () => {
   });
 
   it('renders an app-icon element', () => {
-    fixture.componentRef.setInput('title', 'Tomar quiz');
+    fixture.componentRef.setInput('title', 'Tomar práctica');
     fixture.componentRef.setInput('kicker', 'Quiz 1');
     fixture.componentRef.setInput('description', 'd');
     fixture.componentRef.setInput('icon', 'send');

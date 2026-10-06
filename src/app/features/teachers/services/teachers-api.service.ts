@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, map, switchMap } from 'rxjs';
 import { API } from '@core/constants';
 import { ApiResponse, SpringPage } from '@core/models';
 import { ApiService } from '@core/services';
@@ -23,6 +23,7 @@ import {
   TeacherListPagination,
   TeacherResponseRaw,
   TeacherRow,
+  TenantAssignmentListFilters,
   UpdateTeacherRequest,
   computeTeacherFullName,
 } from '../models';
@@ -82,6 +83,23 @@ export class TeachersApiService {
     return this.api
       .get<ApiResponse<TeacherResponseRaw>>(API.TEACHERS.BY_ID(publicUuid))
       .pipe(map((envelope) => this.toTeacherDetail(envelope.data)));
+  }
+
+  /** Linked teacher profile for the authenticated TEACHER user. */
+  getMe(): Observable<TeacherDetail> {
+    return this.api
+      .get<ApiResponse<TeacherResponseRaw>>(API.TEACHERS.ME)
+      .pipe(map((envelope) => this.toTeacherDetail(envelope.data)));
+  }
+
+  /**
+   * Active assignments for the authenticated TEACHER (shortcut over
+   * {@link getMe} + {@link listAssignments}).
+   */
+  listMyAssignments(filters: AssignmentListFilters = {}): Observable<AssignmentRow[]> {
+    return this.getMe().pipe(
+      switchMap((me) => this.listAssignments(me.publicUuid, filters)),
+    );
   }
 
   create(request: CreateTeacherRequest): Observable<TeacherDetail> {
@@ -172,6 +190,26 @@ export class TeachersApiService {
     };
     return this.api
       .get<AssignmentListItemRaw[]>(API.TEACHERS.ASSIGNMENTS(teacherPublicUuid), params)
+      .pipe(map((rows) => rows.map((r) => this.toAssignmentRow(r))));
+  }
+
+  /**
+   * Listado tenant-wide de asignaciones con filtros opcionales
+   * ({@code GET /v1/teacher-assignments}). Usado por el picker de
+   * Registros del {@code TENANT_ADMIN}.
+   */
+  listTenantAssignments(
+    filters: TenantAssignmentListFilters = {},
+  ): Observable<AssignmentRow[]> {
+    const params: Record<string, string | boolean | undefined> = {
+      teacherId: filters.teacherId,
+      sectionId: filters.sectionId,
+      courseId: filters.courseId,
+      periodId: filters.periodId,
+      active: filters.active,
+    };
+    return this.api
+      .get<AssignmentListItemRaw[]>(API.TEACHER_ASSIGNMENTS.ROOT, params)
       .pipe(map((rows) => rows.map((r) => this.toAssignmentRow(r))));
   }
 
@@ -300,6 +338,8 @@ export class TeachersApiService {
       coursePublicUuid: raw.coursePublicUuid,
       courseCode: raw.courseCode,
       courseName: raw.courseName,
+      courseColor: raw.courseColor ?? null,
+      courseIcon: raw.courseIcon ?? null,
       academicPeriodPublicUuid: raw.academicPeriodPublicUuid,
       periodType: raw.periodType,
       periodOrdinal: raw.periodOrdinal,
@@ -319,6 +359,8 @@ export class TeachersApiService {
       coursePublicUuid: raw.coursePublicUuid,
       courseCode: raw.courseCode,
       courseName: raw.courseName,
+      courseColor: raw.courseColor ?? null,
+      courseIcon: raw.courseIcon ?? null,
       academicPeriodPublicUuid: raw.academicPeriodPublicUuid,
       periodType: raw.periodType,
       periodOrdinal: raw.periodOrdinal,
