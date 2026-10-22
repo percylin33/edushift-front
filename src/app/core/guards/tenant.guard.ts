@@ -12,3 +12,11 @@ export const tenantGuard: CanActivateFn = (): true | UrlTree => {
 
   return router.createUrlTree([ROUTES.ERRORS.NOT_FOUND]);
 };
+
+/** Require a school hostname for public school flows (login, reset, invitation). */
+export const tenantHostGuard: CanActivateFn = (): true | UrlTree => {
+  const tenantService = inject(TenantService);
+  const router = inject(Router);
+
+  return tenantService.hasTenantHost() ? true : router.createUrlTree([ROUTES.ERRORS.NOT_FOUND]);
+};

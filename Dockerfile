@@ -9,7 +9,7 @@
 #
 # Build:  cd edushift-front && npm install && npm run build:prod
 #         docker build -t edushift-front:local -f Dockerfile ..
-# Run:    docker run --rm -p 4200:80 edushift-front:local
+# Run:    docker run --rm -p 4201:80 edushift-front:local
 # =============================================================================
 
 # ---- Stage 1: builder ----
@@ -51,7 +51,7 @@ server {
   index index.html;
 
   # Hashed chunk files: cache 1y.
-  location ~* \.[0-9a-f]{8,}\.(?:js|css|woff2?|png|jpg|svg|webp)$ {
+  location ~* "\.[0-9a-f]{8,}\.(?:js|css|woff2?|png|jpg|svg|webp)$" {
     add_header Cache-Control "public, max-age=31536000, immutable";
     access_log off;
     try_files $uri =404;
@@ -78,7 +78,7 @@ server {
   add_header X-Frame-Options          "DENY"   always;
   add_header Referrer-Policy          "no-referrer-when-downgrade" always;
   add_header Permissions-Policy       "camera=(), microphone=(), geolocation=()" always;
-  add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+  add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-Xc2sB4L71e3Lgt62KSclQUubR1F5rw29YW5FbgHQlqM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:8081 https: wss:; manifest-src 'self' http://localhost:8081; frame-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
 }
 EOF
 

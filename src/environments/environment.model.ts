@@ -126,6 +126,8 @@ export interface AppEnvironment {
     announcements: boolean;
     schedule: boolean;
     family: boolean;
+    disclosures: boolean;
+    admissions: boolean;
     me: boolean;
     /**
      * Sprint 11 / PR-2 — "send email as the user via Gmail" toggle. Off
@@ -156,4 +158,6 @@ export interface FirebaseConfig {
   storageBucket: string;
   messagingSenderId: string;
   appId: string;
+  /** Public Web Push certificate key from Firebase Cloud Messaging. */
+  messagingVapidKey?: string;
 }

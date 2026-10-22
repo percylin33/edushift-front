@@ -1,6 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { IconComponent } from '@shared/components';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  inject,
+  signal,
+} from '@angular/core';
+import { FilePreviewDialogComponent, IconComponent } from '@shared/components';
 import { FileUploadService } from '@core/services/file-upload.service';
 import { Submission, SubmissionStatus } from '../../models';
 
@@ -25,29 +33,27 @@ import { Submission, SubmissionStatus } from '../../models';
 @Component({
   selector: 'app-my-submissions-card',
   standalone: true,
-  imports: [CommonModule, IconComponent],
+  imports: [CommonModule, IconComponent, FilePreviewDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (submission) {
-      <section class="card">
-        <header class="card-header">
+      <section class="card overflow-hidden">
+        <header class="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
-              <h2 class="card-title">Tu entrega</h2>
-              <p class="text-xs text-content-muted">
-                Versión {{ submission.version }} · {{ submission.submittedAt | date: 'medium' }}
+              <h2 class="text-lg font-semibold text-content">Tu entrega</h2>
+              <p class="mt-1 text-xs text-content-muted">
+                Enviada {{ submission.submittedAt | date: 'dd/MM/yyyy, HH:mm' }}
               </p>
             </div>
-            <span
-              class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium"
-              [class]="statusClass(submission.status)"
-            >
-              {{ statusLabel(submission.status) }}
-            </span>
           </div>
+          <span
+            class="inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium"
+            [class]="statusClass(submission.status)"
+          >{{ statusLabel(submission.status) }}</span>
         </header>
 
-        <div class="card-body grid gap-3 text-sm">
+        <div class="grid gap-4 px-5 py-4 text-sm">
           @if (submission.textContent) {
             <div>
               <p class="text-xs font-medium uppercase tracking-wide text-content-muted">Texto</p>
@@ -60,15 +66,27 @@ import { Submission, SubmissionStatus } from '../../models';
           @if (submission.attachment; as att) {
             <div>
               <p class="text-xs font-medium uppercase tracking-wide text-content-muted">Adjunto</p>
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 text-primary hover:underline"
-                (click)="onDownloadAttachment(att.publicUuid, att.filename)"
-              >
-                <app-icon name="paperclip" [size]="14" />
-                <span>{{ att.filename }}</span>
-                <span class="text-xs text-content-muted"> ({{ formatSize(att.sizeBytes) }}) </span>
-              </button>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-2 text-primary hover:underline"
+                  (click)="onPreviewAttachment(att.publicUuid, att.filename)"
+                >
+                  <app-icon name="paperclip" [size]="14" />
+                  <span>{{ att.filename }}</span>
+                  <span class="text-xs text-content-muted"> ({{ formatSize(att.sizeBytes) }}) </span>
+                  <span class="sr-only">, ver en la plataforma</span>
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 text-xs font-medium text-content-muted hover:text-content"
+                  [attr.aria-label]="'Descargar ' + att.filename"
+                  (click)="onDownloadAttachment(att.publicUuid, att.filename)"
+                >
+                  <app-icon name="download" [size]="13" />
+                  Descargar
+                </button>
+              </div>
             </div>
           }
 
@@ -100,7 +118,7 @@ import { Submission, SubmissionStatus } from '../../models';
         </div>
 
         @if (showResubmit) {
-          <footer class="card-footer flex justify-end">
+          <footer class="flex justify-end border-t border-border px-5 py-3">
             <button type="button" class="btn btn-secondary btn-sm" (click)="onResubmit()">
               <app-icon name="upload" [size]="14" />
               Re-entregar
@@ -109,24 +127,51 @@ import { Submission, SubmissionStatus } from '../../models';
         }
       </section>
     } @else {
-      <section class="card">
-        <div class="card-body text-center">
-          <app-icon name="file-text" [size]="32" />
-          <h2 class="mt-2 text-base font-semibold text-content">Aún no has entregado</h2>
-          <p class="mt-1 text-sm text-content-muted">
-            Usa el formulario de abajo para registrar tu entrega.
+      <section class="card overflow-hidden">
+        <div class="px-5 py-6 text-center">
+          <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-surface-muted text-content-muted">
+            <app-icon name="file-text" [size]="26" />
+          </span>
+          <h2 class="mt-4 text-lg font-semibold text-content">Aún no has entregado</h2>
+          <p class="mx-auto mt-1 max-w-xs text-sm text-content-muted">
+            Usa el formulario para registrar tu respuesta antes del vencimiento.
           </p>
+          <div class="mt-5 grid grid-cols-2 border-t border-border pt-4 text-left">
+            <div class="border-r border-border pr-3 text-center">
+              <p class="text-xs font-medium uppercase tracking-wide text-content-muted">Entrega</p>
+              <p class="mt-1 font-medium text-content">{{ allowResubmissions ? 'Re-entrega permitida' : 'Un solo envío' }}</p>
+            </div>
+            <div class="pl-3 text-center">
+              <p class="text-xs font-medium uppercase tracking-wide text-content-muted">Calificación</p>
+              <p class="mt-1 font-semibold text-content">{{ maxScore }} pts. máx.</p>
+            </div>
+          </div>
         </div>
       </section>
+    }
+
+    @if (previewAttachment(); as attachment) {
+      <app-file-preview-dialog
+        [open]="true"
+        [filePublicUuid]="attachment.publicUuid"
+        [filename]="attachment.filename"
+        (closed)="previewAttachment.set(null)"
+      />
     }
   `,
 })
 export class MySubmissionsCardComponent {
   @Input() submission: Submission | null = null;
   @Input() showResubmit = false;
+  @Input() allowResubmissions = false;
+  @Input() maxScore = 0;
   @Output() readonly resubmit = new EventEmitter<void>();
 
   private readonly files = inject(FileUploadService);
+  protected readonly previewAttachment = signal<{
+    publicUuid: string;
+    filename: string;
+  } | null>(null);
 
   protected onResubmit(): void {
     this.resubmit.emit();
@@ -138,6 +183,10 @@ export class MySubmissionsCardComponent {
     } catch {
       // UI feedback handled by global error interceptor
     }
+  }
+
+  protected onPreviewAttachment(publicUuid: string, filename: string): void {
+    this.previewAttachment.set({ publicUuid, filename });
   }
 
   protected statusLabel(status: SubmissionStatus): string {

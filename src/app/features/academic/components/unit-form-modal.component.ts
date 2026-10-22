@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -47,14 +49,14 @@ import { UNIT_DESCRIPTION_MAX_LENGTH, UNIT_NAME_MAX_LENGTH, UnitDetail } from '.
   selector: 'app-unit-form-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="unit-form-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div class="card w-full max-w-lg shadow-xl" (click)="$event.stopPropagation()">
         <header class="card-header flex items-start justify-between gap-3">
@@ -163,6 +165,12 @@ import { UNIT_DESCRIPTION_MAX_LENGTH, UNIT_NAME_MAX_LENGTH, UnitDetail } from '.
   `,
 })
 export class UnitFormModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(UnitsStore);
 
@@ -262,8 +270,10 @@ export class UnitFormModalComponent implements OnInit {
   }
 
   protected cancel(): void {
-    this.store.clearError();
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.store.clearError();
+      this.closed.emit();
+    });
   }
 
   protected showError(controlName: string): string | null {

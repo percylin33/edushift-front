@@ -1,6 +1,7 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
-import { roleGuard } from '@core/guards';
-import { UserRole } from '@core/enums';
+import { permissionGuard } from '@core/guards';
+import { Permission, UserRole } from '@core/enums';
 
 /**
  * Routes for the {@code attendance} module (Sprint 6).
@@ -12,8 +13,8 @@ import { UserRole } from '@core/enums';
  *
  * <h3>Guards</h3>
  * <ul>
- *   <li>{@code roleGuard} on every route — only TEACHER and
- *       TENANT_ADMIN can open attendance. This matches the sidebar
+ *   <li>Routes accept TENANT_ADMIN / TEACHER or a matching staff
+ *       permission. This matches the sidebar
  *       visibility in {@code navigation.config.ts} which is role-gated
  *       (FIX BUG-2026-07-30-06: previously the home also required
  *       {@code AttendanceRead}, which blocked TENANT_ADMIN despite
@@ -27,45 +28,65 @@ export const ATTENDANCE_ROUTES: Routes = [
     redirectTo: 'scanner',
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'scanner',
-    canActivate: [roleGuard],
-    data: { roles: [UserRole.Teacher, UserRole.TenantAdmin] },
+    canMatch: [permissionGuard],
+    data: {
+      roles: [UserRole.Teacher, UserRole.TenantAdmin],
+      permissions: Permission.AttendanceRegister,
+    },
     loadComponent: () =>
       import('./pages/attendance-scanner/attendance-scanner.page').then(
         (m) => m.AttendanceScannerPageComponent,
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'hub',
-    canActivate: [roleGuard],
-    data: { roles: [UserRole.Teacher, UserRole.TenantAdmin] },
+    canMatch: [permissionGuard],
+    data: {
+      roles: [UserRole.Teacher, UserRole.TenantAdmin],
+      permissions: Permission.AttendanceReadGranular,
+    },
     loadComponent: () =>
       import('./pages/attendance-home/attendance-home.component').then(
         (m) => m.AttendanceHomeComponent,
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'sessions',
-    canActivate: [roleGuard],
-    data: { roles: [UserRole.Teacher, UserRole.TenantAdmin] },
+    canMatch: [permissionGuard],
+    data: {
+      roles: [UserRole.Teacher, UserRole.TenantAdmin],
+      permissions: Permission.AttendanceReadGranular,
+    },
     loadComponent: () =>
       import('./pages/attendance-sessions-list/attendance-sessions-list.page').then(
         (m) => m.AttendanceSessionsListPageComponent,
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'sessions/:uuid',
-    canActivate: [roleGuard],
-    data: { roles: [UserRole.Teacher, UserRole.TenantAdmin] },
+    canMatch: [permissionGuard],
+    data: {
+      roles: [UserRole.Teacher, UserRole.TenantAdmin],
+      permissions: Permission.AttendanceReadGranular,
+    },
     loadComponent: () =>
       import('./pages/attendance-session-detail/attendance-session-detail.page').then(
         (m) => m.AttendanceSessionDetailPageComponent,
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'reports',
-    canActivate: [roleGuard],
-    data: { roles: [UserRole.Teacher, UserRole.TenantAdmin, UserRole.Staff] },
+    canMatch: [permissionGuard],
+    data: {
+      roles: [UserRole.Teacher, UserRole.TenantAdmin],
+      permissions: [Permission.AttendanceReadGranular, Permission.ReportsReadGranular],
+    },
     loadComponent: () =>
       import('./pages/attendance-reports/attendance-reports.page').then(
         (m) => m.AttendanceReportsPageComponent,

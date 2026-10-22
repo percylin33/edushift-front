@@ -71,6 +71,7 @@ import { SubmissionRow } from '../../models';
       [mode]="dialogMode()"
       [maxScore]="maxScore()"
       [saving]="saving()"
+      [submission]="selectedSubmission()"
       (grade)="onConfirmGrade($event)"
       (return)="onConfirmReturn($event)"
       (cancelled)="onCancelDialog()"
@@ -90,9 +91,9 @@ export class SubmissionGradeComponent implements OnInit {
   protected readonly dialogOpen = signal(false);
   protected readonly dialogMode = signal<GradeMode>('Grade');
   protected readonly saving = signal(false);
+  protected readonly selectedSubmission = signal<SubmissionRow | null>(null);
 
   private assignmentUuid: string | null = null;
-  private selectedRow: SubmissionRow | null = null;
   protected readonly loadingTask = signal(false);
 
   ngOnInit(): void {
@@ -114,36 +115,38 @@ export class SubmissionGradeComponent implements OnInit {
   }
 
   protected onOpenGrade(row: SubmissionRow): void {
-    this.selectedRow = row;
+    this.selectedSubmission.set(row);
     this.dialogMode.set('Grade');
     this.dialogOpen.set(true);
   }
 
   protected onOpenReturn(row: SubmissionRow): void {
-    this.selectedRow = row;
+    this.selectedSubmission.set(row);
     this.dialogMode.set('Return');
     this.dialogOpen.set(true);
   }
 
   protected async onConfirmGrade(req: GradeSubmissionRequest): Promise<void> {
-    if (!this.selectedRow) return;
+    const submission = this.selectedSubmission();
+    if (!submission) return;
     this.saving.set(true);
     try {
-      await this.submissionsStore.grade(this.selectedRow.publicUuid, req);
+      await this.submissionsStore.grade(submission.publicUuid, req);
       this.dialogOpen.set(false);
-      this.selectedRow = null;
+      this.selectedSubmission.set(null);
     } finally {
       this.saving.set(false);
     }
   }
 
   protected async onConfirmReturn(req: { feedback: string }): Promise<void> {
-    if (!this.selectedRow) return;
+    const submission = this.selectedSubmission();
+    if (!submission) return;
     this.saving.set(true);
     try {
-      await this.submissionsStore.return(this.selectedRow.publicUuid, req);
+      await this.submissionsStore.return(submission.publicUuid, req);
       this.dialogOpen.set(false);
-      this.selectedRow = null;
+      this.selectedSubmission.set(null);
     } finally {
       this.saving.set(false);
     }
@@ -151,7 +154,7 @@ export class SubmissionGradeComponent implements OnInit {
 
   protected onCancelDialog(): void {
     this.dialogOpen.set(false);
-    this.selectedRow = null;
+    this.selectedSubmission.set(null);
   }
 
   protected listRoute(): string {

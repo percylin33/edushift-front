@@ -2,6 +2,7 @@ export interface AdminTenantSummary {
   publicUuid: string;
   slug: string;
   name: string;
+  customDomain?: string;
   status: string;
   /** Plan code (BASIC / PRO / ENTERPRISE / TRIAL). */
   plan?: string;
@@ -9,6 +10,8 @@ export interface AdminTenantSummary {
   planName?: string;
   /** Count of ACTIVE students in the tenant — populated by BE on Sprint 16. */
   activeStudents?: number;
+  /** Student capacity resolved from the active platform plan or tenant override. */
+  maxStudents?: number;
   /** ISO-8601 date string from `b2b_subscriptions.next_billing_at`. */
   nextBillingDate?: string;
   trialEndsAt?: string;
@@ -45,6 +48,9 @@ export interface AdminTenantDetail {
   maxStudents?: number;
   maxTeachers?: number;
   maxStorageMb?: number;
+  storageUsedBytes?: number;
+  planFeatures?: string[];
+  metricsUpdatedAt?: string;
   createdAt?: string;
   updatedAt?: string;
   activeStudents?: number;
@@ -80,6 +86,7 @@ export interface TenantFilterParams {
   search?: string;
   plan?: string;
   status?: string;
+  sort?: 'recent' | 'students' | 'billing' | 'name';
   page?: number;
   size?: number;
 }

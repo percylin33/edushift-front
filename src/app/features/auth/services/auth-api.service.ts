@@ -174,6 +174,7 @@ export class AuthApiService {
   updateMe(payload: {
     firstName?: string | null;
     lastName?: string | null;
+    secondLastName?: string | null;
     phone?: string | null;
     email?: string | null;
   }): Observable<User> {
@@ -281,7 +282,6 @@ export interface OnboardingMe {
 }
 
 export interface CompleteOnboardingPayload {
-  currentPassword: string;
   newPassword: string;
   firstName?: string | null;
   lastName?: string | null;

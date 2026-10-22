@@ -1,3 +1,4 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -84,7 +85,11 @@ const META_FIELD_LABELS: Record<string, string> = {
           Completa cada paso. El sistema no avanza si falta algún dato obligatorio.
         </p>
       </div>
-      <a [routerLink]="cancelRoute()" class="btn btn-ghost btn-sm">
+      <a
+        [routerLink]="cancelRoute()"
+        [queryParams]="cancelQueryParams()"
+        class="btn btn-ghost btn-sm"
+      >
         <app-icon name="arrow-left" [size]="14" />
         Volver
       </a>
@@ -599,6 +604,12 @@ const META_FIELD_LABELS: Record<string, string> = {
   `,
 })
 export class QuizFormPageComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => [this.metadataForm.getRawValue(), this.questionForm.getRawValue()],
+    saving: () => this.saving(),
+    active: () => !this.loadingDetail(),
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(QuizzesStore);
   private readonly route = inject(ActivatedRoute);
@@ -771,6 +782,7 @@ export class QuizFormPageComponent implements OnInit {
     const ok = await this.persistMetadata();
     if (!ok) return;
 
+    this.formProtection.markSaved();
     this.stepError.set(null);
     this.currentStep.set(2);
   }
@@ -817,6 +829,7 @@ export class QuizFormPageComponent implements OnInit {
     const added = await this.store.addQuestion(this.#quizUuid, request);
     if (added) {
       this.resetQuestionForm();
+      this.formProtection.markSaved();
       this.stepError.set(null);
     }
   }
@@ -831,6 +844,7 @@ export class QuizFormPageComponent implements OnInit {
     }
     const published = await this.store.publishQuiz(this.#quizUuid);
     if (published) {
+      this.formProtection.markSaved();
       void this.router.navigate([ROUTES.LMS.quizDetail(published.publicUuid)]);
     }
   }
@@ -846,6 +860,7 @@ export class QuizFormPageComponent implements OnInit {
     if (added) {
       this.questionForm.patchValue({ type: added.type });
       this.resetQuestionForm({ keepType: added.type });
+      this.formProtection.markSaved();
       this.stepError.set(null);
     }
   }
@@ -858,6 +873,10 @@ export class QuizFormPageComponent implements OnInit {
       return ROUTES.LMS.quizDetail(this.#quizUuid);
     }
     return ROUTES.LMS.ROOT;
+  }
+
+  protected cancelQueryParams(): { assignment: string } | null {
+    return this.#assignmentUuid ? { assignment: this.#assignmentUuid } : null;
   }
 
   // -------------------------------------------------------------------------
@@ -973,6 +992,7 @@ export class QuizFormPageComponent implements OnInit {
       });
       if (updated) {
         this.populateFromDetail(updated);
+        this.formProtection.markSaved();
         return true;
       }
       return false;
@@ -991,6 +1011,7 @@ export class QuizFormPageComponent implements OnInit {
       if (created) {
         this.#quizUuid = created.publicUuid;
         this.isEdit.set(true);
+        this.formProtection.markSaved();
         void this.router.navigate([ROUTES.LMS.quizEdit(created.publicUuid)], { replaceUrl: true });
         return true;
       }

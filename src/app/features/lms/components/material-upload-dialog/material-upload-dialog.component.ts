@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -52,7 +54,7 @@ import {
 @Component({
   selector: 'app-material-upload-dialog',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, IconComponent],
+  imports: [SafeBackdropDirective, CommonModule, ReactiveFormsModule, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (open) {
@@ -61,7 +63,7 @@ import {
         role="dialog"
         aria-modal="true"
         aria-labelledby="material-upload-title"
-        (click)="onBackdrop($event)"
+        appSafeBackdrop (click)="onBackdrop($event)"
       >
         <div #dialog class="card w-full max-w-md" (click)="$event.stopPropagation()">
           <header class="card-header">
@@ -184,6 +186,12 @@ import {
   `,
 })
 export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestroy {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => [this.form.getRawValue(), this.selectedFile()],
+    saving: () => this.uploading,
+    active: () => this.open,
+  });
+
   @Input() open = false;
   /** Required to create material under a TeacherAssignment (V105). */
   @Input() teacherAssignmentPublicUuid: string | null = null;
@@ -314,7 +322,9 @@ export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestr
   }
 
   protected onCancel(): void {
-    this.dialogClosed.emit();
+    this.formProtection.requestClose(() => {
+      this.dialogClosed.emit();
+    });
   }
 
   protected onSubmit(): void {

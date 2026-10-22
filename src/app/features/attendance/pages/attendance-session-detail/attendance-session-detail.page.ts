@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { AuthService } from '@core/services';
-import { UserRole } from '@core/enums';
+import { Permission, UserRole } from '@core/enums';
 import {
   EmptyStateComponent,
   IconComponent,
@@ -39,14 +39,9 @@ import { ReportFormat } from '@features/reports/models/report.model';
  * {@link AttendanceStore#loadRecords} to fetch the snapshot from
  * the backend.
  *
- * <h3>Editing window</h3>
- * <ul>
- *   <li>{@code TEACHER}: can edit only if `closedAt` is within
- *       {@code edit-window-hours} (default 24h, configured BE-side).
- *       The "Editar" button stays disabled past the cutoff; the
- *       store call would otherwise return 403 EDIT_WINDOW_EXPIRED.</li>
- *   <li>{@code TENANT_ADMIN}: always (bypass the window).</li>
- * </ul>
+ * The backend is the source of truth for the editing window: non-admin
+ * editors may correct active sessions and are subject to the configured
+ * cutoff after the session closes.
  */
 @Component({
   selector: 'app-attendance-session-detail',
@@ -215,6 +210,7 @@ import { ReportFormat } from '@features/reports/models/report.model';
     @if (editing(); as record) {
       <app-edit-record-modal
         [record]="record"
+        [saving]="store.savingRecord()"
         (save)="onSave(record, $event)"
         (cancelled)="closeEdit()"
       />
@@ -276,26 +272,15 @@ export class AttendanceSessionDetailPageComponent implements OnInit {
     void this.store.closeCurrentSession();
   }
 
-  /**
-   * Mirrors the backend's edit window (BE-6.4):
-   * <ul>
-   *   <li>TENANT_ADMIN: always.</li>
-   *   <li>TEACHER: only if the session was closed within the
-   *       configured window (we can't read the BE setting here, so
-   *       we let the docente try and surface 403 EDIT_WINDOW_EXPIRED
-   *       on failure).</li>
-   * </ul>
-   */
+  /** The backend enforces session status, transitions, and the edit window. */
   protected canEdit(record: AttendanceRecord): boolean {
-    if (!this.auth.hasRole(UserRole.TenantAdmin, UserRole.Teacher)) {
-      return false;
-    }
     if (this.auth.hasRole(UserRole.TenantAdmin)) {
       return true;
     }
-    // Teacher: only edits to CLOSED sessions, and we optimistically
-    // allow it; the server is the source of truth for the cutoff.
-    return this.store.currentSession()?.status === 'CLOSED';
+    return (
+      this.auth.hasRole(UserRole.Teacher) ||
+      this.auth.hasPermission(Permission.AttendanceCorrect)
+    );
   }
 
   protected openEdit(record: AttendanceRecord): void {

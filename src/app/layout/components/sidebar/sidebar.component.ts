@@ -31,14 +31,14 @@ import { NavLabels } from '../../i18n/nav-labels.service';
     }
 
     <aside
-      class="fixed inset-y-0 left-0 z-40 flex flex-col border-r border-border bg-surface transition-[transform,width] duration-200 ease-out md:static md:translate-x-0 md:shadow-none"
+      class="fixed inset-y-0 left-0 z-40 flex h-dvh min-h-0 flex-col border-r border-border bg-surface transition-[transform,width] duration-200 ease-out md:static md:translate-x-0 md:shadow-none"
       [class.translate-x-0]="mobileOpen()"
       [class.-translate-x-full]="!mobileOpen()"
       [style.width.px]="width()"
       role="navigation"
       aria-label="Navegación principal"
     >
-      <div class="flex h-16 items-center gap-3 border-b border-border-subtle px-4">
+      <div class="flex h-16 shrink-0 items-center gap-3 border-b border-border-subtle px-4">
         <a
           [routerLink]="dashboardLink"
           class="flex min-w-0 items-center gap-2.5 text-content hover:opacity-90 focus:outline-none"
@@ -64,7 +64,7 @@ import { NavLabels } from '../../i18n/nav-labels.service';
         </button>
       </div>
 
-      <nav class="scrollbar-thin flex-1 space-y-6 overflow-y-auto px-3 py-4">
+      <nav class="scrollbar-thin min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-3 py-4">
         @for (group of groups(); track group.id) {
           <div>
             @if (group.label && !collapsed()) {
@@ -93,7 +93,7 @@ import { NavLabels } from '../../i18n/nav-labels.service';
         }
       </nav>
 
-      <div class="hidden border-t border-border-subtle p-2 md:block">
+      <div class="hidden shrink-0 border-t border-border-subtle p-2 md:block">
         <button
           type="button"
           class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-content-muted transition-colors hover:bg-surface-muted hover:text-content"
@@ -121,7 +121,7 @@ export class SidebarComponent {
   readonly mobileOpen = this.layout.sidebarOpen;
   readonly width = computed(() => (this.collapsed() ? 72 : 256));
 
-  readonly tenantName = computed(() => this.tenant.tenant()?.name ?? 'Espacio de trabajo');
+  readonly tenantName = computed(() => this.tenant.tenant()?.name ?? 'Institución');
 
   readonly appName = APP.NAME;
   readonly dashboardLink = '/dashboard';

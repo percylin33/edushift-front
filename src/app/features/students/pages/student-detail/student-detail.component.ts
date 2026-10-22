@@ -9,6 +9,8 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
+import { Permission, UserRole } from '@core/enums';
+import { AuthService } from '@core/services';
 import {
   ConfirmDialogService,
   IconComponent,
@@ -68,23 +70,27 @@ import { portalStatus, StudentDetail } from '../../models';
             <app-icon name="arrow-left" [size]="16" />
             <span class="hidden sm:inline">Volver</span>
           </a>
-          <a [routerLink]="editLink(s.publicUuid)" class="btn btn-outline btn-sm">
-            <app-icon name="pencil" [size]="16" />
-            <span class="hidden sm:inline">Editar</span>
-          </a>
-          <button
-            type="button"
-            class="btn btn-danger btn-sm"
-            [disabled]="saving()"
-            (click)="onDelete(s)"
-          >
-            @if (saving()) {
-              <app-spinner [size]="14" label="Eliminando" />
-            } @else {
-              <app-icon name="trash" [size]="16" />
-            }
-            <span class="hidden sm:inline">Eliminar</span>
-          </button>
+          @if (canUpdate()) {
+            <a [routerLink]="editLink(s.publicUuid)" class="btn btn-outline btn-sm">
+              <app-icon name="pencil" [size]="16" />
+              <span class="hidden sm:inline">Editar</span>
+            </a>
+          }
+          @if (canDelete()) {
+            <button
+              type="button"
+              class="btn btn-danger btn-sm"
+              [disabled]="saving()"
+              (click)="onDelete(s)"
+            >
+              @if (saving()) {
+                <app-spinner [size]="14" label="Eliminando" />
+              } @else {
+                <app-icon name="trash" [size]="16" />
+              }
+              <span class="hidden sm:inline">Eliminar</span>
+            </button>
+          }
         </app-page-header>
 
         <div class="grid gap-4 lg:grid-cols-3">
@@ -151,20 +157,24 @@ import { portalStatus, StudentDetail } from '../../models';
                     }
                     @case ('pending') {
                       <span class="badge badge-warning">Invitación pendiente</span>
-                      <button type="button" class="btn btn-ghost btn-sm" (click)="openStudentResend(s)">
-                        Reenviar
-                      </button>
+                      @if (canProvisionStudent()) {
+                        <button type="button" class="btn btn-ghost btn-sm" (click)="openStudentResend(s)">
+                          Reenviar
+                        </button>
+                      }
                     }
                     @default {
                       <span class="badge">Sin cuenta</span>
-                      <button
-                        type="button"
-                        class="btn btn-outline btn-sm"
-                        [disabled]="!s.email"
-                        (click)="openStudentInvite(s)"
-                      >
-                        Activar portal
-                      </button>
+                      @if (canProvisionStudent()) {
+                        <button
+                          type="button"
+                          class="btn btn-outline btn-sm"
+                          [disabled]="!s.email"
+                          (click)="openStudentInvite(s)"
+                        >
+                          Activar portal
+                        </button>
+                      }
                     }
                   }
                 </div>
@@ -198,12 +208,16 @@ import { portalStatus, StudentDetail } from '../../models';
             </div>
           </section>
 
-          <app-enrollments-section class="col-span-full block min-w-0" [student]="s" />
+          @if (canReadEnrollments()) {
+            <app-enrollments-section class="col-span-full block min-w-0" [student]="s" />
+          }
 
-          <app-guardians-section
-            class="col-span-full block min-w-0"
-            [studentPublicUuid]="s.publicUuid"
-          />
+          @if (canReadGuardians()) {
+            <app-guardians-section
+              class="col-span-full block min-w-0"
+              [studentPublicUuid]="s.publicUuid"
+            />
+          }
 
           @if (portalInvite(); as inv) {
             <app-invite-portal-dialog
@@ -256,11 +270,32 @@ import { portalStatus, StudentDetail } from '../../models';
 })
 export class StudentDetailComponent implements OnInit {
   private readonly store = inject(StudentsStore);
+  private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly listRoute = ROUTES.STUDENTS.LIST;
+
+  protected canUpdate(): boolean {
+    return this.auth.hasPermission(Permission.StudentsUpdateGranular);
+  }
+
+  protected canDelete(): boolean {
+    return this.auth.hasRole(UserRole.TenantAdmin);
+  }
+
+  protected canProvisionStudent(): boolean {
+    return this.auth.hasPermission(Permission.UsersProvisionStudent);
+  }
+
+  protected canReadEnrollments(): boolean {
+    return this.auth.hasPermission(Permission.EnrollmentsRead, Permission.EnrollmentsManage);
+  }
+
+  protected canReadGuardians(): boolean {
+    return this.auth.hasPermission(Permission.GuardiansRead, Permission.GuardiansManage);
+  }
 
   protected readonly student = this.store.selected;
   protected readonly loading = this.store.loadingDetail;

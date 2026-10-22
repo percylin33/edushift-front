@@ -25,24 +25,27 @@ export class TenantService {
   readonly tenantId = computed<string | null>(() => this._context().tenant?.id ?? null);
   readonly tenantSlug = computed<string | null>(() => this._context().tenant?.slug ?? null);
 
-  /** Resolve the tenant slug from the configured strategy. Called once on app bootstrap.
+  /** Resolve the tenant slug from the hostname. Called once on app bootstrap.
    *
    * <p>Resolution order (highest precedence first):</p>
-   * <ol>
-   *   <li><b>{@code ?tenant=}</b> query param — useful in dev tunnels, QA links and
-   *       deep-linked invitations. Persisted to storage so it survives subsequent
-   *       navigations on the same device.</li>
-   *   <li>Configured strategy ({@code subdomain} / {@code path} / {@code header}).
-   *       Subdomain extraction is skipped on well-known tunnel / proxy hosts
-   *       (devtunnels.ms, ngrok, cloudflared, localtunnel) because their hostname
-   *       prefix is the tunnel id, not a real tenant slug.</li>
-   *   <li>Cached slug from a previous session.</li>
-   *   <li>{@code environment.multiTenant.defaultTenant}.</li>
-   * </ol>
+   * <p>On local development hosts, only {@code <hostname>.localhost} identifies
+   * a school. Query parameters, cached state, and the default tenant are ignored
+   * there so the root localhost URL cannot silently open a school's login.</p>
+   * <p>Outside localhost, the existing strategy remains available for deployed
+   * subdomains, tunnels, and legacy non-local environments.</p>
    */
-  resolveSlug(): { slug: string; resolvedFrom: TenantContext['resolvedFrom'] } {
+  resolveSlug(): { slug: string | null; resolvedFrom: TenantContext['resolvedFrom'] } {
     if (!environment.multiTenant.enabled) {
       return { slug: environment.multiTenant.defaultTenant, resolvedFrom: 'default' };
+    }
+
+    const host = window.location.hostname.toLowerCase();
+    if (TenantService.isLocalhostDomain(host)) {
+      const alias = TenantService.localHostnameAlias(host);
+      return {
+        slug: alias,
+        resolvedFrom: alias ? 'subdomain' : 'unknown',
+      };
     }
 
     const queryOverride = this.readSlugFromQuery();
@@ -93,7 +96,7 @@ export class TenantService {
 
   /**
    * Rejects strings that look like deploy-platform identifiers instead of
-   * tenant slugs. Concretely: a tenant slug in EduShift is short (≤ 24
+   * tenant slugs. A DNS label can contain at most 63
    * chars), lowercase, and never contains a Vercel preview hash pattern
    * (8-hex chars followed by the project's full name). Anything that
    * matches `^[a-z0-9-]{16,}-` is almost certainly a Vercel/Render
@@ -102,8 +105,8 @@ export class TenantService {
   private static isLikelyRealTenantSlug(slug: string): boolean {
     if (!slug) return false;
     const lower = slug.toLowerCase().trim();
-    // Tenant slugs are short; reject anything longer than 24 chars.
-    if (lower.length > 24) return false;
+    // A DNS label can contain at most 63 characters.
+    if (lower.length > 63) return false;
     // Tenant slugs never contain double-dash or start/end with a dash.
     if (lower.includes('--') || lower.startsWith('-') || lower.endsWith('-')) return false;
     // The classic pattern of a Vercel auto-generated preview URL:
@@ -115,7 +118,27 @@ export class TenantService {
       const firstSegment = lower.split('-')[0];
       if (/^[a-z0-9]{6,}$/.test(firstSegment)) return false;
     }
-    return /^[a-z][a-z0-9-]{0,23}$/.test(lower);
+    return /^[a-z0-9][a-z0-9-]{0,62}$/.test(lower);
+  }
+
+  /** Whether this browser is on a host that is allowed to identify a tenant. */
+  hasTenantHost(): boolean {
+    const host = window.location.hostname.toLowerCase();
+    if (TenantService.isLocalhostDomain(host)) {
+      return TenantService.localHostnameAlias(host) !== null && this.tenantSlug() !== null;
+    }
+    return this.tenantSlug() !== null;
+  }
+
+  private static isLocalhostDomain(host: string): boolean {
+    return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.localhost');
+  }
+
+  /** Returns the one-label, dash-free school alias from `school.localhost`. */
+  private static localHostnameAlias(host: string): string | null {
+    if (!host.endsWith('.localhost')) return null;
+    const alias = host.slice(0, -'.localhost'.length);
+    return /^[a-z0-9][a-z0-9]{0,62}$/.test(alias) ? alias : null;
   }
 
   /**

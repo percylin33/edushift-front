@@ -1,3 +1,4 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -137,7 +138,7 @@ function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
               @if (showError('name'); as msg) {
                 <p class="field-error">{{ msg }}</p>
               } @else {
-                <p class="field-hint">Debe ser único en el workspace. Máximo 50 caracteres.</p>
+                <p class="field-hint">Debe ser único en la institución. Máximo 50 caracteres.</p>
               }
             </div>
 
@@ -182,6 +183,12 @@ function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
   `,
 })
 export class YearFormComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => !this.loadingDetail(),
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(AcademicStore);
   private readonly route = inject(ActivatedRoute);
@@ -273,12 +280,14 @@ export class YearFormComponent implements OnInit {
         const patch = this.toUpdateRequest();
         const updated = await this.store.updateYear(id, patch);
         if (updated) {
+          this.formProtection.markSaved();
           await this.router.navigate([ROUTES.ACADEMIC.YEARS.LIST]);
         }
       } else {
         const request = this.toCreateRequest();
         const created = await this.store.createYear(request);
         if (created) {
+          this.formProtection.markSaved();
           await this.router.navigate([ROUTES.ACADEMIC.YEARS.LIST]);
         }
       }
@@ -365,7 +374,7 @@ export class YearFormComponent implements OnInit {
     const next: Record<string, string> = {};
     switch (apiErr.code) {
       case 'ACADEMIC_YEAR_NAME_TAKEN':
-        next['name'] = 'Ya existe un año con este nombre en el workspace.';
+        next['name'] = 'Ya existe un año con este nombre en la institución.';
         break;
       case 'ACADEMIC_YEAR_INVALID_DATES':
         next['endDate'] = 'El rango de fechas no es válido.';

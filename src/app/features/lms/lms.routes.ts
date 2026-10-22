@@ -1,3 +1,4 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { permissionGuard, rejectReservedSegmentsCanMatch } from '@core/guards';
 import { Permission } from '@core/enums';
@@ -36,16 +37,18 @@ export const LMS_ROUTES: Routes = [
   // Landing resolver (FE-7a.5 / BUG-2026-07-30-05).
   // ---------------------------------------------------------------------------
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     pathMatch: 'full',
     loadComponent: () =>
       import('./pages/lms-landing/lms-landing.component').then((m) => m.LmsLandingComponent),
-    data: { title: 'Mis cursos' },
+    data: { title: 'Aula virtual' },
   },
   // ---------------------------------------------------------------------------
   // Funnel Mis cursos: materias → secciones (fuera del shell de tabs).
   // ---------------------------------------------------------------------------
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'courses',
     canMatch: [permissionGuard],
     data: {
@@ -57,6 +60,7 @@ export const LMS_ROUTES: Routes = [
       import('./pages/lms-courses/lms-courses.component').then((m) => m.LmsCoursesComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'courses/:courseUuid/sections',
     canMatch: [permissionGuard],
     resolve: { breadcrumb: lmsCourseNameResolver },
@@ -71,6 +75,7 @@ export const LMS_ROUTES: Routes = [
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     canMatch: [permissionGuard],
     data: {
@@ -82,7 +87,8 @@ export const LMS_ROUTES: Routes = [
       import('./pages/lms-shell/lms-shell.component').then((m) => m.LmsShellComponent),
     children: [
       {
-        path: 'sections/:sectionUuid/assignments',
+        canDeactivate: [pendingChangesGuard],
+    path: 'sections/:sectionUuid/assignments',
         canMatch: [permissionGuard],
         runGuardsAndResolvers: 'paramsOrQueryParamsChange',
         resolve: { breadcrumbs: lmsAulaBreadcrumbsResolver },
@@ -91,14 +97,16 @@ export const LMS_ROUTES: Routes = [
           import('./pages/tasks-list/tasks-list.component').then((m) => m.TasksListComponent),
       },
       {
-        path: 'students/:studentUuid/assignments',
+        canDeactivate: [pendingChangesGuard],
+    path: 'students/:studentUuid/assignments',
         canMatch: [permissionGuard],
         data: { permissions: Permission.LmsTaskRead, title: 'Mis tareas' },
         loadComponent: () =>
           import('./pages/tasks-list/tasks-list.component').then((m) => m.TasksListComponent),
       },
       {
-        path: 'assignments/new',
+        canDeactivate: [pendingChangesGuard],
+    path: 'assignments/new',
         canMatch: [permissionGuard],
         data: {
           permissions: Permission.LmsTaskCreate,
@@ -109,14 +117,16 @@ export const LMS_ROUTES: Routes = [
           import('./pages/task-form/task-form.component').then((m) => m.TaskFormComponent),
       },
       {
-        path: 'assignments/:uuid',
+        canDeactivate: [pendingChangesGuard],
+    path: 'assignments/:uuid',
         canMatch: [rejectReservedSegmentsCanMatch(), permissionGuard],
         data: { permissions: Permission.LmsTaskRead, title: 'Detalle de tarea' },
         loadComponent: () =>
           import('./pages/task-detail/task-detail.component').then((m) => m.TaskDetailComponent),
       },
       {
-        path: 'assignments/:uuid/edit',
+        canDeactivate: [pendingChangesGuard],
+    path: 'assignments/:uuid/edit',
         canMatch: [permissionGuard],
         data: {
           permissions: Permission.LmsTaskCreate,
@@ -127,7 +137,8 @@ export const LMS_ROUTES: Routes = [
           import('./pages/task-form/task-form.component').then((m) => m.TaskFormComponent),
       },
       {
-        path: 'assignments/:uuid/grade',
+        canDeactivate: [pendingChangesGuard],
+    path: 'assignments/:uuid/grade',
         canMatch: [permissionGuard],
         data: { permissions: Permission.LmsTaskGrade, title: 'Calificar entregas' },
         loadComponent: () =>
@@ -136,7 +147,8 @@ export const LMS_ROUTES: Routes = [
           ),
       },
       {
-        path: 'assignments/:uuid/submit',
+        canDeactivate: [pendingChangesGuard],
+    path: 'assignments/:uuid/submit',
         canMatch: [permissionGuard],
         data: { permissions: Permission.LmsTaskSubmit, title: 'Entregar tarea' },
         loadComponent: () =>
@@ -145,7 +157,8 @@ export const LMS_ROUTES: Routes = [
           ),
       },
       {
-        path: 'sections/:sectionUuid/materials',
+        canDeactivate: [pendingChangesGuard],
+    path: 'sections/:sectionUuid/materials',
         canMatch: [permissionGuard],
         runGuardsAndResolvers: 'paramsOrQueryParamsChange',
         resolve: { breadcrumbs: lmsAulaBreadcrumbsResolver },
@@ -156,7 +169,8 @@ export const LMS_ROUTES: Routes = [
           ),
       },
       {
-        path: 'sections/:sectionUuid/quizzes',
+        canDeactivate: [pendingChangesGuard],
+    path: 'sections/:sectionUuid/quizzes',
         canMatch: [permissionGuard],
         runGuardsAndResolvers: 'paramsOrQueryParamsChange',
         resolve: { breadcrumbs: lmsAulaBreadcrumbsResolver },
@@ -165,7 +179,8 @@ export const LMS_ROUTES: Routes = [
           import('./quiz/pages/quiz-list/quiz-list.page').then((m) => m.QuizListPageComponent),
       },
       {
-        path: 'quizzes/new',
+        canDeactivate: [pendingChangesGuard],
+    path: 'quizzes/new',
         canMatch: [permissionGuard],
         data: {
           permissions: Permission.LmsQuizCreate,
@@ -176,7 +191,8 @@ export const LMS_ROUTES: Routes = [
           import('./quiz/pages/quiz-form/quiz-form.page').then((m) => m.QuizFormPageComponent),
       },
       {
-        path: 'quizzes/:uuid',
+        canDeactivate: [pendingChangesGuard],
+    path: 'quizzes/:uuid',
         canMatch: [rejectReservedSegmentsCanMatch(), permissionGuard],
         data: { permissions: Permission.LmsQuizRead, title: 'Detalle de práctica' },
         loadComponent: () =>
@@ -185,7 +201,8 @@ export const LMS_ROUTES: Routes = [
           ),
       },
       {
-        path: 'quizzes/:uuid/edit',
+        canDeactivate: [pendingChangesGuard],
+    path: 'quizzes/:uuid/edit',
         canMatch: [permissionGuard],
         data: {
           permissions: Permission.LmsQuizCreate,
@@ -196,14 +213,16 @@ export const LMS_ROUTES: Routes = [
           import('./quiz/pages/quiz-form/quiz-form.page').then((m) => m.QuizFormPageComponent),
       },
       {
-        path: 'quizzes/:uuid/take',
+        canDeactivate: [pendingChangesGuard],
+    path: 'quizzes/:uuid/take',
         canMatch: [permissionGuard],
         data: { permissions: Permission.LmsQuizSubmit, title: 'Tomar práctica' },
         loadComponent: () =>
           import('./quiz/pages/quiz-take/quiz-take.page').then((m) => m.QuizTakePageComponent),
       },
       {
-        path: 'quizzes/:uuid/results',
+        canDeactivate: [pendingChangesGuard],
+    path: 'quizzes/:uuid/results',
         canMatch: [permissionGuard],
         data: { permissions: Permission.LmsQuizRead, title: 'Resultados de la práctica' },
         loadComponent: () =>
@@ -212,7 +231,8 @@ export const LMS_ROUTES: Routes = [
           ),
       },
       {
-        path: 'quizzes/:uuid/grade',
+        canDeactivate: [pendingChangesGuard],
+    path: 'quizzes/:uuid/grade',
         canMatch: [permissionGuard],
         data: { permissions: Permission.LmsQuizGrade, title: 'Cola de grading' },
         loadComponent: () =>

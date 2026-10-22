@@ -1086,6 +1086,11 @@ export class AcademicApiService {
       capacities: [],
       origin: raw.origin ?? 'INSTITUTIONAL',
       createdBy: raw.createdBy ?? null,
+      sourceCatalogVersion: raw.sourceCatalogVersion ?? null,
+      sourceCatalogCode: raw.sourceCatalogCode ?? null,
+      sourceLevelCode: raw.sourceLevelCode ?? null,
+      sourceCycleCodes: raw.sourceCycleCodes ?? null,
+      sourceContentStatus: raw.sourceContentStatus ?? null,
     };
   }
 
@@ -1105,6 +1110,9 @@ export class AcademicApiService {
         name: c.name,
         displayOrder: c.displayOrder,
         isActive: c.isActive,
+        sourceCatalogVersion: c.sourceCatalogVersion ?? null,
+        sourceCatalogCode: c.sourceCatalogCode ?? null,
+        sourceContentStatus: c.sourceContentStatus ?? null,
         competency: {
           publicUuid: raw.publicUuid,
           code: raw.code,
@@ -1116,6 +1124,11 @@ export class AcademicApiService {
       updatedAt: this.parseDate(raw.updatedAt),
       origin: raw.origin ?? 'INSTITUTIONAL',
       createdBy: raw.createdBy ?? null,
+      sourceCatalogVersion: raw.sourceCatalogVersion ?? null,
+      sourceCatalogCode: raw.sourceCatalogCode ?? null,
+      sourceLevelCode: raw.sourceLevelCode ?? null,
+      sourceCycleCodes: raw.sourceCycleCodes ?? null,
+      sourceContentStatus: raw.sourceContentStatus ?? null,
     };
   }
 
@@ -1130,6 +1143,9 @@ export class AcademicApiService {
       isActive: raw.isActive,
       createdAt: this.parseDate(raw.createdAt),
       updatedAt: this.parseDate(raw.updatedAt),
+      sourceCatalogVersion: raw.sourceCatalogVersion ?? null,
+      sourceCatalogCode: raw.sourceCatalogCode ?? null,
+      sourceContentStatus: raw.sourceContentStatus ?? null,
     };
   }
 

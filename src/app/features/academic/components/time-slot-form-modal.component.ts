@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
@@ -43,14 +45,14 @@ interface WireApiError {
   selector: 'app-time-slot-form-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="time-slot-form-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card max-h-[90vh] w-full max-w-lg overflow-y-auto shadow-xl"
@@ -177,6 +179,12 @@ interface WireApiError {
   `,
 })
 export class TimeSlotFormModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly api = inject(AcademicApiService);
   private readonly fb = inject(FormBuilder);
   private readonly confirmDialog = inject(ConfirmDialogService);
@@ -265,7 +273,9 @@ export class TimeSlotFormModalComponent implements OnInit {
   }
 
   protected cancel(): void {
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.closed.emit();
+    });
   }
 
   protected async onSubmit(): Promise<void> {

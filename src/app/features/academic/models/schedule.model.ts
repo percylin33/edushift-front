@@ -423,6 +423,13 @@ export interface ApplyDayPlanRequest {
   periodMinutes: number;
   recesses: { startTime: string; endTime: string; label?: string }[];
   lunch?: { startTime: string; endTime: string; label?: string } | null;
+  activities: {
+    blockType: Extract<DayBlockType, 'ASSEMBLY' | 'GUIDANCE' | 'SPECIALIST_RESERVED'>;
+    dayOfWeek: number | null;
+    startTime: string;
+    endTime: string;
+    label: string;
+  }[];
 }
 
 export interface CreateDayBlockRequest {

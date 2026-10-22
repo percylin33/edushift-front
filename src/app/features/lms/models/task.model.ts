@@ -119,6 +119,7 @@ export interface TaskDetail {
   periodPublicUuid: string;
   title: string;
   description: string | null;
+  attachmentPublicUuid: string | null;
   dueAt: Date | null;
   maxScore: number;
   allowResubmissions: boolean;
@@ -168,6 +169,7 @@ export function toTaskDetail(raw: TaskResponseRaw): TaskDetail {
     periodPublicUuid: raw.periodPublicUuid ?? '',
     title: raw.title,
     description: raw.description ?? null,
+    attachmentPublicUuid: raw.attachmentPublicUuid ?? null,
     dueAt: raw.dueAt ? new Date(raw.dueAt) : null,
     maxScore: raw.maxScore ?? 0,
     allowResubmissions: raw.allowResubmissions ?? raw.allowResubmission ?? true,
@@ -185,9 +187,7 @@ export function toTaskDetail(raw: TaskResponseRaw): TaskDetail {
 }
 
 export function isTaskEditable(detail: Pick<TaskDetail, 'lifecycle' | 'dueAt'>): boolean {
-  if (detail.lifecycle === TaskLifecycle.Draft) return true;
-  if (detail.lifecycle === TaskLifecycle.Closed) return false;
-  return detail.dueAt instanceof Date && detail.dueAt.getTime() > Date.now();
+  return detail.lifecycle === TaskLifecycle.Draft;
 }
 
 export function isTaskTerminal(lifecycle: TaskLifecycle): boolean {

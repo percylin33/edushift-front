@@ -26,11 +26,8 @@ export const environment: AppEnvironment = runtimeOverrides({
     withCredentials: true,
   },
   google: {
-    enabled: true,
-    // Dev placeholder. REPLACE with the real OAuth Client ID from
-    // Google Cloud Console → APIs & Services → Credentials. Make sure
-    // "Authorized JavaScript origins" includes http://localhost:4200
-    // (and the dev tunnel URL used for mobile testing).
+    enabled: false,
+    // Google sign-in is disabled for this deployment.
     clientId: 'REPLACE_ME_WITH_YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com',
     scopes: [
       'openid',
@@ -39,11 +36,9 @@ export const environment: AppEnvironment = runtimeOverrides({
       // PR-2 adds the gmail.send scope here.
     ],
   },
-  // Dev-only MFA enrolment bypass. The BE controller is @Profile-gated
-  // to {dev,local}; the value here MUST match the BE property
-  // `edushift.admin.dev-bypass.code` (default "dev-bypass"). Empty
-  // string disables the auto-bypass path.
-  devMfaBypassCode: 'dev-bypass',
+  // Keep dev MFA enrollment interactive so the user can scan the QR code.
+  // Set a bypass code only when deliberately exercising the dev-only flow.
+  devMfaBypassCode: undefined,
   features: {
     dashboard: true,
     auth: true,
@@ -60,8 +55,7 @@ export const environment: AppEnvironment = runtimeOverrides({
     reports: true,
     notifications: true,
     settings: true,
-    // LMS (Sprint 7a). Off by default in production until BE-7a.0..5 are
-    // signed off; flipped on in dev to allow exercising the new tree.
+    // Feature routes enabled for development.
     lms: true,
     // FIX BUG-2026-07-30-09 / -10 / -18 / -19: routes were registered
     // with `featureFlagGuard` but the corresponding feature flags were
@@ -71,10 +65,11 @@ export const environment: AppEnvironment = runtimeOverrides({
     announcements: true,
     schedule: true,
     family: true,
+    disclosures: true,
+    admissions: true,
     me: true,
-    // PR-2 (gmail send) is still in flight; keep disabled in dev too
-    // until BE-11.x lands the refresh-token storage.
-    gmailSend: false,
+    // Enable all feature routes; Google sign-in remains disabled above.
+    gmailSend: true,
   },
   logging: {
     level: 'debug',
@@ -95,11 +90,12 @@ export const environment: AppEnvironment = runtimeOverrides({
     // The values below are placeholders for the dev project; replace via
     // environment.local.ts (gitignored) once Firebase Console provisions
     // them. See docs/infra/firebase.md.
-    apiKey: 'REPLACE_ME_WITH_FIREBASE_WEB_API_KEY',
-    authDomain: 'project-1ecb3cb0-5e49-49b2-8e5.firebaseapp.com',
-    projectId: 'project-1ecb3cb0-5e49-49b2-8e5',
-    storageBucket: 'project-1ecb3cb0-5e49-49b2-8e5.appspot.com',
-    messagingSenderId: 'REPLACE_ME_WITH_FIREBASE_MESSAGING_SENDER_ID',
-    appId: 'REPLACE_ME_WITH_FIREBASE_WEB_APP_ID',
+    apiKey: 'AIzaSyAnWp4Xcy6QqFzGkGNzSB7WXw0yYIRpj6U',
+    authDomain: 'edushift-f03db.firebaseapp.com',
+    projectId: 'edushift-f03db',
+    storageBucket: 'edushift-f03db.firebasestorage.app',
+    messagingSenderId: '390884898100',
+    appId: '1:390884898100:web:9fe332355e52403587e161',
+    messagingVapidKey: 'BBit7vIdDVzI2ph9gx8Ggpi6E5UwNRuu45jEUC3tu1a25gDaR71xBv9vDfAm8-TCCeV87tAgwHQuWCqsjN8EdC4',
   },
 });

@@ -85,9 +85,9 @@ export class TenantApiService {
   }
 
   /**
-   * Invite-gated signup. Atomically creates a {@code PENDING} tenant on
+   * Invite-gated signup. Creates an {@code ACTIVE} tenant on
    * the {@code TRIAL} plan and an {@code ACTIVE} {@code TENANT_ADMIN}
-   * user, then returns an {@code AuthResponse}.
+   * user, sets httpOnly cookies on the response origin and returns session metadata.
    *
    * <p>The {@code 409 TENANT_SLUG_TAKEN} response surfaces verbatim
    * through {@code errorInterceptor}; the registration form is

@@ -1,3 +1,4 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -710,6 +711,12 @@ import {
   ],
 })
 export class SessionsFormComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => [this.form.getRawValue(), this.draftCompetencyName(), this.draftCapacities(), this.sheetDrafts()],
+    saving: () => this.saving(),
+    active: () => !this.loading(),
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(SessionsApiService);
   private readonly academicApi = inject(AcademicApiService);
@@ -1571,7 +1578,8 @@ export class SessionsFormComponent implements OnInit {
       } else {
         await firstValueFrom(this.api.createSession(payload as CreateLearningSessionRequest));
       }
-      void this.router.navigate([ROUTES.SESSIONS.LIST]);
+      this.formProtection.markSaved();
+          void this.router.navigate([ROUTES.SESSIONS.LIST]);
     } catch (err) {
       this.errorMessage.set(err instanceof Error ? err.message : 'Error al guardar la sesión');
       this.saving.set(false);

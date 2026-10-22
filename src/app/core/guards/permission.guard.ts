@@ -3,7 +3,7 @@ import { CanMatchFn, Route, Router, UrlSegment, UrlTree } from '@angular/router'
 import { firstValueFrom } from 'rxjs';
 import { timeout } from 'rxjs/operators';
 import { AuthService, LoggerService } from '@core/services';
-import { Permission } from '@core/enums';
+import { Permission, UserRole } from '@core/enums';
 import { ROUTES } from '@core/constants';
 import { AuthApiService } from '@features/auth/services/auth-api.service';
 
@@ -24,6 +24,10 @@ const GUARD_ME_TIMEOUT_MS = 5_000;
 export interface PermissionRouteData {
   permissions?: Permission | Permission[];
   permissionMode?: 'any' | 'all';
+  /** Re-fetch the current user's effective permissions before matching this route. */
+  refreshPermissions?: boolean;
+  /** Optional coarse roles accepted in addition to any listed permission. */
+  roles?: UserRole[];
   [key: string]: unknown;
 }
 
@@ -87,6 +91,8 @@ export const permissionGuard: CanMatchFn = async (
    * off the route the matcher was built from. Both signatures converge on
    * the same `data` shape thanks to the `PermissionRouteData` typing. */
   const data = (_route.data ?? {}) as PermissionRouteData;
+  const allowedRoles = data.roles ?? [];
+  if (allowedRoles.length > 0 && auth.hasRole(...allowedRoles)) return true;
   const required = data.permissions
     ? Array.isArray(data.permissions)
       ? data.permissions
@@ -100,11 +106,17 @@ export const permissionGuard: CanMatchFn = async (
    * so subsequent guard evaluations are synchronous-fast). Skip the
    * self-heal when there is no session at all — `authChildGuard` and
    * the error interceptor will redirect to /auth/login. */
-  if (auth.isAuthenticated() && auth.permissions().length === 0) {
+  const mustRefreshPermissions =
+    auth.isAuthenticated() && (data.refreshPermissions === true || auth.permissions().length === 0);
+  if (mustRefreshPermissions) {
     try {
-      await firstValueFrom(authApi.me().pipe(timeout(GUARD_ME_TIMEOUT_MS)));
+      const user = await firstValueFrom(authApi.me().pipe(timeout(GUARD_ME_TIMEOUT_MS)));
+      auth.setUser(user);
     } catch (err) {
       logger.warn('permissionGuard: self-healing /auth/me failed; deferring to /403.', err);
+      if (data.refreshPermissions === true) {
+        return router.createUrlTree([ROUTES.ERRORS.FORBIDDEN]);
+      }
     }
   }
 

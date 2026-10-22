@@ -5,3 +5,6 @@ export * from './admin-plans.service';
 export * from './admin-invoices.service';
 export * from './admin-payments.service';
 export * from './admin-metrics.service';
+export * from './admin-audit.service';
+export * from './admin-super-admins.service';
+export * from './admin-impersonation.service';

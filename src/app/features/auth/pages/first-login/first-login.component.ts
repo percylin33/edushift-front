@@ -1,12 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
 import { AuthService } from '@core/services';
 import { SpinnerComponent } from '@shared/components';
 import { AuthApiService, OnboardingMe } from '../../services/auth-api.service';
+import { extractApiError, mapHttpError, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, passwordPolicyMessage, passwordPolicyValidator } from '@shared/utils';
 
 /**
  * CRED-7 — role-aware first-login: password + light profile (email optional).
@@ -21,7 +23,7 @@ import { AuthApiService, OnboardingMe } from '../../services/auth-api.service';
       <div class="space-y-2 text-center">
         <h1 class="text-2xl font-semibold text-content">Completa tu acceso</h1>
         <p class="text-sm text-content-muted">
-          Cambia la contraseña temporal y confirma tus datos de contacto.
+          Tu contraseña temporal fue validada. Crea una contraseña personal y confirma tus datos de contacto.
           @if (role() === 'STUDENT') {
             Perfil de alumno.
           } @else if (role() === 'PARENT') {
@@ -41,19 +43,6 @@ import { AuthApiService, OnboardingMe } from '../../services/auth-api.service';
       } @else {
         <form class="card space-y-4 p-6" [formGroup]="form" (ngSubmit)="submit()">
           <div class="space-y-1">
-            <label class="text-xs font-medium text-content" for="currentPassword">
-              Contraseña temporal
-            </label>
-            <input
-              id="currentPassword"
-              type="password"
-              class="input w-full"
-              formControlName="currentPassword"
-              autocomplete="current-password"
-            />
-          </div>
-
-          <div class="space-y-1">
             <label class="text-xs font-medium text-content" for="newPassword">Nueva contraseña</label>
             <input
               id="newPassword"
@@ -62,6 +51,11 @@ import { AuthApiService, OnboardingMe } from '../../services/auth-api.service';
               formControlName="newPassword"
               autocomplete="new-password"
             />
+            @if (newPasswordError(); as message) {
+              <p class="text-xs text-danger" role="alert">{{ message }}</p>
+            } @else {
+              <p class="text-2xs text-content-muted">8–72 caracteres, con mayúscula, minúscula y número.</p>
+            }
           </div>
 
           <div class="space-y-1">
@@ -161,8 +155,7 @@ export class FirstLoginComponent implements OnInit {
   protected readonly requiredFields = signal<string[]>([]);
 
   protected readonly form = this.fb.nonNullable.group({
-    currentPassword: ['', Validators.required],
-    newPassword: ['', [Validators.required, Validators.minLength(8)]],
+    newPassword: ['', [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH), Validators.maxLength(PASSWORD_MAX_LENGTH), passwordPolicyValidator]],
     confirmPassword: ['', Validators.required],
     firstName: [''],
     lastName: [''],
@@ -203,6 +196,16 @@ export class FirstLoginComponent implements OnInit {
     return this.requiredFields().includes(field);
   }
 
+  protected newPasswordError(): string | null {
+    const control = this.form.controls.newPassword;
+    if (!control.touched || !control.errors) return null;
+    if (control.errors['required']) return 'Crea una contraseña nueva para continuar.';
+    if (control.errors['minlength'] || control.errors['maxlength'] || control.errors['passwordPolicy']) {
+      return passwordPolicyMessage(control.value);
+    }
+    return null;
+  }
+
   private applyOnboarding(o: OnboardingMe): void {
     this.role.set(o.role);
     this.requiredFields.set(o.requiredFields ?? []);
@@ -238,7 +241,6 @@ export class FirstLoginComponent implements OnInit {
       const emailTrim = raw.email.trim().toLowerCase();
       const user = await firstValueFrom(
         this.authApi.completeOnboarding({
-          currentPassword: raw.currentPassword,
           newPassword: raw.newPassword,
           firstName: raw.firstName.trim() || null,
           lastName: raw.lastName.trim() || null,
@@ -250,10 +252,17 @@ export class FirstLoginComponent implements OnInit {
       );
       this.auth.setUser(user);
       await this.router.navigateByUrl(ROUTES.DASHBOARD.ROOT);
-    } catch {
-      this.errorMessage.set(
-        'No se pudo completar el registro. Verifica la contraseña temporal e inténtalo de nuevo.',
-      );
+    } catch (err) {
+      const code = err instanceof HttpErrorResponse ? extractApiError(err)?.code : undefined;
+      if (code === 'WEAK_PASSWORD') {
+        this.errorMessage.set(passwordPolicyMessage(raw.newPassword));
+      } else if (code === 'PASSWORD_UNCHANGED') {
+        this.errorMessage.set('La nueva contraseña debe ser distinta de la temporal.');
+      } else {
+        this.errorMessage.set(err instanceof HttpErrorResponse
+          ? mapHttpError(err, { fallback: 'No se pudo completar tu acceso. Revisa los datos e inténtalo de nuevo.' })
+          : 'No se pudo completar tu acceso. Inténtalo de nuevo.');
+      }
     } finally {
       this.busy.set(false);
     }

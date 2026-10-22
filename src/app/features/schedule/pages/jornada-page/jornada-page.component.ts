@@ -24,18 +24,14 @@ import {
   AcademicLevel,
   AcademicYearRow,
   AcademicYearStatus,
-  CreateDayBlockRequest,
   DAY_BLOCK_TYPE_LABELS,
-  DAY_TEMPLATE_SHIFT_OPTIONS,
   DAYS_OF_WEEK,
-  DayBlockItem,
   DayBlockType,
   DayTemplate,
-  RECESS_POLICY_HINTS,
-  RECESS_POLICY_LABELS,
   RecessPolicy,
   ScheduleSourceDocument,
   ScheduleWarningItem,
+  SectionRow,
   formatDayTemplateShift,
   formatScheduleParseStatus,
   formatScheduleWarning,
@@ -56,20 +52,9 @@ import {
   recessLabelForIndex,
 } from '../../utils/day-plan.util';
 
-const BLOCK_TYPES: DayBlockType[] = [
-  'LUNCH',
-  'ASSEMBLY',
-  'GUIDANCE',
-  'SPECIALIST_RESERVED',
-  'RECESS',
-];
+const SPECIAL_BLOCK_TYPES = new Set<DayBlockType>(['ASSEMBLY', 'GUIDANCE', 'SPECIALIST_RESERVED']);
 
-const SPECIAL_BLOCK_TYPES = new Set<DayBlockType>([
-  'LUNCH',
-  'ASSEMBLY',
-  'GUIDANCE',
-  'SPECIALIST_RESERVED',
-]);
+const ACTIVITY_TYPES: DayBlockType[] = ['ASSEMBLY', 'GUIDANCE', 'SPECIALIST_RESERVED'];
 
 interface DayPlanRecessDraft {
   startTime: string;
@@ -82,6 +67,14 @@ interface DayPlanDraft {
   dayEnd: string;
   periodMinutes: number;
   recesses: DayPlanRecessDraft[];
+  lunch: { enabled: boolean; startTime: string; endTime: string; minutes: number };
+  activities: {
+    blockType: Extract<DayBlockType, 'ASSEMBLY' | 'GUIDANCE' | 'SPECIALIST_RESERVED'>;
+    label: string;
+    dayOfWeek: number | null;
+    startTime: string;
+    endTime: string;
+  }[];
 }
 
 /**
@@ -118,43 +111,17 @@ interface DayPlanDraft {
         </a>
       </app-page-header>
 
-      <!-- Progress steps -->
-      <nav aria-label="Pasos de configuración" class="mb-6">
-        <ol class="grid gap-2 sm:grid-cols-3">
-          @for (step of setupSteps; track step.id) {
-            <li
-              class="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm"
-              [ngClass]="
-                step.id === 2 ? 'border-primary bg-primary/5' : 'border-border-subtle'
-              "
-            >
-              <span
-                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-                [class.bg-primary]="step.id <= 2"
-                [class.text-white]="step.id <= 2"
-                [class.bg-surface-muted]="step.id > 2"
-                [class.text-content-muted]="step.id > 2"
-              >
-                {{ step.id }}
-              </span>
-              <span class="font-medium text-content">{{ step.label }}</span>
-            </li>
-          }
-        </ol>
-      </nav>
-
       @if (bootLoading()) {
         <div class="flex items-center justify-center py-16">
           <app-spinner [size]="24" label="Cargando…" />
         </div>
       } @else {
-        <!-- Step 1: Year + recess policy -->
-        <section class="card mb-6" aria-labelledby="jornada-step1">
+        <section class="card mb-6" aria-labelledby="jornada-settings">
           <header class="card-header">
-            <h2 id="jornada-step1" class="card-title text-base">Paso 1 · Año y recreos</h2>
+            <h2 id="jornada-settings" class="card-title text-base">Configuración del año</h2>
           </header>
           <div class="card-body grid gap-4 sm:grid-cols-12">
-            <div class="sm:col-span-4">
+            <div class="sm:col-span-6">
               <label class="label" for="jornada-year">Año académico</label>
               <select
                 id="jornada-year"
@@ -168,8 +135,8 @@ interface DayPlanDraft {
                 }
               </select>
             </div>
-            <div class="sm:col-span-4">
-              <label class="label" for="jornada-policy">Política de recreos</label>
+            <div class="sm:col-span-6">
+              <label class="label" for="jornada-policy">Preferencia de recreos</label>
               <select
                 id="jornada-policy"
                 class="select"
@@ -181,22 +148,9 @@ interface DayPlanDraft {
                   <option [value]="opt.value">{{ opt.label }}</option>
                 }
               </select>
-              <p class="mt-1 text-xs text-content-muted">{{ policyHint() }}</p>
-            </div>
-            <div class="flex flex-col justify-end gap-1 sm:col-span-4">
-              <button
-                type="button"
-                class="btn btn-primary btn-sm self-start"
-                [disabled]="!selectedYearUuid() || seeding()"
-                (click)="seedDefaults()"
-              >
-                @if (seeding()) {
-                  <app-spinner [size]="14" />
-                }
-                Crear recreos sugeridos
-              </button>
-              <p class="text-xs text-content-muted">
-                Genera plantillas por nivel con horarios de recreo habituales.
+              <p class="mt-1 text-xs text-content-muted">
+                Esta preferencia se guarda para todo el colegio. Ajusta las horas de recreo dentro
+                de cada jornada.
               </p>
             </div>
           </div>
@@ -211,63 +165,129 @@ interface DayPlanDraft {
           </div>
         }
 
-        <!-- Step 2: Day per level -->
-        <section class="mb-8" aria-labelledby="jornada-step2">
+        <section class="mb-8" aria-labelledby="jornada-templates">
           <header class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 id="jornada-step2" class="text-lg font-semibold text-content">
-                Paso 2 · Día por nivel
+              <h2 id="jornada-templates" class="text-lg font-semibold text-content">
+                Jornadas del año
               </h2>
               <p class="text-sm text-content-muted">
-                Elegí un nivel, ajustá la jornada y guardá el día escolar.
+                Revisa qué niveles tienen jornada y ajusta cada día escolar.
               </p>
             </div>
-            <button
-              type="button"
-              class="btn btn-outline btn-sm self-start"
-              [disabled]="!selectedYearUuid()"
-              (click)="showCreateTemplate.set(!showCreateTemplate())"
-            >
-              <app-icon name="plus" [size]="14" />
-              Nueva plantilla
-            </button>
+            @if (templates().length > 0) {
+              <div class="flex flex-wrap gap-2">
+                @if (years().length > 1) {
+                  <button
+                    type="button"
+                    class="btn btn-outline btn-sm"
+                    [disabled]="!selectedYearUuid() || cloning() || hasAnyUnsavedPlans()"
+                    (click)="showCloneForm.set(!showCloneForm())"
+                  >
+                    Copiar otro año
+                  </button>
+                }
+                <button
+                  type="button"
+                  class="btn btn-outline btn-sm"
+                  [disabled]="!selectedYearUuid()"
+                  (click)="showCreateTemplate.set(!showCreateTemplate())"
+                >
+                  <app-icon name="plus" [size]="14" /> Nueva jornada
+                </button>
+              </div>
+            }
           </header>
+
+          @if (showCloneForm()) {
+            <div class="card mb-4">
+              <div class="card-body flex flex-col gap-3 sm:flex-row sm:items-end">
+                <label class="field flex-1">
+                  <span class="label">Copiar jornadas desde</span>
+                  <select class="select" [(ngModel)]="cloneSourceYearUuid">
+                    <option value="">Seleccionar año anterior…</option>
+                    @for (year of years(); track year.publicUuid) {
+                      @if (year.publicUuid !== selectedYearUuid()) {
+                        <option [value]="year.publicUuid">{{ year.name }}</option>
+                      }
+                    }
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  [disabled]="!cloneSourceYearUuid || cloning() || hasAnyUnsavedPlans()"
+                  (click)="cloneSchedule()"
+                >
+                  @if (cloning()) {
+                    <app-spinner [size]="14" />
+                  }
+                  Copiar jornadas
+                </button>
+              </div>
+              @if (hasAnyUnsavedPlans()) {
+                <p class="px-5 pb-4 text-xs text-amber-700">
+                  Guarda o descarta los cambios pendientes antes de copiar otro año.
+                </p>
+              }
+            </div>
+          }
 
           @if (showCreateTemplate()) {
             <div class="card mb-4">
               <div class="card-body grid gap-3 sm:grid-cols-12">
                 <div class="sm:col-span-3">
                   <label class="label" for="tpl-level">Nivel</label>
-                  <select id="tpl-level" class="select" [(ngModel)]="newTemplate.levelUuid">
+                  <select
+                    id="tpl-level"
+                    class="select"
+                    [ngModel]="newTemplate.levelUuid"
+                    (ngModelChange)="newTemplate.levelUuid = $event; newTemplate.gradeUuid = ''"
+                  >
                     <option value="">Seleccionar…</option>
                     @for (lv of levels(); track lv.publicUuid) {
                       <option [value]="lv.publicUuid">{{ lv.code }} — {{ lv.name }}</option>
                     }
                   </select>
                 </div>
-                <div class="sm:col-span-4">
-                  <label class="label" for="tpl-name">Nombre</label>
-                  <input id="tpl-name" class="input" [(ngModel)]="newTemplate.name" />
-                </div>
-                <div class="sm:col-span-2">
-                  <label class="label" for="tpl-shift">Turno</label>
-                  <select id="tpl-shift" class="select" [(ngModel)]="newTemplate.shift">
-                    <option value="">Sin turno</option>
-                    @for (opt of shiftOptions; track opt.value) {
-                      <option [value]="opt.value">{{ opt.label }}</option>
+                <div class="sm:col-span-3">
+                  <label class="label" for="tpl-grade">Aplicar a</label>
+                  <select id="tpl-grade" class="select" [(ngModel)]="newTemplate.gradeUuid">
+                    <option value="">Todo el nivel</option>
+                    @for (grade of selectedLevelGrades(); track grade.publicUuid) {
+                      <option [value]="grade.publicUuid">{{ grade.name }}</option>
                     }
                   </select>
                 </div>
-                <div class="flex items-end sm:col-span-3">
+                <div class="sm:col-span-4">
+                  <label class="label" for="tpl-name">Nombre</label>
+                  <input
+                    id="tpl-name"
+                    class="input"
+                    [(ngModel)]="newTemplate.name"
+                    placeholder="Ej. Jornada de Primaria"
+                  />
+                </div>
+                <div class="flex items-end sm:col-span-2">
                   <button
                     type="button"
                     class="btn btn-primary btn-sm"
-                    [disabled]="creatingTemplate()"
+                    [disabled]="
+                      creatingTemplate() ||
+                      !newTemplate.levelUuid ||
+                      !newTemplate.name.trim() ||
+                      templateScopeTaken()
+                    "
                     (click)="createTemplate()"
                   >
-                    Crear
+                    Crear jornada
                   </button>
                 </div>
+                @if (templateScopeTaken()) {
+                  <p class="text-xs text-amber-700 sm:col-span-12">
+                    Ya existe una jornada para ese alcance. Elige un grado para crear una excepción.
+                  </p>
+                }
               </div>
             </div>
           }
@@ -287,350 +307,610 @@ interface DayPlanDraft {
               <div class="card-body space-y-4">
                 <app-empty-state
                   icon="calendar"
-                  title="Sin plantillas de jornada"
-                  description="Empezá creando recreos sugeridos o una plantilla nueva."
+                  title="Aún no hay jornadas para este año"
+                  description="Empieza con horarios sugeridos, copia la estructura de otro año o crea una jornada con una base sugerida."
                 />
-                <ol class="grid gap-3 sm:grid-cols-3">
-                  @for (hint of onboardingHints; track hint.title) {
-                    <li class="rounded-lg border border-border-subtle bg-surface-subtle/50 p-3">
-                      <p class="text-sm font-medium text-content">{{ hint.title }}</p>
-                      <p class="mt-1 text-xs text-content-muted">{{ hint.description }}</p>
-                    </li>
+                <div class="grid gap-3 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    [disabled]="seeding()"
+                    (click)="seedDefaults()"
+                  >
+                    Usar jornadas sugeridas
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-outline"
+                    [disabled]="years().length <= 1 || cloning() || hasAnyUnsavedPlans()"
+                    (click)="showCloneForm.set(true)"
+                  >
+                    Copiar de otro año
+                  </button>
+                  @if (years().length <= 1) {
+                    <p class="text-xs text-content-muted sm:col-span-3">
+                      Para copiar, debe existir otro año académico.
+                    </p>
                   }
-                </ol>
+                  <button
+                    type="button"
+                    class="btn btn-outline"
+                    (click)="showCreateTemplate.set(true)"
+                  >
+                    Crear jornada
+                  </button>
+                </div>
               </div>
             </div>
           } @else {
-            <!-- Template tabs -->
-            <div
-              class="mb-4 flex gap-1 overflow-x-auto border-b border-border-subtle pb-px"
-              role="tablist"
-            >
-              @for (tpl of templates(); track tpl.publicUuid) {
-                <button
-                  type="button"
-                  role="tab"
-                  class="shrink-0 rounded-t-md px-3 py-2 text-sm font-medium transition"
-                  [class.bg-surface-raised]="activeTemplateUuid() === tpl.publicUuid"
-                  [class.text-primary]="activeTemplateUuid() === tpl.publicUuid"
-                  [class.border]="activeTemplateUuid() === tpl.publicUuid"
-                  [class.border-border-subtle]="activeTemplateUuid() === tpl.publicUuid"
-                  [class.border-b-0]="activeTemplateUuid() === tpl.publicUuid"
-                  [class.text-content-muted]="activeTemplateUuid() !== tpl.publicUuid"
-                  [attr.aria-selected]="activeTemplateUuid() === tpl.publicUuid"
-                  (click)="selectTemplate(tpl.publicUuid)"
+            @if (!editingTemplateUuid()) {
+              <div class="grid gap-3 md:grid-cols-2">
+                @for (tpl of templates(); track tpl.publicUuid) {
+                  <article class="card">
+                    <div
+                      class="card-body flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <div class="flex flex-wrap items-center gap-2">
+                          <h3 class="font-semibold text-content">{{ tpl.name }}</h3>
+                          <span
+                            class="rounded-full px-2 py-0.5 text-xs"
+                            [class.bg-surface-muted]="isTemplateConfigured(tpl)"
+                            [class.text-success]="isTemplateConfigured(tpl)"
+                            [class.bg-amber-100]="!isTemplateConfigured(tpl)"
+                            [class.text-amber-800]="!isTemplateConfigured(tpl)"
+                          >
+                            {{ isTemplateConfigured(tpl) ? 'Configurada' : 'Revisar jornada' }}
+                          </span>
+                        </div>
+                        <p class="mt-1 text-sm text-content-muted">
+                          {{ tpl.levelCode }}{{ tpl.gradeName ? ' · ' + tpl.gradeName : '' }}
+                          {{ tpl.shift ? ' · ' + shiftLabel(tpl.shift) : '' }}
+                          @if (tpl.shift) {
+                            · turno sin vinculación automática
+                          } @else {
+                            · {{ sectionCountForTemplate(tpl) }} secciones
+                          }
+                        </p>
+                        <p class="mt-2 text-sm text-content-muted">
+                          @if (tpl.dayStart && tpl.dayEnd) {
+                            {{ formatTime(tpl.dayStart) }}–{{ formatTime(tpl.dayEnd) }} · clases de
+                            {{ tpl.periodMinutes ?? '—' }} min
+                          } @else {
+                            Completa entrada, salida y duración de clase
+                          }
+                          · {{ recessCount(tpl) }} recreo(s)
+                          @if (hasLunch(tpl)) {
+                            · incluye almuerzo
+                          }
+                        </p>
+                        @if (tpl.shift) {
+                          <p class="mt-2 text-xs text-amber-700">
+                            Esta jornada tiene turno, pero las secciones aún no registran turno para
+                            vincularla automáticamente.
+                          </p>
+                        }
+                      </div>
+                      <button
+                        type="button"
+                        class="btn btn-outline btn-sm shrink-0"
+                        (click)="selectTemplate(tpl.publicUuid)"
+                      >
+                        Configurar jornada
+                        <app-icon name="arrow-right" [size]="14" />
+                      </button>
+                    </div>
+                  </article>
+                }
+              </div>
+              <section class="card mt-5">
+                <div
+                  class="card-body flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  {{ tpl.name }}
-                  <span class="ml-1 text-xs opacity-70">{{ tpl.levelCode }}</span>
-                </button>
-              }
-            </div>
-
-            @if (activeTemplate(); as tpl) {
-              <article class="card">
-                <header class="card-header flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <h3 class="card-title text-base">{{ tpl.name }}</h3>
-                    <p class="text-xs text-content-muted">
-                      {{ tpl.levelCode
-                      }}{{ tpl.gradeName ? ' · ' + tpl.gradeName : '' }}
-                      {{ tpl.shift ? ' · ' + shiftLabel(tpl.shift) : '' }}
+                    <h3 class="font-semibold text-content">¿Listo para asignar cursos?</h3>
+                    <p class="text-sm text-content-muted">
+                      Puedes continuar aunque aún falten jornadas por configurar.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    class="btn btn-ghost btn-sm text-danger"
-                    (click)="deleteTemplate(tpl)"
-                  >
-                    Eliminar plantilla
-                  </button>
-                </header>
+                  <a [routerLink]="ROUTES.SCHEDULE.ROOT" class="btn btn-primary">
+                    Ir a horarios por sección
+                    <app-icon name="arrow-right" [size]="16" />
+                  </a>
+                </div>
+              </section>
+            } @else {
+              <button type="button" class="btn btn-ghost btn-sm mb-3" (click)="backToTemplates()">
+                <app-icon name="arrow-left" [size]="14" />
+                Volver a jornadas
+              </button>
+            }
 
-                <div class="card-body space-y-5">
-                  <!-- Timeline hero -->
-                  <div>
-                    <h4 class="mb-2 text-sm font-semibold text-content">Vista del día</h4>
-                    <app-day-plan-timeline
-                      [preview]="planPreview(tpl.publicUuid)"
-                      [dayStart]="dayPlanDrafts[tpl.publicUuid].dayStart"
-                      [dayEnd]="dayPlanDrafts[tpl.publicUuid].dayEnd"
-                    />
-                  </div>
-
-                  <!-- Essential controls -->
-                  <div class="rounded-lg border border-border-subtle bg-surface-subtle/40 p-4">
-                    <header class="mb-3">
-                      <h4 class="text-sm font-semibold text-content">Día escolar</h4>
+            @if (editingTemplateUuid()) {
+              @if (activeTemplate(); as tpl) {
+                <article class="card">
+                  <header class="card-header flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 class="card-title text-base">{{ tpl.name }}</h3>
                       <p class="text-xs text-content-muted">
-                        Podés editar la hora de cada recreo. Si preferís, usá «Acomodar
-                        automáticamente» según entrada, salida y duración.
+                        {{ tpl.levelCode }}{{ tpl.gradeName ? ' · ' + tpl.gradeName : '' }}
+                        {{ tpl.shift ? ' · ' + shiftLabel(tpl.shift) : '' }}
+                        @if (tpl.shift) {
+                          · sin secciones vinculadas automáticamente
+                        } @else {
+                          · {{ sectionCountForTemplate(tpl) }} secciones alcanzadas
+                        }
                       </p>
-                    </header>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm text-danger"
+                      (click)="deleteTemplate(tpl)"
+                    >
+                      Eliminar plantilla
+                    </button>
+                  </header>
 
-                    <div class="grid gap-3 sm:grid-cols-12">
-                      <div class="sm:col-span-2">
-                        <label class="label text-xs">Entrada</label>
-                        <input
-                          class="input input-sm"
-                          type="time"
-                          [(ngModel)]="dayPlanDrafts[tpl.publicUuid].dayStart"
-                          (ngModelChange)="touchPlan(tpl.publicUuid)"
-                        />
+                  <div class="card-body space-y-5">
+                    <!-- Timeline hero -->
+                    <div>
+                      <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                        <h4 class="text-sm font-semibold text-content">Vista de la jornada</h4>
+                        <label class="flex items-center gap-2 text-sm">
+                          <span class="text-content-muted">Ver día</span>
+                          <select
+                            class="select select-sm w-auto"
+                            [ngModel]="previewDay()"
+                            (ngModelChange)="previewDay.set($event); touchPlan(tpl.publicUuid)"
+                          >
+                            @for (day of weekDays; track day.value) {
+                              <option [ngValue]="day.value">{{ day.label }}</option>
+                            }
+                          </select>
+                        </label>
                       </div>
-                      <div class="sm:col-span-2">
-                        <label class="label text-xs">Salida</label>
-                        <input
-                          class="input input-sm"
-                          type="time"
-                          [(ngModel)]="dayPlanDrafts[tpl.publicUuid].dayEnd"
-                          (ngModelChange)="touchPlan(tpl.publicUuid)"
-                        />
+                      <app-day-plan-timeline
+                        [preview]="planPreview(tpl.publicUuid)"
+                        [dayStart]="dayPlanDrafts[tpl.publicUuid].dayStart"
+                        [dayEnd]="dayPlanDrafts[tpl.publicUuid].dayEnd"
+                      />
+                    </div>
+
+                    <!-- Essential controls -->
+                    <div class="rounded-lg border border-border-subtle bg-surface-subtle/40 p-4">
+                      <header class="mb-3">
+                        <h4 class="text-sm font-semibold text-content">Día escolar</h4>
+                        <p class="text-xs text-content-muted">
+                          Podés editar la hora de cada recreo. Si preferís, usá «Acomodar
+                          automáticamente» según entrada, salida y duración.
+                        </p>
+                      </header>
+
+                      <div class="grid gap-3 sm:grid-cols-12">
+                        <div class="sm:col-span-2">
+                          <label class="label text-xs">Entrada</label>
+                          <input
+                            class="input input-sm"
+                            type="time"
+                            [(ngModel)]="dayPlanDrafts[tpl.publicUuid].dayStart"
+                            (ngModelChange)="touchPlan(tpl.publicUuid)"
+                          />
+                        </div>
+                        <div class="sm:col-span-2">
+                          <label class="label text-xs">Salida</label>
+                          <input
+                            class="input input-sm"
+                            type="time"
+                            [(ngModel)]="dayPlanDrafts[tpl.publicUuid].dayEnd"
+                            (ngModelChange)="touchPlan(tpl.publicUuid)"
+                          />
+                        </div>
+                        <div class="sm:col-span-2">
+                          <label class="label text-xs">Duración del periodo (min)</label>
+                          <input
+                            class="input input-sm"
+                            type="number"
+                            min="15"
+                            max="120"
+                            [(ngModel)]="dayPlanDrafts[tpl.publicUuid].periodMinutes"
+                            (ngModelChange)="touchPlan(tpl.publicUuid)"
+                          />
+                        </div>
+                        <div class="flex items-end sm:col-span-6">
+                          <button
+                            type="button"
+                            class="btn btn-outline btn-sm"
+                            (click)="autoArrangeDayPlan(tpl.publicUuid)"
+                          >
+                            Proponer horarios de recreo
+                          </button>
+                        </div>
                       </div>
-                      <div class="sm:col-span-2">
-                        <label class="label text-xs">Duración del periodo (min)</label>
-                        <input
-                          class="input input-sm"
-                          type="number"
-                          min="15"
-                          max="120"
-                          [(ngModel)]="dayPlanDrafts[tpl.publicUuid].periodMinutes"
-                          (ngModelChange)="touchPlan(tpl.publicUuid)"
-                        />
-                      </div>
-                      <div class="sm:col-span-6 flex items-end">
-                        <button
-                          type="button"
-                          class="btn btn-outline btn-sm"
-                          (click)="autoArrangeDayPlan(tpl.publicUuid)"
-                        >
-                          Acomodar recreos automáticamente
-                        </button>
+
+                      <div class="mt-4 space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                          <h5
+                            class="text-xs font-semibold uppercase tracking-wide text-content-muted"
+                          >
+                            Recreos
+                          </h5>
+                          <button
+                            type="button"
+                            class="btn btn-ghost btn-sm"
+                            [disabled]="
+                              dayPlanDrafts[tpl.publicUuid].recesses.length >= maxRecesses
+                            "
+                            (click)="addRecess(tpl.publicUuid)"
+                          >
+                            + Agregar recreo
+                          </button>
+                        </div>
+                        @for (
+                          recess of dayPlanDrafts[tpl.publicUuid].recesses;
+                          track $index;
+                          let i = $index
+                        ) {
+                          <div
+                            class="grid gap-2 rounded-lg border border-border-subtle bg-surface-subtle/40 p-3 sm:grid-cols-12"
+                          >
+                            <div class="flex items-center sm:col-span-2">
+                              <span class="text-sm font-semibold text-content">{{
+                                recessName(i, dayPlanDrafts[tpl.publicUuid].recesses.length)
+                              }}</span>
+                            </div>
+                            <div class="sm:col-span-2">
+                              <label class="label text-xs">Inicio</label>
+                              <input
+                                class="input input-sm"
+                                type="time"
+                                [(ngModel)]="recess.startTime"
+                                (ngModelChange)="onRecessStartChange(tpl.publicUuid, i)"
+                              />
+                            </div>
+                            <div class="sm:col-span-2">
+                              <label class="label text-xs">Fin</label>
+                              <input
+                                class="input input-sm"
+                                type="time"
+                                [(ngModel)]="recess.endTime"
+                                (ngModelChange)="onRecessEndChange(tpl.publicUuid, i)"
+                              />
+                            </div>
+                            <div class="sm:col-span-2">
+                              <label class="label text-xs">Duración (min)</label>
+                              <input
+                                class="input input-sm"
+                                type="number"
+                                min="10"
+                                max="60"
+                                [(ngModel)]="recess.minutes"
+                                (ngModelChange)="onRecessMinutesChange(tpl.publicUuid, i)"
+                              />
+                            </div>
+                            <div class="flex items-end justify-end sm:col-span-4">
+                              <button
+                                type="button"
+                                class="btn btn-ghost btn-sm text-danger"
+                                [disabled]="dayPlanDrafts[tpl.publicUuid].recesses.length <= 1"
+                                (click)="removeRecess(tpl.publicUuid, i)"
+                              >
+                                Quitar
+                              </button>
+                            </div>
+                          </div>
+                        }
                       </div>
                     </div>
 
-                    <div class="mt-4 space-y-2">
-                      <div class="flex flex-wrap items-center justify-between gap-2">
-                        <h5 class="text-xs font-semibold uppercase tracking-wide text-content-muted">
-                          Recreos
-                        </h5>
-                        <button
-                          type="button"
-                          class="btn btn-ghost btn-sm"
-                          [disabled]="
-                            dayPlanDrafts[tpl.publicUuid].recesses.length >= maxRecesses
-                          "
-                          (click)="addRecess(tpl.publicUuid)"
-                        >
-                          + Agregar recreo
-                        </button>
+                    <section class="rounded-lg border border-border-subtle p-4">
+                      <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h4 class="text-sm font-semibold text-content">Almuerzo</h4>
+                          <p class="text-xs text-content-muted">
+                            Se aplica todos los días de la semana.
+                          </p>
+                        </div>
+                        <label class="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            class="checkbox"
+                            [(ngModel)]="dayPlanDrafts[tpl.publicUuid].lunch.enabled"
+                            (ngModelChange)="touchPlan(tpl.publicUuid)"
+                          />
+                          Incluir almuerzo
+                        </label>
                       </div>
-                      @for (
-                        recess of dayPlanDrafts[tpl.publicUuid].recesses;
-                        track $index;
-                        let i = $index
-                      ) {
-                        <div
-                          class="grid gap-2 rounded-lg border border-border-subtle bg-surface-subtle/40 p-3 sm:grid-cols-12"
-                        >
-                          <div class="sm:col-span-2 flex items-center">
-                            <span class="text-sm font-semibold text-content">{{
-                              recessName(i, dayPlanDrafts[tpl.publicUuid].recesses.length)
-                            }}</span>
-                          </div>
-                          <div class="sm:col-span-2">
-                            <label class="label text-xs">Inicio</label>
+                      @if (dayPlanDrafts[tpl.publicUuid].lunch.enabled) {
+                        <div class="grid gap-3 sm:grid-cols-3">
+                          <label class="field">
+                            <span class="label text-xs">Inicio</span>
                             <input
                               class="input input-sm"
                               type="time"
-                              [(ngModel)]="recess.startTime"
-                              (ngModelChange)="onRecessStartChange(tpl.publicUuid, i)"
+                              [(ngModel)]="dayPlanDrafts[tpl.publicUuid].lunch.startTime"
+                              (ngModelChange)="onLunchStartChange(tpl.publicUuid)"
                             />
-                          </div>
-                          <div class="sm:col-span-2">
-                            <label class="label text-xs">Fin</label>
+                          </label>
+                          <label class="field">
+                            <span class="label text-xs">Fin</span>
                             <input
                               class="input input-sm"
                               type="time"
-                              [(ngModel)]="recess.endTime"
-                              (ngModelChange)="onRecessEndChange(tpl.publicUuid, i)"
+                              [(ngModel)]="dayPlanDrafts[tpl.publicUuid].lunch.endTime"
+                              (ngModelChange)="onLunchEndChange(tpl.publicUuid)"
                             />
-                          </div>
-                          <div class="sm:col-span-2">
-                            <label class="label text-xs">Duración (min)</label>
+                          </label>
+                          <label class="field">
+                            <span class="label text-xs">Duración (min)</span>
                             <input
                               class="input input-sm"
                               type="number"
-                              min="10"
-                              max="60"
-                              [(ngModel)]="recess.minutes"
-                              (ngModelChange)="onRecessMinutesChange(tpl.publicUuid, i)"
+                              min="15"
+                              max="120"
+                              [(ngModel)]="dayPlanDrafts[tpl.publicUuid].lunch.minutes"
+                              (ngModelChange)="onLunchMinutesChange(tpl.publicUuid)"
                             />
-                          </div>
-                          <div class="sm:col-span-4 flex items-end justify-end">
+                          </label>
+                        </div>
+                      }
+                    </section>
+
+                    <section class="rounded-lg border border-border-subtle p-4">
+                      <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h4 class="text-sm font-semibold text-content">
+                            Actividades adicionales
+                          </h4>
+                          <p class="text-xs text-content-muted">
+                            Asamblea, tutoría o tiempo reservado. Puedes elegir un día o toda la
+                            semana.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          class="btn btn-outline btn-sm"
+                          (click)="toggleSpecialBlock(tpl.publicUuid)"
+                        >
+                          <app-icon name="plus" [size]="14" /> Agregar actividad
+                        </button>
+                      </div>
+                      @if (dayPlanDrafts[tpl.publicUuid].activities.length > 0) {
+                        <ul class="space-y-2">
+                          @for (
+                            activity of dayPlanDrafts[tpl.publicUuid].activities;
+                            track $index;
+                            let i = $index
+                          ) {
+                            <li
+                              class="grid gap-2 rounded-lg bg-surface-subtle/50 p-3 sm:grid-cols-12"
+                            >
+                              <label class="sm:col-span-3">
+                                <span class="label text-xs">Actividad</span>
+                                <select
+                                  class="select select-sm"
+                                  [(ngModel)]="activity.blockType"
+                                  (ngModelChange)="onActivityTypeChange(tpl.publicUuid, i)"
+                                >
+                                  @for (type of activityTypes; track type) {
+                                    <option [value]="type">{{ blockTypeLabel(type) }}</option>
+                                  }
+                                </select>
+                              </label>
+                              <label class="sm:col-span-2">
+                                <span class="label text-xs">Nombre</span>
+                                <input
+                                  class="input input-sm"
+                                  [(ngModel)]="activity.label"
+                                  (ngModelChange)="touchPlan(tpl.publicUuid)"
+                                />
+                              </label>
+                              <label class="sm:col-span-2">
+                                <span class="label text-xs">Día</span>
+                                <select
+                                  class="select select-sm"
+                                  [(ngModel)]="activity.dayOfWeek"
+                                  (ngModelChange)="touchPlan(tpl.publicUuid)"
+                                >
+                                  <option [ngValue]="null">Todos (lun–vie)</option>
+                                  @for (d of weekDays; track d.value) {
+                                    <option [ngValue]="d.value">{{ d.label }}</option>
+                                  }
+                                </select>
+                              </label>
+                              <label class="sm:col-span-2">
+                                <span class="label text-xs">Inicio</span>
+                                <input
+                                  class="input input-sm"
+                                  type="time"
+                                  [(ngModel)]="activity.startTime"
+                                  (ngModelChange)="touchPlan(tpl.publicUuid)"
+                                />
+                              </label>
+                              <label class="sm:col-span-2">
+                                <span class="label text-xs">Fin</span>
+                                <input
+                                  class="input input-sm"
+                                  type="time"
+                                  [(ngModel)]="activity.endTime"
+                                  (ngModelChange)="touchPlan(tpl.publicUuid)"
+                                />
+                              </label>
+                              <div class="flex items-end sm:col-span-1">
+                                <button
+                                  type="button"
+                                  class="btn btn-ghost btn-sm text-danger"
+                                  aria-label="Quitar actividad"
+                                  (click)="removeActivity(tpl.publicUuid, i)"
+                                >
+                                  Quitar
+                                </button>
+                              </div>
+                            </li>
+                          }
+                        </ul>
+                      } @else {
+                        <p class="text-sm text-content-muted">
+                          No hay actividades adicionales en esta jornada.
+                        </p>
+                      }
+                      @if (showSpecialBlock()[tpl.publicUuid]) {
+                        <div class="mt-3 grid gap-2 rounded bg-surface-subtle p-3 sm:grid-cols-12">
+                          <label class="sm:col-span-3">
+                            <span class="label text-xs">Actividad</span>
+                            <select
+                              class="select select-sm"
+                              [(ngModel)]="blockDrafts[tpl.publicUuid].blockType"
+                              (ngModelChange)="onBlockTypeChange(tpl.publicUuid)"
+                            >
+                              @for (type of activityTypes; track type) {
+                                <option [value]="type">{{ blockTypeLabel(type) }}</option>
+                              }
+                            </select>
+                          </label>
+                          <label class="sm:col-span-2">
+                            <span class="label text-xs">Nombre</span>
+                            <input
+                              class="input input-sm"
+                              [(ngModel)]="blockDrafts[tpl.publicUuid].label"
+                            />
+                          </label>
+                          <label class="sm:col-span-2">
+                            <span class="label text-xs">Día</span>
+                            <select
+                              class="select select-sm"
+                              [(ngModel)]="blockDrafts[tpl.publicUuid].dayOfWeek"
+                            >
+                              <option [ngValue]="null">Todos (lun–vie)</option>
+                              @for (d of weekDays; track d.value) {
+                                <option [ngValue]="d.value">{{ d.label }}</option>
+                              }
+                            </select>
+                          </label>
+                          <label class="sm:col-span-2">
+                            <span class="label text-xs">Inicio</span>
+                            <input
+                              class="input input-sm"
+                              type="time"
+                              [(ngModel)]="blockDrafts[tpl.publicUuid].startTime"
+                            />
+                          </label>
+                          <label class="sm:col-span-2">
+                            <span class="label text-xs">Fin</span>
+                            <input
+                              class="input input-sm"
+                              type="time"
+                              [(ngModel)]="blockDrafts[tpl.publicUuid].endTime"
+                            />
+                          </label>
+                          <div class="flex items-end sm:col-span-1">
                             <button
                               type="button"
-                              class="btn btn-ghost btn-sm text-danger"
-                              [disabled]="dayPlanDrafts[tpl.publicUuid].recesses.length <= 1"
-                              (click)="removeRecess(tpl.publicUuid, i)"
+                              class="btn btn-primary btn-sm"
+                              (click)="addBlock(tpl.publicUuid)"
                             >
-                              Quitar
+                              Añadir
                             </button>
                           </div>
                         </div>
                       }
-                    </div>
+                    </section>
 
-                    <div class="mt-4 flex justify-end">
-                      <button
-                        type="button"
-                        class="btn btn-primary"
-                        [disabled]="applyingPlan()[tpl.publicUuid]"
-                        (click)="applyDayPlan(tpl)"
-                      >
-                        @if (applyingPlan()[tpl.publicUuid]) {
-                          <app-spinner [size]="14" />
-                        }
-                        Guardar día escolar
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Special blocks (almuerzo, asamblea, tutoría…) -->
-                  @if (specialBlocks(tpl).length > 0) {
-                    <div>
-                      <h4 class="mb-2 text-sm font-semibold text-content">Bloques especiales</h4>
-                      <p class="mb-2 text-xs text-content-muted">
-                        Almuerzo, asamblea, tutoría u otros. Los recreos del día se editan arriba.
-                      </p>
-                      <ul class="divide-y divide-border-subtle rounded border border-border-subtle">
-                        @for (b of specialBlocks(tpl); track b.publicUuid) {
-                          <li
-                            class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"
-                          >
-                            <span>
-                              <span class="font-medium">{{ friendlyBlockLabel(b.label) }}</span>
-                              <span class="text-content-muted">
-                                · {{ blockTypeLabel(b.blockType) }} ·
-                                {{ dayLabel(b.dayOfWeek) }} ·
-                                {{ formatTime(b.startTime) }}–{{ formatTime(b.endTime) }}
-                              </span>
-                            </span>
-                            <button
-                              type="button"
-                              class="btn btn-ghost btn-sm text-danger"
-                              (click)="deleteBlock(b.publicUuid)"
-                            >
-                              Quitar
-                            </button>
-                          </li>
-                        }
-                      </ul>
-                    </div>
-                  }
-
-                  <!-- Special block (collapsed, inside advanced OR inline toggle) -->
-                  <div>
-                    <button
-                      type="button"
-                      class="text-sm font-medium text-primary hover:underline"
-                      (click)="toggleSpecialBlock(tpl.publicUuid)"
+                    <div
+                      class="sticky bottom-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border-subtle bg-surface-raised/95 p-3 shadow-lg backdrop-blur"
                     >
-                      ¿Necesitás un bloque especial (almuerzo, asamblea, tutoría)?
-                      <app-icon
-                        [name]="showSpecialBlock()[tpl.publicUuid] ? 'chevron-up' : 'chevron-down'"
-                        [size]="14"
-                        class="inline"
-                      />
-                    </button>
-                    @if (showSpecialBlock()[tpl.publicUuid]) {
-                      <div class="mt-3 grid gap-2 rounded bg-surface-subtle p-3 sm:grid-cols-12">
-                        <div class="sm:col-span-2">
-                          <label class="label text-xs">Tipo</label>
-                          <select
-                            class="select select-sm"
-                            [(ngModel)]="blockDrafts[tpl.publicUuid].blockType"
-                            (ngModelChange)="onBlockTypeChange(tpl.publicUuid)"
-                          >
-                            @for (t of blockTypes; track t) {
-                              <option [value]="t">{{ blockTypeLabel(t) }}</option>
-                            }
-                          </select>
-                        </div>
-                        <div class="sm:col-span-2">
-                          <label class="label text-xs">Etiqueta</label>
-                          <input
-                            class="input input-sm"
-                            [(ngModel)]="blockDrafts[tpl.publicUuid].label"
-                          />
-                        </div>
-                        <div class="sm:col-span-2">
-                          <label class="label text-xs">Día</label>
-                          <select
-                            class="select select-sm"
-                            [(ngModel)]="blockDrafts[tpl.publicUuid].dayOfWeek"
-                          >
-                            <option [ngValue]="null">Todos (lun–vie)</option>
-                            @for (d of weekDays; track d.value) {
-                              <option [ngValue]="d.value">{{ d.label }}</option>
-                            }
-                          </select>
-                        </div>
-                        <div class="sm:col-span-2">
-                          <label class="label text-xs">Inicio</label>
-                          <input
-                            class="input input-sm"
-                            type="time"
-                            [(ngModel)]="blockDrafts[tpl.publicUuid].startTime"
-                          />
-                        </div>
-                        <div class="sm:col-span-2">
-                          <label class="label text-xs">Fin</label>
-                          <input
-                            class="input input-sm"
-                            type="time"
-                            [(ngModel)]="blockDrafts[tpl.publicUuid].endTime"
-                          />
-                        </div>
-                        <div class="flex items-end sm:col-span-2">
-                          <button
-                            type="button"
-                            class="btn btn-outline btn-sm w-full"
-                            (click)="addBlock(tpl.publicUuid)"
-                          >
-                            Agregar bloque
-                          </button>
-                        </div>
+                      <p
+                        class="text-sm"
+                        [class.text-amber-700]="hasUnsavedPlan(tpl.publicUuid)"
+                        [class.text-content-muted]="!hasUnsavedPlan(tpl.publicUuid)"
+                      >
+                        {{
+                          hasUnsavedPlan(tpl.publicUuid)
+                            ? 'Tienes cambios sin guardar'
+                            : 'Todos los cambios están guardados'
+                        }}
+                      </p>
+                      <div class="flex gap-2">
+                        <button
+                          type="button"
+                          class="btn btn-ghost"
+                          [disabled]="
+                            !hasUnsavedPlan(tpl.publicUuid) || applyingPlan()[tpl.publicUuid]
+                          "
+                          (click)="discardPlan(tpl)"
+                        >
+                          Descartar cambios
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-primary"
+                          [disabled]="
+                            !hasUnsavedPlan(tpl.publicUuid) ||
+                            !!planValidationMessage(tpl.publicUuid) ||
+                            applyingPlan()[tpl.publicUuid]
+                          "
+                          (click)="applyDayPlan(tpl)"
+                        >
+                          @if (applyingPlan()[tpl.publicUuid]) {
+                            <app-spinner [size]="14" />
+                          }
+                          Guardar jornada
+                        </button>
                       </div>
+                    </div>
+                    @if (planValidationMessage(tpl.publicUuid); as validationMessage) {
+                      <p role="alert" class="text-sm text-danger">{{ validationMessage }}</p>
                     }
                   </div>
-                </div>
-              </article>
+                </article>
+              }
             }
           }
         </section>
 
-        <!-- Step 3: Continue -->
-        <section
-          class="card mb-6 transition-shadow"
-          aria-labelledby="jornada-step3"
-          [class.ring-2]="highlightContinue()"
-          [class.ring-primary]="highlightContinue()"
-        >
-          <div class="card-body flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 id="jornada-step3" class="text-base font-semibold text-content">
-                Paso 3 · Asignar cursos
-              </h2>
-              <p class="text-sm text-content-muted">
-                Ya definiste la jornada. El siguiente paso es asignar materias en cada periodo.
-              </p>
-            </div>
-            <a [routerLink]="ROUTES.SCHEDULE.ROOT" class="btn btn-primary">
-              <app-icon name="arrow-right" [size]="16" />
-              Ir a asignar cursos por sección
-            </a>
-          </div>
-        </section>
+        @if (warnings().length > 0) {
+          <section class="card mb-6" aria-labelledby="schedule-warnings">
+            <header class="card-header flex items-center justify-between gap-3">
+              <div>
+                <h2 id="schedule-warnings" class="card-title text-base">Revisión de horarios</h2>
+                <p class="text-sm text-content-muted">
+                  Hay {{ warnings().length }} aspecto(s) para revisar al asignar cursos.
+                </p>
+              </div>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                [disabled]="warningsLoading()"
+                (click)="loadWarnings()"
+              >
+                Actualizar
+              </button>
+            </header>
+            <ul class="divide-y divide-border-subtle px-5">
+              @for (
+                w of warnings();
+                track (w.sectionUuid ?? '') +
+                  '|' +
+                  (w.gradeUuid ?? '') +
+                  '|' +
+                  (w.teacherUuid ?? '') +
+                  '|' +
+                  w.code +
+                  '|' +
+                  $index
+              ) {
+                <li class="py-3 text-sm">
+                  <span class="font-medium text-content">{{ warningLabel(w) }}</span>
+                  @if (w.message && warningLabel(w) !== w.message) {
+                    <span class="text-content-muted"> — {{ w.message }}</span>
+                  }
+                  <span class="mt-0.5 block text-xs text-content-muted"
+                    >{{ warningSeverityLabel(w.severity) }} · {{ w.code }}</span
+                  >
+                </li>
+              }
+            </ul>
+          </section>
+        }
 
         <!-- Advanced (collapsed) -->
         <section class="card mb-6">
@@ -649,10 +929,10 @@ interface DayPlanDraft {
               <!-- Import -->
               <div>
                 <h3 class="mb-2 text-sm font-semibold text-content">
-                  Importar horario desde archivo
+                  Adjuntar horario de referencia
                 </h3>
                 <p class="mb-3 text-sm text-content-muted">
-                  Subí un CSV, Excel, PDF o imagen del horario del año anterior.
+                  Guarda un archivo como referencia. Todavía no crea horarios automáticamente.
                   <a
                     class="font-medium text-primary underline"
                     href="/docs/qa/TEMPLATES/horario-import-template.md"
@@ -694,91 +974,6 @@ interface DayPlanDraft {
                   </ul>
                 }
               </div>
-
-              <!-- Clone -->
-              <div>
-                <h3 class="mb-2 text-sm font-semibold text-content">
-                  Clonar horario desde otro año
-                </h3>
-                <div class="grid gap-3 sm:grid-cols-12">
-                  <div class="sm:col-span-5">
-                    <label class="label" for="clone-source">Año origen</label>
-                    <select id="clone-source" class="select" [(ngModel)]="cloneSourceYearUuid">
-                      <option value="">Seleccionar…</option>
-                      @for (y of years(); track y.publicUuid) {
-                        @if (y.publicUuid !== selectedYearUuid()) {
-                          <option [value]="y.publicUuid">{{ y.name }}</option>
-                        }
-                      }
-                    </select>
-                  </div>
-                  <div class="flex items-end gap-3 sm:col-span-4">
-                    <label class="flex items-center gap-2 text-sm">
-                      <input type="checkbox" [(ngModel)]="cloneIncludeTimeSlots" />
-                      Incluir clases ya asignadas
-                    </label>
-                  </div>
-                  <div class="flex items-end sm:col-span-3">
-                    <button
-                      type="button"
-                      class="btn btn-outline btn-sm w-full"
-                      [disabled]="!selectedYearUuid() || !cloneSourceYearUuid || cloning()"
-                      (click)="cloneSchedule()"
-                    >
-                      Clonar
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Warnings -->
-              <div>
-                <header class="mb-2 flex items-center justify-between">
-                  <h3 class="text-sm font-semibold text-content">Advertencias de validación</h3>
-                  <button
-                    type="button"
-                    class="btn btn-ghost btn-sm"
-                    [disabled]="!selectedYearUuid() || warningsLoading()"
-                    (click)="loadWarnings()"
-                  >
-                    Actualizar
-                  </button>
-                </header>
-                @if (warningsLoading()) {
-                  <app-spinner [size]="18" label="Cargando advertencias…" />
-                } @else if (warnings().length === 0) {
-                  <p class="text-sm text-content-muted">Sin advertencias para este año.</p>
-                } @else {
-                  <ul class="space-y-2">
-                    @for (
-                      w of warnings();
-                      track (w.sectionUuid ?? '') +
-                        '|' +
-                        (w.gradeUuid ?? '') +
-                        '|' +
-                        (w.teacherUuid ?? '') +
-                        '|' +
-                        w.code +
-                        '|' +
-                        $index
-                    ) {
-                      <li
-                        class="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200"
-                      >
-                        <span class="font-medium">{{
-                          warningLabel(w)
-                        }}</span>
-                        @if (w.message && warningLabel(w) !== w.message) {
-                          <span class="text-amber-800/80"> — {{ w.message }}</span>
-                        }
-                        <span class="mt-0.5 block text-[10px] uppercase opacity-60">
-                          {{ warningSeverityLabel(w.severity) }} · {{ w.code }}
-                        </span>
-                      </li>
-                    }
-                  </ul>
-                }
-              </div>
             </div>
           }
         </section>
@@ -794,33 +989,10 @@ export class JornadaPageComponent implements OnInit {
   protected readonly ROUTES = ROUTES;
   protected readonly formatTime = formatTime;
   protected readonly weekDays = DAYS_OF_WEEK.filter((d) => d.value <= 5);
-  protected readonly blockTypes = BLOCK_TYPES;
-  protected readonly shiftOptions = DAY_TEMPLATE_SHIFT_OPTIONS;
   protected readonly maxRecesses = MAX_DAY_PLAN_RECESSES;
   protected readonly policyOptions: { value: RecessPolicy; label: string }[] = [
-    { value: 'SHARED', label: RECESS_POLICY_LABELS.SHARED },
-    { value: 'STAGGERED', label: RECESS_POLICY_LABELS.STAGGERED },
-  ];
-
-  protected readonly setupSteps = [
-    { id: 1, label: 'Año y recreos' },
-    { id: 2, label: 'Día por nivel' },
-    { id: 3, label: 'Ir a horarios' },
-  ];
-
-  protected readonly onboardingHints = [
-    {
-      title: '1. Crear recreos sugeridos',
-      description: 'Genera plantillas por nivel con horarios habituales.',
-    },
-    {
-      title: '2. Ajustar el día por nivel',
-      description: 'Revisá la línea de tiempo y guardá el día escolar.',
-    },
-    {
-      title: '3. Ir a horarios de sección',
-      description: 'Asigná materias en cada periodo vacío.',
-    },
+    { value: 'SHARED', label: 'Todos los niveles a la misma hora' },
+    { value: 'STAGGERED', label: 'Horarios distintos por nivel' },
   ];
 
   protected readonly bootLoading = signal(true);
@@ -835,11 +1007,12 @@ export class JornadaPageComponent implements OnInit {
   protected readonly settingsMessage = signal<string | null>(null);
   protected readonly showAdvanced = signal(false);
   protected readonly showSpecialBlock = signal<Record<string, boolean>>({});
-  protected readonly highlightContinue = signal(false);
+  protected readonly editingTemplateUuid = signal('');
   protected readonly activeTemplateUuid = signal('');
 
   protected readonly years = signal<AcademicYearRow[]>([]);
   protected readonly levels = signal<AcademicLevel[]>([]);
+  protected readonly sections = signal<SectionRow[]>([]);
   protected readonly selectedYearUuid = signal('');
   protected readonly recessPolicy = signal<RecessPolicy>('STAGGERED');
   protected readonly templates = signal<DayTemplate[]>([]);
@@ -847,10 +1020,12 @@ export class JornadaPageComponent implements OnInit {
   protected readonly bootstrapDocs = signal<ScheduleSourceDocument[]>([]);
   protected readonly selectedFile = signal<File | null>(null);
   protected readonly showCreateTemplate = signal(false);
+  protected readonly showCloneForm = signal(false);
+  protected readonly activityTypes = ACTIVITY_TYPES;
+  protected readonly previewDay = signal<number>(1);
 
-  protected newTemplate = { levelUuid: '', name: '', shift: '' };
+  protected newTemplate = { levelUuid: '', gradeUuid: '', name: '' };
   protected cloneSourceYearUuid = '';
-  protected cloneIncludeTimeSlots = false;
 
   protected blockDrafts: Record<
     string,
@@ -864,16 +1039,13 @@ export class JornadaPageComponent implements OnInit {
   > = {};
 
   protected dayPlanDrafts: Record<string, DayPlanDraft> = {};
+  protected savedPlanSnapshots: Record<string, string> = {};
 
   protected readonly applyingPlan = signal<Record<string, boolean>>({});
   protected readonly planVersion = signal(0);
 
-  protected readonly policyHint = computed(
-    () => RECESS_POLICY_HINTS[this.recessPolicy()] ?? '',
-  );
-
-  protected readonly activeTemplate = computed(() =>
-    this.templates().find((t) => t.publicUuid === this.activeTemplateUuid()) ?? null,
+  protected readonly activeTemplate = computed(
+    () => this.templates().find((t) => t.publicUuid === this.activeTemplateUuid()) ?? null,
   );
 
   async ngOnInit(): Promise<void> {
@@ -917,6 +1089,11 @@ export class JornadaPageComponent implements OnInit {
 
   protected selectTemplate(uuid: string): void {
     this.activeTemplateUuid.set(uuid);
+    this.editingTemplateUuid.set(uuid);
+  }
+
+  protected backToTemplates(): void {
+    this.editingTemplateUuid.set('');
   }
 
   protected toggleSpecialBlock(templateUuid: string): void {
@@ -930,25 +1107,134 @@ export class JornadaPageComponent implements OnInit {
     return DAY_BLOCK_TYPE_LABELS[t as DayBlockType] ?? t;
   }
 
-  protected friendlyBlockLabel(label: string): string {
-    if (/^lonchera$/i.test(label.trim())) return 'Almuerzo';
-    return label;
+  protected sectionCountForTemplate(template: DayTemplate): number {
+    if (template.shift) return 0;
+    return this.sections().filter(
+      (section) =>
+        section.levelPublicUuid === template.levelUuid &&
+        (!template.gradeUuid || section.gradePublicUuid === template.gradeUuid),
+    ).length;
   }
 
-  /** Recreo/almuerzo se editan en el formulario; aquí solo asamblea/tutoría/etc. */
-  protected specialBlocks(tpl: DayTemplate): DayBlockItem[] {
-    return (tpl.blocks ?? []).filter((b) => SPECIAL_BLOCK_TYPES.has(b.blockType));
+  protected isTemplateConfigured(template: DayTemplate): boolean {
+    return !!template.dayStart && !!template.dayEnd && !!template.periodMinutes;
   }
 
-  protected dayLabel(day: number | null): string {
-    if (day == null) return 'Todos (lun–vie)';
-    return DAYS_OF_WEEK.find((d) => d.value === day)?.label ?? String(day);
+  protected recessCount(template: DayTemplate): number {
+    return (template.blocks ?? []).filter((block) => block.blockType === 'RECESS').length;
+  }
+
+  protected hasLunch(template: DayTemplate): boolean {
+    return (template.blocks ?? []).some((block) => block.blockType === 'LUNCH');
+  }
+
+  protected selectedLevelGrades() {
+    return (
+      this.levels().find((level) => level.publicUuid === this.newTemplate.levelUuid)?.grades ?? []
+    );
+  }
+
+  protected templateScopeTaken(): boolean {
+    if (!this.newTemplate.levelUuid) return false;
+    const gradeUuid = this.newTemplate.gradeUuid || null;
+    return this.templates().some(
+      (template) =>
+        template.levelUuid === this.newTemplate.levelUuid &&
+        template.gradeUuid === gradeUuid &&
+        !template.shift,
+    );
+  }
+
+  protected hasUnsavedPlan(templateUuid: string): boolean {
+    void this.planVersion();
+    const draft = this.dayPlanDrafts[templateUuid];
+    return !!draft && this.savedPlanSnapshots[templateUuid] !== this.planSnapshot(draft);
+  }
+
+  protected planValidationMessage(templateUuid: string): string | null {
+    const draft = this.dayPlanDrafts[templateUuid];
+    if (!draft) return null;
+    if (
+      !draft.dayStart ||
+      !draft.dayEnd ||
+      this.minutes(draft.dayEnd) <= this.minutes(draft.dayStart)
+    ) {
+      return 'La salida debe ser posterior a la entrada.';
+    }
+    const periodMinutes = Number(draft.periodMinutes);
+    if (!Number.isFinite(periodMinutes) || periodMinutes < 15 || periodMinutes > 120) {
+      return 'La duración de clase debe estar entre 15 y 120 minutos.';
+    }
+    const intervals: { day: number | null; start: number; end: number }[] = [];
+    const addInterval = (startTime: string, endTime: string, day: number | null): boolean => {
+      if (!startTime || !endTime) return false;
+      const start = this.minutes(startTime);
+      const end = this.minutes(endTime);
+      if (
+        end <= start ||
+        start < this.minutes(draft.dayStart) ||
+        end > this.minutes(draft.dayEnd)
+      ) {
+        return false;
+      }
+      intervals.push({ day, start, end });
+      return true;
+    };
+    for (const recess of draft.recesses) {
+      if (!addInterval(recess.startTime, recess.endTime, null)) {
+        return 'Cada recreo debe quedar dentro de la jornada y tener una hora de fin posterior.';
+      }
+    }
+    if (draft.lunch.enabled && !addInterval(draft.lunch.startTime, draft.lunch.endTime, null)) {
+      return 'El almuerzo debe quedar dentro de la jornada y tener una hora de fin posterior.';
+    }
+    for (const activity of draft.activities) {
+      if (
+        !activity.label.trim() ||
+        !addInterval(activity.startTime, activity.endTime, activity.dayOfWeek)
+      ) {
+        return 'Completa cada actividad con nombre y horario dentro de la jornada.';
+      }
+    }
+    for (let i = 0; i < intervals.length; i++) {
+      for (let j = i + 1; j < intervals.length; j++) {
+        const current = intervals[i];
+        const other = intervals[j];
+        const sameDay = current.day == null || other.day == null || current.day === other.day;
+        if (sameDay && current.start < other.end && other.start < current.end) {
+          return 'Hay dos descansos o actividades que se superponen. Ajusta sus horas para continuar.';
+        }
+      }
+    }
+    return null;
+  }
+
+  private minutes(value: string): number {
+    const [hours, minutes] = value.split(':').map(Number);
+    return hours * 60 + minutes;
   }
 
   protected async onYearChange(uuid: string): Promise<void> {
+    if (this.hasAnyUnsavedPlans()) {
+      const discard = await this.confirmDialog.open({
+        title: 'Cambios sin guardar',
+        message: 'Si cambias de año, se descartarán las modificaciones pendientes de las jornadas.',
+        confirmLabel: 'Descartar y cambiar',
+        variant: 'danger',
+      });
+      if (!discard) return;
+    }
+    this.dayPlanDrafts = {};
+    this.savedPlanSnapshots = {};
+    this.cloneSourceYearUuid = '';
     this.selectedYearUuid.set(uuid);
     this.activeTemplateUuid.set('');
+    this.editingTemplateUuid.set('');
     await this.reloadYearData();
+  }
+
+  protected hasAnyUnsavedPlans(): boolean {
+    return Object.keys(this.dayPlanDrafts).some((uuid) => this.hasUnsavedPlan(uuid));
   }
 
   protected async onPolicyChange(policy: RecessPolicy): Promise<void> {
@@ -985,23 +1271,32 @@ export class JornadaPageComponent implements OnInit {
 
   protected async createTemplate(): Promise<void> {
     const yearUuid = this.selectedYearUuid();
-    if (!yearUuid || !this.newTemplate.levelUuid || !this.newTemplate.name.trim()) {
-      this.pageError.set('Completá nivel y nombre para crear la plantilla.');
+    if (
+      !yearUuid ||
+      !this.newTemplate.levelUuid ||
+      !this.newTemplate.name.trim() ||
+      this.templateScopeTaken()
+    ) {
+      this.pageError.set(
+        'Completa nivel, alcance y nombre. Si ya existe una jornada para todo el nivel, elige un grado para crear una excepción.',
+      );
       return;
     }
     this.creatingTemplate.set(true);
     try {
-      await firstValueFrom(
+      const created = await firstValueFrom(
         this.scheduleApi.createDayTemplate({
           yearUuid,
           levelUuid: this.newTemplate.levelUuid,
+          gradeUuid: this.newTemplate.gradeUuid || null,
           name: this.newTemplate.name.trim(),
-          shift: this.newTemplate.shift?.trim() || null,
+          shift: null,
         }),
       );
-      this.newTemplate = { levelUuid: '', name: '', shift: '' };
+      this.newTemplate = { levelUuid: '', gradeUuid: '', name: '' };
       this.showCreateTemplate.set(false);
       await this.reloadTemplates();
+      this.selectTemplate(created.publicUuid);
     } catch (err: unknown) {
       this.pageError.set(this.errMsg(err, 'No se pudo crear la plantilla.'));
     } finally {
@@ -1012,7 +1307,7 @@ export class JornadaPageComponent implements OnInit {
   protected async deleteTemplate(tpl: DayTemplate): Promise<void> {
     const ok = await this.confirmDialog.open({
       title: 'Eliminar plantilla',
-      message: `¿Eliminar la plantilla «${tpl.name}»? Esta acción no se puede deshacer.`,
+      message: `¿Eliminar la jornada «${tpl.name}»? Esta acción no se puede deshacer.${this.hasUnsavedPlan(tpl.publicUuid) ? ' También se descartarán los cambios pendientes.' : ''}`,
       confirmLabel: 'Eliminar',
       variant: 'danger',
       icon: 'trash',
@@ -1023,6 +1318,9 @@ export class JornadaPageComponent implements OnInit {
       if (this.activeTemplateUuid() === tpl.publicUuid) {
         this.activeTemplateUuid.set('');
       }
+      if (this.editingTemplateUuid() === tpl.publicUuid) this.editingTemplateUuid.set('');
+      delete this.dayPlanDrafts[tpl.publicUuid];
+      delete this.savedPlanSnapshots[tpl.publicUuid];
       await this.reloadTemplates();
     } catch (err: unknown) {
       this.pageError.set(this.errMsg(err, 'No se pudo eliminar la plantilla.'));
@@ -1035,36 +1333,23 @@ export class JornadaPageComponent implements OnInit {
       this.pageError.set('Completá etiqueta, inicio y fin del bloque.');
       return;
     }
-    const body: CreateDayBlockRequest = {
-      blockType: draft.blockType,
+    if (!ACTIVITY_TYPES.includes(draft.blockType)) {
+      this.pageError.set('Elige una actividad distinta de recreo o almuerzo.');
+      return;
+    }
+    this.dayPlanDrafts[templateUuid].activities.push({
+      blockType: draft.blockType as Extract<
+        DayBlockType,
+        'ASSEMBLY' | 'GUIDANCE' | 'SPECIALIST_RESERVED'
+      >,
       label: draft.label.trim(),
-      startTime: this.normalizeTime(draft.startTime),
-      endTime: this.normalizeTime(draft.endTime),
       dayOfWeek: draft.dayOfWeek,
-    };
-    try {
-      await firstValueFrom(this.scheduleApi.addBlock(templateUuid, body));
-      this.ensureBlockDraft(templateUuid);
-      await this.reloadTemplates();
-    } catch (err: unknown) {
-      this.pageError.set(this.errMsg(err, 'No se pudo agregar el bloque.'));
-    }
-  }
-
-  protected async deleteBlock(blockUuid: string): Promise<void> {
-    const ok = await this.confirmDialog.open({
-      title: 'Quitar bloque',
-      message: '¿Quitar este bloque del día escolar?',
-      confirmLabel: 'Quitar',
-      variant: 'danger',
+      startTime: draft.startTime,
+      endTime: draft.endTime,
     });
-    if (!ok) return;
-    try {
-      await firstValueFrom(this.scheduleApi.deleteBlock(blockUuid));
-      await this.reloadTemplates();
-    } catch (err: unknown) {
-      this.pageError.set(this.errMsg(err, 'No se pudo eliminar el bloque.'));
-    }
+    this.ensureBlockDraft(templateUuid);
+    this.showSpecialBlock.update((m) => ({ ...m, [templateUuid]: false }));
+    this.touchPlan(templateUuid);
   }
 
   protected onFileSelected(event: Event): void {
@@ -1092,15 +1377,21 @@ export class JornadaPageComponent implements OnInit {
   protected async cloneSchedule(): Promise<void> {
     const target = this.selectedYearUuid();
     if (!target || !this.cloneSourceYearUuid) return;
+    if (this.hasAnyUnsavedPlans()) {
+      this.pageError.set('Guarda o descarta los cambios pendientes antes de copiar otro año.');
+      return;
+    }
     this.cloning.set(true);
     try {
       const cloned = await firstValueFrom(
         this.scheduleApi.cloneSchedule(target, {
           sourceYearUuid: this.cloneSourceYearUuid,
-          includeTimeSlots: this.cloneIncludeTimeSlots,
+          includeTimeSlots: false,
         }),
       );
       this.applyTemplates(cloned);
+      this.showCloneForm.set(false);
+      this.cloneSourceYearUuid = '';
       this.settingsMessage.set(`Se clonaron ${cloned.length} plantilla(s).`);
       await this.loadWarnings();
     } catch (err: unknown) {
@@ -1129,9 +1420,30 @@ export class JornadaPageComponent implements OnInit {
       this.templates.set([]);
       this.warnings.set([]);
       this.bootstrapDocs.set([]);
+      this.sections.set([]);
       return;
     }
-    await Promise.all([this.reloadTemplates(), this.reloadBootstrap(), this.loadWarnings()]);
+    await Promise.all([
+      this.reloadTemplates(),
+      this.reloadBootstrap(),
+      this.loadWarnings(),
+      this.reloadSections(),
+    ]);
+  }
+
+  private async reloadSections(): Promise<void> {
+    const yearUuid = this.selectedYearUuid();
+    if (!yearUuid) {
+      this.sections.set([]);
+      return;
+    }
+    try {
+      this.sections.set(
+        await firstValueFrom(this.academicApi.listSections({ academicYearPublicUuid: yearUuid })),
+      );
+    } catch {
+      this.sections.set([]);
+    }
   }
 
   private async reloadTemplates(): Promise<void> {
@@ -1173,6 +1485,7 @@ export class JornadaPageComponent implements OnInit {
       this.activeTemplateUuid.set(list[0].publicUuid);
     } else if (!list?.length) {
       this.activeTemplateUuid.set('');
+      this.editingTemplateUuid.set('');
     }
     this.planVersion.update((v) => v + 1);
   }
@@ -1193,11 +1506,11 @@ export class JornadaPageComponent implements OnInit {
       draft.dayStart,
       draft.dayEnd,
       Number(draft.periodMinutes) || 45,
-      this.hardIntervalsForTemplate(templateUuid),
+      this.hardIntervalsForTemplate(templateUuid, this.previewDay()),
     );
   }
 
-  private hardIntervalsForTemplate(templateUuid: string): DayPlanHardInterval[] {
+  private hardIntervalsForTemplate(templateUuid: string, dayOfWeek: number): DayPlanHardInterval[] {
     const draft = this.dayPlanDrafts[templateUuid];
     const hard: DayPlanHardInterval[] = (draft?.recesses ?? [])
       .filter((r) => r.startTime && r.endTime)
@@ -1208,14 +1521,21 @@ export class JornadaPageComponent implements OnInit {
         kind: 'recess' as const,
       }));
 
-    const tpl = this.templates().find((t) => t.publicUuid === templateUuid);
-    for (const b of tpl?.blocks ?? []) {
-      if (b.blockType === 'RECESS') continue;
+    if (draft?.lunch.enabled && draft.lunch.startTime && draft.lunch.endTime) {
       hard.push({
-        startTime: this.toInputTime(b.startTime),
-        endTime: this.toInputTime(b.endTime),
-        label: this.friendlyBlockLabel(b.label),
-        kind: b.blockType === 'LUNCH' ? 'lunch' : 'other',
+        startTime: draft.lunch.startTime,
+        endTime: draft.lunch.endTime,
+        label: 'Almuerzo',
+        kind: 'lunch',
+      });
+    }
+    for (const activity of draft?.activities ?? []) {
+      if (activity.dayOfWeek != null && activity.dayOfWeek !== dayOfWeek) continue;
+      hard.push({
+        startTime: activity.startTime,
+        endTime: activity.endTime,
+        label: activity.label,
+        kind: 'other',
       });
     }
     return hard;
@@ -1224,25 +1544,29 @@ export class JornadaPageComponent implements OnInit {
   protected autoArrangeDayPlan(templateUuid: string): void {
     const draft = this.dayPlanDrafts[templateUuid];
     if (!draft) return;
-    const tpl = this.templates().find((t) => t.publicUuid === templateUuid);
-    const lunchBlock = tpl?.blocks.find((b) => b.blockType === 'LUNCH');
     const layout = computeSmartDayPlanLayout({
       dayStart: draft.dayStart,
       dayEnd: draft.dayEnd,
       periodMinutes: Number(draft.periodMinutes) || 45,
       recessMinutes: draft.recesses.map((r) => Number(r.minutes) || 15),
-      includeLunch: !!lunchBlock,
-      lunchMinutes: lunchBlock
-        ? inferBreakDurationMinutes(lunchBlock.startTime, lunchBlock.endTime, 45)
-        : 45,
+      includeLunch: draft.lunch.enabled,
+      lunchMinutes: Number(draft.lunch.minutes) || 45,
     });
     draft.recesses = layout.recesses.map((slot, i) => ({
       startTime: slot.startTime,
       endTime: slot.endTime,
       minutes:
-        draft.recesses[i]?.minutes ||
-        inferBreakDurationMinutes(slot.startTime, slot.endTime, 15),
+        draft.recesses[i]?.minutes || inferBreakDurationMinutes(slot.startTime, slot.endTime, 15),
     }));
+    if (layout.lunch) {
+      draft.lunch.startTime = layout.lunch.startTime;
+      draft.lunch.endTime = layout.lunch.endTime;
+      draft.lunch.minutes = inferBreakDurationMinutes(
+        layout.lunch.startTime,
+        layout.lunch.endTime,
+        draft.lunch.minutes || 45,
+      );
+    }
     if (draft.recesses.length === 0) {
       draft.recesses = [{ startTime: '', endTime: '', minutes: 30 }];
     }
@@ -1297,34 +1621,59 @@ export class JornadaPageComponent implements OnInit {
     this.touchPlan(templateUuid);
   }
 
+  protected onLunchStartChange(templateUuid: string): void {
+    const lunch = this.dayPlanDrafts[templateUuid]?.lunch;
+    if (!lunch?.startTime) return;
+    lunch.endTime = addMinutesToTime(lunch.startTime, Number(lunch.minutes) || 45);
+    this.touchPlan(templateUuid);
+  }
+
+  protected onLunchEndChange(templateUuid: string): void {
+    const lunch = this.dayPlanDrafts[templateUuid]?.lunch;
+    if (!lunch?.startTime || !lunch.endTime) return;
+    lunch.minutes = inferBreakDurationMinutes(
+      lunch.startTime,
+      lunch.endTime,
+      Number(lunch.minutes) || 45,
+    );
+    this.touchPlan(templateUuid);
+  }
+
+  protected onLunchMinutesChange(templateUuid: string): void {
+    this.onLunchStartChange(templateUuid);
+  }
+
+  protected onActivityTypeChange(templateUuid: string, index: number): void {
+    const activity = this.dayPlanDrafts[templateUuid]?.activities[index];
+    if (!activity) return;
+    const labels: Record<string, string> = {
+      ASSEMBLY: 'Asamblea',
+      GUIDANCE: 'Tutoría',
+      SPECIALIST_RESERVED: 'Especialista',
+    };
+    activity.label = labels[activity.blockType];
+    this.touchPlan(templateUuid);
+  }
+
+  protected removeActivity(templateUuid: string, index: number): void {
+    this.dayPlanDrafts[templateUuid]?.activities.splice(index, 1);
+    this.touchPlan(templateUuid);
+  }
+
   protected onBlockTypeChange(templateUuid: string): void {
     const draft = this.blockDrafts[templateUuid];
     if (!draft) return;
     const labels: Partial<Record<DayBlockType, string>> = {
-      RECESS: 'Recreo',
-      LUNCH: 'Almuerzo',
       ASSEMBLY: 'Asamblea',
       GUIDANCE: 'Tutoría',
       SPECIALIST_RESERVED: 'Especialista',
     };
     draft.label = labels[draft.blockType] ?? draft.label;
-    if (draft.blockType === 'LUNCH') {
-      draft.startTime = draft.startTime || '12:00';
-      draft.endTime = draft.endTime || '12:45';
-    }
   }
 
   protected async applyDayPlan(tpl: DayTemplate): Promise<void> {
     const draft = this.dayPlanDrafts[tpl.publicUuid];
     if (!draft) return;
-    const ok = await this.confirmDialog.open({
-      title: 'Guardar día escolar',
-      message: `¿Guardar el día escolar de «${tpl.name}»? Se actualizarán recreos y almuerzo; otros bloques especiales se conservan.`,
-      confirmLabel: 'Guardar',
-      variant: 'default',
-      icon: 'save',
-    });
-    if (!ok) return;
 
     this.applyingPlan.update((m) => ({ ...m, [tpl.publicUuid]: true }));
     this.pageError.set(null);
@@ -1336,26 +1685,37 @@ export class JornadaPageComponent implements OnInit {
           endTime: this.normalizeTime(r.endTime),
           label: recessLabelForIndex(i, arr.length),
         }));
-      const existingLunch = tpl.blocks.find((b) => b.blockType === 'LUNCH');
-      const lunch = existingLunch
+      const lunch = draft.lunch.enabled
         ? {
-            startTime: this.normalizeTime(this.toInputTime(existingLunch.startTime)),
-            endTime: this.normalizeTime(this.toInputTime(existingLunch.endTime)),
-            label: existingLunch.label?.trim() || 'Almuerzo',
+            startTime: this.normalizeTime(draft.lunch.startTime),
+            endTime: this.normalizeTime(draft.lunch.endTime),
+            label: 'Almuerzo',
           }
         : null;
-      await firstValueFrom(
+      const saved = await firstValueFrom(
         this.scheduleApi.applyDayPlan(tpl.publicUuid, {
           dayStart: this.normalizeTime(draft.dayStart),
           dayEnd: this.normalizeTime(draft.dayEnd),
           periodMinutes: Number(draft.periodMinutes) || 45,
           recesses,
           lunch,
+          activities: draft.activities.map((activity) => ({
+            blockType: activity.blockType,
+            dayOfWeek: activity.dayOfWeek,
+            startTime: this.normalizeTime(activity.startTime),
+            endTime: this.normalizeTime(activity.endTime),
+            label: activity.label.trim(),
+          })),
         }),
       );
       this.settingsMessage.set(`Día escolar guardado para «${tpl.name}».`);
-      this.highlightContinue.set(true);
-      await this.reloadTemplates();
+      this.templates.update((templates) =>
+        templates.map((template) => (template.publicUuid === saved.publicUuid ? saved : template)),
+      );
+      delete this.dayPlanDrafts[tpl.publicUuid];
+      delete this.savedPlanSnapshots[tpl.publicUuid];
+      this.ensureDayPlanDraft(saved);
+      this.planVersion.update((version) => version + 1);
     } catch (err: unknown) {
       this.pageError.set(this.errMsg(err, 'No se pudo guardar el día escolar.'));
     } finally {
@@ -1364,6 +1724,7 @@ export class JornadaPageComponent implements OnInit {
   }
 
   private ensureDayPlanDraft(tpl: DayTemplate): void {
+    if (this.dayPlanDrafts[tpl.publicUuid]) return;
     const defaults = defaultsForLevel(tpl.levelCode);
     const recessBlocks = tpl.blocks
       .filter((b) => b.blockType === 'RECESS')
@@ -1387,11 +1748,32 @@ export class JornadaPageComponent implements OnInit {
             minutes,
           }));
 
+    const lunchBlock = tpl.blocks.find((block) => block.blockType === 'LUNCH');
     this.dayPlanDrafts[tpl.publicUuid] = {
       dayStart: this.toInputTime(tpl.dayStart) || defaults.dayStart,
       dayEnd: this.toInputTime(tpl.dayEnd) || defaults.dayEnd,
       periodMinutes: tpl.periodMinutes ?? defaults.periodMinutes,
       recesses,
+      lunch: {
+        enabled: !!lunchBlock,
+        startTime: lunchBlock ? this.toInputTime(lunchBlock.startTime) : '12:00',
+        endTime: lunchBlock ? this.toInputTime(lunchBlock.endTime) : '12:45',
+        minutes: lunchBlock
+          ? inferBreakDurationMinutes(lunchBlock.startTime, lunchBlock.endTime, 45)
+          : 45,
+      },
+      activities: tpl.blocks
+        .filter((block) => SPECIAL_BLOCK_TYPES.has(block.blockType))
+        .map((block) => ({
+          blockType: block.blockType as Extract<
+            DayBlockType,
+            'ASSEMBLY' | 'GUIDANCE' | 'SPECIALIST_RESERVED'
+          >,
+          label: block.label,
+          dayOfWeek: block.dayOfWeek,
+          startTime: this.toInputTime(block.startTime),
+          endTime: this.toInputTime(block.endTime),
+        })),
     };
 
     const needsArrange = recesses.some((r) => !r.startTime || !r.endTime);
@@ -1400,6 +1782,29 @@ export class JornadaPageComponent implements OnInit {
     } else {
       this.touchPlan(tpl.publicUuid);
     }
+    this.savedPlanSnapshots[tpl.publicUuid] = this.planSnapshot(this.dayPlanDrafts[tpl.publicUuid]);
+  }
+
+  protected discardPlan(template: DayTemplate): void {
+    delete this.dayPlanDrafts[template.publicUuid];
+    delete this.savedPlanSnapshots[template.publicUuid];
+    this.ensureDayPlanDraft(template);
+    this.planVersion.update((version) => version + 1);
+  }
+
+  private planSnapshot(draft: DayPlanDraft): string {
+    return JSON.stringify({
+      dayStart: draft.dayStart,
+      dayEnd: draft.dayEnd,
+      periodMinutes: Number(draft.periodMinutes),
+      recesses: draft.recesses.map((recess) => ({
+        startTime: recess.startTime,
+        endTime: recess.endTime,
+        minutes: Number(recess.minutes),
+      })),
+      lunch: { ...draft.lunch, minutes: Number(draft.lunch.minutes) },
+      activities: draft.activities.map((activity) => ({ ...activity })),
+    });
   }
 
   private toInputTime(value: string | null | undefined): string {

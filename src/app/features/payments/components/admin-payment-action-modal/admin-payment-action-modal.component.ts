@@ -1,7 +1,10 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  HostListener,
   Input,
   OnChanges,
   Output,
@@ -36,7 +39,7 @@ import { Payment } from '../../models/invoice.model';
   selector: 'app-admin-payment-action-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [SafeBackdropDirective, CommonModule, ReactiveFormsModule],
   template: `
     <!-- Backdrop -->
     <div
@@ -44,7 +47,7 @@ import { Payment } from '../../models/invoice.model';
       role="dialog"
       aria-modal="true"
       [attr.aria-labelledby]="titleId"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <!-- Card -->
       <div
@@ -110,7 +113,7 @@ import { Payment } from '../../models/invoice.model';
             <button
               type="button"
               class="btn btn-ghost btn-sm"
-              (click)="actionCancel.emit()"
+              (click)="requestCancel()"
               [disabled]="submitting"
             >
               Cancelar
@@ -132,6 +135,12 @@ import { Payment } from '../../models/invoice.model';
   `,
 })
 export class AdminPaymentActionModalComponent implements OnChanges {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.submitting,
+    active: () => true,
+  });
+
   private readonly fb = new FormBuilder().nonNullable;
 
   /** Which action this modal is rendering for. Drives labels & validation. */
@@ -182,9 +191,15 @@ export class AdminPaymentActionModalComponent implements OnChanges {
     reasonCtrl.updateValueAndValidity();
   }
 
+  @HostListener('document:keydown.escape')
+  onEscape(): void { this.requestCancel(); }
+
+  requestCancel(): void {
+    this.formProtection.requestClose(() => this.actionCancel.emit());
+  }
+
   onBackdropClick(e: MouseEvent): void {
-    // Click on the dimmed backdrop (not the card body) dismisses.
-    if (e.target === e.currentTarget) this.actionCancel.emit();
+    if (e.target === e.currentTarget) this.requestCancel();
   }
 
   onSubmit(): void {

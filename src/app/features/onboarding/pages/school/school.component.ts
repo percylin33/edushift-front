@@ -1,3 +1,4 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -173,6 +174,12 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
   `,
 })
 export class OnboardingSchoolComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly tenantApi = inject(TenantApiService);
   private readonly tenantService = inject(TenantService);
@@ -364,7 +371,6 @@ export class OnboardingSchoolComponent implements OnInit {
 
     this.store.setLoading(true);
     this.store.setError(null);
-
     this.tenantApi
       .updateCurrent(payload)
       .pipe(finalize(() => this.store.setLoading(false)))
@@ -372,6 +378,7 @@ export class OnboardingSchoolComponent implements OnInit {
         next: (tenant) => {
           this.tenantService.setTenant(tenant, 'header');
           this.onboarding.markCompleted('school');
+          this.formProtection.markSaved();
           void this.router.navigate(['/onboarding/complete']);
         },
         error: (err: HttpErrorResponse) => {

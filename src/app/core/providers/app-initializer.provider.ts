@@ -17,8 +17,9 @@ const BOOT_HTTP_TIMEOUT_MS = 5000;
  * idempotent and ordered by dependency.
  *
  * <ol>
- *   <li><strong>Resolve tenant slug.</strong> Reads the slug from URL /
- *       subdomain / storage / config (see {@code TenantService}) and
+ *   <li><strong>Resolve tenant slug.</strong> Reads the slug from the
+ *       school subdomain in local development, or from the configured
+ *       strategy in other environments (see {@code TenantService}), and
  *       <em>immediately</em> seeds an optimistic placeholder so the
  *       {@code tenantInterceptor} can attach {@code X-Tenant-Slug} on
  *       the very first outgoing request — including the bootstrap
@@ -76,6 +77,14 @@ function appInitializerFactory(): () => Promise<void> {
     const logger = inject(LoggerService);
 
     const { slug, resolvedFrom } = tenantService.resolveSlug();
+    const reconcileDeps = { tenantService, tenantApi, auth, authApi, logger };
+    if (!slug) {
+      tenantService.clear();
+      await reconcileTenantWithSession(reconcileDeps, 'boot');
+      logger.info(`${APP.NAME} v${APP.VERSION} booted without a tenant host`);
+      return;
+    }
+
     /* Optimistic placeholder so theme / interceptors have a tenant id
      * during the bootstrap fetch below. {@code status: ACTIVE} keeps
      * existing guards permissive while the real DTO is in flight.
@@ -101,15 +110,23 @@ function appInitializerFactory(): () => Promise<void> {
       );
       tenantService.setTenant(tenant, resolvedFrom);
     } catch (err) {
-      logger.warn(`Failed to hydrate tenant '${slug}' at boot; keeping the placeholder.`, err);
+      const localTenantHost = window.location.hostname.toLowerCase().endsWith('.localhost');
+      logger.warn(
+        localTenantHost
+          ? `Failed to hydrate tenant '${slug}' at boot; rejecting the local tenant host.`
+          : `Failed to hydrate tenant '${slug}' at boot; keeping the placeholder.`,
+        err,
+      );
+      if (localTenantHost) {
+        tenantService.clear();
+      }
     }
 
-    /* When a JWT is present, branding must follow the session tenant — not
-     * a stale ?tenant= / localStorage slug from another school (back-button
-     * / bfcache multi-school bug). On /auth/login?tenant=X with a foreign
-     * session, reconcile clears the session so login paints school X only. */
+    /* When a JWT is present, branding must follow the tenant selected by
+     * the hostname. A foreign session is cleared so the login screen stays
+     * aligned with the school in the address bar. */
     await reconcileTenantWithSession(
-      { tenantService, tenantApi, auth, authApi, logger },
+      reconcileDeps,
       'boot',
     );
 

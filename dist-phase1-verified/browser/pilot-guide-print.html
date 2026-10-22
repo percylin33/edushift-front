@@ -1,0 +1,89 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>EduShift — Guia de Testing del Pilot (Print PDF)</title>
+<style>
+  @page { size: A4; margin: 18mm 15mm 20mm 15mm; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body, h1, h2, h3, h4, h5, h6, p, ul, ol, li, table, pre, blockquote { margin: 0; padding: 0; }
+  :root {
+    --c-text: #1f2937; --c-text-muted: #6b7280; --c-accent: #4f46e5;
+    --c-accent-bg: #eef2ff; --c-border: #d1d5db; --c-surface-muted: #f9fafb; --c-code-bg: #f3f4f6;
+  }
+  html { font-size: 10pt; }
+  body { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; line-height: 1.5; color: var(--c-text); }
+  h1 { font-size: 22pt; font-weight: 700; color: var(--c-accent); margin: 0 0 8pt 0; page-break-before: always; }
+  h1:first-of-type { page-break-before: avoid; }
+  h2 { font-size: 16pt; font-weight: 600; margin: 20pt 0 8pt 0; padding-bottom: 4pt; border-bottom: 2px solid var(--c-accent); page-break-after: avoid; }
+  h3 { font-size: 13pt; font-weight: 600; margin: 14pt 0 6pt 0; page-break-after: avoid; }
+  p { margin: 0 0 6pt 0; }
+  ul, ol { margin: 0 0 8pt 18pt; }
+  li { margin-bottom: 3pt; }
+  strong { font-weight: 600; }
+  code { font-family: "Consolas", monospace; font-size: 9pt; background: var(--c-code-bg); padding: 1pt 4pt; border-radius: 2pt; }
+  blockquote { border-left: 4pt solid var(--c-accent); background: var(--c-accent-bg); padding: 6pt 10pt; margin: 8pt 0; page-break-inside: avoid; }
+  table { width: 100%; border-collapse: collapse; margin: 6pt 0 12pt 0; font-size: 9.5pt; page-break-inside: avoid; }
+  th, td { border: 1pt solid var(--c-border); padding: 4pt 6pt; text-align: left; vertical-align: top; }
+  th { background: var(--c-accent-bg); color: var(--c-accent); font-weight: 600; }
+  tr:nth-child(even) td { background: var(--c-surface-muted); }
+  ul.checklist { list-style: none; margin-left: 0; }
+  ul.checklist li { padding-left: 14pt; position: relative; page-break-inside: avoid; }
+  ul.checklist li::before { content: "2610"; position: absolute; left: 0; color: var(--c-text-muted); font-size: 12pt; }
+  .cover { height: 240mm; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; padding: 30mm; margin: -18mm -15mm 0 -15mm; }
+  .cover h1 { color: white; font-size: 32pt; margin: 0 0 8pt 0; }
+  .cover .subtitle { font-size: 14pt; margin-bottom: 24pt; opacity: 0.9; }
+  .cover .role-tag { display: inline-block; background: rgba(255,255,255,0.2); border: 1pt solid rgba(255,255,255,0.4); padding: 4pt 12pt; border-radius: 16pt; font-size: 10pt; font-weight: 600; margin-top: 8pt; }
+  .cover .footer { position: absolute; bottom: 30mm; left: 0; right: 0; font-size: 9pt; opacity: 0.7; }
+  .tldr { background: var(--c-accent-bg); border-left: 4pt solid var(--c-accent); padding: 8pt 12pt; margin: 8pt 0 16pt 0; page-break-inside: avoid; }
+  .template-box { background: var(--c-surface-muted); border: 1pt dashed var(--c-border); padding: 8pt 12pt; font-family: "Consolas", monospace; font-size: 8.5pt; white-space: pre; page-break-inside: avoid; }
+  @media print { body { font-size: 9.5pt; } h2 { break-after: avoid; } h3 { break-after: avoid; } table { break-inside: avoid; } .cover { break-after: page; } }
+  @media screen { body { max-width: 900px; margin: 0 auto; padding: 30px 50px; } .no-print { position: fixed; top: 12px; right: 12px; z-index: 100; } .no-print button { background: var(--c-accent); color: white; border: none; padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; } }
+</style>
+</head>
+<body>
+<div class="no-print"><button onclick="window.print()">Imprimir / Guardar como PDF</button></div>
+<div class="cover">
+  <h1>EduShift</h1>
+  <p class="subtitle">Guia Completa de Testing del Pilot</p>
+  <p>Para el grupo de testers (20+ personas)</p>
+  <p>Esta guia cubre TODAS las acciones que cada rol puede ejecutar.</p>
+  <p class="role-tag">v1.0 - 2026-07-27</p>
+  <p class="footer">Generado desde docs/qa/pilot-user-testing-guide.md</p>
+</div>
+<h1>0. Antes de empezar</h1>
+<h2>0.1. Tus credenciales del pilot</h2>
+<p>El test lead te asignara un usuario segun tu rol:</p>
+<table>
+  <thead><tr><th>Rol</th><th>Email ejemplo</th><th>Contrasena</th><th>Permisos especiales</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Tenant Admin</strong></td><td><code>admin@tecnosur.edushift.pe</code></td><td><code>EduShift2026!</code></td><td>Todo dentro del colegio</td></tr>
+    <tr><td><strong>Docente</strong></td><td><code>cesar.ortega@tecnosur.edushift.pe</code></td><td><code>EduShift2026!</code></td><td>Asistencia, calificar, subir material</td></tr>
+    <tr><td><strong>Estudiante</strong></td><td><code>maria.lopez@tecnosur.edushift.pe</code></td><td><code>EduShift2026!</code></td><td>Ver cursos, entregar tareas</td></tr>
+    <tr><td><strong>Apoderado</strong></td><td><code>juan.perez.apoderado@tecnosur.edushift.pe</code></td><td><code>EduShift2026!</code></td><td>Ver a sus hijos, recibir notificaciones</td></tr>
+    <tr><td><strong>Staff</strong></td><td><code>maria.castro@tecnosur.edushift.pe</code></td><td><code>EduShift2026!</code></td><td>Registrar pagos, admin limitada</td></tr>
+    <tr><td><strong>Super Admin</strong></td><td><code>super@edushift.local</code></td><td><code>EduShift2026!</code></td><td>Cross-tenant (solo si te lo asignan)</td></tr>
+  </tbody>
+</table>
+<h2>0.2. Antes de empezar la primera prueba</h2>
+<ul class="checklist">
+  <li>Abriste el navegador (Chrome recomendado)</li>
+  <li>Conectado a <code>http://localhost:4201/</code> (o URL que te pase el test lead)</li>
+  <li>DevTools abierto (<code>F12</code>) en pestaña <strong>Console</strong> y <strong>Network</strong></li>
+  <li>Tienes un canal de feedback abierto (WhatsApp/Slack del test lead)</li>
+</ul>
+<h2>0.3. Como reportar un bug</h2>
+<p>Cuando encuentres algo que no funciona, anota:</p>
+<div class="template-box"># Plantilla de bug
+ROL:        [admin | docente | estudiante | apoderado | staff | super]
+ACCION:    [que intentaste hacer]
+PAGINA:    [URL completa]
+PASOS:     [1. ... 2. ... 3. ...]
+ESPERABA:  [que deberia pasar]
+PASO:       [que paso en realidad]
+CONSOLE:   [pegar errores de la consola del navegador]
+SCREEN:    [screenshot si es visual]
+SEVERIDAD: [P0 bloqueante | P1 molesto | P2 nice-to-have]</div>
+<p><em>Para el grupo de testers (20+ personas). Esta version es el PRINT-READY HTML; el source completo en Markdown esta en <code>docs/qa/pilot-user-testing-guide.md</code> con explicaciones detalladas y sign-off template.</em></p>
+</body>
+</html>

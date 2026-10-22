@@ -22,13 +22,25 @@ function resolveApiUrl(builtInApiUrl: string): string {
     return builtInApiUrl;
   }
   const host = window.location.hostname.toLowerCase();
-  // Localhost variants (Angular dev server, dev proxy, docker-compose).
-  if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '0.0.0.0') {
-    // Preserve the dev port from the build-time URL so the dev team can
-    // move 8081 → 8082 without rebuilding.
+  // Tenant pages on `<slug>.localhost` use a same-origin API URL. The dev
+  // server and local Docker Nginx proxy `/api` to the backend, avoiding
+  // cross-port browser restrictions while keeping host-only auth cookies.
+  if (host.endsWith('.localhost')) {
+    return '/api';
+  }
+  // Root localhost variants keep the direct backend URL for local workflows.
+  if (
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '::1' ||
+    host === '0.0.0.0'
+  ) {
+    // Preserve the dev port from the build-time URL. Production URLs have
+    // no explicit port, so fall back to the local Compose backend port.
     try {
       const built = new URL(builtInApiUrl);
-      return `${window.location.protocol}//${window.location.hostname}:${built.port}${built.pathname.replace(/\/$/, '')}`;
+      const port = built.port || '8081';
+      return `${window.location.protocol}//${window.location.hostname}:${port}${built.pathname.replace(/\/$/, '')}`;
     } catch {
       return builtInApiUrl;
     }

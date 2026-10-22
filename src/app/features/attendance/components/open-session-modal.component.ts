@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -5,6 +7,7 @@ import {
   HostListener,
   OnInit,
   inject,
+  input,
   output,
   signal,
 } from '@angular/core';
@@ -26,14 +29,14 @@ import { AttendanceSessionSlot, CreateSessionRequest } from '../models';
   selector: 'app-open-session-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, IconComponent],
+  imports: [SafeBackdropDirective, CommonModule, ReactiveFormsModule, IconComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="open-session-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card flex max-h-[90vh] w-full max-w-lg flex-col shadow-xl"
@@ -130,8 +133,15 @@ import { AttendanceSessionSlot, CreateSessionRequest } from '../models';
   `,
 })
 export class OpenSessionModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   readonly submitRequest = output<CreateSessionRequest>();
   readonly cancelled = output<void>();
+  readonly saving = input(false);
 
   private readonly academicApi = inject(AcademicApiService);
   private readonly fb = inject(FormBuilder);
@@ -170,7 +180,9 @@ export class OpenSessionModalComponent implements OnInit {
   }
 
   protected close(): void {
-    this.cancelled.emit();
+    this.formProtection.requestClose(() => {
+      this.cancelled.emit();
+    });
   }
 
   protected submit(): void {

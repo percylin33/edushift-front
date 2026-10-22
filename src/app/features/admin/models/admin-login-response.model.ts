@@ -46,13 +46,20 @@ export interface AdminMfaRequiredRaw {
   reason: 'MFA_ENROLMENT_REQUIRED' | string;
 }
 
+export interface AdminMfaChallengeRequiredRaw {
+  mfaToken: string;
+  expiresInSec: number;
+  tokenType: string;
+  reason: 'MFA_REQUIRED' | string;
+}
+
 /**
  * Discriminated union over the two shapes {@code POST /admin/login}
  * can return. The service normalizes either into an {@link AuthSession}
  * for callers (auto-bypassing MFA in dev) or surfaces a typed error
  * when the bypass path is unavailable.
  */
-export type AdminLoginRaw = AdminLoginResponseRaw | AdminMfaRequiredRaw;
+export type AdminLoginRaw = AdminLoginResponseRaw | AdminMfaRequiredRaw | AdminMfaChallengeRequiredRaw;
 
 /**
  * Type guard: a payload carries a session if it has the access/refresh
@@ -65,4 +72,9 @@ export function isAdminMfaRequired(
     typeof (raw as AdminMfaRequiredRaw).onboardingToken === 'string'
     && (raw as AdminLoginResponseRaw).accessToken === undefined
   );
+}
+
+export function isAdminMfaChallengeRequired(raw: AdminLoginRaw): raw is AdminMfaChallengeRequiredRaw {
+  return typeof (raw as AdminMfaChallengeRequiredRaw).mfaToken === 'string'
+    && (raw as AdminLoginResponseRaw).accessToken === undefined;
 }

@@ -269,7 +269,7 @@ import { monthRange } from '../../models/attendance-report-params.model';
     </app-page-container>
 
     @if (modalOpen()) {
-      <app-open-session-modal (submitRequest)="onCreate($event)" (cancelled)="closeModal()" />
+      <app-open-session-modal [saving]="store.loadingSession()" (submitRequest)="onCreate($event)" (cancelled)="closeModal()" />
     }
   `,
 })

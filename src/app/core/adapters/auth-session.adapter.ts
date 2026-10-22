@@ -124,6 +124,7 @@ export function toUser(raw: UserResponseRaw): User {
     status: raw.status,
     firstName: raw.firstName ?? undefined,
     lastName: raw.lastName ?? undefined,
+    secondLastName: raw.secondLastName ?? undefined,
     phone: raw.phone ?? undefined,
     emailVerified: raw.emailVerified,
     emailSource: raw.emailSource === 'SYNTHETIC' ? 'SYNTHETIC' : 'REAL',

@@ -1,1 +1,1 @@
-export * from './payments.store';
+export * from './admin-payments.store';

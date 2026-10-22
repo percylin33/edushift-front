@@ -1,3 +1,4 @@
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -56,14 +57,14 @@ import { TeacherDetail } from '../models';
   selector: 'app-link-user-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, FormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="link-user-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card flex max-h-[80vh] w-full max-w-2xl flex-col shadow-xl"
@@ -125,7 +126,7 @@ import { TeacherDetail } from '../models';
                   No hay usuarios que coincidan con "<strong>{{ search() }}</strong
                   >".
                 } @else {
-                  No hay usuarios con rol Profesor en este workspace.
+                  No hay usuarios con rol Docente en esta institución.
                 }
               </p>
             } @else {

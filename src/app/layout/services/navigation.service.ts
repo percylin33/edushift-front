@@ -7,7 +7,9 @@ import { NavigationGroup, NavigationItem } from '../models';
 
 /**
  * Builds the visible navigation tree by filtering `NAVIGATION_GROUPS` against
- * four orthogonal predicates (all must pass):
+ * feature, role, and permission predicates. Items may also declare
+ * `visibleIfAny` for access that is granted by any listed role or permission.
+ * The regular predicates remain conjunctive:
  *
  *   1. `feature`        → enabled in `environment.features` (build-time flag).
  *   2. `feature` again  → present in `tenant.enabledFeatures` if the tenant
@@ -41,6 +43,13 @@ export class NavigationService {
     }
     if (item.roles?.length && !this.auth.hasRole(...item.roles)) return false;
     if (item.permissions?.length && !this.auth.hasPermission(...item.permissions)) return false;
+    if (item.visibleIfAny) {
+      const { roles = [], permissions = [] } = item.visibleIfAny;
+      const hasAllowedRole = roles.length > 0 && this.auth.hasRole(...roles);
+      const hasAllowedPermission =
+        permissions.length > 0 && this.auth.hasPermission(...permissions);
+      if (!hasAllowedRole && !hasAllowedPermission) return false;
+    }
     return true;
   }
 

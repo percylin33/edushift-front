@@ -11,6 +11,8 @@ import { AdminPaymentsStore } from '../../store/admin-payments.store';
 import { Payment, PaymentStatus } from '../../models/invoice.model';
 import { AdminPaymentActionModalComponent } from '../../components/admin-payment-action-modal/admin-payment-action-modal.component';
 import { AdminActionKind, AdminActionResult } from '../../store/admin-payments.store';
+import { Permission } from '@core/enums';
+import { AuthService } from '@core/services';
 
 /**
  * Admin payments page (Sprint 11 / FE-11.1 + FE-11.2).
@@ -249,6 +251,7 @@ import { AdminActionKind, AdminActionResult } from '../../store/admin-payments.s
 })
 export class AdminPaymentsPageComponent implements OnInit {
   readonly store = inject(AdminPaymentsStore);
+  private readonly auth = inject(AuthService);
 
   // Expose store state to the template as readonly signals.
   readonly items = this.store.items;
@@ -327,11 +330,17 @@ export class AdminPaymentsPageComponent implements OnInit {
   // -------------------------------------------------------------------------
 
   canReconcile(p: Payment): boolean {
-    return p.status === 'PENDING' || p.status === 'IN_PROCESS';
+    return (
+      (p.status === 'PENDING' || p.status === 'IN_PROCESS') &&
+      this.auth.hasPermission(Permission.PaymentsReconcile, Permission.LmsPaymentAdmin)
+    );
   }
 
   canRefund(p: Payment): boolean {
-    return p.status === 'APPROVED';
+    return (
+      p.status === 'APPROVED' &&
+      this.auth.hasPermission(Permission.PaymentsRefund, Permission.LmsPaymentAdmin)
+    );
   }
 
   statusBadge(s: PaymentStatus): string {

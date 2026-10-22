@@ -1,5 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { mapHttpError } from '@shared/utils';
 import { UsersApiService } from '../services';
 import { CreateInvitationRequest, Invitation, UserListPagination } from '../models';
 
@@ -170,6 +172,9 @@ export class InvitationsStore {
 
   private toErrorMessage(err: unknown): string {
     if (typeof err === 'string') return err;
+    if (err instanceof HttpErrorResponse) {
+      return mapHttpError(err, { fallback: 'No se pudo completar la gestión de la invitación. Inténtalo de nuevo.' });
+    }
     if (err && typeof err === 'object') {
       const anyErr = err as { message?: unknown; error?: { message?: unknown } };
       if (typeof anyErr.error?.message === 'string') return anyErr.error.message;

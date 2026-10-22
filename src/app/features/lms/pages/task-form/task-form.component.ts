@@ -1,3 +1,4 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -19,7 +20,12 @@ import {
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { ApiError } from '@core/models';
-import { IconComponent, PageHeaderComponent, SpinnerComponent } from '@shared/components';
+import {
+  FileUploadComponent,
+  IconComponent,
+  PageHeaderComponent,
+  SpinnerComponent,
+} from '@shared/components';
 import { TasksStore } from '../../store';
 import { TaskLifecycle, isTaskEditable } from '../../models';
 
@@ -64,7 +70,8 @@ function dueAtInFuture(group: AbstractControl): ValidationErrors | null {
  * <ul>
  *   <li>{@code LMS_TASK_DUE_AT_REQUIRED_FOR_PUBLISH} → warning top-level
  *       (no bloquea el submit, pero el publish se rechaza luego).</li>
- *   <li>{@code LMS_TASK_NOT_EDITABLE} → banner + redirect a la lista.</li>
+ *   <li>Las tareas publicadas o cerradas muestran una explicación
+ *       con enlaces para volver al detalle o al listado.</li>
  *   <li>{@code LMS_TASK_TITLE_TAKEN} → error inline en title.</li>
  * </ul>
  */
@@ -79,27 +86,72 @@ function dueAtInFuture(group: AbstractControl): ValidationErrors | null {
     PageHeaderComponent,
     IconComponent,
     SpinnerComponent,
+    FileUploadComponent,
   ],
   template: `
     <app-page-header [title]="title()" [subtitle]="subtitle()" eyebrow="LMS · Tareas">
-      <a [routerLink]="listRoute()" class="btn btn-ghost btn-sm">
-        <app-icon name="arrow-left" [size]="16" />
-        <span class="hidden sm:inline">Volver</span>
-      </a>
+      @if (!editing() || !loadingDetail()) {
+        <a
+          [routerLink]="backRoute()"
+          [queryParams]="backQueryParams()"
+          class="btn btn-ghost btn-sm"
+        >
+          <app-icon name="arrow-left" [size]="16" />
+          <span class="hidden sm:inline">Volver a las tareas</span>
+        </a>
+      }
     </app-page-header>
 
     @if (loadingDetail()) {
       <div class="flex items-center justify-center py-16">
         <app-spinner [size]="24" label="Cargando tarea…" />
       </div>
+    } @else if (editBlocked()) {
+      <section class="card border border-warning/30" role="status">
+        <div class="card-body">
+          <div class="flex items-start gap-3">
+            <span
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning"
+              aria-hidden="true"
+            >
+              <app-icon name="lock" [size]="20" />
+            </span>
+            <div>
+              <h2 class="text-lg font-semibold text-content">
+                @if (blockedLifecycle() === taskLifecycle.Published) {
+                  Esta tarea ya está publicada
+                } @else {
+                  Esta tarea está cerrada
+                }
+              </h2>
+              <p class="mt-2 text-sm text-content-muted">
+                @if (blockedLifecycle() === taskLifecycle.Published) {
+                  Los alumnos ya pueden verla, por eso no se permiten cambios. Si necesitas corregir
+                  la información, cierra esta tarea y crea una nueva.
+                } @else {
+                  Las tareas cerradas no se pueden modificar. Puedes consultar su información en el
+                  detalle.
+                }
+              </p>
+            </div>
+          </div>
+          <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <a
+              [routerLink]="listRoute()"
+              [queryParams]="listQueryParams()"
+              class="btn btn-ghost btn-sm"
+            >
+              Volver a las tareas
+            </a>
+            <a [routerLink]="detailRoute()" class="btn btn-primary btn-sm">Ver detalle</a>
+          </div>
+        </div>
+      </section>
     } @else {
       @if (errorBanner(); as err) {
         <div class="alert alert-danger mb-4" role="alert">
           <app-icon name="alert-circle" [size]="18" />
-          <div class="flex-1">
-            <p class="font-medium">No pudimos guardar los cambios.</p>
-            <p class="mt-1 text-xs opacity-80">{{ err }}</p>
-          </div>
+          <p class="flex-1 text-sm">{{ err }}</p>
         </div>
       }
 
@@ -147,6 +199,42 @@ function dueAtInFuture(group: AbstractControl): ValidationErrors | null {
               }
             </div>
 
+            <div class="field sm:col-span-12">
+              <label class="label">Material adjunto</label>
+              <p class="field-hint mb-2">
+                Comparte una ficha, lectura u otro recurso para que el estudiante lo consulte.
+              </p>
+              @if (attachmentPublicUuid()) {
+                <div
+                  class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-3"
+                >
+                  <div class="flex min-w-0 items-center gap-3">
+                    <app-icon name="file-text" [size]="20" />
+                    <span class="truncate text-sm font-medium text-content">
+                      {{ attachmentName() || 'Archivo adjunto' }}
+                    </span>
+                  </div>
+                  @if (!editing()) {
+                    <button
+                      type="button"
+                      class="text-sm font-semibold text-danger"
+                      (click)="removeAttachment()"
+                    >
+                      Quitar archivo
+                    </button>
+                  }
+                </div>
+              }
+              @if (!attachmentPublicUuid() || editing()) {
+                <app-file-upload
+                  module="materials"
+                  accept="application/pdf,image/png,image/jpeg,image/webp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,application/zip"
+                  [maxSizeMb]="50"
+                  (uploaded)="onAttachmentUploaded($event)"
+                />
+              }
+            </div>
+
             <div class="field sm:col-span-6">
               <label class="label" for="task-dueAt">Fecha y hora de entrega *</label>
               <input id="task-dueAt" type="datetime-local" class="input" formControlName="dueAt" />
@@ -187,7 +275,13 @@ function dueAtInFuture(group: AbstractControl): ValidationErrors | null {
         </section>
 
         <footer class="flex flex-wrap items-center justify-end gap-2">
-          <a [routerLink]="listRoute()" class="btn btn-ghost btn-sm">Cancelar</a>
+          <a
+            [routerLink]="backRoute()"
+            [queryParams]="backQueryParams()"
+            class="btn btn-ghost btn-sm"
+          >
+            Cancelar
+          </a>
           <button
             type="submit"
             class="btn btn-primary btn-sm"
@@ -207,6 +301,12 @@ function dueAtInFuture(group: AbstractControl): ValidationErrors | null {
   `,
 })
 export class TaskFormComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => [this.form.getRawValue(), this.attachmentPublicUuid(), this.attachmentName()],
+    saving: () => this.saving(),
+    active: () => !this.loadingDetail(),
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(TasksStore);
   private readonly route = inject(ActivatedRoute);
@@ -226,12 +326,21 @@ export class TaskFormComponent implements OnInit {
   #assignmentUuid: string | null = null;
 
   protected readonly editing = signal(false);
+  protected readonly editBlocked = signal(false);
+  protected readonly blockedLifecycle = signal<TaskLifecycle | null>(null);
+  protected readonly taskLifecycle = TaskLifecycle;
+  protected readonly attachmentPublicUuid = signal<string | null>(null);
+  protected readonly attachmentName = signal<string | null>(null);
 
-  protected readonly title = computed(() => (this.editing() ? 'Editar tarea' : 'Nueva tarea'));
+  protected readonly title = computed(() =>
+    this.editBlocked() ? 'Edición no disponible' : this.editing() ? 'Editar tarea' : 'Nueva tarea',
+  );
   protected readonly subtitle = computed(() =>
-    this.editing()
-      ? 'Actualiza título, descripción, fecha o puntaje. Los alumnos no verán los cambios hasta que vuelvas a publicar.'
-      : 'Crea la tarea en estado Borrador. Podrás revisarla y publicarla después.',
+    this.editBlocked()
+      ? 'Solo puedes editar tareas que todavía están en borrador.'
+      : this.editing()
+        ? 'Actualiza título, descripción, fecha o puntaje antes de publicar la tarea.'
+        : 'Crea la tarea en estado Borrador. Podrás revisarla y publicarla después.',
   );
   protected readonly submitLabel = computed(() =>
     this.editing() ? 'Guardar cambios' : 'Crear tarea',
@@ -267,13 +376,13 @@ export class TaskFormComponent implements OnInit {
         await this.router.navigate([ROUTES.LMS.ROOT]);
         return;
       }
-      if (!isTaskEditable(detail) && detail.lifecycle !== TaskLifecycle.Published) {
-        // CLOSED: backend rechaza el PATCH; devolver al usuario a la lista.
-        await this.router.navigate([ROUTES.LMS.ROOT]);
-        return;
-      }
       this.#sectionUuid = detail.sectionPublicUuid;
       this.#assignmentUuid = detail.teacherAssignmentPublicUuid;
+      if (!isTaskEditable(detail)) {
+        this.blockedLifecycle.set(detail.lifecycle);
+        this.editBlocked.set(true);
+        return;
+      }
       this.hydrateFrom(detail);
     } else {
       // Create flow — the section + assignment come from the query string.
@@ -304,6 +413,7 @@ export class TaskFormComponent implements OnInit {
         const patch = this.toUpdateRequest();
         const updated = await this.store.updateTask(id, patch);
         if (updated) {
+          this.formProtection.markSaved();
           await this.router.navigate([ROUTES.LMS.assignmentDetail(updated.publicUuid)]);
         }
       } else {
@@ -314,6 +424,7 @@ export class TaskFormComponent implements OnInit {
         const request = this.toCreateRequest();
         const created = await this.store.createTask(request);
         if (created) {
+          this.formProtection.markSaved();
           await this.router.navigate([ROUTES.LMS.assignmentDetail(created.publicUuid)]);
         }
       }
@@ -322,14 +433,34 @@ export class TaskFormComponent implements OnInit {
     }
   }
 
+  protected onAttachmentUploaded(file: { publicUuid: string; originalName?: string }): void {
+    this.attachmentPublicUuid.set(file.publicUuid);
+    this.attachmentName.set(file.originalName ?? 'Archivo adjunto');
+  }
+
+  protected removeAttachment(): void {
+    this.attachmentPublicUuid.set(null);
+    this.attachmentName.set(null);
+  }
+
   protected listRoute(): string {
-    if (this.#sectionUuid) {
-      const base = ROUTES.LMS.sectionAssignments(this.#sectionUuid);
-      return this.#assignmentUuid
-        ? `${base}?assignment=${encodeURIComponent(this.#assignmentUuid)}`
-        : base;
-    }
-    return ROUTES.LMS.ROOT;
+    return this.#sectionUuid ? ROUTES.LMS.sectionAssignments(this.#sectionUuid) : ROUTES.LMS.ROOT;
+  }
+
+  protected listQueryParams(): { assignment: string } | null {
+    return this.#assignmentUuid ? { assignment: this.#assignmentUuid } : null;
+  }
+
+  protected backRoute(): string {
+    return this.listRoute();
+  }
+
+  protected backQueryParams(): { assignment: string } | null {
+    return this.listQueryParams();
+  }
+
+  protected detailRoute(): string {
+    return this.editUuid ? ROUTES.LMS.assignmentDetail(this.editUuid) : ROUTES.LMS.ROOT;
   }
 
   // ===========================================================================
@@ -364,6 +495,7 @@ export class TaskFormComponent implements OnInit {
     maxScore: number;
     allowResubmissions: boolean;
     requiresAttachment: boolean;
+    attachmentPublicUuid: string | null;
   }): void {
     this.form.patchValue({
       title: detail.title,
@@ -373,6 +505,8 @@ export class TaskFormComponent implements OnInit {
       allowResubmissions: detail.allowResubmissions,
       requiresAttachment: detail.requiresAttachment,
     });
+    this.attachmentPublicUuid.set(detail.attachmentPublicUuid);
+    this.attachmentName.set(detail.attachmentPublicUuid ? 'Archivo adjunto' : null);
   }
 
   private toCreateRequest() {
@@ -385,6 +519,7 @@ export class TaskFormComponent implements OnInit {
       dueAt: this.toIsoUtc(v.dueAt as string),
       maxScore: Math.round(Number(v.maxScore)),
       allowResubmissions: !!v.allowResubmissions,
+      attachmentPublicUuid: this.attachmentPublicUuid(),
     };
   }
 
@@ -396,6 +531,7 @@ export class TaskFormComponent implements OnInit {
       dueAt: this.toIsoUtc(v.dueAt as string),
       maxScore: Math.round(Number(v.maxScore)),
       allowResubmissions: !!v.allowResubmissions,
+      attachmentPublicUuid: this.attachmentPublicUuid(),
     };
   }
 

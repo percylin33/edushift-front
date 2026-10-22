@@ -49,6 +49,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       switch (error.status) {
         case HttpStatus.Unauthorized:
+          if (req.headers.has('X-Admin-Impersonation')) break;
           if (!isAuthEndpoint(req.url)) {
             auth.clearSession();
             const returnUrl = stripQueryFromAuthLogin(router.url);

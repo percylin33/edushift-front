@@ -42,7 +42,31 @@ export interface Invoice {
   /** When true, automatic mora accrual is skipped. */
   moraExempt?: boolean;
   items: InvoiceItem[];
+  /** Present on the staff invoice list so cashiers can identify the recipient. */
+  studentIdentity?: {
+    fullName: string;
+    documentType: string;
+    documentNumber: string;
+  } | null;
 }
+
+/** Minimum invoice data returned to staff who can review vouchers but cannot read all payments. */
+export type InvoiceReviewQueueItem = Pick<
+  Invoice,
+  | 'publicUuid'
+  | 'studentId'
+  | 'periodLabel'
+  | 'currency'
+  | 'totalCents'
+  | 'status'
+  | 'dueAt'
+  | 'evidenceFilePublicUuid'
+  | 'evidenceSubmittedAt'
+  | 'evidenceNotes'
+  | 'studentIdentity'
+>;
+
+export type AdminInvoiceListItem = Invoice | InvoiceReviewQueueItem;
 
 export type SubscriptionStatus = 'ACTIVE' | 'PAUSED' | 'CANCELLED';
 export type BillingPeriod = 'MONTHLY' | 'ANNUAL';
@@ -133,6 +157,26 @@ export interface BulkCreateSubscriptionsResponse {
   createdSubscriptionPublicUuids: string[];
 }
 
+export interface BillingPlanRuleRequest {
+  conceptPublicUuid: string;
+  levelPublicUuid?: string | null;
+  gradePublicUuid?: string | null;
+  amountCents: number;
+  billingPeriod: BillingPeriod;
+  billingDayOfMonth: number;
+  billingMonth?: number | null;
+  currency: string;
+}
+
+export interface BillingPlanRuleResponse extends BillingPlanRuleRequest {
+  publicUuid: string;
+  active: boolean;
+  candidateCount: number;
+  createdCount: number;
+  alreadyActiveCount: number;
+  waitingGuardianCount: number;
+}
+
 export interface SiblingSuggestionChild {
   studentPublicUuid: string;
   studentName: string;
@@ -165,11 +209,19 @@ export interface PaymentPolicy {
 }
 
 export interface AgingBuckets {
-  d0_30: number;
-  d31_60: number;
-  d61_90: number;
-  d90_plus: number;
-  [key: string]: number;
+  totalOverdueCents: number;
+  totalOverdueInvoices: number;
+  totalOverdueStudents: number;
+  d0_30: AgingBucket;
+  d31_60: AgingBucket;
+  d61_90: AgingBucket;
+  d90_plus: AgingBucket;
+}
+
+export interface AgingBucket {
+  amountCents: number;
+  invoiceCount: number;
+  studentCount: number;
 }
 
 export interface PaymentAccessStatus {
@@ -179,9 +231,18 @@ export interface PaymentAccessStatus {
 export interface PaymentAccessOverride {
   publicUuid: string;
   userPublicUuid: string;
+  userName: string;
   studentPublicUuid: string | null;
+  studentName: string | null;
   reason: string | null;
   untilAt: string;
+}
+
+export interface PaymentAccessCandidate {
+  userPublicUuid: string;
+  studentPublicUuid: string;
+  displayName: string;
+  relationship: 'Estudiante' | 'Apoderado';
 }
 
 export interface Payment {

@@ -1,3 +1,4 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -169,6 +170,12 @@ import {
   `,
 })
 export class AnnouncementComposerPageComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => [this.form.getRawValue(), [...(this.form.controls.audienceIds.value ?? [])].sort(), this.pendingAudienceIds],
+    saving: () => this.publishing(),
+    active: () => true,
+  });
+
   @ViewChild('editor') private editor?: ElementRef<HTMLDivElement>;
 
   private readonly fb = inject(FormBuilder);
@@ -366,7 +373,8 @@ export class AnnouncementComposerPageComponent implements OnInit {
     this.publishing.set(true);
     try {
       await this.persist();
-      await this.router.navigate(['/announcements']);
+      this.formProtection.markSaved();
+          await this.router.navigate(['/announcements']);
     } catch (e: unknown) {
       this.errorMsg.set(this.messageOf(e, 'No se pudo guardar'));
       this.publishing.set(false);

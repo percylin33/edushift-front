@@ -1,3 +1,4 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { roleGuard } from '@core/guards';
 import { UserRole } from '@core/enums';
@@ -29,6 +30,7 @@ import { UserRole } from '@core/enums';
  */
 export const SETTINGS_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     // Auth check is provided by `authChildGuard` in `private.routes.ts`
     // (the feature-flag guard is the outer route gate). The inner
@@ -39,7 +41,8 @@ export const SETTINGS_ROUTES: Routes = [
       ),
     children: [
       {
-        path: '',
+        canDeactivate: [pendingChangesGuard],
+    path: '',
         pathMatch: 'full',
         loadComponent: () =>
           import('./pages/user-settings/user-settings.component').then(
@@ -47,14 +50,16 @@ export const SETTINGS_ROUTES: Routes = [
           ),
       },
       {
-        path: 'security',
+        canDeactivate: [pendingChangesGuard],
+    path: 'security',
         loadComponent: () =>
           import('./pages/security-settings/security-settings.component').then(
             (m) => m.SecuritySettingsComponent,
           ),
       },
       {
-        path: 'tenant',
+        canDeactivate: [pendingChangesGuard],
+    path: 'tenant',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin] },
         loadComponent: () =>
@@ -63,7 +68,8 @@ export const SETTINGS_ROUTES: Routes = [
           ),
       },
       {
-        path: 'permissions',
+        canDeactivate: [pendingChangesGuard],
+    path: 'permissions',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin] },
         loadComponent: () =>

@@ -11,10 +11,13 @@ import { FamilyApiService } from '../../services/family-api.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-6xl px-4 py-8 sm:py-10">
-      <header class="mb-8">
+        <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
         <p class="text-sm font-semibold uppercase tracking-wide text-indigo-600">Familia</p>
         <h1 class="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">Mis hijos</h1>
         <p class="mt-2 text-slate-600 dark:text-slate-400">Consulta su progreso, asistencia y actividades desde un solo lugar.</p>
+        </div>
+        <a routerLink="/family/disclosures" class="inline-flex items-center justify-center rounded-xl border border-indigo-200 px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900 dark:text-indigo-300 dark:hover:bg-indigo-950/40">Información anual del colegio</a>
       </header>
 
       @if (loading()) {

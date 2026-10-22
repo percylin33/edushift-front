@@ -1,3 +1,4 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
@@ -367,6 +368,12 @@ import { TenantApiService as TenantsApiService } from '@features/tenants/service
   `,
 })
 export class TenantSettingsComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly tenantService = inject(TenantService);
@@ -477,6 +484,7 @@ export class TenantSettingsComponent implements OnInit {
     this.logoPublicUuid = this.extractPublicUuid(t.branding?.logo?.light ?? null);
     this.loginBgPublicUuid = this.extractPublicUuid(t.branding?.loginBgUrl ?? null);
     this.form.markAsPristine();
+    this.formProtection.markSaved();
   }
 
   protected planLabel(): string {
@@ -706,7 +714,7 @@ const FEATURE_FLAG_LABELS: Record<string, string> = {
   aiEnabled: 'Asistente de IA',
   'ai.copilot': 'Copiloto de IA',
   ai: 'Inteligencia artificial',
-  lms: 'Aula virtual (LMS)',
+  lms: 'Aula virtual',
   payments: 'Pagos',
   attendance: 'Asistencia',
   announcements: 'Anuncios',

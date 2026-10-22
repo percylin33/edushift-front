@@ -77,8 +77,15 @@ describe('RegisterComponent', () => {
   });
 
   it('slugHint refleja el valor del campo en lowercase', () => {
-    component.tenantSlugCtrl.setValue('Mi-Colegio');
-    expect(component.slugHint()).toContain('mi-colegio');
+    component.tenantSlugCtrl.setValue('MiColegio');
+    expect(component.slugHint()).toContain('micolegio');
+  });
+
+  it('validación: tenantSlug solo permite letras y números, sin guiones', () => {
+    component.tenantSlugCtrl.setValue('mi-colegio');
+    expect(component.invalid('tenantSlug')).toBeTrue();
+    component.tenantSlugCtrl.setValue('micolegio');
+    expect(component.invalid('tenantSlug')).toBeFalse();
   });
 
   it('validación: tenantName required', () => {
@@ -133,18 +140,21 @@ describe('RegisterComponent', () => {
     component.inviteToken.set('tokentokentoken12');
     component.form.patchValue({
       tenantName: 'Mi Cole',
-      tenantSlug: 'mi-cole',
+      tenantSlug: 'micole',
       adminFirstName: 'Admin',
       adminLastName: 'User',
       adminEmail: 'admin@test.com',
-      adminPassword: 'password123',
+      adminPassword: 'SchoolAccess2026!',
+      confirmAdminPassword: 'SchoolAccess2026!',
     });
     component.form.updateValueAndValidity();
     expect(component.form.valid).toBeTrue();
 
     const beginSpy = spyOn(store, 'beginSubmit').and.callThrough();
+    const redirectSpy = spyOn<any>(component, 'redirectToSchoolOnboarding');
     component.onSubmit();
     expect(beginSpy).toHaveBeenCalled();
+    expect(redirectSpy).toHaveBeenCalledWith('micole');
   });
 
   it('applyServerErrors mapea TENANT_SLUG_TAKEN a error de campo', () => {
@@ -180,7 +190,7 @@ describe('RegisterComponent', () => {
     // slugify now lives in @shared/utils; we exercise it indirectly by
     // typing into tenantName and observing the auto-derived slug.
     component.tenantNameCtrl.setValue('Colegio San José');
-    expect(component.tenantSlugCtrl.value).toBe('colegio-san-jose');
+    expect(component.tenantSlugCtrl.value).toBe('colegiosanjose');
   });
 
   it('toSlug retorna vacío para input vacío', () => {

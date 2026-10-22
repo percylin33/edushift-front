@@ -91,7 +91,7 @@ USARIAS ESTE PRODUCTO? [Si / No / Tal vez]</pre>
         <ul class="mt-3 divide-y divide-border-subtle rounded-md border border-border bg-surface">
           <li class="flex items-center justify-between gap-3 p-3">
             <div>
-              <p class="text-sm font-medium text-content">Director (Tenant Admin)</p>
+              <p class="text-sm font-medium text-content">Director o administrador de institución</p>
               <p class="text-xs text-content-muted">Apertura del dia, pagos, reportes, anuncios, audit, logout</p>
             </div>
             <span class="badge badge-info">7:30 / 11:00 / 13:00 / 16:00 / 17:30</span>
@@ -146,12 +146,12 @@ export class PilotGuidePageComponent {
     icon: "user" | "graduation-cap" | "book-open" | "users" | "list-checks" | "shield-check";
     color: string;
   }> = [
-    { key: "tenant-admin", name: "Tenant Admin (Director)", count: 150, summary: "Dashboard, usuarios, estudiantes, secciones, asistencia, IA, pagos, reportes.", icon: "user", color: "#4f46e5" },
+    { key: "tenant-admin", name: "Administrador de institución (Dirección)", count: 150, summary: "Panel, usuarios, estudiantes, secciones, asistencia, IA, pagos y reportes.", icon: "user", color: "#4f46e5" },
     { key: "teacher", name: "Docente", count: 60, summary: "Sus secciones, asistencia, calificar, material, IA, horario.", icon: "graduation-cap", color: "#10b981" },
     { key: "student", name: "Estudiante", count: 30, summary: "Sus cursos, tareas, quizzes, MI asistencia, MI pago.", icon: "book-open", color: "#3b82f6" },
     { key: "parent", name: "Apoderado", count: 20, summary: "Sus hijos, calificaciones, pagos, anuncios.", icon: "users", color: "#8b5cf6" },
     { key: "staff", name: "Staff (Personal)", count: 15, summary: "Pagos, reportes, asistencia (read).", icon: "list-checks", color: "#0891b2" },
-    { key: "super-admin", name: "Super Admin", count: 25, summary: "Cross-tenant, impersonation, planes, audit.", icon: "shield-check", color: "#dc2626" },
+    { key: "super-admin", name: "Superadministrador", count: 25, summary: "Gestión entre instituciones, soporte, planes y auditoría.", icon: "shield-check", color: "#dc2626" },
   ];
 }
 

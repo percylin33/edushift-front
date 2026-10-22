@@ -1,3 +1,4 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { roleGuard } from '@core/guards';
 import { UserRole } from '@core/enums';
@@ -27,6 +28,7 @@ import { UserRole } from '@core/enums';
  */
 export const ACADEMIC_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     canActivate: [roleGuard],
     data: { roles: [UserRole.TenantAdmin], title: 'Académico' },
@@ -41,14 +43,16 @@ export const ACADEMIC_ROUTES: Routes = [
         redirectTo: 'years',
       },
       {
-        path: 'years',
+        canDeactivate: [pendingChangesGuard],
+    path: 'years',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin], title: 'Años académicos' },
         loadComponent: () =>
           import('./pages/years-list/years-list.component').then((m) => m.YearsListComponent),
       },
       {
-        path: 'years/new',
+        canDeactivate: [pendingChangesGuard],
+    path: 'years/new',
         canActivate: [roleGuard],
         data: {
           roles: [UserRole.TenantAdmin],
@@ -59,7 +63,22 @@ export const ACADEMIC_ROUTES: Routes = [
           import('./pages/year-form/year-form.component').then((m) => m.YearFormComponent),
       },
       {
-        path: 'years/:id/edit',
+        canDeactivate: [pendingChangesGuard],
+    path: 'years/transition',
+        canActivate: [roleGuard],
+        data: {
+          roles: [UserRole.TenantAdmin],
+          breadcrumb: 'Preparar siguiente año',
+          title: 'Preparar siguiente año',
+        },
+        loadComponent: () =>
+          import('./pages/year-transition/year-transition.component').then(
+            (m) => m.YearTransitionComponent,
+          ),
+      },
+      {
+        canDeactivate: [pendingChangesGuard],
+    path: 'years/:id/edit',
         canActivate: [roleGuard],
         data: {
           roles: [UserRole.TenantAdmin],
@@ -70,14 +89,16 @@ export const ACADEMIC_ROUTES: Routes = [
           import('./pages/year-form/year-form.component').then((m) => m.YearFormComponent),
       },
       {
-        path: 'levels',
+        canDeactivate: [pendingChangesGuard],
+    path: 'levels',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin], title: 'Niveles y grados' },
         loadComponent: () =>
           import('./pages/levels-board/levels-board.component').then((m) => m.LevelsBoardComponent),
       },
       {
-        path: 'sections',
+        canDeactivate: [pendingChangesGuard],
+    path: 'sections',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin], title: 'Secciones' },
         loadComponent: () =>
@@ -86,7 +107,8 @@ export const ACADEMIC_ROUTES: Routes = [
           ),
       },
       {
-        path: 'sections/:id',
+        canDeactivate: [pendingChangesGuard],
+    path: 'sections/:id',
         canActivate: [roleGuard],
         data: {
           roles: [UserRole.TenantAdmin],
@@ -99,14 +121,16 @@ export const ACADEMIC_ROUTES: Routes = [
           ),
       },
       {
-        path: 'courses',
+        canDeactivate: [pendingChangesGuard],
+    path: 'courses',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin], title: 'Cursos' },
         loadComponent: () =>
           import('./pages/courses-list/courses-list.component').then((m) => m.CoursesListComponent),
       },
       {
-        path: 'courses/:id',
+        canDeactivate: [pendingChangesGuard],
+    path: 'courses/:id',
         canActivate: [roleGuard],
         data: {
           roles: [UserRole.TenantAdmin],
@@ -119,7 +143,8 @@ export const ACADEMIC_ROUTES: Routes = [
           ),
       },
       {
-        path: 'periods',
+        canDeactivate: [pendingChangesGuard],
+    path: 'periods',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin], title: 'Periodos' },
         loadComponent: () =>
@@ -131,7 +156,8 @@ export const ACADEMIC_ROUTES: Routes = [
        * drawer inline para create/edit + confirmación de delete.
        */
       {
-        path: 'classrooms',
+        canDeactivate: [pendingChangesGuard],
+    path: 'classrooms',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin], title: 'Aulas' },
         loadComponent: () =>
@@ -140,7 +166,8 @@ export const ACADEMIC_ROUTES: Routes = [
           ),
       },
       {
-        path: 'grade-register',
+        canDeactivate: [pendingChangesGuard],
+    path: 'grade-register',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin], title: 'Registro de notas' },
         loadComponent: () =>
@@ -149,7 +176,8 @@ export const ACADEMIC_ROUTES: Routes = [
           ),
       },
       {
-        path: 'grade-register/settings',
+        canDeactivate: [pendingChangesGuard],
+    path: 'grade-register/settings',
         canActivate: [roleGuard],
         data: {
           roles: [UserRole.TenantAdmin],
@@ -162,7 +190,8 @@ export const ACADEMIC_ROUTES: Routes = [
           ),
       },
       {
-        path: 'session-templates',
+        canDeactivate: [pendingChangesGuard],
+    path: 'session-templates',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TenantAdmin], title: 'Plantillas de sesión' },
         loadComponent: () =>

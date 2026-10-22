@@ -55,8 +55,17 @@ import { notificationDeepLink, notificationDisplaySubject, resolvePayload } from
     <app-page-container size="narrow">
       <app-page-header
         title="Notificaciones"
-        subtitle="Centro de notificaciones del tenant."
+        subtitle="Centro de notificaciones de tu institución."
       />
+
+      <div class="mb-4 flex justify-end">
+        <a
+          routerLink="/notifications/preferences"
+          class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          Preferencias
+        </a>
+      </div>
 
       @if (loading()) {
         <div

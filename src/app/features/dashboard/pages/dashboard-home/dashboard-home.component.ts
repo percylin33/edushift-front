@@ -18,6 +18,9 @@ import { AnalyticsApiService, AnalyticsChartPoint, AnalyticsChartSeries, Analyti
 import { DashboardApiService } from '../../services/dashboard-api.service';
 import { DashboardStore } from '../../store/dashboard.store';
 import { AnalyticsTrendChartComponent } from '../../components/analytics-trend-chart';
+import { AgingBuckets, formatMoney } from '@features/payments/models/invoice.model';
+import { PaymentsApiService } from '@features/payments/services/payments-api.service';
+import { SchoolOperationsDashboardSummary } from '../../models/school-operations-dashboard.model';
 
 interface QuickLink {
   readonly id: string;
@@ -212,8 +215,138 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
           </div>
         }
 
+        <section aria-label="Seguimiento de hoy" class="mb-6 card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Seguimiento de hoy</h2>
+              <p class="card-description">Revisa la actividad de asistencia del colegio.</p>
+            </div>
+            <a routerLink="/attendance/sessions" class="btn btn-outline btn-sm">Ver sesiones</a>
+          </div>
+          <div class="card-body">
+            @if (overview(); as today) {
+              @if (today.noClassToday) {
+                <p class="text-sm text-content-muted">No hay clases programadas para hoy.</p>
+              } @else {
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <div class="flex items-start gap-3 rounded-lg bg-surface-muted/50 p-4">
+                    <app-icon name="clock" [size]="18" class="mt-0.5 text-content-muted" />
+                    <div>
+                      <p class="font-medium text-content">
+                        {{ today.openSessions }} {{ today.openSessions === 1 ? 'sesión abierta' : 'sesiones abiertas' }}
+                      </p>
+                      <p class="mt-1 text-sm text-content-muted">Revisa su estado y confirma el cierre al terminar la clase.</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-3 rounded-lg bg-surface-muted/50 p-4">
+                    <app-icon name="alert-circle" [size]="18" class="mt-0.5 text-content-muted" />
+                    <div>
+                      <p class="font-medium text-content">
+                        {{ today.totalAbsencesToday }} {{ today.totalAbsencesToday === 1 ? 'inasistencia registrada' : 'inasistencias registradas' }}
+                      </p>
+                      <p class="mt-1 text-sm text-content-muted">Consulta las sesiones para dar seguimiento a los casos.</p>
+                    </div>
+                  </div>
+                </div>
+              }
+            } @else if (store.loading()) {
+              <div class="flex items-center gap-2 py-2 text-sm text-content-muted">
+                <app-spinner [size]="18" />
+                <span>Cargando actividad de hoy…</span>
+              </div>
+            } @else {
+              <p class="text-sm text-content-muted">No se pudo cargar la actividad. Usa “Actualizar” para intentarlo de nuevo.</p>
+            }
+          </div>
+        </section>
+
+        <section aria-label="Operación del año escolar" class="mb-6 card">
+          <div class="card-header flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 class="card-title">Operación del año escolar</h2>
+              <p class="card-description">
+                @if (schoolSummary()?.academicYear; as year) {
+                  Totales agregados de {{ year }}.
+                } @else {
+                  Activa un año escolar para consultar sus indicadores.
+                }
+              </p>
+            </div>
+            <div class="flex gap-2">
+              <a routerLink="/disclosures" class="btn btn-outline btn-sm">Información anual</a>
+              <a routerLink="/admissions" class="btn btn-outline btn-sm">Admisiones</a>
+            </div>
+          </div>
+          <div class="card-body">
+            @if (schoolSummary(); as summary) {
+              @if (summary.academicYear) {
+                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  <div class="rounded-lg bg-surface-muted/50 p-4">
+                    <p class="text-xs uppercase tracking-wide text-content-subtle">Información anual</p>
+                    @if (summary.annualDisclosurePackageExists) {
+                      <p class="mt-1 text-2xl font-semibold tabular-nums text-content">{{ summary.disclosuresPublished }}</p>
+                      <p class="mt-1 text-sm text-content-muted">publicada · {{ summary.disclosuresPendingPublication }} pendiente</p>
+                    } @else {
+                      <p class="mt-1 text-sm text-content-muted">Sin paquete configurado para este año.</p>
+                    }
+                  </div>
+                  <div class="rounded-lg bg-surface-muted/50 p-4">
+                    <p class="text-xs uppercase tracking-wide text-content-subtle">Admisiones</p>
+                    <p class="mt-1 text-2xl font-semibold tabular-nums text-content">{{ summary.admissionsInProcess }}</p>
+                    <p class="mt-1 text-sm text-content-muted">en trámite · {{ summary.admissionsWaitlisted }} en lista de espera · {{ summary.admissionsAdmitted }} admitida(s) · {{ summary.admissionsEnrolled }} matriculada(s)</p>
+                  </div>
+                  <div class="rounded-lg bg-surface-muted/50 p-4">
+                    <p class="text-xs uppercase tracking-wide text-content-subtle">Evaluaciones</p>
+                    <p class="mt-1 text-2xl font-semibold tabular-nums text-content">{{ summary.evaluationsClosed }} / {{ summary.evaluationsTotal }}</p>
+                    <p class="mt-1 text-sm text-content-muted">cerradas · {{ summary.evaluationsDraft }} borrador(es) · {{ summary.evaluationsPublished }} publicadas</p>
+                  </div>
+                </div>
+              } @else {
+                <p class="text-sm text-content-muted">No hay un año escolar activo. Cuando el colegio active uno, este panel mostrará sus datos agregados.</p>
+              }
+            } @else if (schoolSummaryLoading()) {
+              <div class="flex items-center gap-2 text-sm text-content-muted">
+                <app-spinner [size]="18" />
+                <span>Cargando indicadores del año escolar…</span>
+              </div>
+            } @else {
+              <p role="status" class="text-sm text-content-muted">No se pudo cargar este resumen. Revisa los módulos individuales o vuelve a actualizar el tablero.</p>
+            }
+          </div>
+        </section>
+
+        <section aria-label="Accesos rápidos" class="mb-6">
+          <h2 class="mb-3 text-sm font-semibold text-content">Accesos rápidos</h2>
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <a routerLink="/attendance/scanner" class="card transition hover:ring-2 hover:ring-primary-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40">
+              <div class="card-body flex items-center gap-3 py-4">
+                <app-icon name="qr-code" [size]="20" class="text-primary-600" />
+                <span class="font-medium text-content">Registrar asistencia</span>
+              </div>
+            </a>
+            <a routerLink="/schedule" class="card transition hover:ring-2 hover:ring-primary-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40">
+              <div class="card-body flex items-center gap-3 py-4">
+                <app-icon name="clock" [size]="20" class="text-primary-600" />
+                <span class="font-medium text-content">Ver horarios</span>
+              </div>
+            </a>
+            <a routerLink="/students/new" class="card transition hover:ring-2 hover:ring-primary-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40">
+              <div class="card-body flex items-center gap-3 py-4">
+                <app-icon name="graduation-cap" [size]="20" class="text-primary-600" />
+                <span class="font-medium text-content">Registrar estudiante</span>
+              </div>
+            </a>
+            <a routerLink="/teachers/new" class="card transition hover:ring-2 hover:ring-primary-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40">
+              <div class="card-body flex items-center gap-3 py-4">
+                <app-icon name="users" [size]="20" class="text-primary-600" />
+                <span class="font-medium text-content">Agregar docente</span>
+              </div>
+            </a>
+          </div>
+        </section>
+
         <section
-          aria-label="KPIs del día"
+          aria-label="Resumen de asistencia de hoy"
           class="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4"
         >
           @for (kpi of kpis(); track kpi.id) {
@@ -231,12 +364,51 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
           <p class="mt-3 text-xs text-content-subtle">{{ stamp }}</p>
         }
 
+        <section aria-label="Resumen de pagos vencidos" class="mt-6 card">
+          <div class="card-header flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 class="card-title">Pagos de familias</h2>
+              <p class="card-description">Resumen de facturas vencidas del colegio.</p>
+            </div>
+            <a routerLink="/payments/admin/invoices" class="btn btn-outline btn-sm">Revisar facturas</a>
+          </div>
+          <div class="card-body">
+            @if (overdueSummary(); as aging) {
+              @if (aging.totalOverdueInvoices === 0) {
+                <p class="text-sm text-content-muted">No hay facturas vencidas registradas.</p>
+              } @else {
+                <div class="grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <p class="text-xs uppercase tracking-wide text-content-subtle">Monto vencido</p>
+                    <p class="mt-1 text-2xl font-semibold tabular-nums text-danger">{{ overdueAmountLabel(aging) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs uppercase tracking-wide text-content-subtle">Facturas vencidas</p>
+                    <p class="mt-1 text-2xl font-semibold tabular-nums text-content">{{ aging.totalOverdueInvoices }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs uppercase tracking-wide text-content-subtle">Estudiantes con deuda</p>
+                    <p class="mt-1 text-2xl font-semibold tabular-nums text-content">{{ aging.totalOverdueStudents }}</p>
+                  </div>
+                </div>
+              }
+            } @else if (overdueLoading()) {
+              <div class="flex items-center gap-2 text-sm text-content-muted">
+                <app-spinner [size]="18" />
+                <span>Cargando resumen de pagos…</span>
+              </div>
+            } @else {
+              <p class="text-sm text-content-muted">No se pudo cargar el resumen de pagos. Puedes revisarlo en el módulo de Pagos.</p>
+            }
+          </div>
+        </section>
+
         <!-- =============================================================
           Sprint cierre-A / F10 — tenant KPI cards (analytics B1)
           Three high-level indicators alongside the existing attendance KPIs.
         ============================================================== -->
         <section
-          aria-label="Indicadores (cierre-A / B1)"
+          aria-label="Indicadores de los últimos 30 días"
           class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
           data-testid="analytics-kpi-section"
         >
@@ -244,64 +416,35 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
             <div class="card-body">
               <p class="text-xs uppercase tracking-wide text-content-subtle">Asistencia</p>
               <p class="mt-1 text-3xl font-semibold tabular-nums text-content">
-                {{ formatRate(attendanceKpi()?.value) }}
+                {{ analyticsRateLabel(attendanceKpi()) }}
               </p>
               <p class="mt-1 text-xs text-content-muted">
-                Últimos 30 días · ATTENDANCE_RATE
+                Últimos 30 días · asistencias registradas
               </p>
             </div>
           </div>
           <div class="card">
             <div class="card-body">
-              <p class="text-xs uppercase tracking-wide text-content-subtle">Rendimiento</p>
+              <p class="text-xs uppercase tracking-wide text-content-subtle">Promedio académico</p>
               <p class="mt-1 text-3xl font-semibold tabular-nums text-content">
-                {{ formatRate(performanceKpi()?.value) }}
+                {{ performanceScoreLabel(performanceKpi()) }}
               </p>
               <p class="mt-1 text-xs text-content-muted">
-                Últimos 30 días · PERFORMANCE_AVG
+                Últimos 30 días · escala de 0 a 20
               </p>
             </div>
           </div>
           <div class="card">
             <div class="card-body">
-              <p class="text-xs uppercase tracking-wide text-content-subtle">Morosidad</p>
+              <p class="text-xs uppercase tracking-wide text-content-subtle">Facturas del servicio</p>
               <p class="mt-1 text-3xl font-semibold tabular-nums text-content">
-                {{ formatRate(morosidadKpi()?.value) }}
+                {{ analyticsRateLabel(morosidadKpi()) }}
               </p>
               <p class="mt-1 text-xs text-content-muted">
-                Últimos 30 días · MOROSIDAD
+                Facturas de EduShift vencidas entre las emitidas
               </p>
             </div>
           </div>
-        </section>
-
-        <!-- =============================================================
-          Sprint cierre-A / F10 — tenant trend charts
-          Three line charts using ng2-charts, fed by the B1 chart endpoints.
-        ============================================================== -->
-        <section
-          aria-label="Tendencia (últimos 30 días)"
-          class="mt-6 grid gap-4 lg:grid-cols-3"
-          data-testid="analytics-trend-section"
-        >
-          <app-analytics-trend-chart
-            title="Tasa de asistencia"
-            subtitle="ATTENDANCE_RATE — % del 0..1"
-            [data]="analyticsAttendanceSeries()"
-            color="#6366f1"
-          />
-          <app-analytics-trend-chart
-            title="Rendimiento académico"
-            subtitle="PERFORMANCE_AVG — normalizado 0..1"
-            [data]="analyticsPerformanceSeries()"
-            color="#10b981"
-          />
-          <app-analytics-trend-chart
-            title="Morosidad"
-            subtitle="% facturas vencidas vs. emitidas"
-            [data]="analyticsMorosidadSeries()"
-            color="#ef4444"
-          />
         </section>
 
         <section class="mt-8 grid gap-6 lg:grid-cols-3">
@@ -309,9 +452,9 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
           <div class="card lg:col-span-2">
             <div class="card-header">
               <div>
-                <h2 class="card-title">Top secciones con más inasistencias</h2>
+                <h2 class="card-title">Secciones con más inasistencias</h2>
                 <p class="card-description">
-                  Últimos 7 días — ranking por inasistencias acumuladas.
+                  Últimos 7 días · ordenadas por inasistencias acumuladas.
                 </p>
               </div>
             </div>
@@ -337,8 +480,8 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
                         <th class="px-4 py-3 font-medium">Sección</th>
                         <th class="px-4 py-3 font-medium">Grado</th>
                         <th class="px-4 py-3 text-right font-medium">Inasistencias</th>
-                        <th class="px-4 py-3 text-right font-medium">Matriculados</th>
-                        <th class="px-4 py-3 text-right font-medium">% inasistencia</th>
+                        <th class="px-4 py-3 text-right font-medium">Estudiantes inscritos</th>
+                        <th class="px-4 py-3 text-right font-medium">Inasistencia</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -404,13 +547,13 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
                             {{ s.sectionName }} · {{ slotLabel(s.slot) }}
                           </p>
                           <p class="mt-0.5 truncate text-xs text-content-muted">
-                            <span class="text-success">{{ s.presentCount }} P</span>
+                            <span class="text-success">{{ s.presentCount }} presentes</span>
                             <span class="mx-1 text-content-subtle">·</span>
-                            <span class="text-warning">{{ s.lateCount }} T</span>
+                            <span class="text-warning">{{ s.lateCount }} tardanzas</span>
                             <span class="mx-1 text-content-subtle">·</span>
-                            <span class="text-danger">{{ s.absentCount }} A</span>
+                            <span class="text-danger">{{ s.absentCount }} ausentes</span>
                             <span class="mx-1 text-content-subtle">·</span>
-                            <span>{{ s.excusedCount }} E</span>
+                            <span>{{ s.excusedCount }} justificadas</span>
                           </p>
                           <p class="mt-0.5 text-xs text-content-subtle">
                             Cerrada {{ s.closedAt | date: 'short' }}
@@ -428,6 +571,31 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
               }
             </div>
           </div>
+        </section>
+
+        <section
+          aria-label="Tendencias de los últimos 30 días"
+          class="mt-8 grid gap-4 lg:grid-cols-3"
+          data-testid="analytics-trend-section"
+        >
+          <app-analytics-trend-chart
+            title="Asistencia"
+            subtitle="Porcentaje de asistencias marcadas"
+            [data]="analyticsAttendanceSeries()"
+            color="#6366f1"
+          />
+          <app-analytics-trend-chart
+            title="Promedio académico"
+            subtitle="Calificaciones en escala de 0 a 20, convertidas a porcentaje"
+            [data]="analyticsPerformanceSeries()"
+            color="#10b981"
+          />
+          <app-analytics-trend-chart
+            title="Facturas del servicio"
+            subtitle="Porcentaje de facturas vencidas entre las emitidas"
+            [data]="analyticsMorosidadSeries()"
+            color="#ef4444"
+          />
         </section>
       </ng-template>
 
@@ -581,6 +749,7 @@ export class DashboardHomeComponent implements OnInit {
   protected readonly auth = inject(AuthService);
   private readonly api = inject(DashboardApiService);
   private readonly analyticsApi = inject(AnalyticsApiService);
+  private readonly paymentsApi = inject(PaymentsApiService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly store = inject(DashboardStore);
 
@@ -594,6 +763,10 @@ export class DashboardHomeComponent implements OnInit {
   protected readonly analyticsPerformanceSeries = signal<readonly AnalyticsChartPoint[]>([]);
   protected readonly analyticsMorosidadSeries = signal<readonly AnalyticsChartPoint[]>([]);
   protected readonly analyticsLoading = signal(false);
+  protected readonly overdueSummary = signal<AgingBuckets | null>(null);
+  protected readonly overdueLoading = signal(false);
+  protected readonly schoolSummary = signal<SchoolOperationsDashboardSummary | null>(null);
+  protected readonly schoolSummaryLoading = signal(false);
 
   /** Convenience computed: ATTENDANCE_RATE value (or null if not loaded). */
   protected readonly attendanceKpi = computed<AnalyticsKpiEntry | null>(() => {
@@ -619,6 +792,24 @@ export class DashboardHomeComponent implements OnInit {
 		return `${(value * 100).toFixed(1)}%`;
 	}
 
+  protected analyticsRateLabel(kpi: AnalyticsKpiEntry | null): string {
+    if (!kpi) return '—';
+    const totalCount = kpi.dimensions?.['totalCount'];
+    return totalCount === 0 ? 'Sin datos' : this.formatRate(kpi.value);
+  }
+
+  protected performanceScoreLabel(kpi: AnalyticsKpiEntry | null): string {
+    if (!kpi) return '—';
+    const totalCount = kpi.dimensions?.['totalCount'];
+    if (totalCount === 0) return 'Sin datos';
+    const average = kpi.dimensions?.['avgScore'];
+    return typeof average === 'number' ? `${average.toFixed(1)} / 20` : '—';
+  }
+
+  protected overdueAmountLabel(summary: AgingBuckets): string {
+    return formatMoney(summary.totalOverdueCents);
+  }
+
   protected readonly isAdmin = computed(() => this.auth.hasRole(UserRole.TenantAdmin));
   protected readonly isTeacher = computed(() => this.auth.hasRole(UserRole.Teacher));
   protected readonly isParent = computed(() => this.auth.hasRole(UserRole.Parent));
@@ -638,7 +829,7 @@ export class DashboardHomeComponent implements OnInit {
 
   protected readonly subtitle = computed(() => {
     const tenantName = this.tenant.tenant()?.name;
-    return tenantName ? `Resumen general de ${tenantName}.` : 'Resumen general del tenant.';
+    return tenantName ? `Resumen general de ${tenantName}.` : 'Resumen general de tu institución.';
   });
 
   /**
@@ -674,7 +865,7 @@ export class DashboardHomeComponent implements OnInit {
     return [
       {
         id: 'rate',
-        label: 'Tasa de asistencia hoy',
+        label: 'Asistencia de hoy',
         value: t.enrollmentsConsidered === 0
           ? '—'
           : `${t.attendanceRateToday.toFixed(1)}%`,
@@ -682,7 +873,7 @@ export class DashboardHomeComponent implements OnInit {
         delta:
           t.enrollmentsConsidered === 0
             ? 'Sin clase hoy'
-            : `${t.enrollmentsConsidered} matriculados considerados`,
+            : `${t.enrollmentsConsidered} estudiantes esperados`,
         trend: 'flat' as const,
       },
       {
@@ -695,7 +886,7 @@ export class DashboardHomeComponent implements OnInit {
       },
       {
         id: 'unique',
-        label: 'Estudiantes registrados hoy',
+        label: 'Estudiantes con asistencia registrada',
         value: t.uniqueStudentsRegisteredToday.toString(),
         icon: 'users' as const,
         delta: null,
@@ -755,12 +946,12 @@ export class DashboardHomeComponent implements OnInit {
     return [
       {
         id: 'rate',
-        label: 'Tasa de asistencia hoy',
+        label: 'Asistencia de hoy',
         value: o.noClassToday ? '—' : `${o.attendanceRateToday.toFixed(1)}%`,
         icon: 'calendar-check' as const,
         delta: o.noClassToday
           ? 'Sin clase hoy'
-          : `${o.enrollmentsConsidered} matriculados considerados`,
+          : `${o.enrollmentsConsidered} estudiantes esperados`,
         trend: 'flat' as const,
       },
       {
@@ -773,7 +964,7 @@ export class DashboardHomeComponent implements OnInit {
       },
       {
         id: 'unique',
-        label: 'Estudiantes registrados hoy',
+        label: 'Estudiantes con asistencia registrada',
         value: o.uniqueStudentsRegisteredToday.toString(),
         icon: 'users' as const,
         delta: null,
@@ -838,20 +1029,28 @@ export class DashboardHomeComponent implements OnInit {
   ngOnInit(): void {
     if (this.isAdmin()) {
       this.store.loadAttendanceOverview();
+      this.loadOverdueSummary();
+      this.loadSchoolOperationsSummary();
     } else if (this.isTeacher()) {
       this.loadTeacherDashboard();
     }
     if (this.isParent()) {
       return;
     }
-    // Sprint cierre-A / F10: load analytics for both admin and teacher
-    // views (the BE endpoint permits TENANT_ADMIN + TEACHER + STUDENT).
-    this.loadAnalytics();
+    // Analytics cards and charts are part of the admin dashboard only.
+    // Do not request tenant-wide KPIs for staff, parents, students or the
+    // teacher landing view; the backend intentionally denies those roles
+    // from this dashboard endpoint set.
+    if (this.isAdmin()) {
+      this.loadAnalytics();
+    }
   }
 
   protected refresh(): void {
     if (this.isAdmin()) {
       this.store.loadAttendanceOverview();
+      this.loadOverdueSummary();
+      this.loadSchoolOperationsSummary();
     } else if (this.isTeacher()) {
       this.loadTeacherDashboard();
     }
@@ -865,6 +1064,11 @@ export class DashboardHomeComponent implements OnInit {
    * keeps working.
    */
   private loadAnalytics(): void {
+    // Keep the request boundary aligned with the template and backend role
+    // policy. This also protects future callers (for example refresh) from
+    // issuing unauthorized requests for other roles.
+    if (!this.isAdmin()) return;
+
     this.analyticsLoading.set(true);
     const from = new Date(Date.now() - 30 * 86_400_000).toISOString();
     const to = new Date().toISOString();
@@ -897,6 +1101,34 @@ export class DashboardHomeComponent implements OnInit {
         next: (snap) => this.teacherSnapshot.set(snap),
         error: () => this.teacherSnapshot.set(null),
       });
+  }
+
+  /** Tenant-scoped school invoice summary for the director's dashboard. */
+  private loadOverdueSummary(): void {
+    this.overdueLoading.set(true);
+    this.paymentsApi
+      .aging()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (summary) => this.overdueSummary.set(summary),
+        error: () => {
+          this.overdueSummary.set(null);
+          this.overdueLoading.set(false);
+        },
+        complete: () => this.overdueLoading.set(false),
+      });
+  }
+
+  private loadSchoolOperationsSummary(): void {
+    this.schoolSummaryLoading.set(true);
+    this.api.getSchoolOperationsSummary().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (summary) => this.schoolSummary.set(summary),
+      error: () => {
+        this.schoolSummary.set(null);
+        this.schoolSummaryLoading.set(false);
+      },
+      complete: () => this.schoolSummaryLoading.set(false),
+    });
   }
 
   protected slotLabel(slot: AttendanceSessionSlot): string {
@@ -934,7 +1166,7 @@ export class DashboardHomeComponent implements OnInit {
 const EMPTY_KPIS = [
   {
     id: 'rate',
-    label: 'Tasa de asistencia hoy',
+    label: 'Asistencia de hoy',
     value: '—',
     icon: 'calendar-check' as const,
     delta: null as string | null,
@@ -950,7 +1182,7 @@ const EMPTY_KPIS = [
   },
   {
     id: 'unique',
-    label: 'Estudiantes registrados hoy',
+    label: 'Estudiantes con asistencia registrada',
     value: '—',
     icon: 'users' as const,
     delta: null as string | null,

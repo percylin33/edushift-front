@@ -75,6 +75,14 @@ export interface StudentRow {
   enrollmentDate?: Date;
 }
 
+/** Minimal identity projection returned to staff searching invoice recipients. */
+export interface StudentPaymentRecipient {
+  publicUuid: string;
+  documentType: DocumentType;
+  documentNumber: string;
+  fullName: string;
+}
+
 /**
  * UI-side detail shape (superset of {@link StudentRow}) used by the
  * detail page and the edit form. {@code metadata} stays as the raw

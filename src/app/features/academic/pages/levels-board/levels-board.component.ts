@@ -64,7 +64,7 @@ import { AcademicLevel, Grade } from '../../models';
       <div class="min-w-0">
         <h2 class="text-lg font-semibold text-content">Niveles y grados</h2>
         <p class="text-sm text-content-muted">
-          Estructura curricular del workspace. Selecciona un nivel a la izquierda y arrastra los
+          Estructura curricular de la institución. Selecciona un nivel a la izquierda y arrastra los
           grados para reordenarlos.
         </p>
       </div>

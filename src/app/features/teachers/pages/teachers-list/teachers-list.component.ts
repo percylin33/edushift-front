@@ -63,7 +63,7 @@ import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
     <app-page-container size="wide">
       <app-page-header
         title="Docentes"
-        subtitle="Padrón de docentes del workspace, con filtros y vinculación a cuentas de usuario."
+        subtitle="Padrón de docentes de la institución, con filtros y vinculación a cuentas de usuario."
       >
         <button type="button" class="btn btn-outline btn-sm" (click)="openBulkModal()">
           <app-icon name="upload" [size]="16" />

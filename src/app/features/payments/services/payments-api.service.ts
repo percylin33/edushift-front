@@ -4,21 +4,26 @@ import { Observable, map } from 'rxjs';
 import { ApiService } from '@core/services';
 import { API } from '@core/constants/api.constants';
 import { ApiResponse } from '@core/models';
+import { TenantService } from '@core/services/tenant.service';
 import {
   AdminInvoicesQuery,
   AdminPaymentsQuery,
   AgingBuckets,
   BulkCreateSubscriptionsRequest,
   BulkCreateSubscriptionsResponse,
+  BillingPlanRuleRequest,
+  BillingPlanRuleResponse,
   BulkEmitInvoicesRequest,
   BulkEmitInvoicesResponse,
   CheckoutResponse,
   CreateSubscriptionRequest,
   EmitInvoiceRequest,
   Invoice,
+  InvoiceReviewQueueItem,
   MarkInvoicePaidCashRequest,
   Payment,
   PaymentAccessOverride,
+  PaymentAccessCandidate,
   PaymentAccessStatus,
   PaymentPolicy,
   PaymentSubscription,
@@ -29,6 +34,12 @@ import {
   SubmitPaymentEvidenceRequest,
   SubscriptionStatus,
 } from '../models/invoice.model';
+import {
+  PaymentMethodAdminResponse,
+  PaymentMethodCreateRequest,
+  PaymentMethodPublicResponse,
+  PaymentMethodUpdateRequest,
+} from '../models/payment-method.model';
 
 /**
  * Payments REST service (Sprint 10 / FE-10.1 + Sprint 11 / FE-11.1 +
@@ -36,12 +47,14 @@ import {
  *
  * <p>User-facing methods: {@code listMyInvoices}, {@code getInvoice},
  * {@code listPaymentsForInvoice}, {@code checkout}, {@code getAccessStatus}.
- * Admin methods are gated by {@code LMS_PAYMENT_ADMIN}.</p>
+ * Admin methods use granular payment authorities, with transitional
+ * {@code LMS_PAYMENT_ADMIN} access where applicable.</p>
  */
 @Injectable({ providedIn: 'root' })
 export class PaymentsApiService {
   private readonly api = inject(ApiService);
   private readonly http = inject(HttpClient);
+  private readonly tenantService = inject(TenantService);
 
   // -------------------------------------------------------------------------
   // User-facing (Sprint 10 / FE-10.1)
@@ -121,16 +134,31 @@ export class PaymentsApiService {
       .pipe(map((r) => this.unwrap(r)));
   }
 
+  listInvoiceReviewQueue(
+    query: Pick<AdminInvoicesQuery, 'page' | 'size'> = {},
+  ): Observable<{ content: InvoiceReviewQueueItem[]; totalElements: number }> {
+    const params = new URLSearchParams({
+      page: String(query.page ?? 0),
+      size: String(query.size ?? 20),
+    });
+    return this.api
+      .get<
+        | ApiResponse<{ content: InvoiceReviewQueueItem[]; totalElements: number }>
+        | { content: InvoiceReviewQueueItem[]; totalElements: number }
+      >(`${API.PAYMENTS.ADMIN.INVOICE_REVIEW_QUEUE}?${params.toString()}`)
+      .pipe(map((r) => this.unwrap(r)));
+  }
+
   rejectEvidence(
     invoicePublicUuid: string,
     body: RejectPaymentEvidenceRequest,
-  ): Observable<Invoice> {
-    return this.api
-      .post<ApiResponse<Invoice> | Invoice>(
-        API.PAYMENTS.ADMIN.REJECT_EVIDENCE(invoicePublicUuid),
-        body,
-      )
-      .pipe(map((r) => this.unwrap(r)));
+  ): Observable<null> {
+    return this.api.post<null>(API.PAYMENTS.ADMIN.REJECT_EVIDENCE(invoicePublicUuid), body);
+  }
+
+  /** Approve a submitted voucher and record a manual (non-cash) payment. */
+  approveEvidence(invoicePublicUuid: string): Observable<null> {
+    return this.api.post<null>(API.PAYMENTS.ADMIN.APPROVE_EVIDENCE(invoicePublicUuid), {});
   }
 
   /** Tenant-wide payment listing. Returns a Spring data page envelope. */
@@ -234,6 +262,56 @@ export class PaymentsApiService {
         body,
       )
       .pipe(map((r) => this.unwrap(r)));
+  }
+
+  listBillingPlanRules(): Observable<BillingPlanRuleResponse[]> {
+    return this.api
+      .get<ApiResponse<BillingPlanRuleResponse[]> | BillingPlanRuleResponse[]>(
+        API.PAYMENTS.ADMIN.SUBSCRIPTIONS.RULES,
+      )
+      .pipe(map((r) => this.unwrap(r) ?? []));
+  }
+
+  previewBillingPlanRule(body: BillingPlanRuleRequest): Observable<BillingPlanRuleResponse> {
+    return this.api
+      .post<ApiResponse<BillingPlanRuleResponse> | BillingPlanRuleResponse>(
+        API.PAYMENTS.ADMIN.SUBSCRIPTIONS.RULE_PREVIEW,
+        body,
+      )
+      .pipe(map((r) => this.unwrap(r)));
+  }
+
+  createBillingPlanRule(body: BillingPlanRuleRequest): Observable<BillingPlanRuleResponse> {
+    return this.api
+      .post<ApiResponse<BillingPlanRuleResponse> | BillingPlanRuleResponse>(
+        API.PAYMENTS.ADMIN.SUBSCRIPTIONS.RULES,
+        body,
+      )
+      .pipe(map((r) => this.unwrap(r)));
+  }
+
+  updateBillingPlanRule(publicUuid: string, active: boolean): Observable<BillingPlanRuleResponse> {
+    return this.api
+      .patch<ApiResponse<BillingPlanRuleResponse> | BillingPlanRuleResponse, { active: boolean }>(
+        API.PAYMENTS.ADMIN.SUBSCRIPTIONS.RULE_BY_ID(publicUuid),
+        { active },
+      )
+      .pipe(map((r) => this.unwrap(r)));
+  }
+
+  synchronizeBillingPlanRule(publicUuid: string): Observable<BillingPlanRuleResponse> {
+    return this.api
+      .post<ApiResponse<BillingPlanRuleResponse> | BillingPlanRuleResponse>(
+        API.PAYMENTS.ADMIN.SUBSCRIPTIONS.RULE_SYNC(publicUuid),
+        {},
+      )
+      .pipe(map((r) => this.unwrap(r)));
+  }
+
+  deleteBillingPlanRule(publicUuid: string): Observable<void> {
+    return this.api
+      .delete<ApiResponse<null> | null>(API.PAYMENTS.ADMIN.SUBSCRIPTIONS.RULE_BY_ID(publicUuid))
+      .pipe(map(() => undefined));
   }
 
   listSiblingSuggestions(): Observable<SiblingSuggestionGroup[]> {
@@ -347,6 +425,118 @@ export class PaymentsApiService {
         {},
       )
       .pipe(map((r) => this.unwrap(r)));
+  }
+
+  searchAccessOverrideCandidates(query: string): Observable<PaymentAccessCandidate[]> {
+    return this.api
+      .get<ApiResponse<PaymentAccessCandidate[]> | PaymentAccessCandidate[]>(
+        API.PAYMENTS.ADMIN.ACCESS_OVERRIDE_CANDIDATES,
+        { q: query },
+      )
+      .pipe(map((r) => this.unwrap(r) ?? []));
+  }
+
+  listAccessOverrides(): Observable<PaymentAccessOverride[]> {
+    return this.api
+      .get<ApiResponse<PaymentAccessOverride[]> | PaymentAccessOverride[]>(
+        API.PAYMENTS.ADMIN.ACCESS_OVERRIDES,
+      )
+      .pipe(map((r) => this.unwrap(r) ?? []));
+  }
+
+  revokeAccessOverride(publicUuid: string): Observable<void> {
+    return this.api
+      .delete<ApiResponse<null> | null>(API.PAYMENTS.ADMIN.ACCESS_OVERRIDE_BY_ID(publicUuid))
+      .pipe(map(() => undefined));
+  }
+
+  // -------------------------------------------------------------------------
+  // Payment Methods (Admin)
+  // -------------------------------------------------------------------------
+
+  private getTenantSlug(): string {
+    const slug = this.tenantService.tenantSlug();
+    if (!slug) {
+      throw new Error('No hay tenant activo. Recargue la página o inicie sesión.');
+    }
+    return slug;
+  }
+
+  listPaymentMethods(): Observable<PaymentMethodAdminResponse[]> {
+    const tenantSlug = this.getTenantSlug();
+    return this.api
+      .get<ApiResponse<PaymentMethodAdminResponse[]> | PaymentMethodAdminResponse[]>(
+        API.PAYMENTS.ADMIN.PAYMENT_METHODS.ROOT.replace(':tenantSlug', tenantSlug),
+      )
+      .pipe(map((r) => this.unwrapArray(r)));
+  }
+
+  getPaymentMethod(publicUuid: string): Observable<PaymentMethodAdminResponse> {
+    const tenantSlug = this.getTenantSlug();
+    return this.api
+      .get<ApiResponse<PaymentMethodAdminResponse> | PaymentMethodAdminResponse>(
+        API.PAYMENTS.ADMIN.PAYMENT_METHODS.BY_ID(tenantSlug, publicUuid),
+      )
+      .pipe(map((r) => this.unwrap(r)));
+  }
+
+  createPaymentMethod(body: PaymentMethodCreateRequest): Observable<PaymentMethodAdminResponse> {
+    const tenantSlug = this.getTenantSlug();
+    return this.api
+      .post<ApiResponse<PaymentMethodAdminResponse> | PaymentMethodAdminResponse>(
+        API.PAYMENTS.ADMIN.PAYMENT_METHODS.ROOT.replace(':tenantSlug', tenantSlug),
+        body,
+      )
+      .pipe(map((r) => this.unwrap(r)));
+  }
+
+  updatePaymentMethod(publicUuid: string, body: PaymentMethodUpdateRequest): Observable<PaymentMethodAdminResponse> {
+    const tenantSlug = this.getTenantSlug();
+    return this.api
+      .patch<ApiResponse<PaymentMethodAdminResponse> | PaymentMethodAdminResponse>(
+        API.PAYMENTS.ADMIN.PAYMENT_METHODS.BY_ID(tenantSlug, publicUuid),
+        body,
+      )
+      .pipe(map((r) => this.unwrap(r)));
+  }
+
+  deletePaymentMethod(publicUuid: string): Observable<void> {
+    const tenantSlug = this.getTenantSlug();
+    return this.api
+      .delete<ApiResponse<null> | null>(
+        API.PAYMENTS.ADMIN.PAYMENT_METHODS.BY_ID(tenantSlug, publicUuid),
+      )
+      .pipe(map(() => undefined));
+  }
+
+  setDefaultPaymentMethod(publicUuid: string): Observable<PaymentMethodAdminResponse> {
+    const tenantSlug = this.getTenantSlug();
+    return this.api
+      .post<ApiResponse<PaymentMethodAdminResponse> | PaymentMethodAdminResponse>(
+        API.PAYMENTS.ADMIN.PAYMENT_METHODS.SET_DEFAULT(tenantSlug, publicUuid),
+        {},
+      )
+      .pipe(map((r) => this.unwrap(r)));
+  }
+
+  // -------------------------------------------------------------------------
+  // Payment Methods (Public - for guardians)
+  // -------------------------------------------------------------------------
+
+  listPublicPaymentMethods(): Observable<PaymentMethodPublicResponse[]> {
+    const tenantSlug = this.getTenantSlug();
+    return this.api
+      .get<ApiResponse<PaymentMethodPublicResponse[]> | PaymentMethodPublicResponse[]>(
+        API.PAYMENTS.ADMIN.PAYMENT_METHODS.PUBLIC(tenantSlug),
+      )
+      .pipe(map((r) => this.unwrapArray(r)));
+  }
+
+  private unwrapArray<T>(r: ApiResponse<T[]> | T[]): T[] {
+    if (r != null && typeof r === 'object' && 'data' in (r as object) && 'success' in (r as object)) {
+      return (r as ApiResponse<T[]>).data ?? [];
+    }
+    return r as T[];
   }
 
   private unwrap<T>(r: ApiResponse<T> | T): T {

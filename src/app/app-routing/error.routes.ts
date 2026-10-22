@@ -1,3 +1,4 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { BlankLayoutComponent } from '@layout/index';
 
@@ -7,11 +8,13 @@ import { BlankLayoutComponent } from '@layout/index';
  */
 export const ERROR_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     component: BlankLayoutComponent,
     children: [
       {
-        path: '403',
+        canDeactivate: [pendingChangesGuard],
+    path: '403',
         data: { title: 'Acceso denegado' },
         loadComponent: () =>
           import('@features/errors/pages/forbidden/forbidden.component').then(
@@ -19,7 +22,8 @@ export const ERROR_ROUTES: Routes = [
           ),
       },
       {
-        path: '404',
+        canDeactivate: [pendingChangesGuard],
+    path: '404',
         data: { title: 'Página no encontrada' },
         loadComponent: () =>
           import('@features/errors/pages/not-found/not-found.component').then(

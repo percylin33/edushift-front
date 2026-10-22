@@ -12,9 +12,12 @@ import {
   NavigationEnd,
   NavigationError,
   Router,
+  RouterLink,
   RouterOutlet,
 } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { HttpClient } from '@angular/common/http';
+import { API } from '@core/constants';
 import { TenantService } from '@core/services';
 import { APP } from '@core/constants';
 import { TenantStatus } from '@core/enums';
@@ -26,6 +29,7 @@ import {
 } from '@core/theming/tenant-assets.service';
 import { AlertComponent, SpinnerComponent, TenantLogoComponent } from '@shared/components';
 import { ThemeToggleComponent } from '../components';
+import { PrivacyNoticeBannerComponent } from '@shared/components/privacy-notice-banner/privacy-notice-banner.component';
 
 type AuthShellState = 'loading' | 'ready' | 'needs-link' | 'not-found' | 'inactive';
 
@@ -50,10 +54,12 @@ type AuthShellState = 'loading' | 'ready' | 'needs-link' | 'not-found' | 'inacti
   standalone: true,
   imports: [
     RouterOutlet,
+    RouterLink,
     ThemeToggleComponent,
     TenantLogoComponent,
     AlertComponent,
     SpinnerComponent,
+    PrivacyNoticeBannerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
@@ -93,6 +99,12 @@ type AuthShellState = 'loading' | 'ready' | 'needs-link' | 'not-found' | 'inacti
       .auth-fade-delay {
         animation: auth-fade 0.5s ease 0.18s both;
       }
+      .auth-footer a {
+        color: rgba(255, 255, 255, 0.9);
+      }
+      .auth-footer a:hover {
+        color: white;
+      }
       .auth-drift {
         animation: auth-drift 28s ease-in-out infinite alternate;
       }
@@ -108,6 +120,9 @@ type AuthShellState = 'loading' | 'ready' | 'needs-link' | 'not-found' | 'inacti
   ],
   template: `
     <div class="relative min-h-screen overflow-hidden bg-surface">
+      <!-- Privacy notice banner - visible on first ingress -->
+      <app-privacy-notice-banner />
+
       <!-- Full-bleed hero plane -->
       <div class="pointer-events-none absolute inset-0" aria-hidden="true">
         <div class="absolute inset-0" [style.background]="meshBackground()"></div>
@@ -172,7 +187,7 @@ type AuthShellState = 'loading' | 'ready' | 'needs-link' | 'not-found' | 'inacti
             }
           </div>
 
-          <div class="auth-fade-delay flex items-center gap-2 text-xs text-white/55">
+          <div class="auth-fade-delay auth-footer flex items-center gap-2 text-xs text-white/55">
             <span>Powered by</span>
             <img
               [src]="platformWordmarkOnDark"
@@ -181,6 +196,27 @@ type AuthShellState = 'loading' | 'ready' | 'needs-link' | 'not-found' | 'inacti
             />
             <span class="text-white/30" aria-hidden="true">·</span>
             <span>© {{ year }}</span>
+            <span class="text-white/30" aria-hidden="true">·</span>
+            <a
+              routerLink="/politica-privacidad"
+              class="text-white/90 underline decoration-white/50 transition-colors hover:text-white"
+            >
+              Privacidad
+            </a>
+            <span class="text-white/30" aria-hidden="true">·</span>
+            <a
+              routerLink="/terminos-y-condiciones"
+              class="text-white/90 underline decoration-white/50 transition-colors hover:text-white"
+            >
+              Términos
+            </a>
+            <span class="text-white/30" aria-hidden="true">·</span>
+            <a
+              routerLink="/libro-de-reclamaciones"
+              class="flex items-center gap-1 text-white/90 underline decoration-white/50 transition-colors hover:text-white"
+            >
+              📖 Reclamaciones
+            </a>
           </div>
         </aside>
 
@@ -217,13 +253,8 @@ type AuthShellState = 'loading' | 'ready' | 'needs-link' | 'not-found' | 'inacti
                   Abre el enlace de tu institución
                 </h2>
                 <p class="text-sm text-content-muted">
-                  No podemos identificar el colegio desde esta dirección. Pide a tu institución el
-                  enlace de acceso o, en local, agrega el parámetro de tenant.
-                </p>
-                <p
-                  class="rounded-lg border border-border bg-surface-muted px-3 py-2 font-mono text-xs text-content"
-                >
-                  http://localhost:4200/auth/login?tenant=tecnosur
+                  No podemos identificar tu institución desde este enlace. Pide a tu colegio el
+                  enlace correcto para ingresar.
                 </p>
               </div>
             } @else if (shellState() === 'not-found') {
@@ -233,8 +264,7 @@ type AuthShellState = 'loading' | 'ready' | 'needs-link' | 'not-found' | 'inacti
                   message="No encontramos una institución con ese identificador."
                 />
                 <p class="text-sm text-content-muted">
-                  Revisa el enlace o prueba en local con
-                  <span class="font-mono text-xs">?tenant=tecnosur</span>.
+                  Revisa el enlace o pide uno nuevo a tu institución.
                 </p>
               </div>
             } @else if (shellState() === 'inactive') {
@@ -246,19 +276,36 @@ type AuthShellState = 'loading' | 'ready' | 'needs-link' | 'not-found' | 'inacti
               <router-outlet />
             }
 
-            <p class="mt-8 flex items-center justify-center gap-2 text-[11px] text-content-subtle lg:hidden">
-              <span>Powered by</span>
-              <img
-                [src]="platformWordmark"
-                alt="EduShift"
-                class="h-4 w-auto dark:hidden"
-              />
-              <img
-                [src]="platformWordmarkOnDark"
-                alt=""
-                class="hidden h-4 w-auto dark:block"
-              />
-            </p>
+            <div class="mt-8 flex flex-col items-center justify-center gap-2 text-[11px] text-content-subtle lg:hidden">
+              <p class="flex items-center gap-2">
+                <span>Powered by</span>
+                <img
+                  [src]="platformWordmark"
+                  alt="EduShift"
+                  class="h-4 w-auto dark:hidden"
+                />
+                <img
+                  [src]="platformWordmarkOnDark"
+                  alt=""
+                  class="hidden h-4 w-auto dark:block"
+                />
+              </p>
+              <div class="flex items-center gap-2">
+                <a
+                  routerLink="/politica-privacidad"
+                  class="hover:text-content underline decoration-content-subtle/50 transition-colors"
+                >
+                  Política de Privacidad
+                </a>
+                <span class="text-content-subtle/40">·</span>
+                <a
+                  routerLink="/terminos-y-condiciones"
+                  class="hover:text-content underline decoration-content-subtle/50 transition-colors"
+                >
+                  Términos y Condiciones
+                </a>
+              </div>
+            </div>
           </div>
         </section>
       </div>

@@ -12,6 +12,7 @@ import { NavbarComponent, SidebarComponent, UatBannerComponent } from '../compon
 import { SkipLinkComponent } from '@core/a11y/skip-link.component';
 import { PaymentAccessBannerComponent } from '@features/payments/components/payment-access-banner/payment-access-banner.component';
 import { SpinnerComponent } from '@shared/components';
+import { AdminImpersonationBannerComponent } from '@features/admin/components/admin-impersonation-banner.component';
 
 /**
  * Authenticated app shell.
@@ -41,19 +42,21 @@ import { SpinnerComponent } from '@shared/components';
     PaymentAccessBannerComponent,
     SkipLinkComponent,
     SpinnerComponent,
+    AdminImpersonationBannerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-skip-link />
 
-    <div class="flex min-h-screen bg-surface-subtle text-content">
+    <div class="flex h-dvh min-h-0 overflow-hidden bg-surface-subtle text-content">
       <nav aria-label="Navegación principal" class="shrink-0">
         <app-sidebar />
       </nav>
 
-      <div class="flex min-w-0 flex-1 flex-col">
+      <div class="flex min-h-0 min-w-0 flex-1 flex-col">
         <app-uat-banner />
         <app-payment-access-banner />
+        <app-admin-impersonation-banner />
         <app-navbar />
         <!-- No inner container: each routed page declares its own gutters via
              <app-page-container>. This keeps data-heavy / full-bleed pages
@@ -61,7 +64,7 @@ import { SpinnerComponent } from '@shared/components';
         <main
           id="main-content"
           tabindex="-1"
-          class="relative flex-1 overflow-y-auto focus:outline-none"
+          class="relative min-h-0 flex-1 overflow-y-auto focus:outline-none"
           [attr.aria-busy]="routeLoading()"
         >
           @if (routeLoading()) {

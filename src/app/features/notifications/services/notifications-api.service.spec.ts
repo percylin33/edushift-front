@@ -80,7 +80,12 @@ describe('NotificationsApiService', () => {
 
   describe('getPreferences', () => {
     it('obtiene preferencias', (done) => {
-      apiSpy.get.and.returnValue(of([{ category: 'GRADE', channel: 'EMAIL', enabled: true }]));
+      apiSpy.get.and.returnValue(
+        of({
+          success: true,
+          data: [{ category: 'GRADE', channel: 'EMAIL', enabled: true }],
+        }),
+      );
       service.getPreferences().subscribe((rows) => {
         expect(rows.length).toBe(1);
         done();

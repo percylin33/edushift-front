@@ -36,7 +36,7 @@ import { AnalyticsChartPoint } from '../../services/analytics-api.service';
 					class="flex h-48 items-center justify-center text-sm text-content-muted"
 					data-testid="analytics-trend-empty"
 				>
-					Sin datos en el período seleccionado.
+					Aún no hay registros diarios para graficar en estos 30 días.
 				</div>
 			} @else {
 				<div class="h-48">

@@ -28,6 +28,7 @@ import {
   PortalInvitationResult,
   SectionStudentRosterItem,
   SectionStudentRosterItemRaw,
+  StudentPaymentRecipient,
   StudentDetail,
   StudentListFilters,
   StudentListItemRaw,
@@ -99,6 +100,24 @@ export class StudentsApiService {
     return this.api
       .get<SpringPage<StudentListItemRaw>>(API.STUDENTS.ROOT, params)
       .pipe(map((page) => this.toStudentPage(page)));
+  }
+
+  /** Search only the identity fields needed to select an invoice recipient. */
+  listPaymentRecipients(
+    search: string,
+    pagination: StudentListPagination = {},
+  ): Observable<SpringPage<StudentPaymentRecipient>> {
+    const params: Record<string, string | number | undefined> = {
+      search: search.trim() || undefined,
+      page: pagination.page,
+      size: pagination.size,
+      sort: pagination.sort,
+    };
+
+    return this.api.get<SpringPage<StudentPaymentRecipient>>(
+      API.STUDENTS.PAYMENT_RECIPIENTS,
+      params,
+    );
   }
 
   get(publicUuid: string): Observable<StudentDetail> {

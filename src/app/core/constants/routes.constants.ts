@@ -4,6 +4,9 @@
  */
 export const ROUTES = {
   ROOT: '/',
+  PRIVACY_POLICY: '/politica-privacidad',
+  TERMS_AND_CONDITIONS: '/terminos-y-condiciones',
+  CLAIMS_BOOK: '/libro-de-reclamaciones',
   AUTH: {
     ROOT: '/auth',
     LOGIN: '/auth/login',
@@ -82,6 +85,7 @@ export const ROUTES = {
     YEARS: {
       LIST: '/academic/years',
       NEW: '/academic/years/new',
+      TRANSITION: '/academic/years/transition',
       edit: (id: string) => `/academic/years/${id}/edit`,
     },
     LEVELS: {
@@ -176,6 +180,9 @@ export const ROUTES = {
   AI: {
     ROOT: '/ai',
     CHAT: '/ai/chat',
+    TUTOR: '/ai/tutor',
+    TEACHER: '/ai/teacher',
+    FAMILY: '/ai/family',
     INSIGHTS: '/ai/insights',
   },
   REPORTS: {
@@ -242,6 +249,7 @@ export const ROUTES = {
     TENANTS: '/admin/tenants',
     TENANT_DETAIL: (uuid: string) => `/admin/tenants/${uuid}`,
     PLANS: '/admin/plans',
+    AI_GLOBAL_SOURCES: '/admin/ai/global-sources',
     PLAN_DETAIL: (uuid: string) => `/admin/plans/${uuid}`,
     PLAN_NEW: '/admin/plans/new',
     INVOICES: '/admin/invoices',
@@ -250,6 +258,8 @@ export const ROUTES = {
     METRICS: '/admin/metrics',
     METRICS_TENANT: (uuid: string) => `/admin/metrics/${uuid}`,
     AUDIT: '/admin/audit',
+    SUPER_ADMINS: '/admin/super-admins',
+    SUPPORT: '/admin/support',
   },
   ERRORS: {
     NOT_FOUND: '/404',

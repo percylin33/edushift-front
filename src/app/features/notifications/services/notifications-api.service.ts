@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { ApiResponse } from '@core/models';
 import { ApiService } from '@core/services';
 import { API } from '@core/constants';
@@ -51,7 +51,9 @@ export class NotificationsApiService {
 
   /** Sprint 9 / FE-9.4 — list the user's preference rows. */
   getPreferences(): Observable<NotificationPreferenceRow[]> {
-    return this.api.get<NotificationPreferenceRow[]>(API.NOTIFICATIONS.PREFERENCES);
+    return this.api
+      .get<ApiResponse<NotificationPreferenceRow[]>>(API.NOTIFICATIONS.PREFERENCES)
+      .pipe(map((response) => (Array.isArray(response?.data) ? response.data : [])));
   }
 
   /** Sprint 9 / FE-9.4 — set a single (channel × category) preference. */

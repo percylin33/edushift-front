@@ -1,6 +1,7 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { AuthLayoutComponent, OnboardingLayoutComponent } from '@layout/index';
-import { featureFlagGuard } from '@core/guards';
+import { authChildGuard, featureFlagGuard, tenantHostGuard } from '@core/guards';
 import { FeatureKey } from '@core/enums';
 
 /**
@@ -16,6 +17,19 @@ import { FeatureKey } from '@core/enums';
  */
 export const PUBLIC_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
+    path: 'public/admissions/:tenantSlug',
+    data: { title: 'Consulta de admisión' },
+    loadComponent: () => import('@features/admissions/pages/public-admissions-page').then((m) => m.PublicAdmissionsPage),
+  },
+  {
+    canDeactivate: [pendingChangesGuard],
+    path: 'public/admissions/:tenantSlug/offer/:token',
+    data: { title: 'Confirmar oferta de vacante' },
+    loadComponent: () => import('@features/admissions/pages/public-admissions-page').then((m) => m.PublicAdmissionsPage),
+  },
+  {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     component: AuthLayoutComponent,
     children: [
@@ -37,7 +51,9 @@ export const PUBLIC_ROUTES: Routes = [
        * just create dead links that don't even render the error copy.
        */
       {
-        path: 'invitation/:token',
+        canDeactivate: [pendingChangesGuard],
+    path: 'invitation/:token',
+        canActivate: [tenantHostGuard],
         data: { title: 'Activar cuenta' },
         loadComponent: () =>
           import('@features/users/pages/invitation-accept/invitation-accept.component').then(
@@ -47,7 +63,9 @@ export const PUBLIC_ROUTES: Routes = [
     ],
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'onboarding',
+    canActivateChild: [authChildGuard],
     component: OnboardingLayoutComponent,
     data: { title: 'Onboarding' },
     loadChildren: () =>

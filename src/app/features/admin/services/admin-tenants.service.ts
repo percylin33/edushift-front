@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, from, switchMap } from 'rxjs';
+import { Observable, from, switchMap, tap } from 'rxjs';
 import { ApiService } from '@core/services';
 import { API } from '@core/constants';
 import {
@@ -9,12 +9,22 @@ import {
   TenantFilterParams,
 } from '../models';
 
+export interface TenantOverview {
+  activeTenants: number;
+  activeStudents: number;
+  mrr: number;
+  overdue: number;
+  collectionRate: number;
+  lastUpdated: string | null;
+}
+
 export type PrepPackageVariant = 'PILOT' | 'PRODUCTION';
 
 @Injectable({ providedIn: 'root' })
 export class AdminTenantsService {
   private readonly api = inject(ApiService);
   private readonly http = inject(HttpClient);
+  private tenantRequestSequence = 0;
 
   private readonly _tenants = signal<AdminTenantSummary[]>([]);
   private readonly _totalElements = signal(0);
@@ -22,6 +32,9 @@ export class AdminTenantsService {
   private readonly _loading = signal(false);
   private readonly _error = signal<string | null>(null);
   private readonly _selectedTenant = signal<AdminTenantDetail | null>(null);
+  private readonly _overview = signal<TenantOverview | null>(null);
+  private readonly _overviewLoading = signal(false);
+  private readonly _overviewError = signal<string | null>(null);
 
   readonly tenants = this._tenants.asReadonly();
   readonly totalElements = this._totalElements.asReadonly();
@@ -29,19 +42,48 @@ export class AdminTenantsService {
   readonly loading = this._loading.asReadonly();
   readonly error = this._error.asReadonly();
   readonly selectedTenant = this._selectedTenant.asReadonly();
+  readonly overview = this._overview.asReadonly();
+  readonly overviewLoading = this._overviewLoading.asReadonly();
+  readonly overviewError = this._overviewError.asReadonly();
+
+  loadOverview(): void {
+    this._overviewLoading.set(true);
+    this._overviewError.set(null);
+    this.api.get<any>(API.ADMIN.KPIS).subscribe({
+      next: (res) => {
+        const data = res.data ?? res;
+        this._overview.set({
+          activeTenants: Number(data.activeTenants ?? 0),
+          activeStudents: Number(data.activeStudents ?? 0),
+          mrr: Number(data.mrrCents ?? 0) / 100,
+          overdue: Number(data.overdueCents ?? 0) / 100,
+          collectionRate: Number(data.collectionRate ?? 0),
+          lastUpdated: data.lastUpdated ?? null,
+        });
+        this._overviewLoading.set(false);
+      },
+      error: (err) => {
+        this._overviewError.set(err?.error?.message ?? 'No se pudieron cargar los indicadores.');
+        this._overviewLoading.set(false);
+      },
+    });
+  }
 
   loadTenants(params: TenantFilterParams = {}): void {
+    const requestSequence = ++this.tenantRequestSequence;
     this._loading.set(true);
     this._error.set(null);
-    const query: any = {};
-    if (params.search) query.search = params.search;
-    if (params.plan) query.plan = params.plan;
-    if (params.status) query.status = params.status;
-    query.page = params.page ?? 0;
-    query.size = params.size ?? 10;
+    const query: Record<string, string | number> = {};
+    if (params.search) query['search'] = params.search;
+    if (params.plan) query['plan'] = params.plan;
+    if (params.status) query['status'] = params.status;
+    if (params.sort) query['sort'] = params.sort;
+    query['page'] = params.page ?? 0;
+    query['size'] = params.size ?? 10;
 
     this.api.get<any>(API.ADMIN.TENANTS_ROOT, query).subscribe({
       next: (res) => {
+        if (requestSequence !== this.tenantRequestSequence) return;
         const data = res.data ?? res;
         this._tenants.set(data.content ?? data);
         this._totalElements.set(data.totalElements ?? 0);
@@ -49,6 +91,7 @@ export class AdminTenantsService {
         this._loading.set(false);
       },
       error: (err) => {
+        if (requestSequence !== this.tenantRequestSequence) return;
         this._error.set(err?.error?.message ?? 'Error al cargar instituciones');
         this._loading.set(false);
       },
@@ -70,24 +113,22 @@ export class AdminTenantsService {
     });
   }
 
-  suspendTenant(uuid: string): void {
-    this.api.post<void>(API.ADMIN.TENANTS_SUSPEND(uuid), {}).subscribe({
-      next: () => this.loadTenantDetail(uuid),
-    });
+  suspendTenant(uuid: string, reason: string): Observable<void> {
+    return this.api.post<void>(API.ADMIN.TENANTS_SUSPEND(uuid), { reason }).pipe(
+      tap(() => this.loadTenantDetail(uuid)),
+    );
   }
 
-  reactivateTenant(uuid: string): void {
-    this.api.post<void>(API.ADMIN.TENANTS_REACTIVATE(uuid), {}).subscribe({
-      next: () => this.loadTenantDetail(uuid),
-    });
+  reactivateTenant(uuid: string): Observable<void> {
+    return this.api.post<void>(API.ADMIN.TENANTS_REACTIVATE(uuid), {}).pipe(
+      tap(() => this.loadTenantDetail(uuid)),
+    );
   }
 
-  assignPlan(tenantUuid: string, planUuid: string): void {
-    this.api.post<void>(API.ADMIN.ASSIGN_SUBSCRIPTION(tenantUuid), {
-      platformPlanUuid: planUuid,
-    }).subscribe({
-      next: () => this.loadTenantDetail(tenantUuid),
-    });
+  assignPlan(tenantUuid: string, planUuid: string): Observable<void> {
+    return this.api.post<void>(API.ADMIN.ASSIGN_SUBSCRIPTION(tenantUuid), {
+      planId: planUuid,
+    }).pipe(tap(() => this.loadTenantDetail(tenantUuid)));
   }
 
   inviteSchool(email: string) {

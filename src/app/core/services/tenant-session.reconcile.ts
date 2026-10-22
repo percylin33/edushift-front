@@ -19,35 +19,20 @@ export interface TenantSessionReconcileDeps {
 /**
  * Keep school branding aligned with the authenticated JWT session.
  *
- * Browser back/forward (and bfcache) can restore an in-memory tenant from
- * school A while localStorage still holds school B's session — or boot from
- * {@code ?tenant=} for school A while a prior JWT for school B survives.
  * Authenticated surfaces must paint branding from {@code GET /tenants/me}.
- * On {@code /auth/login?tenant=X} with a foreign session, drop the session
- * so the login form shows X without leaking B's data under X's chrome.
+ * If the session belongs to a different school than the current hostname,
+ * drop it and keep the hostname-selected tenant to avoid cross-school chrome.
  */
 export async function reconcileTenantWithSession(
   deps: TenantSessionReconcileDeps,
   source: string,
 ): Promise<void> {
   const { tenantService, tenantApi, auth, authApi, logger } = deps;
-  const urlSlug = readTenantQuerySlug();
-  const onLoginRoute = isAuthLoginPath(typeof location !== 'undefined' ? location.pathname : '');
+  const requestedTenant = tenantService.tenant();
+  const hasTenantHost = tenantService.hasTenantHost();
 
   // SECURITY FIX: Tokens are in httpOnly cookies, check isAuthenticated instead
-  if (!auth.isAuthenticated()) {
-    if (urlSlug && tenantService.tenantSlug() !== urlSlug) {
-      try {
-        const tenant = await firstValueFrom(
-          tenantApi.findBySlug(urlSlug).pipe(timeout(RECONCILE_HTTP_TIMEOUT_MS)),
-        );
-        tenantService.setTenant(tenant, 'path');
-      } catch (err) {
-        logger.warn(`reconcile(${source}): failed to hydrate ?tenant=${urlSlug}`, err);
-      }
-    }
-    return;
-  }
+  if (!auth.isAuthenticated()) return;
 
   try {
     const user = await firstValueFrom(authApi.me().pipe(timeout(RECONCILE_HTTP_TIMEOUT_MS)));
@@ -55,6 +40,10 @@ export async function reconcileTenantWithSession(
   } catch (err) {
     logger.warn(`reconcile(${source}): failed to rehydrate /auth/me`, err);
   }
+
+  // Platform surfaces (for example, Super Admin) can run on the bare local
+  // host. They need /auth/me, but must not infer a school from the session.
+  if (!hasTenantHost) return;
 
   let sessionTenant;
   try {
@@ -66,34 +55,11 @@ export async function reconcileTenantWithSession(
     return;
   }
 
-  if (onLoginRoute && urlSlug && urlSlug !== sessionTenant.slug) {
+  if (requestedTenant && requestedTenant.slug !== sessionTenant.slug) {
     auth.clearSession();
-    try {
-      const loginTenant = await firstValueFrom(
-        tenantApi.findBySlug(urlSlug).pipe(timeout(RECONCILE_HTTP_TIMEOUT_MS)),
-      );
-      tenantService.setTenant(loginTenant, 'path');
-    } catch (err) {
-      logger.warn(`reconcile(${source}): failed to hydrate login tenant ${urlSlug}`, err);
-      tenantService.setTenant(sessionTenant, 'header');
-    }
+    tenantService.setTenant(requestedTenant, 'subdomain');
     return;
   }
 
   tenantService.setTenant(sessionTenant, 'header');
-}
-
-function readTenantQuerySlug(): string | null {
-  try {
-    const raw = new URLSearchParams(window.location.search).get('tenant');
-    const trimmed = raw?.trim().toLowerCase();
-    return trimmed && /^[a-z0-9][a-z0-9-]{0,62}$/i.test(trimmed) ? trimmed : null;
-  } catch {
-    return null;
-  }
-}
-
-function isAuthLoginPath(pathname: string): boolean {
-  const path = pathname.split('?')[0] ?? pathname;
-  return path === '/auth/login' || path.endsWith('/auth/login');
 }

@@ -13,6 +13,8 @@ export const AUTH_ERROR_MESSAGES: Record<string, string> = {
   TENANT_INACTIVE: 'Tu institución está inactiva. Contacta al administrador.',
   TENANT_NOT_FOUND: 'No se encontró la institución solicitada.',
   USER_LOCKED: 'Tu cuenta está bloqueada. Contacta al administrador.',
+  USER_TEMPORARILY_LOCKED:
+    'Tu cuenta está bloqueada temporalmente por varios intentos fallidos. Espera unos minutos y vuelve a intentarlo.',
   USER_SUSPENDED: 'Tu cuenta está suspendida. Contacta al administrador.',
   USER_INACTIVE: 'Tu cuenta está deshabilitada. Contacta al administrador.',
   USER_NOT_AUTHENTICATABLE: 'No es posible autenticar tu cuenta en este momento.',
@@ -25,6 +27,17 @@ export const AUTH_ERROR_MESSAGES: Record<string, string> = {
   EMAIL_TAKEN: 'Ya existe una cuenta con este correo.',
   USER_EMAIL_TAKEN: 'Ya existe una cuenta con este correo.',
   PASSWORD_CONFIRM_MISMATCH: 'Las contraseñas no coinciden.',
+  INVITATION_ALREADY_PENDING: 'Ya existe una invitación pendiente para este correo.',
+  INVITATION_ALREADY_ACCEPTED: 'Esta invitación ya fue aceptada. Inicia sesión con tu cuenta.',
+  INVITATION_CANCELLED: 'Esta invitación fue cancelada. Pide al administrador que te envíe otra.',
+  INVITATION_EXPIRED: 'El enlace de invitación venció. Pide al administrador que te envíe otro.',
+  INVITATION_TENANT_MISMATCH: 'Este enlace pertenece a otra institución. Abre el enlace original que recibiste.',
+  SCHOOL_INVITATION_ALREADY_ACCEPTED: 'Esta invitación ya fue aceptada. Inicia sesión con tu cuenta.',
+  SCHOOL_INVITATION_CANCELLED: 'Esta invitación fue cancelada. Solicita un enlace nuevo.',
+  SCHOOL_INVITATION_EXPIRED: 'El enlace de invitación venció. Solicita uno nuevo.',
+  SCHOOL_INVITATION_ALREADY_PENDING: 'Ya existe una invitación pendiente para este correo.',
+  WEAK_PASSWORD:
+    'La contraseña necesita al menos 8 caracteres e incluir mayúscula, minúscula y número. Evita claves comunes o secuencias como abc o 123.',
   MFA_ALREADY_ENABLED: 'MFA ya está activado. Recarga la página.',
   MFA_TOKEN_MISSING: 'Tu sesión MFA ha expirado. Vuelve a iniciar sesión.',
   MFA_TOKEN_INVALID: 'Tu sesión MFA ha expirado. Vuelve a iniciar sesión.',
@@ -32,6 +45,8 @@ export const AUTH_ERROR_MESSAGES: Record<string, string> = {
 
 export const NETWORK_ERROR_MESSAGE = 'No se pudo conectar con el servidor. Verifica tu conexión.';
 export const SERVER_ERROR_MESSAGE = 'Ocurrió un error inesperado. Intenta nuevamente en unos minutos.';
+export const FORBIDDEN_ERROR_MESSAGE =
+  'No tienes permiso para realizar esta acción. Si la necesitas para tu trabajo, solicítala al director o al administrador del colegio.';
 
 export interface HttpErrorOptions {
   /** Custom message for HTTP 429 (rate limit). */
@@ -96,17 +111,41 @@ export function mapHttpError(err: HttpErrorResponse, opts: HttpErrorOptions = {}
     return opts.rateLimit ?? 'Has realizado demasiadas solicitudes. Espera unos minutos.';
   }
   if (err.status === 404) {
-    return backendMessage ?? opts.fallback ?? 'Recurso no encontrado.';
+    return (backendMessage && !isGenericBackendMessage(backendMessage))
+      ? backendMessage : opts.fallback ?? 'No encontramos lo que buscas. Revisa el enlace e inténtalo de nuevo.';
   }
   if (err.status === 401) {
-    return backendMessage ?? opts.fallback ?? 'No autorizado. Revisa tus credenciales.';
+    return (backendMessage && !isGenericBackendMessage(backendMessage))
+      ? backendMessage : opts.fallback ?? 'No se pudo validar tu acceso. Revisa tus datos e inténtalo de nuevo.';
   }
   if (err.status === 403) {
-    return backendMessage ?? opts.fallback ?? 'No tienes permiso para realizar esta acción.';
+    return (backendMessage && !isGenericBackendMessage(backendMessage))
+      ? backendMessage
+      : opts.fallback ?? FORBIDDEN_ERROR_MESSAGE;
+  }
+  if (err.status === 409 && (!backendMessage || isGenericBackendMessage(backendMessage))) {
+    return opts.fallback ?? 'No se pudo completar porque la información ya existe o cambió. Actualiza e inténtalo de nuevo.';
+  }
+  if (err.status === 400 && (!backendMessage || isGenericBackendMessage(backendMessage))) {
+    return opts.fallback ?? 'Revisa los datos ingresados y corrige los campos señalados.';
   }
   if (err.status >= 500) {
     return opts.serverError ?? SERVER_ERROR_MESSAGE;
   }
 
   return backendMessage ?? opts.fallback ?? 'Algo salió mal. Intenta nuevamente.';
+}
+
+function isGenericBackendMessage(message: string): boolean {
+  return [
+    'bad request',
+    'validation failed',
+    'validation error',
+    'malformed request',
+    'conflict',
+    'unauthorized',
+    'forbidden',
+    'access is denied',
+    'not found',
+  ].includes(message.trim().toLowerCase());
 }

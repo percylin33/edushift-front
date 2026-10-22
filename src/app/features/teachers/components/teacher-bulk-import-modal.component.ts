@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -46,14 +48,14 @@ const TEACHER_FIELD_DEFS: FieldDef[] = [
   selector: 'app-teacher-bulk-import-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, IconComponent, BulkImportStatusBadgeComponent],
+  imports: [SafeBackdropDirective, FormsModule, IconComponent, BulkImportStatusBadgeComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="teacher-bulk-import-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card max-h-[90vh] w-full max-w-2xl overflow-y-auto shadow-xl"
@@ -303,6 +305,12 @@ const TEACHER_FIELD_DEFS: FieldDef[] = [
   `,
 })
 export class TeacherBulkImportModalComponent {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => [this.selectedFile(), this.mapping()],
+    saving: () => this.uploading() || this.previewing(),
+    active: () => true,
+  });
+
   private readonly store = inject(TeachersStore);
 
   readonly closed = output<void>();
@@ -366,8 +374,10 @@ export class TeacherBulkImportModalComponent {
   }
 
   protected close(): void {
-    this.store.clearError();
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.store.clearError();
+      this.closed.emit();
+    });
   }
 
   protected restart(): void {

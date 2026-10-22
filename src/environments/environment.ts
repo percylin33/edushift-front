@@ -41,7 +41,9 @@ export const environment: AppEnvironment = runtimeOverrides({
     clientId: '',
     scopes: ['openid', 'profile', 'email'],
   },
-  devMfaBypassCode: 'dev-bypass',
+  // MFA enrollment stays interactive by default; enable only for deliberate
+  // testing of the dev-only bypass endpoint.
+  devMfaBypassCode: undefined,
   features: {
     dashboard: true,
     auth: true,
@@ -65,8 +67,10 @@ export const environment: AppEnvironment = runtimeOverrides({
     announcements: true,
     schedule: true,
     family: true,
+    disclosures: true,
+    admissions: true,
     me: true,
-    gmailSend: false,
+    gmailSend: true,
   },
   logging: {
     level: 'debug',

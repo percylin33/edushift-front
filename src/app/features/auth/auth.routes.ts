@@ -1,5 +1,6 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
-import { authChildGuard, guestGuard } from '@core/guards';
+import { authChildGuard, guestGuard, tenantHostGuard } from '@core/guards';
 
 export const AUTH_ROUTES: Routes = [
   {
@@ -8,19 +9,21 @@ export const AUTH_ROUTES: Routes = [
     redirectTo: 'login',
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'login',
-    canActivate: [guestGuard],
+    canActivate: [tenantHostGuard, guestGuard],
     loadComponent: () => import('./pages/login/login.component').then((m) => m.LoginComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'register',
-    canActivate: [guestGuard],
+    // Invitation validity is enforced by the API, including for signed-in users.
     loadComponent: () =>
       import('./pages/register/register.component').then((m) => m.RegisterComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'setup-school',
-    canActivate: [guestGuard],
     loadComponent: () =>
       import('./pages/register/register.component').then((m) => m.RegisterComponent),
   },
@@ -32,14 +35,18 @@ export const AUTH_ROUTES: Routes = [
    * session is still alive in another tab.
    */
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'forgot-password',
+    canActivate: [tenantHostGuard],
     loadComponent: () =>
       import('./pages/forgot-password/forgot-password.component').then(
         (m) => m.ForgotPasswordComponent,
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'reset-password',
+    canActivate: [tenantHostGuard],
     loadComponent: () =>
       import('./pages/reset-password/reset-password.component').then(
         (m) => m.ResetPasswordComponent,
@@ -54,7 +61,9 @@ export const AUTH_ROUTES: Routes = [
    * `mfaToken` itself is the proof.
    */
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'mfa-challenge',
+    canActivate: [tenantHostGuard],
     loadComponent: () =>
       import('./pages/mfa-challenge/mfa-challenge.component').then((m) => m.MfaChallengeComponent),
   },
@@ -65,8 +74,9 @@ export const AUTH_ROUTES: Routes = [
    * sends the bearer automatically.
    */
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'mfa-enroll',
-    canActivate: [authChildGuard],
+    canActivate: [tenantHostGuard, authChildGuard],
     loadComponent: () =>
       import('./pages/mfa-enroll/mfa-enroll.component').then((m) => m.MfaEnrollComponent),
   },
@@ -75,8 +85,9 @@ export const AUTH_ROUTES: Routes = [
    * Must be authenticated; parent guestGuard was removed so this is reachable.
    */
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'first-login',
-    canActivate: [authChildGuard],
+    canActivate: [tenantHostGuard, authChildGuard],
     loadComponent: () =>
       import('./pages/first-login/first-login.component').then((m) => m.FirstLoginComponent),
   },

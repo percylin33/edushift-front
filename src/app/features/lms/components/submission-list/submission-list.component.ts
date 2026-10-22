@@ -7,10 +7,10 @@ import {
   OnChanges,
   Output,
   SimpleChanges,
-  signal,
   inject,
+  signal,
 } from '@angular/core';
-import { IconComponent } from '@shared/components';
+import { FilePreviewDialogComponent, IconComponent } from '@shared/components';
 import { Permission } from '@core/enums';
 import { FileUploadService } from '@core/services/file-upload.service';
 import { HasPermissionDirective } from '@shared/directives';
@@ -36,7 +36,7 @@ import { SubmissionRow, SubmissionStatus } from '../../models';
 @Component({
   selector: 'app-submission-list',
   standalone: true,
-  imports: [CommonModule, IconComponent, HasPermissionDirective],
+  imports: [CommonModule, IconComponent, HasPermissionDirective, FilePreviewDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading) {
@@ -106,21 +106,32 @@ import { SubmissionRow, SubmissionStatus } from '../../models';
                         {{ row.studentFullName }}
                       </p>
                       @if (row.hasAttachment) {
-                        <p class="text-xs text-content-muted">
+                        <div class="text-xs text-content-muted">
                           @if (row.attachmentPublicUuid) {
-                            <button
-                              type="button"
-                              class="inline-flex items-center gap-1 text-primary hover:underline"
-                              (click)="onDownloadAttachment(row)"
-                            >
-                              <app-icon name="paperclip" [size]="12" />
-                              {{ row.attachmentFilename || 'Adjunto' }}
-                            </button>
+                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <button
+                                type="button"
+                                class="inline-flex items-center gap-1 text-primary hover:underline"
+                                (click)="onPreviewAttachment(row)"
+                              >
+                                <app-icon name="paperclip" [size]="12" />
+                                {{ row.attachmentFilename || 'Adjunto' }}
+                                <span class="sr-only">, ver en la plataforma</span>
+                              </button>
+                              <button
+                                type="button"
+                                class="rounded p-1 text-content-muted hover:bg-surface-muted hover:text-content"
+                                [attr.aria-label]="'Descargar ' + (row.attachmentFilename || 'adjunto')"
+                                (click)="onDownloadAttachment(row)"
+                              >
+                                <app-icon name="download" [size]="13" />
+                              </button>
+                            </div>
                           } @else {
                             <app-icon name="paperclip" [size]="12" />
                             Adjunto
                           }
-                        </p>
+                        </div>
                       }
                     </div>
                   </div>
@@ -176,6 +187,15 @@ import { SubmissionRow, SubmissionStatus } from '../../models';
         </table>
       </div>
     }
+
+    @if (previewAttachment(); as attachment) {
+      <app-file-preview-dialog
+        [open]="true"
+        [filePublicUuid]="attachment.publicUuid"
+        [filename]="attachment.filename"
+        (closed)="previewAttachment.set(null)"
+      />
+    }
   `,
 })
 export class SubmissionListComponent implements OnChanges {
@@ -187,6 +207,10 @@ export class SubmissionListComponent implements OnChanges {
   @Output() readonly return = new EventEmitter<SubmissionRow>();
 
   protected readonly permission = Permission;
+  protected readonly previewAttachment = signal<{
+    publicUuid: string;
+    filename: string;
+  } | null>(null);
   private readonly files = inject(FileUploadService);
   private readonly _maxScore = signal(20);
 
@@ -224,6 +248,14 @@ export class SubmissionListComponent implements OnChanges {
     } catch {
       // global error interceptor
     }
+  }
+
+  protected onPreviewAttachment(row: SubmissionRow): void {
+    if (!row.attachmentPublicUuid) return;
+    this.previewAttachment.set({
+      publicUuid: row.attachmentPublicUuid,
+      filename: row.attachmentFilename || 'adjunto',
+    });
   }
 
   protected statusLabel(status: SubmissionStatus): string {

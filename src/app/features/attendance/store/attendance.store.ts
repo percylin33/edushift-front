@@ -84,6 +84,7 @@ export class AttendanceStore {
   // -------- records slice --------
   private readonly _records = signal<AttendanceRecord[]>([]);
   private readonly _loadingRecords = signal(false);
+  private readonly _savingRecord = signal(false);
 
   // -------- scanner slice --------
   private readonly _scanning = signal(false);
@@ -117,6 +118,7 @@ export class AttendanceStore {
   readonly loadingSession = this._loadingSession.asReadonly();
   readonly records = this._records.asReadonly();
   readonly loadingRecords = this._loadingRecords.asReadonly();
+  readonly savingRecord = this._savingRecord.asReadonly();
   readonly scanning = this._scanning.asReadonly();
   readonly lastScan = this._lastScan.asReadonly();
   readonly error = this._error.asReadonly();
@@ -259,6 +261,7 @@ export class AttendanceStore {
     recordPublicUuid: string,
     patch: UpdateRecordRequest,
   ): Promise<AttendanceRecord | null> {
+    this._savingRecord.set(true);
     try {
       const updated = await firstValueFrom(this.api.updateRecord(recordPublicUuid, patch));
       this._records.update((rows) =>
@@ -268,6 +271,8 @@ export class AttendanceStore {
     } catch (err) {
       this._error.set(this.toErrorMessage(err));
       return null;
+    } finally {
+      this._savingRecord.set(false);
     }
   }
 

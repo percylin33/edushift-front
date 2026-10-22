@@ -52,8 +52,9 @@ export interface PaymentConceptRequest {
 
 /**
  * HTTP boundary for the payment-concepts admin surface.
- * Endpoints live under {@code /admin/payments/concepts}; gated by
- * {@code LMS_PAYMENT_ADMIN} on the server side.
+ * Endpoints live under {@code /admin/payments/concepts}; reads allow
+ * payment issuers and concept managers, while writes require
+ * {@code PAYMENT_CONCEPTS:MANAGE} or transitional admin access.
  */
 @Injectable({ providedIn: 'root' })
 export class PaymentConceptsApiService {

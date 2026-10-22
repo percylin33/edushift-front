@@ -16,6 +16,7 @@ import {
   catchError,
   debounceTime,
   distinctUntilChanged,
+  forkJoin,
   of,
   switchMap,
 } from 'rxjs';
@@ -30,6 +31,8 @@ import {
   PaymentConceptsApiService,
 } from '../../services/payment-concepts-api.service';
 import {
+  BillingPlanRuleRequest,
+  BillingPlanRuleResponse,
   BillingPeriod,
   PaymentSubscription,
   SiblingSuggestionGroup,
@@ -92,10 +95,138 @@ type AssignMode = 'bulk' | 'single';
         </div>
       }
 
+      <div>
+        <h2 class="mb-3 text-base font-semibold text-slate-900 dark:text-slate-100">
+          Planes activos
+        </h2>
+        @if (loading()) {
+          <div class="space-y-3">
+            @for (i of [1, 2, 3]; track i) {
+              <div class="h-14 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+            }
+          </div>
+        } @else if (activePlanCount() === 0 && suggestedConcepts().length > 0) {
+          <div
+            class="rounded-2xl  border-2 border-dashed border-indigo-200 bg-indigo-50/40 p-6 dark:border-indigo-900 dark:bg-indigo-950/20"
+          >
+            <p class="text-sm font-semibold text-indigo-900 dark:text-indigo-200">
+              Aún no tienes planes activos
+            </p>
+            <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">
+              Estas cuotas pueden automatizarse como cobros recurrentes por nivel, grado o alumno.
+            </p>
+            @if (suggestedConcepts().length > 0) {
+              <div class="mt-4 grid gap-2 text-left sm:grid-cols-2">
+                @for (c of suggestedConcepts(); track c.publicUuid) {
+                  <button
+                    type="button"
+                    class="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-left hover:border-indigo-400 dark:border-indigo-800 dark:bg-slate-900"
+                    (click)="startWithConcept(c)"
+                  >
+                    <span class="block text-sm font-semibold text-slate-900 dark:text-slate-100">{{ c.name }}</span>
+                    <span class="text-xs text-slate-500">{{ c.code }} · {{ money(c.defaultAmountCents, c.currency) }}</span>
+                  </button>
+                }
+              </div>
+            }
+            <button
+              type="button"
+              class="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"
+              (click)="assignOpen.set(true)"
+            >
+              Asignar una cuota
+            </button>
+          </div>
+        } @else {
+          <div
+            class="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800"
+          >
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 text-left dark:bg-slate-800/50">
+                <tr>
+                  <th class="px-4 py-2.5 font-medium text-slate-600">Plan</th>
+                  <th class="px-4 py-2.5 font-medium text-slate-600">Estado</th>
+                  <th class="px-4 py-2.5 font-medium text-slate-600">Hermanos</th>
+                  <th class="px-4 py-2.5 text-right font-medium text-slate-600">Monto</th>
+                  <th class="px-4 py-2.5 font-medium text-slate-600">Próximo cobro</th>
+                  <th class="px-4 py-2.5 text-right font-medium text-slate-600">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                @for (s of items(); track s.publicUuid) {
+                  <tr>
+                    <td class="px-4 py-3">
+                      <div class="font-semibold text-slate-900 dark:text-slate-100">
+                        {{ s.planCode }}
+                      </div>
+                      <div class="text-xs text-slate-500">
+                        {{ s.billingPeriod }} · {{ s.studentId | slice: 0:8 }}…
+                      </div>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span
+                        class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium dark:bg-slate-800"
+                      >
+                        {{ s.status }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span
+                        class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                        [class]="siblingBadgeClass(s.siblingDiscountStatus)"
+                      >
+                        {{ siblingLabel(s.siblingDiscountStatus) }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-right font-medium">
+                      {{ money(s.amountCents, s.currency) }}
+                    </td>
+                    <td class="px-4 py-3 text-xs text-slate-500">
+                      {{ s.nextBillingAt ? (s.nextBillingAt | date: 'dd/MM/yyyy') : '—' }}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      @if (s.status === 'ACTIVE') {
+                        <button
+                          type="button"
+                          class="mr-2 text-xs font-semibold text-amber-700"
+                          [disabled]="busyUuid() === s.publicUuid"
+                          (click)="pause(s)"
+                        >
+                          Pausar
+                        </button>
+                      }
+                      @if (s.status === 'PAUSED') {
+                        <button
+                          type="button"
+                          class="mr-2 text-xs font-semibold text-emerald-700"
+                          [disabled]="busyUuid() === s.publicUuid"
+                          (click)="resume(s)"
+                        >
+                          Reanudar
+                        </button>
+                      }
+                      @if (s.status !== 'CANCELLED') {
+                        <button
+                          type="button"
+                          class="text-xs font-semibold text-rose-700"
+                          [disabled]="busyUuid() === s.publicUuid"
+                          (click)="cancel(s)"
+                        >
+                          Cancelar
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
       <!-- Single assign panel -->
       @if (assignOpen()) {
         <div
-          class="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800"
+          class="my-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800"
         >
           <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-800">
             <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">
@@ -214,8 +345,14 @@ type AssignMode = 'bulk' | 'single';
                     class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                     [ngModel]="studentQuery()"
                     (ngModelChange)="onStudentQuery($event)"
+                    (keydown)="onStudentKeydown($event)"
                     name="studentQuery"
                     autocomplete="off"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-controls="plans-student-listbox"
+                    [attr.aria-expanded]="studentHits().length > 0"
+                    [attr.aria-activedescendant]="activeStudentOptionId()"
                     placeholder="Buscar por nombre, apellido o DNI…"
                   />
                   @if (studentSearching()) {
@@ -223,13 +360,19 @@ type AssignMode = 'bulk' | 'single';
                   }
                   @if (studentHits().length > 0) {
                     <ul
+                      id="plans-student-listbox"
+                      role="listbox"
                       class="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
                     >
-                      @for (s of studentHits(); track s.publicUuid) {
+                      @for (s of studentHits(); track s.publicUuid; let i = $index) {
                         <li>
                           <button
                             type="button"
+                            [id]="studentOptionId(i)"
+                            role="option"
+                            [attr.aria-selected]="i === activeStudentIndex()"
                             class="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+                            [class.bg-slate-50]="i === activeStudentIndex()"
                             (click)="pickStudent(s)"
                           >
                             <span class="font-medium">{{ s.fullName }}</span>
@@ -245,6 +388,8 @@ type AssignMode = 'bulk' | 'single';
               </div>
             }
 
+            
+
             <!-- Shared billing fields -->
             <label class="block text-sm sm:col-span-2">
               <span class="font-medium text-slate-700 dark:text-slate-300">Concepto</span>
@@ -256,12 +401,30 @@ type AssignMode = 'bulk' | 'single';
                 required
               >
                 <option value="">— Elegir concepto (pensión, etc.) —</option>
-                @for (c of concepts(); track c.publicUuid) {
-                  <option [value]="c.publicUuid">
-                    {{ c.code }} · {{ c.name }} ({{ money(c.defaultAmountCents, c.currency) }})
-                  </option>
+                @if (suggestedConcepts().length > 0) {
+                  <optgroup label="Cuotas sugeridas para automatizar">
+                    @for (c of suggestedConcepts(); track c.publicUuid) {
+                      <option [value]="c.publicUuid">
+                        {{ c.code }} · {{ c.name }} ({{ money(c.defaultAmountCents, c.currency) }})
+                      </option>
+                    }
+                  </optgroup>
+                }
+                @if (otherConcepts().length > 0) {
+                  <optgroup label="Otros conceptos">
+                    @for (c of otherConcepts(); track c.publicUuid) {
+                      <option [value]="c.publicUuid">
+                        {{ c.code }} · {{ c.name }} ({{ money(c.defaultAmountCents, c.currency) }})
+                      </option>
+                    }
+                  </optgroup>
                 }
               </select>
+              @if (suggestedConcepts().length > 0) {
+                <p class="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
+                  Las cuotas están sugeridas porque son conceptos recurrentes ideales para automatizar.
+                </p>
+              }
             </label>
             <label class="block text-sm">
               <span class="font-medium text-slate-700 dark:text-slate-300">Monto (S/)</span>
@@ -275,6 +438,22 @@ type AssignMode = 'bulk' | 'single';
                 required
               />
             </label>
+
+            @if (assignMode() === 'bulk' && selectedConceptIsTuition()) {
+              <label class="flex items-start gap-2 rounded-lg border border-indigo-100 bg-indigo-50/60 p-3 text-sm sm:col-span-2 dark:border-indigo-900 dark:bg-indigo-950/30">
+                <input
+                  type="checkbox"
+                  class="mt-0.5"
+                  [(ngModel)]="assign.keepInSync"
+                  name="keepBillingRuleInSync"
+                  (ngModelChange)="bulkPreviewMsg.set(null)"
+                />
+                <span>
+                  <span class="block font-semibold text-slate-800 dark:text-slate-100">Aplicar también a futuros alumnos</span>
+                  <span class="text-xs text-slate-600 dark:text-slate-400">Guarda una automatización para este nivel o grado. Los alumnos sin apoderado portal se incorporarán cuando se vincule uno.</span>
+                </span>
+              </label>
+            }
             <label class="block text-sm">
               <span class="font-medium text-slate-700 dark:text-slate-300">Periodo</span>
               <select
@@ -358,9 +537,9 @@ type AssignMode = 'bulk' | 'single';
                   Otro día
                 </button>
               </div>
-              @if (dayPreset() !== 'end') {
+              @if (dayPreset() === 'custom') {
                 <label class="mt-3 block max-w-[8rem] text-sm">
-                  <span class="sr-only">Día</span>
+                  <span class="font-medium text-slate-700 dark:text-slate-300">Dia</span>
                   <input
                     type="number"
                     min="1"
@@ -374,7 +553,7 @@ type AssignMode = 'bulk' | 'single';
                 </label>
               } @else {
                 <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                  Se cobra el último día de cada mes.
+                  Se cobra el dia elegido cada mes.
                 </p>
               }
             </div>
@@ -395,14 +574,14 @@ type AssignMode = 'bulk' | 'single';
                   [disabled]="assignBusy()"
                   (click)="bulkPreview()"
                 >
-                  Vista previa
+                  {{ assign.keepInSync ? 'Previsualizar automatización' : 'Vista previa' }}
                 </button>
                 <button
                   type="submit"
                   class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
                   [disabled]="assignBusy()"
                 >
-                  {{ assignBusy() ? 'Asignando…' : 'Confirmar asignación' }}
+                  {{ assignBusy() ? 'Guardando…' : assign.keepInSync ? 'Crear automatización' : 'Confirmar asignación' }}
                 </button>
               } @else {
                 <button
@@ -425,9 +604,32 @@ type AssignMode = 'bulk' | 'single';
         </div>
       }
 
+      @if (billingRules().length > 0) {
+        <section class="my-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+          <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Automatizaciones de cuotas</h2>
+          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Las reglas activas se aplican a nuevas matrículas. Pausar una regla no pausa planes que ya existen.</p>
+          <div class="mt-4 space-y-3">
+            @for (rule of billingRules(); track rule.publicUuid) {
+              <article class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                <div>
+                  <div class="font-semibold text-slate-900 dark:text-slate-100">{{ billingRuleConceptName(rule) }} · {{ billingRuleScopeName(rule) }}</div>
+                  <div class="text-xs text-slate-500">{{ money(rule.amountCents, rule.currency) }} · {{ rule.billingPeriod === 'MONTHLY' ? 'Mensual' : 'Anual' }} · {{ rule.active ? 'Activa' : 'Pausada' }}</div>
+                  <div class="mt-1 text-xs text-slate-500">{{ rule.alreadyActiveCount }} alumnos con plan · {{ rule.waitingGuardianCount }} pendientes de apoderado</div>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                  <button type="button" class="text-xs font-semibold text-indigo-600 hover:underline" [disabled]="ruleBusyUuid() === rule.publicUuid || !rule.active" (click)="syncBillingRule(rule)">Sincronizar ahora</button>
+                  <button type="button" class="text-xs font-semibold text-slate-600 hover:underline dark:text-slate-300" [disabled]="ruleBusyUuid() === rule.publicUuid" (click)="toggleBillingRule(rule)">{{ rule.active ? 'Pausar' : 'Reactivar' }}</button>
+                  <button type="button" class="text-xs font-semibold text-rose-600 hover:underline" [disabled]="ruleBusyUuid() === rule.publicUuid" (click)="archiveBillingRule(rule)">Archivar</button>
+                </div>
+              </article>
+            }
+          </div>
+        </section>
+      }
+
       <!-- Sibling suggestions -->
       <div
-        class="mb-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800"
+        class="mt-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800"
       >
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -536,119 +738,7 @@ type AssignMode = 'bulk' | 'single';
         }
       </div>
 
-      <!-- Plans list -->
-      <div>
-        <h2 class="mb-3 text-base font-semibold text-slate-900 dark:text-slate-100">
-          Planes activos
-        </h2>
-        @if (loading()) {
-          <div class="space-y-3">
-            @for (i of [1, 2, 3]; track i) {
-              <div class="h-14 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800"></div>
-            }
-          </div>
-        } @else if (items().length === 0) {
-          <div
-            class="rounded-2xl border-2 border-dashed border-slate-200 p-10 text-center dark:border-slate-700"
-          >
-            <p class="text-sm font-medium text-slate-700 dark:text-slate-300">Aún no hay planes</p>
-            <p class="mt-1 text-xs text-slate-500">
-              Usa “Asignar planes” para crear pensiones por nivel, grado o alumno.
-            </p>
-            <button
-              type="button"
-              class="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"
-              (click)="assignOpen.set(true)"
-            >
-              Asignar planes
-            </button>
-          </div>
-        } @else {
-          <div
-            class="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800"
-          >
-            <table class="w-full text-sm">
-              <thead class="bg-slate-50 text-left dark:bg-slate-800/50">
-                <tr>
-                  <th class="px-4 py-2.5 font-medium text-slate-600">Plan</th>
-                  <th class="px-4 py-2.5 font-medium text-slate-600">Estado</th>
-                  <th class="px-4 py-2.5 font-medium text-slate-600">Hermanos</th>
-                  <th class="px-4 py-2.5 text-right font-medium text-slate-600">Monto</th>
-                  <th class="px-4 py-2.5 font-medium text-slate-600">Próximo cobro</th>
-                  <th class="px-4 py-2.5 text-right font-medium text-slate-600">Acciones</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                @for (s of items(); track s.publicUuid) {
-                  <tr>
-                    <td class="px-4 py-3">
-                      <div class="font-semibold text-slate-900 dark:text-slate-100">
-                        {{ s.planCode }}
-                      </div>
-                      <div class="text-xs text-slate-500">
-                        {{ s.billingPeriod }} · {{ s.studentId | slice: 0:8 }}…
-                      </div>
-                    </td>
-                    <td class="px-4 py-3">
-                      <span
-                        class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium dark:bg-slate-800"
-                      >
-                        {{ s.status }}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3">
-                      <span
-                        class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                        [class]="siblingBadgeClass(s.siblingDiscountStatus)"
-                      >
-                        {{ siblingLabel(s.siblingDiscountStatus) }}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3 text-right font-medium">
-                      {{ money(s.amountCents, s.currency) }}
-                    </td>
-                    <td class="px-4 py-3 text-xs text-slate-500">
-                      {{ s.nextBillingAt ? (s.nextBillingAt | date: 'dd/MM/yyyy') : '—' }}
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                      @if (s.status === 'ACTIVE') {
-                        <button
-                          type="button"
-                          class="mr-2 text-xs font-semibold text-amber-700"
-                          [disabled]="busyUuid() === s.publicUuid"
-                          (click)="pause(s)"
-                        >
-                          Pausar
-                        </button>
-                      }
-                      @if (s.status === 'PAUSED') {
-                        <button
-                          type="button"
-                          class="mr-2 text-xs font-semibold text-emerald-700"
-                          [disabled]="busyUuid() === s.publicUuid"
-                          (click)="resume(s)"
-                        >
-                          Reanudar
-                        </button>
-                      }
-                      @if (s.status !== 'CANCELLED') {
-                        <button
-                          type="button"
-                          class="text-xs font-semibold text-rose-700"
-                          [disabled]="busyUuid() === s.publicUuid"
-                          (click)="cancel(s)"
-                        >
-                          Cancelar
-                        </button>
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-      </div>
+      
     </section>
   `,
 })
@@ -664,6 +754,17 @@ export class AdminPlansPageComponent implements OnInit, OnDestroy {
 
   readonly items = signal<PaymentSubscription[]>([]);
   readonly concepts = signal<PaymentConcept[]>([]);
+  readonly billingRules = signal<BillingPlanRuleResponse[]>([]);
+  readonly suggestedConcepts = computed(() =>
+    this.concepts().filter((concept) =>
+      concept.category === 'TUITION' &&
+      !this.billingRules().some((rule) => rule.active && rule.conceptPublicUuid === concept.publicUuid),
+    ),
+  );
+  readonly activePlanCount = signal(0);
+  readonly otherConcepts = computed(() =>
+    this.concepts().filter((concept) => concept.category !== 'TUITION'),
+  );
   readonly levels = signal<AcademicLevel[]>([]);
   readonly siblingGroups = signal<SiblingSuggestionGroup[]>([]);
   readonly loading = signal(true);
@@ -671,6 +772,7 @@ export class AdminPlansPageComponent implements OnInit, OnDestroy {
   readonly siblingBusy = signal(false);
   readonly runningDue = signal(false);
   readonly busyUuid = signal<string | null>(null);
+  readonly ruleBusyUuid = signal<string | null>(null);
   readonly banner = signal<{ ok: boolean; message: string } | null>(null);
   readonly bulkPreviewMsg = signal<string | null>(null);
   readonly assignOpen = signal(false);
@@ -693,6 +795,7 @@ export class AdminPlansPageComponent implements OnInit, OnDestroy {
   ] as const;
   readonly studentQuery = signal('');
   readonly studentHits = signal<StudentRow[]>([]);
+  readonly activeStudentIndex = signal(0);
   readonly studentSearching = signal(false);
   readonly selectedStudent = signal<StudentRow | null>(null);
 
@@ -727,11 +830,13 @@ export class AdminPlansPageComponent implements OnInit, OnDestroy {
     billingPeriod: 'MONTHLY' as BillingPeriod,
     billingDayOfMonth: 1,
     billingMonth: 3,
+    keepInSync: false,
   };
 
   ngOnInit(): void {
     this.load();
     this.loadConcepts();
+    this.loadBillingRules();
     this.loadLevels();
     this.loadSuggestions();
     this.studentSearchSub = this.studentSearch$
@@ -754,6 +859,7 @@ export class AdminPlansPageComponent implements OnInit, OnDestroy {
       .subscribe((rows) => {
         this.studentSearching.set(false);
         this.studentHits.set(rows);
+        this.activeStudentIndex.set(0);
       });
   }
 
@@ -765,6 +871,12 @@ export class AdminPlansPageComponent implements OnInit, OnDestroy {
     this.assignOpen.update((v) => !v);
   }
 
+  startWithConcept(concept: PaymentConcept): void {
+    this.assign.conceptPublicUuid = concept.publicUuid;
+    this.assign.amountSoles = centsToSoles(concept.defaultAmountCents);
+    this.assignOpen.set(true);
+  }
+
   setAssignMode(mode: AssignMode): void {
     this.assignMode.set(mode);
     this.bulkPreviewMsg.set(null);
@@ -772,7 +884,40 @@ export class AdminPlansPageComponent implements OnInit, OnDestroy {
 
   onStudentQuery(value: string): void {
     this.studentQuery.set(value);
+    this.activeStudentIndex.set(0);
     this.studentSearch$.next(value);
+  }
+
+  onStudentKeydown(event: KeyboardEvent): void {
+    const hits = this.studentHits();
+    if (event.key === 'Escape') {
+      if (hits.length > 0) {
+        event.preventDefault();
+        this.studentHits.set([]);
+      }
+      return;
+    }
+    if (hits.length === 0) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.activeStudentIndex.update((index) => Math.min(index + 1, hits.length - 1));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.activeStudentIndex.update((index) => Math.max(index - 1, 0));
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      const student = hits[this.activeStudentIndex()];
+      if (student) this.pickStudent(student);
+    }
+  }
+
+  activeStudentOptionId(): string | null {
+    return this.studentHits().length > 0 ? this.studentOptionId(this.activeStudentIndex()) : null;
+  }
+
+  protected studentOptionId(index: number): string {
+    return `plans-student-option-${index}`;
   }
 
   pickStudent(s: StudentRow): void {
@@ -791,6 +936,13 @@ export class AdminPlansPageComponent implements OnInit, OnDestroy {
     const c = this.concepts().find((x) => x.publicUuid === uuid);
     if (!c) return;
     this.assign.amountSoles = centsToSoles(c.defaultAmountCents);
+    if (c.category !== 'TUITION') this.assign.keepInSync = false;
+  }
+
+  selectedConceptIsTuition(): boolean {
+    return this.concepts().some((concept) =>
+      concept.publicUuid === this.assign.conceptPublicUuid && concept.category === 'TUITION',
+    );
   }
 
   onScopeChange(): void {
@@ -834,9 +986,13 @@ export class AdminPlansPageComponent implements OnInit, OnDestroy {
 
   load(): void {
     this.loading.set(true);
-    this.api.listSubscriptions(undefined, 0, 100).subscribe({
-      next: (page) => {
-        this.items.set(page.content ?? []);
+    forkJoin({
+      all: this.api.listSubscriptions(undefined, 0, 100),
+      active: this.api.listSubscriptions('ACTIVE', 0, 1),
+    }).subscribe({
+      next: ({ all, active }) => {
+        this.items.set(all.content ?? []);
+        this.activePlanCount.set(active.totalElements ?? 0);
         this.loading.set(false);
       },
       error: (e) => {
@@ -851,9 +1007,21 @@ export class AdminPlansPageComponent implements OnInit, OnDestroy {
 
   loadConcepts(): void {
     this.conceptsApi.listConcepts(0, 100).subscribe({
-      next: ({ items }) => this.concepts.set([...items]),
+      next: ({ items }) => {
+        this.concepts.set([...items]);
+        this.suggestFirstTuitionConcept(items);
+      },
       error: () => this.concepts.set([]),
     });
+  }
+
+  private suggestFirstTuitionConcept(items: readonly PaymentConcept[]): void {
+    if (this.assign.conceptPublicUuid || !items.length) return;
+    const suggested = items.find((concept) => concept.category === 'TUITION');
+    if (suggested) {
+      this.assign.conceptPublicUuid = suggested.publicUuid;
+      this.assign.amountSoles = centsToSoles(suggested.defaultAmountCents);
+    }
   }
 
   loadLevels(): void {
@@ -867,6 +1035,100 @@ export class AdminPlansPageComponent implements OnInit, OnDestroy {
     this.api.listSiblingSuggestions().subscribe({
       next: (groups) => this.siblingGroups.set(groups ?? []),
       error: () => this.siblingGroups.set([]),
+    });
+  }
+
+  loadBillingRules(): void {
+    this.api.listBillingPlanRules().subscribe({
+      next: (rules) => this.billingRules.set(rules),
+      error: () => this.billingRules.set([]),
+    });
+  }
+
+  private billingRuleRequest(): BillingPlanRuleRequest {
+    return {
+      conceptPublicUuid: this.assign.conceptPublicUuid,
+      levelPublicUuid: this.assign.scope === 'LEVEL' ? this.assign.levelPublicUuid : null,
+      gradePublicUuid: this.assign.scope === 'GRADE' ? this.assign.gradePublicUuid : null,
+      amountCents: solesToCents(Number(this.assign.amountSoles) || 0),
+      billingPeriod: this.assign.billingPeriod,
+      ...this.billingPayload(),
+      currency: 'PEN',
+    };
+  }
+
+  billingRuleConceptName(rule: BillingPlanRuleResponse): string {
+    return this.concepts().find((concept) => concept.publicUuid === rule.conceptPublicUuid)?.name ?? 'Cuota';
+  }
+
+  billingRuleScopeName(rule: BillingPlanRuleResponse): string {
+    if (rule.gradePublicUuid) {
+      return this.allGrades().find((grade) => grade.publicUuid === rule.gradePublicUuid)?.name ?? 'Grado';
+    }
+    return this.levels().find((level) => level.publicUuid === rule.levelPublicUuid)?.name ?? 'Nivel';
+  }
+
+  private showRuleSyncResult(rule: BillingPlanRuleResponse, createdVerb: string): void {
+    this.banner.set({
+      ok: true,
+      message: `${createdVerb}: ${rule.createdCount} planes creados, ${rule.alreadyActiveCount} ya activos y ${rule.waitingGuardianCount} pendientes de apoderado.`,
+    });
+  }
+
+  syncBillingRule(rule: BillingPlanRuleResponse): void {
+    this.ruleBusyUuid.set(rule.publicUuid);
+    this.api.synchronizeBillingPlanRule(rule.publicUuid).subscribe({
+      next: (result) => {
+        this.ruleBusyUuid.set(null);
+        this.showRuleSyncResult(result, 'Sincronización completada');
+        this.loadBillingRules();
+        this.load();
+        this.loadSuggestions();
+      },
+      error: (error) => {
+        this.ruleBusyUuid.set(null);
+        this.banner.set({ ok: false, message: error?.error?.message ?? 'No se pudo sincronizar la regla.' });
+      },
+    });
+  }
+
+  toggleBillingRule(rule: BillingPlanRuleResponse): void {
+    this.ruleBusyUuid.set(rule.publicUuid);
+    this.api.updateBillingPlanRule(rule.publicUuid, !rule.active).subscribe({
+      next: (result) => {
+        this.ruleBusyUuid.set(null);
+        this.billingRules.update((rules) => rules.map((item) => item.publicUuid === rule.publicUuid ? result : item));
+        if (result.active) this.showRuleSyncResult(result, 'Automatización reactivada');
+        else this.banner.set({ ok: true, message: 'Automatización pausada. Los planes actuales continúan activos.' });
+        this.load();
+      },
+      error: (error) => {
+        this.ruleBusyUuid.set(null);
+        this.banner.set({ ok: false, message: error?.error?.message ?? 'No se pudo actualizar la automatización.' });
+      },
+    });
+  }
+
+  async archiveBillingRule(rule: BillingPlanRuleResponse): Promise<void> {
+    const ok = await this.confirmDialog.open({
+      title: 'Archivar automatización',
+      message: `¿Archivar la regla de ${this.billingRuleConceptName(rule)}? Los planes existentes seguirán activos.`,
+      confirmLabel: 'Archivar',
+      variant: 'danger',
+      icon: 'trash',
+    });
+    if (!ok) return;
+    this.ruleBusyUuid.set(rule.publicUuid);
+    this.api.deleteBillingPlanRule(rule.publicUuid).subscribe({
+      next: () => {
+        this.ruleBusyUuid.set(null);
+        this.billingRules.update((rules) => rules.filter((item) => item.publicUuid !== rule.publicUuid));
+        this.banner.set({ ok: true, message: 'Automatización archivada. Los planes existentes siguen activos.' });
+      },
+      error: (error) => {
+        this.ruleBusyUuid.set(null);
+        this.banner.set({ ok: false, message: error?.error?.message ?? 'No se pudo archivar la automatización.' });
+      },
     });
   }
 
@@ -942,6 +1204,21 @@ export class AdminPlansPageComponent implements OnInit, OnDestroy {
       return;
     }
     this.assignBusy.set(true);
+    if (this.assign.keepInSync) {
+      this.api.previewBillingPlanRule(this.billingRuleRequest()).subscribe({
+        next: (result) => {
+          this.assignBusy.set(false);
+          this.bulkPreviewMsg.set(
+            `${result.candidateCount} alumnos en el alcance → se crearían ${result.createdCount} planes ahora (${result.alreadyActiveCount} ya activos, ${result.waitingGuardianCount} pendientes de apoderado portal). La regla también cubrirá nuevas matrículas.`,
+          );
+        },
+        error: (e) => {
+          this.assignBusy.set(false);
+          this.banner.set({ ok: false, message: e?.error?.message ?? 'No se pudo previsualizar la automatización.' });
+        },
+      });
+      return;
+    }
     this.api.bulkCreateSubscriptions(this.bulkBody(true)).subscribe({
       next: (r) => {
         this.assignBusy.set(false);
@@ -975,6 +1252,25 @@ export class AdminPlansPageComponent implements OnInit, OnDestroy {
       return;
     }
     this.assignBusy.set(true);
+    if (this.assign.keepInSync) {
+      this.api.createBillingPlanRule(this.billingRuleRequest()).subscribe({
+        next: (result) => {
+          this.assignBusy.set(false);
+          this.bulkPreviewMsg.set(null);
+          this.showRuleSyncResult(result, 'Automatización creada');
+          this.resetAssignFields();
+          this.assignOpen.set(false);
+          this.loadBillingRules();
+          this.load();
+          this.loadSuggestions();
+        },
+        error: (e) => {
+          this.assignBusy.set(false);
+          this.banner.set({ ok: false, message: e?.error?.message ?? 'No se pudo crear la automatización.' });
+        },
+      });
+      return;
+    }
     this.api.bulkCreateSubscriptions(this.bulkBody(false)).subscribe({
       next: (r) => {
         this.assignBusy.set(false);
@@ -1004,6 +1300,7 @@ export class AdminPlansPageComponent implements OnInit, OnDestroy {
     this.assign.gradePublicUuid = '';
     this.assign.amountSoles = 0;
     this.assign.billingDayOfMonth = 1;
+    this.assign.keepInSync = false;
     this.dayPreset.set('first');
   }
 

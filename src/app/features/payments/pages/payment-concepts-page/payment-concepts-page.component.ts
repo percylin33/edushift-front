@@ -15,7 +15,6 @@ import {
 } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import {
-	EmptyStateComponent,
 	IconComponent,
 	PageContainerComponent,
 	PageHeaderComponent,
@@ -54,6 +53,49 @@ import { centsToSoles, solesToCents } from '../../models/invoice.model';
  * </ul>
  * </p>
  */
+/** Opciones predefinidas para crear conceptos automáticamente. */
+interface AutoCreateOption {
+	key: string;
+	name: string;
+	description: string;
+	suggestedCode: string;
+	suggestedAmount: string;
+	defaultChecked: boolean;
+	category: PaymentConceptCategory;
+	recurringDefault?: boolean;
+}
+
+interface PaymentConceptExample {
+	code: string;
+	name: string;
+	amount: string;
+}
+
+interface PaymentConceptExampleGroup {
+	title: string;
+	items: readonly PaymentConceptExample[];
+	tip?: string;
+}
+
+const EXAMPLE_GROUPS: readonly PaymentConceptExampleGroup[] = [
+	{
+		title: 'Pagos principales',
+		items: [
+			{ code: 'MATRICULA', name: 'Matrícula', amount: 'S/ 350.00' },
+			{ code: 'PENSION', name: 'Pensión mensual', amount: 'S/ 450.00' },
+			{ code: 'MATERIALES', name: 'Materiales escolares', amount: 'S/ 80.00' },
+		],
+		tip: 'Adapta los montos a las tarifas de cada colegio.',
+	},
+	{
+		title: 'Servicios adicionales',
+		items: [
+			{ code: 'REFRIGERIO', name: 'Refrigerio', amount: 'S/ 10.00' },
+			{ code: 'MOVILIDAD', name: 'Movilidad escolar', amount: 'S/ 180.00' },
+		],
+	},
+];
+
 @Component({
 	selector: 'app-payment-concepts-page',
 	standalone: true,
@@ -65,7 +107,6 @@ import { centsToSoles, solesToCents } from '../../models/invoice.model';
 		PageContainerComponent,
 		PageHeaderComponent,
 		IconComponent,
-		EmptyStateComponent,
 		SpinnerComponent,
 	],
 	template: `
@@ -106,6 +147,12 @@ import { centsToSoles, solesToCents } from '../../models/invoice.model';
 					<span>Actualizar</span>
 				</button>
 			</app-page-header>
+
+			@if (banner(); as notice) {
+				<div class="mb-4 rounded-md px-4 py-3 text-sm" [class.bg-emerald-50]="notice.ok" [class.text-emerald-800]="notice.ok" [class.bg-rose-50]="!notice.ok" [class.text-rose-800]="!notice.ok" role="status">
+					{{ notice.message }}
+				</div>
+			}
 
 			@if (examplesOpen()) {
 				<aside
@@ -172,11 +219,77 @@ import { centsToSoles, solesToCents } from '../../models/invoice.model';
 					<app-spinner [size]="24" [label]="commonLabels.cargando()" />
 				</div>
 			} @else if (concepts().length === 0) {
-				<app-empty-state
-					icon="layers"
-					title="Aún no hay conceptos configurados"
-					description="Creá el primer concepto (por ejemplo: Matrícula 2026) para empezar a emitir facturas."
-				/>
+				<div class="card mb-6 p-6 max-w-2xl mx-auto">
+					<h2 class="mb-4 text-xl font-bold text-slate-900 dark:text-slate-100">Primeros conceptos de pago</h2>
+					<p class="text-slate-500 dark:text-slate-400 mb-6">
+						Configuremos los conceptos más usados en colegios particulares para que puedas empezar a emitir facturas de inmediato.
+					</p>
+
+					<!-- Auto-create concepts form -->
+					<form
+						class="grid gap-4 sm:grid-cols-2"
+						(submit)="autoCreateConcepts($event)"
+					>
+						@for (option of AUTO_CREATE_OPTIONS; track option.key) {
+							<div class="field">
+								<label class="flex items-center gap-2 cursor-pointer select-none">
+									<input
+										type="checkbox"
+										class="checkbox"
+										[checked]="selectedOptions().has(option.key)"
+										(change)="toggleOption(option.key)"
+									/>
+									<span>
+										<span class="font-medium text-slate-700 dark:text-slate-300">
+											{{ option.name }}
+										</span>
+										<span class="text-xs text-slate-500 dark:text-slate-300">
+											({{ option.description }})
+										</span>
+									</span>
+								</label>
+								@if (!option.defaultChecked) {
+									<div class="mt-2 text-xs text-slate-400">
+										Código: <strong class="font-mono uppercase">{{ option.suggestedCode }}</strong>
+										<br />
+										Monto sugerido: <strong>S/ {{ option.suggestedAmount }}</strong>
+									</div>
+								}
+							</div>
+						}
+
+						<div class="sm:col-span-2">
+							<div class="flex items-center justify-between">
+								<label class="text-xs text-slate-500 dark:text-slate-300">
+									<input type="checkbox" class="checkbox" [checked]="allSelected()" [indeterminate]="selectedCount() > 0 && !allSelected()" (change)="toggleAllOptions($event)" />
+									Seleccionar todos
+								</label>
+								@if (selectedCount() > 0) {
+									<span class="text-xs text-rose-600">({{ selectedCount() }} seleccionados)</span>
+								}
+							</div>
+						</div>
+
+						@if (formError(); as msg) {
+							<div class="sm:col-span-2 text-sm text-danger" role="alert">{{ msg }}</div>
+						}
+						<div class="sm:col-span-2">
+							<button
+								type="submit"
+								class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+								[disabled]="saving() || selectedCount() === 0"
+							>
+								@if (saving()) {
+									<app-spinner [size]="12" label="Creando" />
+									<span>Creando conceptos…</span>
+								} @else {
+									<app-icon name="check" [size]="14" />
+									<span>Crear {{ selectedCount() }} concepto(s)</span>
+								}
+							</button>
+						</div>
+					</form>
+				</div>
 			} @else {
 				<div class="card overflow-hidden">
 					<div class="overflow-x-auto">
@@ -432,70 +545,109 @@ export class PaymentConceptsPageComponent implements OnInit {
 
 	protected readonly examplesOpen = signal(false);
 
-	protected readonly EXAMPLE_GROUPS: readonly {
-		title: string;
-		tip?: string;
-		items: readonly { code: string; name: string; amount: string }[];
-	}[] = [
+	protected readonly EXAMPLE_GROUPS = EXAMPLE_GROUPS;
+
+	protected readonly AUTO_CREATE_OPTIONS: readonly AutoCreateOption[] = [
 		{
-			title: 'Matrícula / inscripción',
-			items: [
-				{ code: 'MATRICULA_2026', name: 'Matrícula 2026', amount: 'S/ 350' },
-				{ code: 'REINSCRIPCION', name: 'Reinscripción', amount: 'S/ 200' },
-			],
+			key: 'enrollment',
+			name: 'Matrícula / inscripción',
+			description: 'Cobro único al momento del ingreso del estudiante',
+			suggestedCode: 'MATRICULA',
+			suggestedAmount: '350',
+			defaultChecked: true,
+			category: 'ENROLLMENT',
 		},
 		{
-			title: 'Pensiones (cuota mensual)',
-			tip: 'Marca “Recurrente” si luego usas Planes de cobro.',
-			items: [
-				{ code: 'PENSION_INICIAL', name: 'Pensión inicial', amount: 'S/ 450' },
-				{ code: 'PENSION_PRIMARIA', name: 'Pensión primaria', amount: 'S/ 520' },
-				{ code: 'PENSION_SECUNDARIA', name: 'Pensión secundaria', amount: 'S/ 580' },
-			],
+			key: 'tuition',
+			name: 'Pensión Inicial',
+			description: 'Cuota periódica mensual inicial para estudiantes nuevos (marca "Recurrente" si luego usas Planes de cobro)',
+			suggestedCode: 'PENSION_INICIAL',
+			suggestedAmount: '450',
+			defaultChecked: true,
+			category: 'TUITION',
+			recurringDefault: true,
 		},
 		{
-			title: 'Materiales / útiles',
-			items: [
-				{ code: 'MATERIALES_AULA', name: 'Materiales de aula', amount: 'S/ 80' },
-				{ code: 'LIBROS_2026', name: 'Paquete de libros', amount: 'S/ 150' },
-				{ code: 'UNIFORME', name: 'Uniforme escolar', amount: 'S/ 120' },
-			],
+			key: 'tuition_2',
+			name: 'Pensión Primaria',
+			description: 'Cuota periódica mensual para estudiantes de primaria (marca "Recurrente" si luego usas Planes de cobro)',
+			suggestedCode: 'PENSION_PRIMARIA',
+			suggestedAmount: '520',
+			defaultChecked: true,
+			category: 'TUITION',
+			recurringDefault: true,
 		},
 		{
-			title: 'Servicios',
-			items: [
-				{ code: 'REFRIGERIO', name: 'Refrigerio', amount: 'S/ 100' },
-				{ code: 'MOVILIDAD', name: 'Movilidad escolar', amount: 'S/ 180' },
-			],
+			key: 'tuition_3',
+			name: 'Pensión Secundaria',
+			description: 'Cuota periódica mensual para estudiantes de secundaria (marca "Recurrente" si luego usas Planes de cobro)',
+			suggestedCode: 'PENSION_SECUNDARIA',
+			suggestedAmount: '580',
+			defaultChecked: true,
+			category: 'TUITION',
+			recurringDefault: true,
 		},
 		{
-			title: 'Evaluaciones / académicos',
-			items: [
-				{ code: 'EXAMEN_RECUP', name: 'Examen de recuperación', amount: 'S/ 40' },
-				{ code: 'CONSTANCIA', name: 'Constancia de estudios', amount: 'S/ 25' },
-				{ code: 'CERTIFICADO', name: 'Certificado anual', amount: 'S/ 50' },
-			],
+			key: 'materials',
+			name: 'Materiales / útiles',
+			description: 'Cobro por materiales escolares',
+			suggestedCode: 'MATERIALES',
+			suggestedAmount: '80',
+			defaultChecked: false,
+			category: 'MATERIALS',
 		},
 		{
-			title: 'Eventos / extracurriculares',
-			items: [
-				{ code: 'PASEO_FIN', name: 'Paseo de fin de año', amount: 'S/ 90' },
-				{ code: 'PROMOCION', name: 'Cuota de promoción', amount: 'S/ 200' },
-				{ code: 'TALLER_DANZA', name: 'Taller de danza', amount: 'S/ 60' },
-			],
+			key: 'meals',
+			name: 'Refrigerio / almuerzo',
+			description: 'Cuota por servicio de comida',
+			suggestedCode: 'REFRIGERIO',
+			suggestedAmount: '10',
+			defaultChecked: false,
+			category: 'MEALS',
 		},
 		{
-			title: 'APAFA / aportes',
-			items: [
-				{ code: 'APAFA_ANUAL', name: 'Cuota APAFA anual', amount: 'S/ 50' },
-				{ code: 'FONDO_BIBLIO', name: 'Fondo biblioteca', amount: 'S/ 30' },
-			],
+			key: 'transport',
+			name: 'Movilidad escolar',
+			description: 'Servicio de transporte del estudiante',
+			suggestedCode: 'MOVILIDAD',
+			suggestedAmount: '180',
+			defaultChecked: false,
+			category: 'TRANSPORT',
 		},
 	];
 
-	protected readonly loading = signal(false);
+	protected readonly autoCreateOptions = signal<readonly AutoCreateOption[]>(this.AUTO_CREATE_OPTIONS);
+	protected readonly selectedOptions = signal<Set<string>>(
+		new Set(this.AUTO_CREATE_OPTIONS.filter((option) => option.defaultChecked).map((option) => option.key)),
+	);
+	protected readonly allSelected = computed(
+		() => this.autoCreateOptions().length > 0 && this.selectedOptions().size === this.autoCreateOptions().length,
+	);
+	protected readonly selectedCount = computed(() => this.selectedOptions().size);
+	protected readonly selectedOptionsList = computed(() =>
+		this.autoCreateOptions().filter((option) => this.selectedOptions().has(option.key)),
+	);
 	protected readonly saving = signal(false);
+	protected readonly loading = signal(false);
 	protected readonly concepts = signal<readonly PaymentConcept[]>([]);
+	protected readonly banner = signal<{ ok: boolean; message: string } | null>(null);
+
+	protected toggleOption(key: string): void {
+		this.selectedOptions.update((current) => {
+			const next = new Set(current);
+			if (next.has(key)) next.delete(key);
+			else next.add(key);
+			return next;
+		});
+	}
+
+	protected toggleAllOptions(event: Event): void {
+		const checked = (event.target as HTMLInputElement | null)?.checked ?? false;
+		this.selectedOptions.set(
+			checked ? new Set(this.autoCreateOptions().map((option) => option.key)) : new Set<string>(),
+		);
+	}
+
 	protected readonly editing = signal<{ existing: PaymentConcept | null; editingExisting: boolean } | null>(null);
 	protected readonly deleting = signal<PaymentConcept | null>(null);
 	protected readonly formError = signal<string | null>(null);
@@ -626,6 +778,49 @@ export class PaymentConceptsPageComponent implements OnInit {
 		}
 		catch (err: unknown) {
 			this.deleteError.set(this.extractError(err, 'No se pudo eliminar el concepto.'));
+		}
+		finally {
+			this.saving.set(false);
+		}
+	}
+
+	async autoCreateConcepts(event?: Event): Promise<void> {
+		event?.preventDefault();
+		const options = this.selectedOptionsList();
+		if (this.saving() || options.length === 0) {
+			return;
+		}
+		this.saving.set(true);
+		this.formError.set(null);
+
+		try {
+			const created: PaymentConcept[] = [];
+			for (const option of options) {
+				const payload: PaymentConceptRequest = {
+					code: option.suggestedCode,
+					name: option.name,
+					description: '',
+					category: option.category,
+					defaultAmountCents: solesToCents(Number(option.suggestedAmount)),
+					currency: 'PEN',
+					recurring: option.recurringDefault ?? false,
+					active: true,
+					sortOrder: 0,
+				};
+				const createdConcept = await firstValueFrom(
+					this.conceptsApi.create(payload)
+				);
+				created.push(createdConcept);
+			}
+			this.selectedOptions.set(new Set());
+			this.banner.set({
+				ok: true,
+				message: `Se crearon ${created.length} concepto(s) de pago automáticamente.`,
+			});
+			await this.reload();
+		}
+		catch (err: unknown) {
+			this.formError.set(this.extractError(err, 'No se pudieron crear todos los conceptos. Verifica cuáles se registraron antes de reintentar.'));
 		}
 		finally {
 			this.saving.set(false);

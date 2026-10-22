@@ -10,8 +10,10 @@ import {
   AdminLoginRequest,
   AdminLoginResponseRaw,
   AdminMfaRequiredRaw,
+  AdminMfaChallengeRequiredRaw,
   AdminLoginRaw,
   isAdminMfaRequired,
+  isAdminMfaChallengeRequired,
 } from '../models';
 
 interface DevCompleteMfaResponseRaw {
@@ -65,6 +67,43 @@ export class AdminAuthApiService {
       );
   }
 
+  changeInitialPassword(
+    onboardingToken: string,
+    newPassword: string,
+  ): Observable<AdminMfaRequiredRaw> {
+    return this.http.post<AdminMfaRequiredRaw>(
+      API.ADMIN.AUTH.INITIAL_PASSWORD,
+      { newPassword },
+      { headers: new HttpHeaders({ Authorization: `Bearer ${onboardingToken}` }) },
+    );
+  }
+
+  startMfaEnrolment(onboardingToken: string): Observable<AdminMfaEnrolmentPayload> {
+    return this.http.post<{ data: AdminMfaEnrolmentPayload }>(
+      API.ADMIN.AUTH.MFA_ENROL,
+      {},
+      { headers: new HttpHeaders({ Authorization: `Bearer ${onboardingToken}` }) },
+    ).pipe(map((response) => response.data));
+  }
+
+  verifyMfaEnrolment(
+    onboardingToken: string,
+    secretBase32: string,
+    totpCode: number,
+  ): Observable<AuthSession> {
+    return this.http.post<AdminLoginResponseRaw>(
+      API.ADMIN.AUTH.MFA_VERIFY_ENROL,
+      { secretBase32, totpCode },
+      { headers: new HttpHeaders({ Authorization: `Bearer ${onboardingToken}` }) },
+    ).pipe(map((response) => toAdminAuthSession(response)));
+  }
+
+  verifyMfaChallenge(mfaToken: string, code: string): Observable<AuthSession> {
+    return this.http.post<AdminLoginResponseRaw>(API.ADMIN.AUTH.MFA_CHALLENGE, { code }, {
+      headers: new HttpHeaders({ Authorization: `Bearer ${mfaToken}` }),
+    }).pipe(map((response) => toAdminAuthSession(response)));
+  }
+
   /** Revoke the refresh cookie and ask the API to clear both auth cookies. */
   logout(): Observable<void> {
     return this.api.post<void>(API.ADMIN.AUTH.LOGOUT, {});
@@ -78,6 +117,12 @@ export class AdminAuthApiService {
    * message.
    */
   private maybeAutoBypass(raw: AdminLoginRaw): Observable<AdminLoginResponseRaw> {
+    if (isAdminMfaRequired(raw) && raw.reason === 'PASSWORD_CHANGE_REQUIRED') {
+      return throwError(() => new PasswordChangeRequiredError(raw));
+    }
+    if (isAdminMfaChallengeRequired(raw)) {
+      return throwError(() => new MfaChallengeRequiredError(raw));
+    }
     if (!isAdminMfaRequired(raw)) {
       return of(raw);
     }
@@ -115,6 +160,37 @@ export class AdminAuthApiService {
         }),
       );
   }
+}
+
+export class PasswordChangeRequiredError extends Error {
+  readonly onboardingToken: string;
+  readonly expiresInSec: number;
+  constructor(raw: AdminMfaRequiredRaw) {
+    super('Debes cambiar la contraseña temporal antes de continuar.');
+    this.name = 'PasswordChangeRequiredError';
+    this.onboardingToken = raw.onboardingToken;
+    this.expiresInSec = raw.expiresInSec;
+    Object.setPrototypeOf(this, PasswordChangeRequiredError.prototype);
+  }
+}
+
+export class MfaChallengeRequiredError extends Error {
+  readonly mfaToken: string;
+  readonly expiresInSec: number;
+  constructor(raw: AdminMfaChallengeRequiredRaw) {
+    super('Ingresa el código de tu app de autenticación para continuar.');
+    this.name = 'MfaChallengeRequiredError';
+    this.mfaToken = raw.mfaToken;
+    this.expiresInSec = raw.expiresInSec;
+    Object.setPrototypeOf(this, MfaChallengeRequiredError.prototype);
+  }
+}
+
+export interface AdminMfaEnrolmentPayload {
+  secretBase32: string;
+  qrCodeDataUrl: string;
+  otpauthUri: string;
+  expiresInSec: number;
 }
 
 /**

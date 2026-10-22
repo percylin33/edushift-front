@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -63,7 +65,7 @@ const GUARDIAN_OPTIONAL_KEYS = [
   selector: 'app-bulk-import-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [SafeBackdropDirective, 
     CommonModule,
     FormsModule,
     IconComponent,
@@ -77,7 +79,7 @@ const GUARDIAN_OPTIONAL_KEYS = [
       role="dialog"
       aria-modal="true"
       aria-labelledby="bulk-import-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card flex max-h-[90vh] w-full max-w-3xl flex-col shadow-xl"
@@ -730,6 +732,12 @@ const GUARDIAN_OPTIONAL_KEYS = [
   `,
 })
 export class BulkImportModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => [this.selectedFile(), this.mapping(), this.sectionMode(), this.sectionUuid(), this.enrolledAt(), this.nameMode(), this.guardianNameMode(), this.includeGuardian(), this.retryDrafts()],
+    saving: () => this.uploading() || this.previewing() || this.retryingRow() !== null,
+    active: () => true,
+  });
+
   private readonly store = inject(StudentsStore);
   private readonly academicApi = inject(AcademicApiService);
   private readonly auth = inject(AuthService);
@@ -947,8 +955,10 @@ export class BulkImportModalComponent implements OnInit {
   }
 
   protected close(): void {
-    this.store.clearError();
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.store.clearError();
+      this.closed.emit();
+    });
   }
 
   protected restart(): void {

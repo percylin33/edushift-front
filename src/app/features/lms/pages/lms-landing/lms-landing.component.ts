@@ -43,8 +43,8 @@ import { LmsSectionContextService } from '../../services/lms-section-context.ser
   template: `
     <app-page-container size="wide">
       <app-page-header
-        eyebrow="Mis cursos"
-        title="Mis cursos"
+        eyebrow="Aula virtual"
+        title="Aula virtual"
         subtitle="Cargando…"
       />
 
@@ -83,7 +83,7 @@ import { LmsSectionContextService } from '../../services/lms-section-context.ser
             <app-empty-state
               icon="book-open"
               title="Aún no hay secciones"
-              description="El tenant no tiene secciones activas. Crea la primera desde el módulo Académico."
+              description="Tu institución aún no tiene secciones activas. Crea la primera desde el módulo Académico."
             />
             <a [routerLink]="academicSectionsRoute" class="btn btn-primary btn-sm self-start">
               <app-icon name="plus" [size]="16" />

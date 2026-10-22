@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -43,14 +45,14 @@ import { TeacherAssignmentsStore } from '../store';
   selector: 'app-create-assignment-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, FormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="assignment-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card flex max-h-[90vh] w-full max-w-2xl flex-col shadow-xl"
@@ -291,6 +293,12 @@ import { TeacherAssignmentsStore } from '../store';
   `,
 })
 export class CreateAssignmentModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => [this.sectionUuid(), [...this.selectedCourseUuids()].sort(), this.periodUuid(), this.applyAllPeriods(), this.notes()],
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly academicApi = inject(AcademicApiService);
   private readonly store = inject(TeacherAssignmentsStore);
 
@@ -393,8 +401,10 @@ export class CreateAssignmentModalComponent implements OnInit {
   }
 
   protected close(): void {
-    this.store.clearError();
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.store.clearError();
+      this.closed.emit();
+    });
   }
 
   protected isCourseApplicable(course: CourseRow): boolean {

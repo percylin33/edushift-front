@@ -24,7 +24,7 @@ describe('PaymentsApiService', () => {
   };
 
   beforeEach(() => {
-    apiSpy = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'post', 'patch']);
+    apiSpy = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'post', 'patch', 'delete']);
     TestBed.configureTestingModule({
       providers: [PaymentsApiService, { provide: ApiService, useValue: apiSpy }],
     });
@@ -67,6 +67,51 @@ describe('PaymentsApiService', () => {
     apiSpy.get.and.returnValue(of([samplePayment]));
     service.listPaymentsForInvoice('inv-1').subscribe((payments) => {
       expect(payments).toHaveSize(1);
+      done();
+    });
+  });
+
+  it('searchAccessOverrideCandidates requests linked tenant candidates', (done) => {
+    const candidate = {
+      userPublicUuid: 'user-1',
+      studentPublicUuid: 'student-1',
+      displayName: 'Ana Ruiz',
+      relationship: 'Apoderado',
+    };
+    apiSpy.get.and.returnValue(of({ success: true, data: [candidate] }));
+
+    service.searchAccessOverrideCandidates('ana').subscribe((items) => {
+      expect(items).toEqual([candidate]);
+      expect(apiSpy.get.calls.mostRecent().args[0]).toContain('/access-overrides/candidates');
+      expect(apiSpy.get.calls.mostRecent().args[1]).toEqual({ q: 'ana' });
+      done();
+    });
+  });
+
+  it('listAccessOverrides unwraps tenant exceptions', (done) => {
+    const override = {
+      publicUuid: 'override-1',
+      userPublicUuid: 'user-1',
+      userName: 'Ana Ruiz',
+      studentPublicUuid: 'student-1',
+      studentName: 'Mateo Ruiz',
+      reason: 'Acuerdo de pago',
+      untilAt: '2026-12-01T12:00:00Z',
+    };
+    apiSpy.get.and.returnValue(of({ success: true, data: [override] }));
+
+    service.listAccessOverrides().subscribe((items) => {
+      expect(items).toEqual([override]);
+      expect(apiSpy.get.calls.mostRecent().args[0]).toContain('/access-overrides');
+      done();
+    });
+  });
+
+  it('revokeAccessOverride uses the exception resource URL', (done) => {
+    apiSpy.delete.and.returnValue(of({ success: true, data: null }));
+
+    service.revokeAccessOverride('override-1').subscribe(() => {
+      expect(apiSpy.delete.calls.mostRecent().args[0]).toContain('/access-overrides/override-1');
       done();
     });
   });

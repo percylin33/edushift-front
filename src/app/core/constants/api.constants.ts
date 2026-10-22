@@ -1,9 +1,11 @@
 import { environment } from '@env/environment';
 
 const BASE = `${environment.apiUrl}/${environment.apiVersion}`;
+export const API_BASE_URL = environment.apiUrl;
 
 export const API = {
   BASE,
+  PUBLIC_CONTACT: `${BASE}/public/contact`,
   /** FileObjectService — uploads + downloads (BE-7a.0). */
   FILES: {
     DOWNLOAD: (publicUuid: string) =>
@@ -54,6 +56,7 @@ export const API = {
     ACTIVATE: `${BASE}/tenants/me/activate`,
   },
   DASHBOARD: {
+    SCHOOL_OPERATIONS_SUMMARY: `${BASE}/school-dashboard/summary`,
     ROOT: `${BASE}/dashboard`,
     METRICS: `${BASE}/dashboard/metrics`,
     WIDGETS: `${BASE}/dashboard/widgets`,
@@ -81,6 +84,9 @@ export const API = {
     BY_ID: (publicUuid: string) => `${BASE}/users/${encodeURIComponent(publicUuid)}`,
     /** Wholesale-replace the user's role set (TENANT_ADMIN). */
     ROLES: (publicUuid: string) => `${BASE}/users/${encodeURIComponent(publicUuid)}/roles`,
+    /** Read or replace the profiles and permission exceptions for one STAFF user. */
+    STAFF_ACCESS: (publicUuid: string) =>
+      `${BASE}/users/${encodeURIComponent(publicUuid)}/staff-access`,
     /** Lifecycle: SUSPENDED → ACTIVE. */
     DISABLE: (publicUuid: string) => `${BASE}/users/${encodeURIComponent(publicUuid)}/disable`,
     /** Lifecycle: ACTIVE → SUSPENDED (with last-admin + self-lockout guards). */
@@ -163,6 +169,8 @@ export const API = {
   },
   STUDENTS: {
     ROOT: `${BASE}/students`,
+    /** {@code GET /v1/students/payment-recipients} — minimal invoice recipient search. */
+    PAYMENT_RECIPIENTS: `${BASE}/students/payment-recipients`,
     /** {@code GET|PUT|DELETE /v1/students/{publicUuid}}. */
     BY_ID: (publicUuid: string) => `${BASE}/students/${encodeURIComponent(publicUuid)}`,
     BULK_IMPORT: {
@@ -197,6 +205,40 @@ export const API = {
     /** {@code GET|POST /v1/students/{publicUuid}/enrollments} (BE-4.8). */
     ENROLLMENTS: (studentPublicUuid: string) =>
       `${BASE}/students/${encodeURIComponent(studentPublicUuid)}/enrollments`,
+  },
+  ADMISSIONS: {
+    PUBLIC_CATALOG: (tenantSlug: string) =>
+      `${BASE}/public/admissions/${encodeURIComponent(tenantSlug)}/catalog`,
+    PUBLIC_INQUIRY: (tenantSlug: string) =>
+      `${BASE}/public/admissions/${encodeURIComponent(tenantSlug)}/inquiries`,
+    PUBLIC_OFFER: (tenantSlug: string, token: string) =>
+      `${BASE}/public/admissions/${encodeURIComponent(tenantSlug)}/offers/${encodeURIComponent(token)}`,
+    PUBLIC_OFFER_RESPONSE: (tenantSlug: string, token: string) =>
+      `${BASE}/public/admissions/${encodeURIComponent(tenantSlug)}/offers/${encodeURIComponent(token)}/response`,
+    APPLICATION: (applicationPublicUuid: string) =>
+      `${BASE}/admissions/applications/${encodeURIComponent(applicationPublicUuid)}`,
+    APPLICATIONS: (yearPublicUuid: string) =>
+      `${BASE}/admissions/years/${encodeURIComponent(yearPublicUuid)}/applications`,
+    INQUIRIES: (yearPublicUuid: string) =>
+      `${BASE}/admissions/years/${encodeURIComponent(yearPublicUuid)}/inquiries`,
+    INQUIRY: (inquiryPublicUuid: string) =>
+      `${BASE}/admissions/inquiries/${encodeURIComponent(inquiryPublicUuid)}`,
+    INQUIRY_HISTORY: (inquiryPublicUuid: string) =>
+      `${BASE}/admissions/inquiries/${encodeURIComponent(inquiryPublicUuid)}/history`,
+    CONVERT_INQUIRY: (inquiryPublicUuid: string) =>
+      `${BASE}/admissions/inquiries/${encodeURIComponent(inquiryPublicUuid)}/application`,
+    OFFER_LINK: (applicationPublicUuid: string) =>
+      `${BASE}/admissions/applications/${encodeURIComponent(applicationPublicUuid)}/offer-link`,
+    COMPLETE_ENROLLMENT: (applicationPublicUuid: string) =>
+      `${BASE}/admissions/applications/${encodeURIComponent(applicationPublicUuid)}/complete-enrollment`,
+    VACANCIES: (yearPublicUuid: string) =>
+      `${BASE}/admissions/years/${encodeURIComponent(yearPublicUuid)}/vacancies`,
+    STATUS: (applicationPublicUuid: string) =>
+      `${BASE}/admissions/applications/${encodeURIComponent(applicationPublicUuid)}/status`,
+    ENROLLMENT: (applicationPublicUuid: string) =>
+      `${BASE}/admissions/applications/${encodeURIComponent(applicationPublicUuid)}/enrollment`,
+    HISTORY: (applicationPublicUuid: string) =>
+      `${BASE}/admissions/applications/${encodeURIComponent(applicationPublicUuid)}/history`,
   },
   ACADEMIC: {
     ROOT: `${BASE}/academic`,
@@ -411,6 +453,7 @@ export const API = {
       // Listing all payments in the tenant with optional filters.
       PAYMENTS: `${BASE}/admin/payments`,
       INVOICES: `${BASE}/admin/payments/invoices`,
+      INVOICE_REVIEW_QUEUE: `${BASE}/admin/payments/invoices/review-queue`,
       /** POST /admin/payments/invoices — emit one invoice. */
       EMIT: `${BASE}/admin/payments/invoices`,
       /** POST /admin/payments/invoices/bulk — section or all-enrolled. */
@@ -426,6 +469,8 @@ export const API = {
       // CASH payment for the invoice and flip it to PAID.
       MARK_PAID_CASH: (invoicePublicUuid: string) =>
         `${BASE}/admin/payments/invoices/${encodeURIComponent(invoicePublicUuid)}/mark-paid-cash`,
+      APPROVE_EVIDENCE: (invoicePublicUuid: string) =>
+        `${BASE}/admin/payments/invoices/${encodeURIComponent(invoicePublicUuid)}/approve-evidence`,
       REJECT_EVIDENCE: (invoicePublicUuid: string) =>
         `${BASE}/admin/payments/invoices/${encodeURIComponent(invoicePublicUuid)}/reject-evidence`,
       MORA_EXEMPT: (invoicePublicUuid: string) =>
@@ -433,6 +478,12 @@ export const API = {
       SUBSCRIPTIONS: {
         ROOT: `${BASE}/admin/payments/subscriptions`,
         BULK: `${BASE}/admin/payments/subscriptions/bulk`,
+        RULES: `${BASE}/admin/payments/subscriptions/rules`,
+        RULE_PREVIEW: `${BASE}/admin/payments/subscriptions/rules/preview`,
+        RULE_BY_ID: (publicUuid: string) =>
+          `${BASE}/admin/payments/subscriptions/rules/${encodeURIComponent(publicUuid)}`,
+        RULE_SYNC: (publicUuid: string) =>
+          `${BASE}/admin/payments/subscriptions/rules/${encodeURIComponent(publicUuid)}/sync`,
         SIBLING_SUGGESTIONS: `${BASE}/admin/payments/subscriptions/sibling-suggestions`,
         SIBLING_REFRESH: `${BASE}/admin/payments/subscriptions/sibling-suggestions/refresh`,
         SIBLING_DECIDE: `${BASE}/admin/payments/subscriptions/sibling-suggestions/decide`,
@@ -448,6 +499,9 @@ export const API = {
       RUN_DUE: `${BASE}/admin/payments/subscriptions/run-due`,
       POLICY: `${BASE}/admin/payments/policy`,
       ACCESS_OVERRIDES: `${BASE}/admin/payments/access-overrides`,
+      ACCESS_OVERRIDE_CANDIDATES: `${BASE}/admin/payments/access-overrides/candidates`,
+      ACCESS_OVERRIDE_BY_ID: (publicUuid: string) =>
+        `${BASE}/admin/payments/access-overrides/${encodeURIComponent(publicUuid)}`,
       REPORTS: {
         EXPORT_CSV: `${BASE}/admin/payments/reports/export.csv`,
         AGING: `${BASE}/admin/payments/reports/aging`,
@@ -464,6 +518,15 @@ export const API = {
         ROOT: `${BASE}/admin/payments/concepts`,
         BY_ID: (publicUuid: string) =>
           `${BASE}/admin/payments/concepts/${encodeURIComponent(publicUuid)}`,
+      },
+      PAYMENT_METHODS: {
+        ROOT: `${BASE}/tenants/:tenantSlug/payment-methods`,
+        BY_ID: (tenantSlug: string, publicUuid: string) =>
+          `${BASE}/tenants/${encodeURIComponent(tenantSlug)}/payment-methods/${encodeURIComponent(publicUuid)}`,
+        SET_DEFAULT: (tenantSlug: string, publicUuid: string) =>
+          `${BASE}/tenants/${encodeURIComponent(tenantSlug)}/payment-methods/${encodeURIComponent(publicUuid)}/set-default`,
+        PUBLIC: (tenantSlug: string) =>
+          `${BASE}/tenants/${encodeURIComponent(tenantSlug)}/payment-methods/public`,
       },
     },
   },
@@ -534,6 +597,17 @@ export const API = {
     /** {@code GET|PUT|DELETE /v1/academic/grade-records/{publicUuid}} (BE-5B.3). */
     BY_ID: (publicUuid: string) =>
       `${BASE}/academic/grade-records/${encodeURIComponent(publicUuid)}`,
+    /** GET|PUT /academic/evaluations/{evaluation}/students/{student}/competency-results. */
+    COMPETENCY_RESULTS: (evaluationUuid: string, studentUuid: string) =>
+      `${BASE}/academic/evaluations/${encodeURIComponent(evaluationUuid)}`
+      + `/students/${encodeURIComponent(studentUuid)}/competency-results`,
+    COMPETENCY_RESULT_REVISIONS: (
+      evaluationUuid: string,
+      studentUuid: string,
+      competencyUuid: string,
+    ) =>
+      `${BASE}/academic/evaluations/${encodeURIComponent(evaluationUuid)}`
+      + `/students/${encodeURIComponent(studentUuid)}/competency-results/${encodeURIComponent(competencyUuid)}/revisions`,
   },
   GRADE_BOOK: {
     /** {@code GET /v1/academic/teacher-assignments/{publicUuid}/gradebook} (BE-5B.4 / F2). */
@@ -558,6 +632,9 @@ export const API = {
   },
   AI: {
     ROOT: `${BASE}/ai`,
+    CAPABILITIES: `${BASE}/ai/capabilities`,
+    AGENTS: `${BASE}/ai/agents`,
+    SOURCES: `${BASE}/ai/sources`,
     CHAT: `${BASE}/ai/chat`,
     INSIGHTS: `${BASE}/ai/insights`,
     // Sprint 8 / BE-8.1 — generate session outline (MINEDU template, strict JSON)
@@ -680,6 +757,10 @@ export const API = {
     AUTH: {
       /** `POST /v1/admin/login` — super-admin authentication (3 req/min rate-limited). */
       LOGIN: `${BASE}/admin/login`,
+      INITIAL_PASSWORD: `${BASE}/admin/initial-password`,
+      MFA_ENROL: `${BASE}/admin/mfa/enrol`,
+      MFA_VERIFY_ENROL: `${BASE}/admin/mfa/verify-enrol`,
+      MFA_CHALLENGE: `${BASE}/admin/mfa/challenge`,
       /** `POST /v1/admin/logout` — revokes the refresh cookie and clears both auth cookies. */
       LOGOUT: `${BASE}/admin/logout`,
       /**
@@ -695,7 +776,7 @@ export const API = {
     KPIS: `${BASE}/admin/dashboard/kpis`,
     /** `GET /v1/admin/dashboard/revenue-trend?months=12` — revenue line chart. */
     REVENUE_TREND: `${BASE}/admin/dashboard/revenue-trend`,
-    /** `GET /v1/admin/dashboard/active-tenants` — active tenant count over time. */
+    /** Legacy route: new institutions grouped by creation month. */
     ACTIVE_TENANTS: `${BASE}/admin/dashboard/active-tenants`,
     /** `GET /v1/admin/dashboard/plan-distribution` — pie chart. */
     PLAN_DISTRIBUTION: `${BASE}/admin/dashboard/plan-distribution`,
@@ -710,6 +791,9 @@ export const API = {
     /** `GET|PATCH /v1/admin/tenants/{publicUuid}` — detail / suspend. */
     TENANTS_BY_ID: (publicUuid: string) =>
       `${BASE}/admin/tenants/${encodeURIComponent(publicUuid)}`,
+    /** `GET /v1/admin/tenants/{publicUuid}/invoices` — institution billing history. */
+    TENANT_INVOICES: (publicUuid: string) =>
+      `${BASE}/admin/tenants/${encodeURIComponent(publicUuid)}/invoices`,
     /** `POST /v1/admin/tenants/{publicUuid}/suspend` — suspend tenant. */
     TENANTS_SUSPEND: (publicUuid: string) =>
       `${BASE}/admin/tenants/${encodeURIComponent(publicUuid)}/suspend`,
@@ -729,6 +813,16 @@ export const API = {
     PREP_PACKAGE: `${BASE}/admin/prep-package`,
     /** `GET|POST /v1/admin/plans` — platform plan CRUD. */
     PLANS_ROOT: `${BASE}/admin/plans`,
+    PLANS_ANALYTICS: `${BASE}/admin/plans/analytics`,
+    PLAN_AI_POLICIES: `${BASE}/admin/plans/ai-policies`,
+    PLAN_AI_POLICY: (publicUuid: string) => `${BASE}/admin/plans/${encodeURIComponent(publicUuid)}/ai-policy`,
+    AI_GLOBAL_SOURCES: `${BASE}/admin/ai/global-sources`,
+    AI_GLOBAL_SOURCE_REVIEW: (uuid: string) => `${BASE}/admin/ai/global-sources/${encodeURIComponent(uuid)}/review`,
+    AI_GLOBAL_SOURCE_FILE: (uuid: string) => `${BASE}/admin/ai/global-sources/${encodeURIComponent(uuid)}/file`,
+    AI_GLOBAL_SOURCE_PUBLISH: (uuid: string) => `${BASE}/admin/ai/global-sources/${encodeURIComponent(uuid)}/publish`,
+    AI_GLOBAL_SOURCE_RETRY: (uuid: string) => `${BASE}/admin/ai/global-sources/${encodeURIComponent(uuid)}/retry`,
+    AI_GLOBAL_SOURCE_REINDEX: (uuid: string) => `${BASE}/admin/ai/global-sources/${encodeURIComponent(uuid)}/reindex`,
+    AI_GLOBAL_SOURCE_RETIRE: (uuid: string) => `${BASE}/admin/ai/global-sources/${encodeURIComponent(uuid)}`,
     /** `GET|PUT|DELETE /v1/admin/plans/{publicUuid}` — single plan CRUD. */
     PLANS_BY_ID: (publicUuid: string) =>
       `${BASE}/admin/plans/${encodeURIComponent(publicUuid)}`,
@@ -743,6 +837,7 @@ export const API = {
       `${BASE}/admin/tenants/${encodeURIComponent(tenantUuid)}/subscription/reactivate`,
     /** `GET /v1/admin/invoices` — paginated invoice listing. */
     INVOICES_ROOT: `${BASE}/admin/invoices`,
+    INVOICE_BY_ID: (publicUuid: string) => `${BASE}/admin/invoices/${encodeURIComponent(publicUuid)}`,
     /** `GET|POST /v1/admin/b2b/invoices/{publicUuid}/payments` — B2B payments on invoice. */
     INVOICE_PAYMENTS: (publicUuid: string) =>
       `${BASE}/admin/b2b/invoices/${encodeURIComponent(publicUuid)}/payments`,
@@ -751,6 +846,7 @@ export const API = {
       `${BASE}/admin/invoices/${encodeURIComponent(publicUuid)}/mark-paid`,
     /** `GET /v1/admin/b2b/payments` — platform B2B payment listing (SUPER_ADMIN). */
     PAYMENTS_ROOT: `${BASE}/admin/b2b/payments`,
+    B2B_PAYMENTS: `${BASE}/admin/b2b/payments`,
     /** `POST /v1/admin/b2b/payments/{publicUuid}/refund` — refund a B2B payment. */
     PAYMENTS_REFUND: (publicUuid: string) =>
       `${BASE}/admin/b2b/payments/${encodeURIComponent(publicUuid)}/refund`,
@@ -762,11 +858,75 @@ export const API = {
     METRICS_STORAGE: `${BASE}/admin/metrics/storage`,
     /** `GET /v1/admin/metrics/ai?tenantUuid=` — AI usage per tenant. */
     METRICS_AI: `${BASE}/admin/metrics/ai`,
+    AUDIT_ROOT: `${BASE}/admin/audit`,
+    AUDIT_EXPORT: `${BASE}/admin/audit/export.csv`,
+    SUPER_ADMINS: `${BASE}/admin/super-admins`,
+    SUPER_ADMINS_COUNT: `${BASE}/admin/super-admins/count-active`,
+    SUPER_ADMIN_DISABLE: (uuid: string) => `${BASE}/admin/super-admins/${encodeURIComponent(uuid)}/disable`,
     /** Impersonation: `POST /v1/admin/impersonate` — obtain impersonation token. */
-    IMPERSONATE: `${BASE}/admin/impersonate`,
+    IMPERSONATE: `${BASE}/admin/impersonate/token`,
+    IMPERSONATE_TENANT_USERS: (tenantUuid: string) =>
+      `${BASE}/admin/impersonate/tenants/${encodeURIComponent(tenantUuid)}/users`,
     /** Impersonation: `POST /v1/admin/impersonate/stop` — stop impersonating. */
     IMPERSONATE_STOP: `${BASE}/admin/impersonate/stop`,
   },
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  CLAIMS: {
+    /** `GET /v1/admin/claims?status=&page=&size=` — list claims (TENTANT_ADMIN+SUPER_ADMIN). */
+    ROOT: `${BASE}/admin/claims`,
+    /** `POST /v1/admin/claims/{uuid}/respond` — respond to a claim. */
+    RESPOND: (uuid: string) => `${BASE}/admin/claims/${encodeURIComponent(uuid)}/respond`,
+  },
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   LMS: {
     ROOT: `${BASE}/lms`,
     // ---------------------------------------------------------------------

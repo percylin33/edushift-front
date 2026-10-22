@@ -15,6 +15,8 @@ import {
   InvitationPreflight,
   InvitationPreflightResponseRaw,
   InvitationResponseRaw,
+  ReplaceStaffAccessRequest,
+  StaffAccessState,
   UpdateUserRequest,
   UserDetail,
   UserDetailResponseRaw,
@@ -99,6 +101,24 @@ export class UsersApiService {
         request,
       )
       .pipe(map((envelope) => this.toUserDetail(envelope.data)));
+  }
+
+  getStaffAccess(publicUuid: string): Observable<StaffAccessState> {
+    return this.api
+      .get<ApiResponse<StaffAccessState>>(API.USERS.STAFF_ACCESS(publicUuid))
+      .pipe(map((envelope) => envelope.data));
+  }
+
+  replaceStaffAccess(
+    publicUuid: string,
+    request: ReplaceStaffAccessRequest,
+  ): Observable<StaffAccessState> {
+    return this.api
+      .put<ApiResponse<StaffAccessState>, ReplaceStaffAccessRequest>(
+        API.USERS.STAFF_ACCESS(publicUuid),
+        request,
+      )
+      .pipe(map((envelope) => envelope.data));
   }
 
   disable(publicUuid: string): Observable<UserDetail> {
@@ -208,6 +228,7 @@ export class UsersApiService {
       email: raw.email,
       firstName: raw.firstName ?? undefined,
       lastName: raw.lastName ?? undefined,
+      secondLastName: raw.secondLastName ?? undefined,
       fullName: raw.fullName,
       status: raw.status,
       roles: this.narrowRoles(raw.roles),
@@ -222,6 +243,7 @@ export class UsersApiService {
       email: raw.email,
       firstName: raw.firstName ?? undefined,
       lastName: raw.lastName ?? undefined,
+      secondLastName: raw.secondLastName ?? undefined,
       fullName: raw.fullName,
       phone: raw.phone ?? undefined,
       avatarUrl: raw.avatarUrl ?? undefined,
@@ -262,12 +284,13 @@ export class UsersApiService {
   }
 
   private toInvitation(raw: InvitationResponseRaw): Invitation {
-    const fullName = `${raw.firstName} ${raw.lastName}`.trim();
+    const fullName = [raw.firstName, raw.lastName, raw.secondLastName].filter(Boolean).join(' ').trim();
     return {
       publicUuid: raw.publicUuid,
       email: raw.email,
       firstName: raw.firstName,
       lastName: raw.lastName,
+      secondLastName: raw.secondLastName ?? undefined,
       documentType: raw.documentType,
       documentNumber: raw.documentNumber,
       fullName: fullName || raw.email,
@@ -282,11 +305,12 @@ export class UsersApiService {
   }
 
   private toPreflight(raw: InvitationPreflightResponseRaw): InvitationPreflight {
-    const fullName = `${raw.firstName} ${raw.lastName}`.trim();
+    const fullName = [raw.firstName, raw.lastName, raw.secondLastName].filter(Boolean).join(' ').trim();
     return {
       email: raw.email,
       firstName: raw.firstName,
       lastName: raw.lastName,
+      secondLastName: raw.secondLastName ?? undefined,
       fullName: fullName || raw.email,
       tenantName: raw.tenantName,
       tenantSlug: raw.tenantSlug ?? undefined,

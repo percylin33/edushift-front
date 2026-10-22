@@ -1,3 +1,4 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -208,6 +209,12 @@ import {
   `,
 })
 export class QuizGradePageComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.storeSaving(),
+    active: () => true,
+  });
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
@@ -327,6 +334,7 @@ export class QuizGradePageComponent implements OnInit {
       // Refresh the queue (the just-graded attempt is no longer pending).
       await this.attempts.loadQueue(this.quizPublicUuid());
       this.rebuildForm();
+      this.formProtection.markSaved();
     }
   }
 

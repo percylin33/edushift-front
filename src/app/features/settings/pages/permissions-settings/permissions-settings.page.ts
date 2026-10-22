@@ -85,7 +85,8 @@ import { PermissionOverridesStore } from '../../store/permission-overrides.store
                         <input
                           type="checkbox"
                           class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50"
-                          [checked]="cellGranted(r, a)"
+                          [checked]="isPermissionFixed(r, a) ? false : cellGranted(r, a)"
+                          [disabled]="isPermissionFixed(r, a)"
                           [attr.aria-label]="
                             'Conceder ' + authorityLabel(a) + ' a ' + roleLabel(r)
                           "
@@ -101,6 +102,10 @@ import { PermissionOverridesStore } from '../../store/permission-overrides.store
               }
             </tbody>
           </table>
+        </div>
+
+        <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs leading-5 text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
+          En información anual, el personal autorizado prepara y envía el borrador. El administrador del colegio puede consultarlo, revisarlo y publicarlo, pero no editarlo ni enviarlo a revisión. El envío queda reservado al rol STAFF.
         </div>
 
         <p class="text-xs text-slate-500 dark:text-slate-400">
@@ -143,6 +148,10 @@ export class PermissionsSettingsPageComponent implements OnInit {
     'LMS_PAYMENT_ADMIN',
     'LMS_ANNOUNCEMENTS_CREATE',
     'LMS_NOTIFICATIONS_MANAGE',
+    'LMS_DISCLOSURE_READ',
+    'LMS_DISCLOSURE_MANAGE',
+    'LMS_DISCLOSURE_REVIEW',
+    'LMS_DISCLOSURE_PUBLISH',
   ];
 
   /** Override rows ready for the table. */
@@ -179,8 +188,13 @@ export class PermissionsSettingsPageComponent implements OnInit {
     authority: string,
     ev: Event,
   ): void {
+    if (this.isPermissionFixed(role, authority)) return;
     const checked = (ev.target as HTMLInputElement).checked;
     this.store.toggle({ role, authority, granted: checked });
+  }
+
+  protected isPermissionFixed(role: UserRole, authority: string): boolean {
+    return role === UserRole.TenantAdmin && authority === 'LMS_DISCLOSURE_MANAGE';
   }
 
   protected roleLabel(role: UserRole): string {
@@ -219,6 +233,10 @@ const AUTHORITY_LABELS: Record<string, string> = {
   LMS_PAYMENT_ADMIN: 'Administrar pagos',
   LMS_ANNOUNCEMENTS_CREATE: 'Crear anuncios',
   LMS_NOTIFICATIONS_MANAGE: 'Gestionar notificaciones',
+  LMS_DISCLOSURE_MANAGE: 'Preparar información anual',
+  LMS_DISCLOSURE_READ: 'Consultar información anual',
+  LMS_DISCLOSURE_REVIEW: 'Revisar y aprobar información anual',
+  LMS_DISCLOSURE_PUBLISH: 'Publicar información anual a familias',
 };
 
 // Mirror of LmsRoleAuthorityMapper.DEFAULTS on the BE. Source of truth is
@@ -231,9 +249,10 @@ const PLATFORM_DEFAULTS: Record<UserRole, Set<string>> = {
     'LMS_QUIZ_READ','LMS_QUIZ_CREATE','LMS_QUIZ_GRADE','LMS_QUIZ_SUBMIT',
     'LMS_AI_GENERATE','LMS_AI_USAGE','LMS_PAYMENT_ADMIN',
     'LMS_ANNOUNCEMENTS_CREATE','LMS_NOTIFICATIONS_MANAGE',
+    'LMS_DISCLOSURE_READ','LMS_DISCLOSURE_REVIEW','LMS_DISCLOSURE_PUBLISH',
   ]),
   [UserRole.Staff]: new Set([
-    'LMS_TASK_READ','LMS_MATERIAL_READ','LMS_QUIZ_READ','LMS_PAYMENT_ADMIN',
+    'LMS_TASK_READ','LMS_MATERIAL_READ','LMS_QUIZ_READ','LMS_PAYMENT_ADMIN','LMS_DISCLOSURE_READ','LMS_DISCLOSURE_MANAGE',
   ]),
   [UserRole.Teacher]: new Set([
     'LMS_TASK_READ','LMS_TASK_CREATE','LMS_TASK_GRADE',

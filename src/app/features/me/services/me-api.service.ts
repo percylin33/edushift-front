@@ -85,8 +85,12 @@ export class MeApiService {
     return this.http.get<ApiResponse<MeInvoice[]>>('/api/v1/me/payments');
   }
 
-  listSchedule(): Observable<ApiResponse<ScheduleWeekView>> {
-    return this.http.get<ApiResponse<ScheduleWeekViewRaw>>('/api/v1/me/schedule').pipe(
+  listSchedule(periodPublicUuid?: string | null): Observable<ApiResponse<ScheduleWeekView>> {
+    const params: Record<string, string> = {};
+    if (periodPublicUuid) {
+      params['periodId'] = periodPublicUuid;
+    }
+    return this.http.get<ApiResponse<ScheduleWeekViewRaw>>('/api/v1/me/schedule', { params }).pipe(
       map((response) => ({
         ...response,
         data: toScheduleWeekView(response.data),

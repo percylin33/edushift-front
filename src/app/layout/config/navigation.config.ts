@@ -6,8 +6,8 @@ import { NavigationGroup } from '../models';
  * Source of truth for the sidebar navigation.
  *
  * Every item declares its own visibility constraints (`feature` / `roles` /
- * `permissions`). `NavigationService` filters the tree at render time and
- * prunes empty groups.
+ * `permissions` / `visibleIfAny`). `NavigationService` filters the tree at
+ * render time and prunes empty groups.
  *
  * Adding a new module is a one-liner here — no template changes required.
  *
@@ -18,7 +18,7 @@ import { NavigationGroup } from '../models';
 export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
   {
     id: 'workspace',
-    label: 'Espacio de trabajo',
+    label: 'Institución',
     items: [
       {
         id: 'dashboard',
@@ -29,18 +29,13 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         feature: FeatureKey.Dashboard,
       },
       {
-        /*
-         * Sprint 3 keeps the students module role-gated (TENANT_ADMIN
-         * only) — same trade-off as the users entry, see
-         * docs/product/sprints/sprint-03-users-students.md. Fine-grained
-         * `students:*` permissions land with the security sprint.
-         */
         id: 'students',
         label: 'Estudiantes',
         icon: 'graduation-cap',
         route: ROUTES.STUDENTS.ROOT,
         feature: FeatureKey.Students,
-        roles: [UserRole.TenantAdmin],
+        roles: [UserRole.TenantAdmin, UserRole.Staff],
+        permissions: [Permission.StudentsReadGranular],
       },
       {
         /*
@@ -120,6 +115,28 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         ],
       },
       {
+        id: 'disclosures',
+        label: 'Información anual',
+        icon: 'file-text',
+        route: '/disclosures',
+        feature: FeatureKey.Disclosures,
+        roles: [UserRole.TenantAdmin, UserRole.Staff],
+        permissions: [Permission.LmsDisclosureRead],
+      },
+      {
+        id: 'admissions',
+        label: 'Admisiones',
+        icon: 'users',
+        route: '/admissions',
+        feature: FeatureKey.Admissions,
+        roles: [UserRole.TenantAdmin, UserRole.Staff],
+        permissions: [
+          Permission.LmsAdmissionManage,
+          Permission.AdmissionsInquiriesRead,
+          Permission.AdmissionsApplicationsRead,
+        ],
+      },
+      {
         /*
          * Sprint 5B (FE-5B.2) — catálogo de rúbricas. El listing global
          * lo merece (las evaluations cuelgan de assignment, pero las
@@ -131,7 +148,7 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         icon: 'layers',
         route: ROUTES.RUBRICS.ROOT,
         feature: FeatureKey.Rubrics,
-        roles: [UserRole.TenantAdmin, UserRole.Teacher],
+        roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Student, UserRole.Parent],
       },
       {
         /*
@@ -183,7 +200,7 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
          * soporte).
          */
         id: 'lms',
-        label: 'Mis cursos',
+        label: 'Aula virtual',
         icon: 'book-open',
         route: ROUTES.LMS.ROOT,
         feature: FeatureKey.Lms,
@@ -203,19 +220,22 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         icon: 'calendar-check',
         route: ROUTES.ATTENDANCE.SCANNER,
         feature: FeatureKey.Attendance,
-        roles: [UserRole.TenantAdmin, UserRole.Teacher],
+        roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Staff],
+        permissions: [Permission.AttendanceReadGranular],
         children: [
           {
             id: 'attendance-scanner',
             label: 'Entrada / Escáner',
             route: ROUTES.ATTENDANCE.SCANNER,
-            roles: [UserRole.TenantAdmin, UserRole.Teacher],
+            roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Staff],
+            permissions: [Permission.AttendanceRegister],
           },
           {
             id: 'attendance-sessions',
             label: 'Sesiones',
             route: ROUTES.ATTENDANCE.SESSIONS,
-            roles: [UserRole.TenantAdmin, UserRole.Teacher],
+            roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Staff],
+            permissions: [Permission.AttendanceReadGranular],
           },
         ],
       },
@@ -290,37 +310,43 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         icon: 'credit-card',
         route: ROUTES.PAYMENTS.ROOT,
         feature: FeatureKey.Payments,
-        roles: [UserRole.TenantAdmin, UserRole.Staff, UserRole.Student, UserRole.Parent],
+        visibleIfAny: {
+          roles: [UserRole.TenantAdmin, UserRole.Student, UserRole.Parent],
+          permissions: [
+            Permission.LmsPaymentAdmin,
+            Permission.PaymentsReadGranular,
+            Permission.PaymentsReconcile,
+            Permission.PaymentsIssue,
+            Permission.PaymentConceptsManage,
+          ],
+        },
         children: [
           {
-            id: 'payments-emit',
-            label: 'Emitir',
-            icon: 'plus',
-            route: ROUTES.PAYMENTS.ADMIN.EMIT,
-            permissions: [Permission.LmsPaymentAdmin],
-          },
-          {
-            /*
-             * Sprint 11 / FE-11.3 — admin power tools (reconcile /
-             * refund / mark-paid-cash). Gated by `LMS_PAYMENT_ADMIN`
-             * (TENANT_ADMIN + STAFF per `LmsRoleAuthorityMapper`).
-             * The authority string is passed verbatim to match the
-             * `LMS_*` convention used by every other LMS guard — the
-             * `permissions` array in `permission.enum.ts` is the
-             * authoritative listing.
-             */
-            id: 'payments-admin',
-            label: 'Conciliación',
+            /* PAYMENTS:RECONCILE grants the restricted voucher review queue;
+             * PAYMENTS:READ grants the full invoice list. */
+            id: 'payments-collections',
+            label: 'Cobros',
             icon: 'shield-check',
             route: ROUTES.PAYMENTS.ADMIN.INVOICES,
-            permissions: [Permission.LmsPaymentAdmin],
+            permissions: [
+              Permission.LmsPaymentAdmin,
+              Permission.PaymentsReadGranular,
+              Permission.PaymentsReconcile,
+            ],
+          },
+          {
+            id: 'payments-emit',
+            label: 'Emitir cuotas',
+            icon: 'file-text',
+            route: ROUTES.PAYMENTS.ADMIN.EMIT,
+            permissions: [Permission.LmsPaymentAdmin, Permission.PaymentsIssue],
           },
           {
             id: 'payments-concepts',
             label: 'Conceptos',
             icon: 'layers',
             route: ROUTES.PAYMENTS.ADMIN.CONCEPTS,
-            permissions: [Permission.LmsPaymentAdmin],
+            permissions: [Permission.PaymentConceptsManage, Permission.LmsPaymentAdmin],
           },
           {
             id: 'payments-plans',
@@ -334,6 +360,13 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
             label: 'Política',
             icon: 'settings',
             route: ROUTES.PAYMENTS.ADMIN.POLICY,
+            permissions: [Permission.LmsPaymentAdmin],
+          },
+          {
+            id: 'payments-methods',
+            label: 'Métodos de pago',
+            icon: 'landmark',
+            route: '/payments/admin/methods',
             permissions: [Permission.LmsPaymentAdmin],
           },
         ],

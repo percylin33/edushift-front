@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { UserRole } from '@core/enums';
+import { Permission, UserRole } from '@core/enums';
 import { AuthService } from '@core/services';
 
 /**
@@ -14,8 +14,8 @@ import { AuthService } from '@core/services';
  * ("Mis cuotas") is wrong for the admin. This resolver picks the
  * right entry-point per role:</p>
  * <ul>
- *   <li>TENANT_ADMIN / STAFF → {@code /payments/admin/invoices}
- *       (voucher review queue, gated by {@code LMS_PAYMENT_ADMIN}).</li>
+ *   <li>TENANT_ADMIN / staff with payment-read → {@code /payments/admin/invoices}.</li>
+ *   <li>Staff with issue-only access → {@code /payments/admin/emit}.</li>
  *   <li>STUDENT / PARENT → {@code /payments/invoices}.</li>
  *   <li>Anything else → {@code /dashboard}.</li>
  * </ul>
@@ -37,8 +37,36 @@ export class PaymentsRoleRedirectComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     const roles = this.auth.roles();
 
-    if (roles.includes(UserRole.TenantAdmin) || roles.includes(UserRole.Staff)) {
+    if (
+      roles.includes(UserRole.TenantAdmin) ||
+      this.auth.hasPermission(
+        Permission.LmsPaymentAdmin,
+        Permission.PaymentsReadGranular,
+        Permission.PaymentsReconcile,
+      )
+    ) {
       await this.router.navigateByUrl('/payments/admin/invoices');
+      return;
+    }
+
+    if (this.auth.hasPermission(Permission.PaymentsIssue)) {
+      await this.router.navigateByUrl('/payments/admin/emit');
+      return;
+    }
+
+    if (this.auth.hasPermission(Permission.PaymentConceptsManage)) {
+      await this.router.navigateByUrl('/payments/admin/concepts');
+      return;
+    }
+
+    if (
+      this.auth.hasPermission(
+        Permission.PaymentsReceive,
+        Permission.PaymentsReconcile,
+        Permission.PaymentsRefund,
+      )
+    ) {
+      await this.router.navigateByUrl('/403');
       return;
     }
 

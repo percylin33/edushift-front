@@ -16,6 +16,13 @@ import {
   STATUS_LABELS,
   formatMoney,
 } from '../../models/invoice.model';
+import {
+  PaymentMethodPublicResponse,
+  PaymentMethodType,
+  getMethodTypeIcon,
+  getPaymentMethodImage,
+  getMethodTypeLabel,
+} from '../../models/payment-method.model';
 
 /**
  * Invoice detail with voucher upload (manual reconciliation).
@@ -100,6 +107,129 @@ import {
             <p class="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-900/20 dark:text-rose-300">
               Voucher rechazado: {{ i.evidenceRejectionReason }}
             </p>
+          }
+
+          @if (paymentMethods().length > 0) {
+            <div class="mt-6 space-y-3 border-t border-slate-100 pt-6 dark:border-slate-800">
+              <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">
+                ¿Cómo pagar?
+              </h2>
+              <p class="text-sm text-slate-500 dark:text-slate-400">
+                Transfiere o paga con alguno de estos métodos y luego adjunta tu comprobante.
+              </p>
+              <div class="space-y-3">
+                @for (pm of paymentMethods(); track pm.publicUuid) {
+                  <div
+                    class="rounded-lg border border-slate-200 p-3 dark:border-slate-700"
+                    [class.ring-1]="pm.defaultMethod"
+                    [class.ring-emerald-500]="pm.defaultMethod"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        @if (methodImage(pm.methodType, pm.bankName); as image) {
+                          <img
+                            [src]="image"
+                            [alt]="methodLabel(pm.methodType)"
+                            class="mr-2 inline-block h-10 w-10 rounded-md bg-white object-contain align-middle"
+                          />
+                        } @else {
+                          <span class="mr-1">{{ methodIcon(pm.methodType) }}</span>
+                        }
+                        {{ pm.displayName || methodLabel(pm.methodType) }}
+                      </p>
+                      @if (pm.defaultMethod) {
+                        <span
+                          class="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800"
+                        >
+                          Principal
+                        </span>
+                      }
+                    </div>
+
+                    <dl class="mt-2 space-y-1 text-sm">
+                      @if (pm.bankName) {
+                        <div class="flex justify-between gap-3">
+                          <dt class="text-slate-500 dark:text-slate-400">Banco</dt>
+                          <dd class="font-medium text-slate-900 dark:text-slate-100">
+                            {{ pm.bankName }}
+                          </dd>
+                        </div>
+                      }
+                      @if (pm.accountHolder) {
+                        <div class="flex justify-between gap-3">
+                          <dt class="text-slate-500 dark:text-slate-400">Titular</dt>
+                          <dd class="text-right font-medium text-slate-900 dark:text-slate-100">
+                            {{ pm.accountHolder }}
+                          </dd>
+                        </div>
+                      }
+                      @if (pm.accountNumber) {
+                        <div class="flex items-center justify-between gap-3">
+                          <dt class="text-slate-500 dark:text-slate-400">Cuenta</dt>
+                          <dd class="flex items-center gap-1">
+                            <span class="font-mono font-medium text-slate-900 dark:text-slate-100">
+                              {{ pm.accountNumber }}
+                            </span>
+                            <button
+                              type="button"
+                              class="rounded p-1 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              title="Copiar número de cuenta"
+                              (click)="copyToClipboard(pm.accountNumber)"
+                            >
+                              📋 Copiar
+                            </button>
+                          </dd>
+                        </div>
+                      }
+                      @if (pm.cci) {
+                        <div class="flex items-center justify-between gap-3">
+                          <dt class="text-slate-500 dark:text-slate-400">CCI</dt>
+                          <dd class="flex items-center gap-1">
+                            <span class="font-mono font-medium text-slate-900 dark:text-slate-100">
+                              {{ pm.cci }}
+                            </span>
+                            <button
+                              type="button"
+                              class="rounded p-1 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              title="Copiar CCI"
+                              (click)="copyToClipboard(pm.cci)"
+                            >
+                              📋 Copiar
+                            </button>
+                          </dd>
+                        </div>
+                      }
+                      @if (pm.walletPhone) {
+                        <div class="flex items-center justify-between gap-3">
+                          <dt class="text-slate-500 dark:text-slate-400">Teléfono</dt>
+                          <dd class="flex items-center gap-1">
+                            <span class="font-mono font-medium text-slate-900 dark:text-slate-100">
+                              {{ pm.walletPhone }}
+                            </span>
+                            <button
+                              type="button"
+                              class="rounded p-1 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              title="Copiar teléfono"
+                              (click)="copyToClipboard(pm.walletPhone)"
+                            >
+                              📋 Copiar
+                            </button>
+                          </dd>
+                        </div>
+                      }
+                    </dl>
+
+                    @if (pm.walletQrUrl) {
+                      <img
+                        [src]="pm.walletQrUrl"
+                        alt="Código QR para pagar"
+                        class="mt-3 h-40 w-40 rounded-md border border-slate-200 bg-white object-contain"
+                      />
+                    }
+                  </div>
+                }
+              </div>
+            </div>
           }
 
           @if (canUploadEvidence()) {
@@ -219,6 +349,7 @@ export class InvoiceDetailPageComponent implements OnInit {
   readonly invoice = signal<Invoice | null>(null);
   readonly items = signal<InvoiceItem[]>([]);
   readonly payments = signal<Payment[]>([]);
+  readonly paymentMethods = signal<PaymentMethodPublicResponse[]>([]);
   readonly loading = signal(true);
   readonly submittingEvidence = signal(false);
   readonly errorMsg = signal<string | null>(null);
@@ -232,6 +363,33 @@ export class InvoiceDetailPageComponent implements OnInit {
       return;
     }
     this.reload(publicUuid);
+    this.loadPaymentMethods();
+  }
+
+  /** Los métodos de cobro configurados por el colegio, para que el
+   *  apoderado sepa a dónde transferir antes de subir el voucher. */
+  private loadPaymentMethods(): void {
+    this.api.listPublicPaymentMethods().subscribe({
+      next: (list) => this.paymentMethods.set(list ?? []),
+      error: () => this.paymentMethods.set([]),
+    });
+  }
+
+  methodIcon(type: PaymentMethodType): string {
+    return getMethodTypeIcon(type);
+  }
+
+  methodImage(type: PaymentMethodType, bankName?: string | null): string | null {
+    return getPaymentMethodImage(type, bankName);
+  }
+
+  methodLabel(type: PaymentMethodType): string {
+    return getMethodTypeLabel(type);
+  }
+
+  copyToClipboard(value: string | null | undefined): void {
+    if (!value) return;
+    void navigator.clipboard?.writeText(value);
   }
 
   canUploadEvidence(): boolean {

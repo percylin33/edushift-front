@@ -75,8 +75,8 @@ export class ChatService {
    * </ul>
    *
    * <p>Implementation note: SSE streaming uses {@link SseClientService},
-   * which attaches the JWT via {@code fetch} (Angular interceptors do
-   * not apply to the streaming API).
+   * which sends the auth cookies via {@code fetch} (Angular interceptors
+   * do not apply to the streaming API).
    */
   sendMessage(
     sessionPublicUuid: string,

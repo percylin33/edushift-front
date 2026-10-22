@@ -14,15 +14,15 @@ describe('schoolLoginQueryParams', () => {
     setTenant: jasmine.createSpy('setTenant'),
   } as unknown as TenantService;
 
-  it('incluye tenant del colegio actual', () => {
+  it('usa el host local como identidad y no añade ?tenant=', () => {
     const params = schoolLoginQueryParams(tenant);
-    expect(params['tenant']).toBe('tecnosur');
+    expect(params['tenant']).toBeUndefined();
     expect(tenant.setTenant).toHaveBeenCalled();
   });
 
   it('conserva returnUrl', () => {
     const params = schoolLoginQueryParams(tenant, { returnUrl: '/dashboard' });
-    expect(params['tenant']).toBe('tecnosur');
+    expect(params['tenant']).toBeUndefined();
     expect(params['returnUrl']).toBe('/dashboard');
   });
 
@@ -36,15 +36,21 @@ describe('schoolLoginQueryParams', () => {
 });
 
 describe('schoolInvitationAcceptUrl', () => {
-  it('añade ?tenant= del colegio', () => {
+  it('usa el subdominio compacto en localhost', () => {
     expect(schoolInvitationAcceptUrl('http://localhost:4201/', 'tok-1', 'Colegio-De-Percy')).toBe(
-      'http://localhost:4201/invitation/tok-1?tenant=colegio-de-percy',
+      'http://colegiodepercy.localhost:4201/invitation/tok-1',
     );
   });
 
   it('omite query si no hay slug', () => {
     expect(schoolInvitationAcceptUrl('http://localhost:4201', 'tok-1', null)).toBe(
       'http://localhost:4201/invitation/tok-1',
+    );
+  });
+
+  it('conserva el enlace legacy fuera de localhost', () => {
+    expect(schoolInvitationAcceptUrl('https://edushift.example/', 'tok-1', 'Colegio-De-Percy')).toBe(
+      'https://edushift.example/invitation/tok-1?tenant=colegio-de-percy',
     );
   });
 });

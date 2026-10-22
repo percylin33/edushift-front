@@ -1,0 +1,130 @@
+
+> edushift-front@0.0.0 build
+> ng build
+
+> Building...
+√ Building...
+Initial chunk files   | Names                         |  Raw size | Estimated transfer size
+chunk-O2JZE6FD.js     | -                             | 203.21 kB |                59.14 kB
+styles-NCZK6SAI.css   | styles                        | 169.21 kB |                18.61 kB
+main-GDS7MPCU.js      | main                          | 134.56 kB |                34.37 kB
+chunk-OADQAQ6S.js     | -                             |  78.16 kB |                19.39 kB
+chunk-FDRYPUGB.js     | -                             |  53.60 kB |                10.13 kB
+chunk-XGQXKJC6.js     | -                             |  49.65 kB |                13.53 kB
+chunk-SQR5DKOL.js     | -                             |  42.40 kB |                10.08 kB
+polyfills-5CFQRCPP.js | polyfills                     |  34.59 kB |                11.33 kB
+chunk-74T3WN5F.js     | -                             |  30.30 kB |                 6.35 kB
+chunk-7T4XRVS6.js     | -                             |  24.61 kB |                 8.33 kB
+chunk-PXTLJXCN.js     | -                             |  21.29 kB |                 6.51 kB
+chunk-TPHK5BLJ.js     | -                             |  19.03 kB |                 4.68 kB
+chunk-SYHJGLYQ.js     | -                             |  16.73 kB |                 4.59 kB
+chunk-4JM2DOB2.js     | -                             |  13.10 kB |                 4.09 kB
+chunk-ONJTKAFT.js     | -                             |   8.99 kB |                 2.50 kB
+chunk-J4LXXSO2.js     | -                             |   7.01 kB |                 2.46 kB
+chunk-VPY3QE33.js     | -                             |   6.93 kB |                 1.56 kB
+chunk-BV5E66TZ.js     | -                             |   3.73 kB |                 1.53 kB
+chunk-DNYEXVX3.js     | -                             |   3.00 kB |               799 bytes
+chunk-WIIUYK7Q.js     | -                             |   2.75 kB |               975 bytes
+chunk-FXIWZR2V.js     | -                             |   2.63 kB |               995 bytes
+chunk-QP5KCY6U.js     | -                             |   2.36 kB |               875 bytes
+chunk-ZXRX6FW4.js     | -                             |   2.00 kB |               838 bytes
+chunk-U6PLCVKM.js     | -                             |   1.82 kB |               646 bytes
+chunk-QTVNFNZF.js     | -                             |   1.79 kB |               643 bytes
+chunk-I5TATCTG.js     | -                             |   1.50 kB |               500 bytes
+chunk-EQDQRRRY.js     | -                             |   1.28 kB |               564 bytes
+chunk-7YT4TGCE.js     | -                             |   1.15 kB |               567 bytes
+chunk-OBHRMYUV.js     | -                             | 788 bytes |               788 bytes
+chunk-E5NBDWJB.js     | -                             | 570 bytes |               570 bytes
+chunk-YR2XTR2Z.js     | -                             | 455 bytes |               455 bytes
+chunk-CIGXLIJV.js     | -                             | 422 bytes |               422 bytes
+chunk-UDZLMRTR.js     | -                             | 287 bytes |               287 bytes
+chunk-K27HBNFM.js     | -                             |   0 bytes |                 0 bytes
+chunk-3PQ6JILJ.js     | -                             |   0 bytes |                 0 bytes
+
+                      | Initial total                 | 939.91 kB |               229.10 kB
+
+Lazy chunk files      | Names                         |  Raw size | Estimated transfer size
+chunk-CFYKGREQ.js     | attendance-scanner-page       | 472.03 kB |                95.53 kB
+chunk-3SXX5UNL.js     | -                             | 190.04 kB |                57.79 kB
+chunk-JBWANECK.js     | -                             | 134.08 kB |                25.49 kB
+chunk-T7DSOYB4.js     | -                             |  96.38 kB |                20.13 kB
+chunk-HFFX3DHG.js     | gradebook-page-component      |  78.26 kB |                15.78 kB
+chunk-5UDFA36U.js     | disclosure-workspace-page     |  67.94 kB |                14.61 kB
+chunk-VTRX3DVG.js     | grade-register-page-component |  66.31 kB |                14.99 kB
+chunk-JXEFR57Q.js     | -                             |  64.42 kB |                15.26 kB
+chunk-SX4WUMOD.js     | -                             |  61.52 kB |                14.72 kB
+chunk-NW4VZ3QC.js     | -                             |  50.77 kB |                11.84 kB
+chunk-ALNAIQT6.js     | -                             |  48.83 kB |                12.15 kB
+chunk-XI5ZNUF5.js     | jornada-page-component        |  48.05 kB |                12.02 kB
+chunk-NOKF5RN7.js     | admin-plans-page-component    |  44.79 kB |                 9.38 kB
+chunk-PHQQEPRJ.js     | admissions-page               |  44.38 kB |                 9.65 kB
+chunk-7SPXJRTI.js     | year-transition-component     |  43.90 kB |                10.95 kB
+...and 223 more lazy chunks files. Use "--verbose" to show all the files.
+
+Application bundle generation complete. [29.465 seconds]
+
+▲ [WARNING] TS-998113: SpinnerComponent is not used within the template of ClaimsBookComponent [plugin angular-compiler]
+
+    src/app/features/claims-book/claims-book.component.ts:38:4:
+      38 │     SpinnerComponent,
+         ╵     ~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator. [plugin angular-compiler]
+
+    src/app/features/disclosures/pages/family-disclosures.page.ts:71:49:
+      71 │                               @if (info.sources?.length) {
+         ╵                                                  ~~~~~~
+
+
+▲ [WARNING] NG8102: The left side of this nullish coalescing operation does not include 'null' or 'undefined' in its type, therefore the '??' operator can be safely removed. [plugin angular-compiler]
+
+    src/app/features/payments/pages/invoice-detail-page/invoice-detail-page.component.ts:73:26:
+      73 │               @for (it of i.items ?? []; track it.id) {
+         ╵                           ~~~~~~~~~~~~~
+
+
+▲ [WARNING] Direct import of '@angular/localize/init' detected. This may lead to undefined behavior. [plugin angular-localize-init-warning]
+
+    src/app/core/i18n/common-labels.service.ts:2:7:
+      2 │ import '@angular/localize/init';
+        ╵        ~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Include '@angular/localize/init' as a polyfill instead.
+
+
+▲ [WARNING] Direct import of '@angular/localize/init' detected. This may lead to undefined behavior. [plugin angular-localize-init-warning]
+
+    src/app/layout/i18n/nav-labels.service.ts:2:7:
+      2 │ import '@angular/localize/init';
+        ╵        ~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Include '@angular/localize/init' as a polyfill instead.
+
+
+▲ [WARNING] Direct import of '@angular/localize/init' detected. This may lead to undefined behavior. [plugin angular-localize-init-warning]
+
+    src/main.ts:1:7:
+      1 │ import '@angular/localize/init';
+        ╵        ~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Include '@angular/localize/init' as a polyfill instead.
+
+
+▲ [WARNING] bundle initial exceeded maximum budget. Budget 500.00 kB was not met by 439.91 kB with a total of 939.91 kB.
+
+
+▲ [WARNING] angular:styles/component:scss;ba1edbd3149bbae335858b328087b93d798eeb4ad88390f4aed137aad44c3ef0;C:/Users/USUARIO/Desktop/personales/proyectos/new - proyecto multi school/edushift/edushift-front/src/app/features/academic/pages/grade-register-page/grade-register-page.component.ts exceeded maximum budget. Budget 4.00 kB was not met by 130 bytes with a total of 4.13 kB.
+
+
+▲ [WARNING] angular:styles/component:scss;5b62c41901b765d34cc3e04238b1d9adcf10f9d1bec9b159fc14cdbf4ce0345d;C:/Users/USUARIO/Desktop/personales/proyectos/new - proyecto multi school/edushift/edushift-front/src/app/features/gradebook/pages/gradebook-page/gradebook-page.component.ts exceeded maximum budget. Budget 4.00 kB was not met by 4.00 kB with a total of 8.00 kB.
+
+
+▲ [WARNING] Module 'qrcode' used by 'src/app/features/auth/pages/mfa-enroll/mfa-enroll.component.ts' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Output location: C:\Users\USUARIO\Desktop\personales\proyectos\new - proyecto multi school\edushift\edushift-front\dist\edushift-front
+

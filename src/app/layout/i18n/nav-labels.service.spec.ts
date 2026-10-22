@@ -10,9 +10,9 @@ describe('NavLabels', () => {
   });
 
   it('translates group ids', () => {
-    expect(labels.labelFor('workspace')).toBe('Espacio de trabajo');
+    expect(labels.labelFor('workspace')).toBe('Institución');
     expect(labels.labelFor('academic')).toBe('Académico');
-    expect(labels.labelFor('lms')).toBe('Mis cursos');
+    expect(labels.labelFor('lms')).toBe('Aula virtual');
     expect(labels.labelFor('attendance')).toBe('Asistencia');
     expect(labels.labelFor('payments')).toBe('Pagos');
     expect(labels.labelFor('system')).toBe('Sistema');
@@ -52,6 +52,7 @@ describe('NavLabels', () => {
     expect(labels.labelFor('payments-concepts')).toBe('Conceptos');
     expect(labels.labelFor('payments-plans')).toBe('Planes automáticos');
     expect(labels.labelFor('payments-policy')).toBe('Política de cobro');
+    expect(labels.labelFor('payments-methods')).toBe('Métodos de pago');
   });
 
   it('returns the id itself for unknown keys', () => {

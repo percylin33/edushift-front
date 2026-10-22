@@ -8,7 +8,7 @@
  *
  * <h3>Validation expected by the backend</h3>
  * <ul>
- *   <li>{@code tenantSlug}: 2–80 chars, lowercase alphanumeric + dashes,
+ *   <li>{@code tenantSlug}: 2–63 chars, lowercase alphanumeric, no dashes,
  *       must not collide with an existing slug (409
  *       {@code TENANT_SLUG_TAKEN}).</li>
  *   <li>{@code adminEmail}: RFC 5322; per-tenant uniqueness is enforced

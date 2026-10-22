@@ -108,12 +108,12 @@ describe('task.model', () => {
       expect(isTaskEditable({ lifecycle: TaskLifecycle.Closed, dueAt: null })).toBeFalse();
     });
 
-    it('isTaskEditable true en Published si dueAt es futuro', () => {
+    it('isTaskEditable false en Published aunque dueAt sea futuro', () => {
       const future = new Date(Date.now() + 86_400_000);
-      expect(isTaskEditable({ lifecycle: TaskLifecycle.Published, dueAt: future })).toBeTrue();
+      expect(isTaskEditable({ lifecycle: TaskLifecycle.Published, dueAt: future })).toBeFalse();
     });
 
-    it('isTaskEditable false en Published si dueAt es pasado', () => {
+    it('isTaskEditable false en Published aunque dueAt haya pasado', () => {
       const past = new Date(Date.now() - 86_400_000);
       expect(isTaskEditable({ lifecycle: TaskLifecycle.Published, dueAt: past })).toBeFalse();
     });

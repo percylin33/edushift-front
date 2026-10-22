@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -75,7 +77,7 @@ import {
   selector: 'app-course-form-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [SafeBackdropDirective, 
     CommonModule,
     ReactiveFormsModule,
     ChipMultiSelectComponent,
@@ -88,7 +90,7 @@ import {
       role="dialog"
       aria-modal="true"
       aria-labelledby="course-form-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card max-h-[90vh] w-full max-w-2xl overflow-y-auto shadow-xl"
@@ -98,7 +100,7 @@ import {
           <div>
             <h2 id="course-form-title" class="card-title">{{ title() }}</h2>
             <p class="card-description">
-              Catálogo de cursos del workspace. Cada curso se asocia a uno o más niveles para que
+              Catálogo de cursos de la institución. Cada curso se asocia a uno o más niveles para que
               aparezca en la matriz de asignaciones.
             </p>
           </div>
@@ -367,6 +369,12 @@ import {
   `,
 })
 export class CourseFormModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(AcademicStore);
   private readonly destroyRef = inject(DestroyRef);
@@ -575,8 +583,10 @@ export class CourseFormModalComponent implements OnInit {
   }
 
   protected cancel(): void {
-    this.store.clearError();
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.store.clearError();
+      this.closed.emit();
+    });
   }
 
   /** Force-uppercase el code en blur (UX afín a "auto-uppercase" del spec). */

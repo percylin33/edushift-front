@@ -44,20 +44,32 @@ import { Submission, canResubmit } from '../../models';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <header class="mb-6">
       <div class="min-w-0">
-        <p class="text-xs uppercase tracking-wide text-content-muted">
-          <a [routerLink]="assignmentRoute()" class="hover:underline">← Volver a la tarea</a>
+        <p class="mb-4 text-sm font-medium text-primary">
+          <a [routerLink]="assignmentRoute()" class="inline-flex items-center gap-2 hover:underline">
+            <span aria-hidden="true">←</span>
+            Volver a la tarea
+          </a>
         </p>
-        <h1 class="text-2xl font-semibold text-content">Entregar tarea</h1>
-        @if (assignmentTitle()) {
-          <p class="text-sm text-content-muted">
-            {{ assignmentTitle() }}
-            @if (dueAt()) {
-              · Vence {{ dueAt() | date: 'medium' }}
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 class="text-3xl font-bold tracking-tight text-content">Entregar tarea</h1>
+            @if (assignmentTitle()) {
+              <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                <span class="rounded-full bg-surface-muted px-3 py-1 font-medium text-content">
+                  {{ assignmentTitle() }}
+                </span>
+                @if (dueAt()) {
+                <span class="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">
+                  Vence {{ dueAt() | date: 'dd/MM/yyyy, HH:mm' }}
+                  </span>
+                }
+                <span class="text-content-muted">{{ maxScore() }} pts. máx.</span>
+              </div>
             }
-          </p>
-        }
+          </div>
+        </div>
       </div>
     </header>
 
@@ -66,34 +78,79 @@ import { Submission, canResubmit } from '../../models';
         <app-spinner [size]="24" label="Cargando tarea…" />
       </div>
     } @else {
-      <div class="grid gap-4 lg:grid-cols-2">
-        <app-my-submissions-card
-          [submission]="mySubmission()"
-          [showResubmit]="canResubmitNow()"
-          (resubmit)="onResubmit()"
-        />
-
-        @if (showForm()) {
-          <app-submission-form
-            [assignmentUuid]="assignmentUuid"
-            [existingSubmission]="mySubmission()"
+      <div class="grid items-start gap-5 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.2fr)]">
+        <aside class="grid gap-5">
+          <app-my-submissions-card
+            [submission]="mySubmission()"
+            [showResubmit]="canResubmitNow()"
             [allowResubmissions]="allowResubmissions()"
-            [errorMessage]="errorBanner()"
-            [uploading]="uploading()"
-            [uploadPercent]="uploadPercent()"
-            [studentPublicUuid]="studentPublicUuid()"
-            (submitCreate)="onCreate($event)"
-            (submitUpdate)="onUpdate($event)"
+            [maxScore]="maxScore()"
+            (resubmit)="onResubmit()"
           />
-        } @else if (mySubmission() && !canResubmitNow()) {
-          <div class="card">
-            <div class="card-body">
-              <p class="text-sm text-content">
-                Esta tarea ya fue calificada y no permite re-entregas.
-              </p>
+
+          @if (assignmentTitle()) {
+            <section class="card" aria-labelledby="assignment-details-title">
+              <div class="card-body space-y-4">
+                <div class="flex items-center justify-between gap-3 border-b border-border pb-3">
+                  <h2 id="assignment-details-title" class="text-base font-semibold text-content">
+                    Instrucciones del docente
+                  </h2>
+                  <span class="shrink-0 text-xs text-content-muted">Detalles de la tarea</span>
+                </div>
+                @if (assignmentDescription()) {
+                  <p class="whitespace-pre-line text-sm leading-6 text-content">
+                    {{ assignmentDescription() }}
+                  </p>
+                } @else {
+                  <p class="text-sm italic text-content-muted">
+                    Esta tarea no tiene instrucciones adicionales.
+                  </p>
+                }
+                <dl class="grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
+                  <div>
+                    <dt class="text-xs font-medium text-content-muted">Calificación</dt>
+                    <dd class="mt-1 font-semibold text-content">{{ maxScore() }} pts. máx.</dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs font-medium text-content-muted">Re-entregas</dt>
+                    <dd class="mt-1 font-medium text-content">
+                      {{ allowResubmissions() ? 'Permitidas' : 'No permitidas' }}
+                    </dd>
+                  </div>
+                </dl>
+                @if (requiresAttachment()) {
+                  <p class="rounded-lg bg-primary/5 px-3 py-2 text-sm text-content">
+                    Esta tarea requiere adjuntar un archivo.
+                  </p>
+                }
+              </div>
+            </section>
+          }
+        </aside>
+
+        <div class="min-w-0">
+          @if (showForm()) {
+            <app-submission-form
+              [assignmentUuid]="assignmentUuid"
+              [existingSubmission]="mySubmission()"
+              [allowResubmissions]="allowResubmissions()"
+              [errorMessage]="errorBanner()"
+              [uploading]="uploading()"
+              [uploadPercent]="uploadPercent()"
+              [studentPublicUuid]="studentPublicUuid()"
+              (submitCreate)="onCreate($event)"
+              (submitUpdate)="onUpdate($event)"
+            />
+          } @else if (mySubmission() && !canResubmitNow()) {
+            <div class="card">
+              <div class="card-body">
+                <p class="text-sm text-content">
+                  Esta tarea ya fue calificada y no permite re-entregas.
+                </p>
+              </div>
             </div>
-          </div>
-        }
+          }
+        </div>
       </div>
     }
   `,
@@ -108,8 +165,11 @@ export class SubmissionSubmitComponent implements OnInit {
 
   protected readonly mySubmission = signal<Submission | null>(null);
   protected readonly assignmentTitle = signal<string | null>(null);
+  protected readonly assignmentDescription = signal<string | null>(null);
   protected readonly dueAt = signal<Date | null>(null);
+  protected readonly maxScore = signal(0);
   protected readonly allowResubmissions = signal(false);
+  protected readonly requiresAttachment = signal(false);
   protected readonly errorBanner = this.submissionsStore.error;
   protected readonly uploading = this.submissionsStore.uploading;
   protected readonly uploadPercent = this.submissionsStore.uploadPercent;
@@ -158,8 +218,11 @@ export class SubmissionSubmitComponent implements OnInit {
     ]);
     if (detail) {
       this.assignmentTitle.set(detail.title);
+      this.assignmentDescription.set(detail.description);
       this.dueAt.set(detail.dueAt);
+      this.maxScore.set(detail.maxScore);
       this.allowResubmissions.set(detail.allowResubmissions);
+      this.requiresAttachment.set(detail.requiresAttachment);
     }
     this.mySubmission.set(mine);
     this.loadingTask.set(false);

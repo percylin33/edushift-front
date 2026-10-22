@@ -2,7 +2,7 @@
   "name": "EduShift",
   "short_name": "EduShift",
   "description": "Plataforma multi-tenant de gestión escolar. Asistencia, evaluaciones y más.",
-  "start_url": "/attendance/scanner",
+  "start_url": "/auth/login",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -13,20 +13,14 @@
   "categories": ["education", "productivity", "business"],
   "icons": [
     {
-      "src": "branding/icons/icono.png",
-      "sizes": "32x33",
+      "src": "/branding/icons/isotipo.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "branding/icons/icono-simple.png",
-      "sizes": "64x72",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "branding/icons/isotipo.png",
-      "sizes": "512x527",
+      "src": "/branding/icons/isotipo.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     }
@@ -37,7 +31,7 @@
       "short_name": "Asistencia",
       "url": "/attendance/scanner",
       "icons": [
-        { "src": "branding/icons/icono.png", "sizes": "32x33" }
+        { "src": "/branding/icons/isotipo.png", "type": "image/png" }
       ]
     },
     {
@@ -45,7 +39,7 @@
       "short_name": "Horario",
       "url": "/schedule/me",
       "icons": [
-        { "src": "branding/icons/icono.png", "sizes": "32x33" }
+        { "src": "/branding/icons/isotipo.png", "type": "image/png" }
       ]
     }
   ]

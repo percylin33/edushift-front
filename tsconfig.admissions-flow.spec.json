@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.spec.json",
+  "include": ["src/app/features/admissions/pages/*.spec.ts", "src/**/*.d.ts"]
+}

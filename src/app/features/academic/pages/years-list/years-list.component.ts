@@ -48,13 +48,19 @@ import { AcademicYearRow, AcademicYearStatus, isYearMutable } from '../../models
       <div class="min-w-0">
         <h2 class="text-lg font-semibold text-content">Años académicos</h2>
         <p class="text-sm text-content-muted">
-          Define el calendario lectivo del workspace. A lo más un año puede estar activo a la vez.
+          Define el calendario lectivo de la institución. Solo puede haber un año activo a la vez.
         </p>
       </div>
-      <a [routerLink]="newRoute" class="btn btn-primary btn-sm self-start sm:self-auto">
-        <app-icon name="plus" [size]="16" />
-        <span class="hidden sm:inline">Nuevo año</span>
-      </a>
+      <div class="flex flex-wrap gap-2">
+        <a [routerLink]="transitionRoute" class="btn btn-outline btn-sm self-start sm:self-auto">
+          <app-icon name="arrow-right" [size]="16" />
+          Preparar siguiente año
+        </a>
+        <a [routerLink]="newRoute" class="btn btn-primary btn-sm self-start sm:self-auto">
+          <app-icon name="plus" [size]="16" />
+          <span class="hidden sm:inline">Nuevo año</span>
+        </a>
+      </div>
     </header>
 
     <!-- Filtro -->
@@ -202,6 +208,7 @@ export class YearsListComponent implements OnInit {
   private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly newRoute = ROUTES.ACADEMIC.YEARS.NEW;
+  protected readonly transitionRoute = ROUTES.ACADEMIC.YEARS.TRANSITION;
 
   protected readonly statusFilter = signal<AcademicYearStatus | null>(null);
 

@@ -1,3 +1,4 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { roleGuard } from '@core/guards';
 import { UserRole } from '@core/enums';
@@ -22,6 +23,7 @@ import {
  */
 export const EVALUATIONS_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     pathMatch: 'full',
     canActivate: [roleGuard],
@@ -35,6 +37,7 @@ export const EVALUATIONS_ROUTES: Routes = [
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'courses',
     canActivate: [roleGuard],
     data: {
@@ -47,6 +50,7 @@ export const EVALUATIONS_ROUTES: Routes = [
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'courses/:courseUuid/sections',
     canActivate: [roleGuard],
     resolve: { breadcrumb: evaluationsCourseNameResolver },
@@ -60,6 +64,7 @@ export const EVALUATIONS_ROUTES: Routes = [
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     canActivate: [roleGuard],
     data: {
@@ -72,7 +77,8 @@ export const EVALUATIONS_ROUTES: Routes = [
       ),
     children: [
       {
-        path: 'by-assignment/:assignmentUuid/gradebook',
+        canDeactivate: [pendingChangesGuard],
+    path: 'by-assignment/:assignmentUuid/gradebook',
         canActivate: [roleGuard],
         runGuardsAndResolvers: 'paramsOrQueryParamsChange',
         resolve: { breadcrumbs: evaluationsAssignmentBreadcrumbsResolver },
@@ -86,7 +92,8 @@ export const EVALUATIONS_ROUTES: Routes = [
           ),
       },
       {
-        path: 'by-assignment/:assignmentUuid',
+        canDeactivate: [pendingChangesGuard],
+    path: 'by-assignment/:assignmentUuid',
         canActivate: [roleGuard],
         runGuardsAndResolvers: 'paramsOrQueryParamsChange',
         resolve: { breadcrumbs: evaluationsAssignmentBreadcrumbsResolver },
@@ -102,6 +109,7 @@ export const EVALUATIONS_ROUTES: Routes = [
     ],
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: ':publicUuid/grades',
     canActivate: [roleGuard],
     data: {
@@ -115,6 +123,7 @@ export const EVALUATIONS_ROUTES: Routes = [
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: ':publicUuid',
     canActivate: [roleGuard],
     data: {

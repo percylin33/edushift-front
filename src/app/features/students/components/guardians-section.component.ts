@@ -9,6 +9,8 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { Permission } from '@core/enums';
+import { AuthService } from '@core/services';
 import {
   ConfirmDialogService,
   EmptyStateComponent,
@@ -65,10 +67,12 @@ import { portalStatus } from '../models';
             críticas.
           </p>
         </div>
-        <button type="button" class="btn btn-primary btn-sm" (click)="openAddModal()">
-          <app-icon name="plus" [size]="16" />
-          <span class="hidden sm:inline">Vincular tutor</span>
-        </button>
+        @if (canManage()) {
+          <button type="button" class="btn btn-primary btn-sm" (click)="openAddModal()">
+            <app-icon name="plus" [size]="16" />
+            <span class="hidden sm:inline">Vincular tutor</span>
+          </button>
+        }
       </header>
 
       @if (loading() && guardians().length === 0) {
@@ -91,9 +95,11 @@ import { portalStatus } from '../models';
             title="Aún no hay tutores"
             description="Vincula a un padre, madre o apoderado legal para gestionar comunicaciones y permisos."
           >
-            <button type="button" class="btn btn-primary btn-sm" (click)="openAddModal()">
-              Vincular tutor
-            </button>
+            @if (canManage()) {
+              <button type="button" class="btn btn-primary btn-sm" (click)="openAddModal()">
+                Vincular tutor
+              </button>
+            }
           </app-empty-state>
         </div>
       } @else {
@@ -150,7 +156,7 @@ import { portalStatus } from '../models';
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
-                  @if (guardianPortalStatus(g) === 'none') {
+                  @if (canProvision() && guardianPortalStatus(g) === 'none') {
                     <button
                       type="button"
                       class="btn btn-outline btn-sm"
@@ -160,7 +166,7 @@ import { portalStatus } from '../models';
                       Activar portal
                     </button>
                   }
-                  @if (guardianPortalStatus(g) === 'pending' && g.pendingInvitationPublicUuid) {
+                  @if (canProvision() && guardianPortalStatus(g) === 'pending' && g.pendingInvitationPublicUuid) {
                     <button
                       type="button"
                       class="btn btn-outline btn-sm"
@@ -170,7 +176,8 @@ import { portalStatus } from '../models';
                       Reenviar
                     </button>
                   }
-                  <button
+                  @if (canManage()) {
+                    <button
                     type="button"
                     class="btn btn-ghost btn-sm"
                     aria-label="Editar vínculo"
@@ -179,8 +186,8 @@ import { portalStatus } from '../models';
                   >
                     <app-icon name="pencil" [size]="14" />
                     <span class="hidden sm:inline">Editar</span>
-                  </button>
-                  <button
+                    </button>
+                    <button
                     type="button"
                     class="btn btn-ghost btn-sm text-danger hover:bg-danger/10"
                     aria-label="Quitar tutor"
@@ -189,7 +196,8 @@ import { portalStatus } from '../models';
                   >
                     <app-icon name="trash" [size]="14" />
                     <span class="hidden sm:inline">Quitar</span>
-                  </button>
+                    </button>
+                  }
                 </div>
               </div>
             </li>
@@ -226,6 +234,7 @@ import { portalStatus } from '../models';
 })
 export class GuardiansSectionComponent implements OnInit {
   private readonly store = inject(StudentsStore);
+  private readonly auth = inject(AuthService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly studentPublicUuid = input.required<string>();
@@ -234,6 +243,14 @@ export class GuardiansSectionComponent implements OnInit {
   protected readonly loading = this.store.loadingGuardians;
   protected readonly saving = this.store.savingGuardian;
   protected readonly errorMessage = this.store.error;
+
+  protected canManage(): boolean {
+    return this.auth.hasPermission(Permission.GuardiansManage);
+  }
+
+  protected canProvision(): boolean {
+    return this.auth.hasPermission(Permission.UsersProvisionGuardian);
+  }
 
   protected readonly addOpen = signal(false);
   protected readonly editTarget = signal<Guardian | null>(null);

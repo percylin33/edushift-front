@@ -133,7 +133,7 @@ import {
             [ngModel]="yearFilter()"
             (ngModelChange)="onYearChange($event)"
           >
-            <option [ngValue]="null">— Año activo —</option>
+            <option [ngValue]="null" disabled>— Sin año académico vigente —</option>
             @for (y of years(); track y.publicUuid) {
               <option [ngValue]="y.publicUuid">{{ y.name }} · {{ statusLabel(y.status) }}</option>
             }
@@ -375,19 +375,20 @@ export class PeriodsListComponent implements OnInit {
   // ===========================================================================
 
   async ngOnInit(): Promise<void> {
-    if (this.years().length === 0) await this.store.loadYears();
+    // The year picker needs the complete tenant catalog, regardless of filters on the years page.
+    await this.store.applyYearFilters({});
 
     const qp = this.route.snapshot.queryParamMap;
     this.yearFilter.set(qp.get('yearId'));
     const t = qp.get('periodType');
     this.typeFilter.set(this.parsePeriodType(t));
 
-    /* Saneamiento. */
     const yearId = this.yearFilter();
-    if (yearId && !this.years().some((y) => y.publicUuid === yearId)) {
-      this.yearFilter.set(null);
+    if (!yearId || !this.years().some((year) => year.publicUuid === yearId)) {
+      this.yearFilter.set(this.currentActive()?.publicUuid ?? null);
     }
 
+    this.syncUrl();
     await this.applyServerFilters();
   }
 
@@ -396,7 +397,7 @@ export class PeriodsListComponent implements OnInit {
   // ===========================================================================
 
   protected onYearChange(value: string | null): void {
-    this.yearFilter.set(value);
+    this.yearFilter.set(value ?? this.currentActive()?.publicUuid ?? null);
     void this.syncAndReload();
   }
 

@@ -15,6 +15,7 @@ import {
 } from '@shared/components';
 import { mapHttpError } from '@shared/utils';
 import { TenantApiService } from '@features/tenants';
+import { PwaInstallButtonComponent } from '@shared/components/pwa-install-button/pwa-install-button.component';
 
 import { AuthApiService } from '../../services/auth-api.service';
 import { AuthStore } from '../../store/auth.store';
@@ -30,9 +31,10 @@ import { LoginRequest } from '../../models';
 /**
  * Login screen.
  *
- * Institution identity comes from the URL ({@code ?tenant=} / subdomain),
- * resolved at boot by {@link TenantService}. The AuthLayout gate blocks
- * this form when no school was resolved — there is no "Institución" field.
+ * Institution identity comes from the hostname in local development and
+ * the configured strategy elsewhere, resolved at boot by
+ * {@link TenantService}. The AuthLayout gate blocks this form when no
+ * school was resolved — there is no "Institución" field.
  *
  * On submit we only refresh {@code X-Tenant-Slug} via {@link TenantService#setSlug}
  * using the boot-resolved slug; the login body stays email + password.
@@ -48,6 +50,7 @@ import { LoginRequest } from '../../models';
     FormFieldComponent,
     PasswordFieldComponent,
     SubmitButtonComponent,
+    PwaInstallButtonComponent,
   ],
   template: `
     <div class="space-y-6">
@@ -61,6 +64,20 @@ import { LoginRequest } from '../../models';
           }
         </p>
       </header>
+
+      @if (schoolCreated) {
+        <app-alert variant="success" message="Tu colegio se creó correctamente. Inicia sesión con el correo invitado y la contraseña que acabas de crear para continuar con la configuración." />
+      }
+
+      <div
+        class="flex items-center justify-between gap-3 rounded-xl border border-primary-500/20 bg-primary-500/5 p-3"
+      >
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-content">Lleva EduShift en tu celular</p>
+          <p class="mt-0.5 text-xs text-content-muted">Instálala para abrirla como una app.</p>
+        </div>
+        <app-pwa-install-button />
+      </div>
 
       @if (errorMessage(); as message) {
         <app-alert variant="error" [message]="message" />
@@ -172,6 +189,8 @@ export class LoginComponent {
     ]),
     remember: this.fb.nonNullable.control(true),
   });
+
+  readonly schoolCreated = this.route.snapshot.queryParamMap.get('schoolCreated') === '1';
 
   readonly loading = this.store.loading;
   readonly errorMessage = this.store.error;

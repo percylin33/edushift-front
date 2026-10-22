@@ -1,0 +1,17 @@
+.git/
+.angular/
+node_modules/
+dist/
+coverage/
+tmp-repro/
+*.log
+*.png
+*.tgz
+probe-*.mjs
+sections-finder.mjs
+role-screenshot*.mjs
+build-log*.txt
+frontend-out.log
+ng-build-*.log
+ng-test-*.log
+tsc-fe-*.log

@@ -1,3 +1,4 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -322,6 +323,12 @@ import { StudentEnrollmentStatus } from '@core/enums';
   `,
 })
 export class StudentFormComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => !this.loadingDetail(),
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(StudentsStore);
   private readonly studentsApi = inject(StudentsApiService);
@@ -343,6 +350,8 @@ export class StudentFormComponent implements OnInit {
 
   /** Edit-mode public UUID, captured once at init. */
   private editId: string | null = null;
+  /** Original institutional date, used to avoid rewriting an unchanged section enrollment. */
+  private originalEnrollmentDate: string | null = null;
   protected readonly editing = signal(false);
 
   protected readonly saving = this.store.saving;
@@ -358,7 +367,7 @@ export class StudentFormComponent implements OnInit {
   protected readonly subtitle = computed(() =>
     this.editing()
       ? 'Actualiza los datos del estudiante; los campos en blanco se mantienen.'
-      : 'Completa los datos básicos para registrarlo en el workspace.',
+      : 'Completa los datos básicos para registrarlo en la institución.',
   );
   protected readonly submitLabel = computed(() =>
     this.editing() ? 'Guardar cambios' : 'Crear estudiante',
@@ -461,11 +470,15 @@ export class StudentFormComponent implements OnInit {
     try {
       if (id) {
         const patch = this.toUpdateRequest();
+        const enrollmentDateChanged =
+          patch.enrollmentDate !== undefined &&
+          patch.enrollmentDate !== this.originalEnrollmentDate;
         const updated = await this.store.update(id, patch);
-        if (updated && patch.enrollmentDate) {
+        if (updated && enrollmentDateChanged && patch.enrollmentDate) {
           await this.syncActiveSectionEnrolledAt(id, patch.enrollmentDate);
         }
         if (updated) {
+          this.formProtection.markSaved();
           await this.router.navigate([ROUTES.STUDENTS.detail(updated.publicUuid)]);
         }
       } else {
@@ -478,6 +491,7 @@ export class StudentFormComponent implements OnInit {
            * pase lo que pase y dejamos que el banner del store
            * informe del fallo de enrollment si lo hubo. */
           await this.maybeEnrollAfterCreate(created.publicUuid);
+          this.formProtection.markSaved();
           await this.router.navigate([ROUTES.STUDENTS.detail(created.publicUuid)]);
         }
       }
@@ -513,6 +527,7 @@ export class StudentFormComponent implements OnInit {
   }
 
   private hydrateFrom(detail: StudentDetail): void {
+    this.originalEnrollmentDate = this.toDateInput(detail.enrollmentDate);
     this.form.patchValue({
       documentType: detail.documentType,
       documentNumber: detail.documentNumber,
@@ -525,7 +540,7 @@ export class StudentFormComponent implements OnInit {
       phone: detail.phone ?? '',
       address: detail.address ?? '',
       enrollmentStatus: detail.enrollmentStatus,
-      enrollmentDate: this.toDateInput(detail.enrollmentDate),
+      enrollmentDate: this.originalEnrollmentDate,
     });
   }
 
@@ -671,7 +686,7 @@ export class StudentFormComponent implements OnInit {
     const next: Record<string, string> = {};
     switch (apiErr.code) {
       case 'STUDENT_DOCUMENT_TAKEN':
-        next['documentNumber'] = 'Ya existe un estudiante con este documento en el workspace.';
+        next['documentNumber'] = 'Ya existe un estudiante con este documento en la institución.';
         break;
       case 'STUDENT_EMAIL_TAKEN':
         next['email'] = 'Ya existe un estudiante con este email.';

@@ -119,7 +119,7 @@ export class OnboardingLayoutComponent {
   readonly appName = APP.NAME;
   readonly year = new Date().getFullYear();
 
-  readonly tenantName = computed(() => this.tenant.tenant()?.name ?? 'Workspace');
+  readonly tenantName = computed(() => this.tenant.tenant()?.name ?? 'Institución');
 
   readonly steps = this.onboarding.steps;
   readonly activeIndex = this.onboarding.activeIndex;

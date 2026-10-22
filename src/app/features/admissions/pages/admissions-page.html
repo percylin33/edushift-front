@@ -1,0 +1,500 @@
+<main class="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="text-sm font-semibold text-indigo-600 dark:text-indigo-300">Gestión del colegio</p>
+      <h1 class="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{{ pageTitle }}</h1>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ pageDescription }}</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      @if (canManageApplications()) {
+        <a
+          routerLink="/admissions/new"
+          [queryParams]="{ yearId: yearUuid() }"
+          class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:text-white dark:text-white dark:hover:text-white"
+          >Nueva solicitud</a
+        >
+      }
+      <select
+        class="min-w-36 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+        [disabled]="view === 'detail' || saving()"
+        [value]="yearUuid()"
+        (change)="selectYear($event)"
+        aria-label="Año académico"
+      >
+        @for (year of years(); track year.publicUuid) {
+          <option [value]="year.publicUuid">{{ year.name }}</option>
+        }
+      </select>
+    </div>
+  </header>
+  <app-admissions-navigation [year]="yearUuid()" />
+  @if (view === 'detail') {
+    <a
+      routerLink="/admissions/applications"
+      [queryParams]="{ yearId: yearUuid() }"
+      class="inline-flex text-sm font-semibold text-indigo-600 dark:text-indigo-300"
+      >← Volver a solicitudes</a
+    >
+  }
+  @if (view === 'overview') {
+    <section aria-label="Trabajo pendiente" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      @if (canReadInquiries()) {
+        <a
+          routerLink="/admissions/inquiries"
+          [queryParams]="{ yearId: yearUuid(), status: 'RECEIVED' }"
+          class="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-slate-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-slate-100"
+          ><span class="text-sm">Consultas sin atender</span
+          ><strong class="mt-2 block text-3xl">{{ loading() ? '…' : pendingInquiries() }}</strong
+          ><span class="mt-2 block text-xs">Atender familias →</span></a
+        >
+        <a
+          routerLink="/admissions/inquiries"
+          [queryParams]="{ yearId: yearUuid(), overdue: '1' }"
+          class="rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          ><span class="text-sm">Seguimientos pendientes</span
+          ><strong class="mt-2 block text-3xl">{{ loading() ? '…' : overdueInquiries() }}</strong
+          ><span class="mt-2 block text-xs">Revisar próximas atenciones →</span></a
+        >
+      }
+      @if (canReadApplications()) {
+        <a
+          routerLink="/admissions/applications"
+          [queryParams]="{ yearId: yearUuid(), status: 'PENDING_REVIEW' }"
+          class="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-slate-900 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-slate-100"
+          ><span class="text-sm">Solicitudes por revisar</span
+          ><strong class="mt-2 block text-3xl">{{ loading() ? '…' : pendingReview() }}</strong
+          ><span class="mt-2 block text-xs">Abrir solicitudes →</span></a
+        >
+        <a
+          routerLink="/admissions/applications"
+          [queryParams]="{ yearId: yearUuid(), status: 'ADMITTED' }"
+          class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-slate-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-slate-100"
+          ><span class="text-sm">Admitidos por matricular</span
+          ><strong class="mt-2 block text-3xl">{{ loading() ? '…' : pendingEnrollment() }}</strong
+          ><span class="mt-2 block text-xs">Completar matrícula →</span></a
+        >
+      }
+    </section>
+    @if (canReadApplications()) {
+      <section
+        class="rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+      >
+        <h2 class="font-semibold">Capacidad del colegio</h2>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+          {{ capacityIssues() }} grados sin aforo completo o sin vacantes disponibles.
+        </p>
+        <a
+          routerLink="/admissions/vacancies"
+          [queryParams]="{ yearId: yearUuid() }"
+          class="mt-3 inline-flex text-sm font-semibold text-indigo-600 dark:text-indigo-300"
+          >Revisar vacantes y secciones →</a
+        >
+      </section>
+    }
+  }
+  @if (error()) {
+    <div
+      role="alert"
+      class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-200"
+    >
+      {{ error() }}
+      <button type="button" (click)="refresh()" class="ml-2 underline">Actualizar</button>
+    </div>
+  }
+  @if (notice()) {
+    <div
+      role="status"
+      class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200"
+    >
+      {{ notice() }}
+    </div>
+  }
+
+  @if (applicationUuidFilter()) {
+    <button
+      (click)="applicationUuidFilter.set('')"
+      class="text-sm font-semibold text-indigo-600 dark:text-indigo-300"
+    >
+      Ver todas las solicitudes del año
+    </button>
+  }
+  @if (detailUuidSignal(); as uuid) {
+    <app-admission-detail-panel
+      [applicationUuid]="uuid"
+      [reload]="detailReloadSignal()"
+      [canManage]="canManageApplications()"
+      [vacancy]="selectedVacancy()"
+      [canDecide]="canDecide()"
+      [canEnroll]="canEnroll()"
+      [busy]="saving()"
+      (loaded)="onDetailLoaded($event)"
+      (closed)="closeDetail()"
+      (decision)="decideFromDetail($event)"
+      (enroll)="openCompleteEnrollment($event)"
+      (linkEnrollment)="linkExistingEnrollment($event)"
+    />
+  }
+  @if (view === 'vacancies') {
+    <section class="space-y-3" aria-labelledby="vacancy-title">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 id="vacancy-title" class="text-lg font-semibold text-slate-900 dark:text-white">
+            Vacantes por grado
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            El aforo se obtiene de las secciones configuradas para el año.
+          </p>
+        </div>
+        @if (loading()) {
+          <span class="text-xs text-slate-500">Actualizando…</span>
+        }
+      </div>
+      @if (vacancies().length) {
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          @for (vacancy of vacancies(); track vacancy.gradePublicUuid) {
+            <article
+              class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <h3 class="font-semibold text-slate-900 dark:text-white">
+                  {{ vacancy.gradeName }}
+                </h3>
+                @if (vacancy.capacityConfigured) {
+                  <span
+                    class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                    >{{ vacancy.availableSeats }} disponibles</span
+                  >
+                } @else {
+                  <span
+                    class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+                    >Aforo pendiente</span
+                  >
+                }
+              </div>
+              <div class="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-600 dark:text-slate-300">
+                <div>
+                  <span class="block text-slate-400">Aforo</span
+                  >{{ vacancy.capacityConfigured ? vacancy.configuredCapacity : '—' }}
+                </div>
+                <div>
+                  <span class="block text-slate-400">Matriculados</span
+                  >{{ vacancy.activeEnrollments }}
+                </div>
+                <div>
+                  <span class="block text-slate-400">Admitidos</span
+                  >{{ vacancy.admittedApplications }}
+                </div>
+              </div>
+              @if (!vacancy.capacityConfigured) {
+                <p class="mt-3 text-xs text-amber-700 dark:text-amber-300">
+                  Completa el aforo de todas las secciones antes de admitir postulantes.
+                </p>
+              }
+              <div class="mt-3 flex flex-wrap gap-3 text-xs font-semibold">
+                <a
+                  routerLink="/admissions/applications"
+                  [queryParams]="{ yearId: yearUuid(), grade: vacancy.gradePublicUuid }"
+                  class="text-indigo-600 dark:text-indigo-300"
+                  >Ver solicitudes →</a
+                ><button
+                  type="button"
+                  (click)="loadVacancySections(vacancy)"
+                  class="text-indigo-600 dark:text-indigo-300"
+                >
+                  Ver secciones
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      } @else if (!loading()) {
+        <div
+          class="rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300"
+        >
+          Crea secciones para este año académico y configura su aforo para visualizar vacantes por
+          grado.
+        </div>
+      }
+    </section>
+  }
+  @if (view === 'applications') {
+    <section
+      class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
+    >
+      <div
+        class="flex flex-col gap-3 border-b border-slate-200 p-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Solicitudes</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            {{ filteredApplications().length }} registros · cambios con historial auditable
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <input
+            [ngModel]="searchTerm()"
+            (ngModelChange)="searchTerm.set($event); pageSignal.set(0)"
+            placeholder="Buscar estudiante o grado"
+            aria-label="Buscar postulaciones"
+            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white sm:w-64"
+          />
+          <select
+            aria-label="Filtrar solicitudes por grado"
+            [ngModel]="gradeFilter()"
+            (ngModelChange)="gradeFilter.set($event); pageSignal.set(0)"
+            class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+          >
+            <option value="">Todos los grados</option>
+            @for (grade of grades(); track grade.publicUuid) {
+              <option [value]="grade.publicUuid">{{ grade.name }}</option>
+            }
+          </select>
+          <select
+            [ngModel]="statusFilter()"
+            (ngModelChange)="statusFilter.set($event); pageSignal.set(0)"
+            aria-label="Filtrar por estado"
+            class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+          >
+            <option value="ALL">Todos</option>
+            <option value="PENDING_REVIEW">Por revisar</option>
+            @for (status of statuses; track status) {
+              <option [value]="status">{{ statusLabel(status) }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      @if (loading() && !applications().length) {
+        <div class="p-10 text-center text-sm text-slate-500">Cargando postulaciones…</div>
+      } @else if (!filteredApplications().length) {
+        <div class="p-10 text-center">
+          <p class="font-medium text-slate-800 dark:text-slate-100">
+            {{
+              applications().length
+                ? 'No hay resultados con estos filtros'
+                : 'Aún no hay postulaciones para este año'
+            }}
+          </p>
+          <p class="mt-1 text-sm text-slate-500">
+            Registra una postulación para empezar el seguimiento.
+          </p>
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-left text-sm">
+            <thead
+              class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950/60 dark:text-slate-400"
+            >
+              <tr>
+                <th class="px-4 py-3">Estudiante</th>
+                <th class="px-4 py-3">Grado</th>
+                <th class="px-4 py-3">Estado</th>
+                <th class="px-4 py-3">Ingreso</th>
+                <th class="px-4 py-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+              @for (application of pagedApplications(); track application.publicUuid) {
+                <tr>
+                  <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">
+                    {{ application.studentFullName
+                    }}<span class="block text-xs font-normal text-slate-400">{{
+                      application.academicYearName
+                    }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-slate-700 dark:text-slate-200">
+                    {{ application.gradeName }}
+                  </td>
+                  <td class="px-4 py-3">
+                    <span
+                      class="rounded-full px-2.5 py-1 text-xs font-semibold"
+                      [ngClass]="statusClass(application.status)"
+                      >{{ statusLabel(application.status) }}</span
+                    >
+                  </td>
+                  <td class="px-4 py-3 text-slate-500">
+                    {{ application.submittedAt | date: 'dd/MM/yyyy'
+                    }}<span class="block text-xs">{{ sourceLabel(application.source) }}</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex flex-wrap justify-end gap-1.5">
+                      <button
+                        type="button"
+                        (click)="openDetail(application)"
+                        class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white"
+                      >
+                        {{
+                          application.status === 'RECEIVED' && canDecide()
+                            ? 'Revisar expediente'
+                            : application.status === 'ADMITTED' && canEnroll()
+                              ? 'Continuar matrícula'
+                              : 'Ver expediente'
+                        }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-admissions-pagination
+          [page]="visiblePage()"
+          [total]="filteredApplications().length"
+          (changed)="pageSignal.set($event)"
+        />
+      }
+    </section>
+  }
+  @if (vacancySectionsTitle()) {
+    <section class="rounded-2xl border p-5 dark:border-slate-700">
+      <h2 class="font-semibold">Secciones · {{ vacancySectionsTitle() }}</h2>
+      @if (sectionsLoading()) {
+        <p role="status">Cargando secciones…</p>
+      }
+      @for (section of vacancySections(); track section.publicUuid) {
+        <p class="mt-2 text-sm">
+          {{ section.sectionName }} · Aforo {{ section.capacity ?? 'pendiente' }} ·
+          {{ section.activeEnrollments }} matriculados · {{ section.availableSeats ?? '—' }} plazas
+          libres
+        </p>
+      }
+      <p class="mt-3 text-xs text-slate-500">
+        Las reservas de admisión se calculan por grado. La disponibilidad final se valida al
+        matricular.
+      </p>
+    </section>
+  }
+  @if (transitionTarget(); as target) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
+      role="presentation"
+      (click)="cancelTransition()"
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+        class="w-full max-w-md space-y-4 rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900"
+        (click)="$event.stopPropagation()"
+      >
+        <div>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white">
+            {{ transitionTitle(target.status) }}
+          </h2>
+          <p class="mt-1 text-sm text-slate-500">
+            {{ target.application.studentFullName }} · {{ target.application.gradeName }}
+          </p>
+        </div>
+        @if (error()) {
+          <p
+            role="alert"
+            class="rounded-xl bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950 dark:text-rose-200"
+          >
+            {{ error() }}
+          </p>
+        }
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-200"
+          >{{ requiresNote(target.status) ? 'Motivo' : 'Nota de revisión' }}
+          <textarea
+            [(ngModel)]="transitionNote"
+            rows="3"
+            maxlength="2000"
+            class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            [placeholder]="
+              requiresNote(target.status) ? 'Describe brevemente el motivo' : 'Opcional'
+            "
+          ></textarea>
+        </label>
+        <div class="flex justify-end gap-2">
+          <button (click)="cancelTransition()" class="rounded-xl px-4 py-2 text-sm">Cancelar</button
+          ><button
+            (click)="submitTransition()"
+            [disabled]="saving() || (requiresNote(target.status) && !transitionNote.trim())"
+            class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            Confirmar
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+
+  @if (enrollmentTarget(); as target) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
+      role="presentation"
+      (click)="closeCompleteEnrollment()"
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+        aria-labelledby="complete-enrollment-title"
+        class="w-full max-w-lg space-y-4 rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900"
+        (click)="$event.stopPropagation()"
+      >
+        <div>
+          <h2
+            id="complete-enrollment-title"
+            class="text-lg font-bold text-slate-900 dark:text-white"
+          >
+            Completar matrícula
+          </h2>
+          <p class="mt-1 text-sm text-slate-500">
+            Solicitud admitida de {{ target.studentFullName }}. Selecciona una sección para
+            {{ target.gradeName }}.
+          </p>
+        </div>
+        @if (error()) {
+          <p
+            role="alert"
+            class="rounded-xl bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950 dark:text-rose-200"
+          >
+            {{ error() }}
+          </p>
+        }
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-200"
+          >Sección
+          <select
+            [(ngModel)]="draftSectionUuid"
+            class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+          >
+            <option value="">Seleccionar sección</option>
+            @for (section of completionSections(); track section.publicUuid) {
+              <option
+                [value]="section.publicUuid"
+                [disabled]="section.availableSeats === 0 || section.capacity === null"
+              >
+                {{ section.sectionName }} · {{ section.availableSeats ?? 'aforo pendiente' }} plazas
+                libres
+              </option>
+            }
+          </select>
+        </label>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-200"
+          >Fecha de matrícula<input
+            type="date"
+            [(ngModel)]="draftEnrollmentDate"
+            class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        /></label>
+        <p class="text-xs text-slate-500">
+          Se creará o reutilizará la ficha del estudiante, se vinculará al apoderado y se registrará
+          la matrícula dentro de una sola operación.
+        </p>
+        <div class="flex justify-end gap-2">
+          <button (click)="closeCompleteEnrollment()" class="rounded-xl px-4 py-2 text-sm">
+            Cancelar</button
+          ><button
+            (click)="submitCompleteEnrollment()"
+            [disabled]="saving() || !draftSectionUuid || !draftEnrollmentDate"
+            class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {{ saving() ? 'Guardando…' : 'Crear matrícula' }}
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+</main>

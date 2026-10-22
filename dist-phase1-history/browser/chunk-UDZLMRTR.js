@@ -1,0 +1,1 @@
+import{kb as t}from"./chunk-O2JZE6FD.js";var n=class i{transform(r,e=2){return r?r.split(/\s+/).filter(Boolean).slice(0,e).map(p=>p.charAt(0).toUpperCase()).join(""):""}static \u0275fac=function(e){return new(e||i)};static \u0275pipe=t({name:"initials",type:i,pure:!0})};export{n as a};

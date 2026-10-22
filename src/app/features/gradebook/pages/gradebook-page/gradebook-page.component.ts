@@ -29,6 +29,7 @@ import {
   EvaluationStatus,
 } from '@features/evaluations/models';
 import { GradeRecordsApiService } from '@features/grade-records/services';
+import { CompetencyResultsModalComponent } from '../../components/competency-results-modal.component';
 import {
   ALLOWED_LITERALS_BY_SCALE,
   areGradesEditable,
@@ -62,6 +63,7 @@ import { GradeBookStore } from '../../store';
     PageContainerComponent,
     PageHeaderComponent,
     SpinnerComponent,
+    CompetencyResultsModalComponent,
   ],
   template: `
     <app-page-container size="wide">
@@ -103,6 +105,16 @@ import { GradeBookStore } from '../../store';
         >
           <app-icon name="printer" [size]="16" />
           <span>PDF</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline btn-sm"
+          [disabled]="loading() || !gradebook()?.evaluations?.length || !gradebook()?.students?.length"
+          (click)="competencyResultsOpen.set(true)"
+          title="Registrar niveles, criterios y evidencias por competencia"
+        >
+          <app-icon name="target" [size]="16" />
+          <span>Evidencias</span>
         </button>
         <button
           type="button"
@@ -879,6 +891,14 @@ import { GradeBookStore } from '../../store';
         (saved)="onRegisterCreated()"
       />
     }
+    @if (competencyResultsOpen() && gradebook(); as gb) {
+      <app-competency-results-modal
+        [courseUuid]="gb.coursePublicUuid"
+        [students]="gb.students"
+        [evaluations]="gb.evaluations"
+        (close)="competencyResultsOpen.set(false)"
+      />
+    }
   `,
   styles: [
     `
@@ -907,11 +927,9 @@ import { GradeBookStore } from '../../store';
       }
       .acta-context-label {
         font-size: 0.65rem;
-        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.04em;
         color: var(--color-content-muted, #6b7280);
-        margin-right: 0.25rem;
       }
       .acta-sep {
         color: var(--color-content-muted, #9ca3af);
@@ -1050,7 +1068,6 @@ import { GradeBookStore } from '../../store';
        * Si se usa var() crudo, el background es inválido y queda transparente. */
       .student-col {
         left: 0;
-        width: 220px;
         min-width: 220px;
         max-width: 220px;
         text-align: left;
@@ -1065,7 +1082,6 @@ import { GradeBookStore } from '../../store';
       }
       .avg-col {
         left: 220px;
-        width: 72px;
         min-width: 72px;
         max-width: 72px;
         text-align: center;
@@ -1350,6 +1366,7 @@ export class GradeBookPageComponent implements OnInit, OnDestroy {
   protected readonly statusClosed = EvaluationStatus.CLOSED;
 
   protected readonly expanded = signal<Set<string>>(new Set());
+  protected readonly competencyResultsOpen = signal(false);
   protected readonly saveError = signal<string | null>(null);
   private readonly scoreDrafts = signal<Record<string, string>>({});
   private readonly literalDrafts = signal<Record<string, string>>({});

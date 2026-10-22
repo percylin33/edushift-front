@@ -24,7 +24,7 @@ import {
  *   <li>{@link #listByStudent}      → {@code GET    /v1/students/{uuid}/tasks} (STUDENT/PARENT)</li>
  *   <li>{@link #getTask}            → {@code GET    /v1/tasks/{uuid}}</li>
  *   <li>{@link #createTask}         → {@code POST   /v1/sections/{uuid}/tasks}</li>
- *   <li>{@link #updateTask}         → {@code PATCH  /v1/tasks/{uuid}} (DRAFT o before dueAt)</li>
+ *   <li>{@link #updateTask}         → {@code PATCH  /v1/tasks/{uuid}} (solo DRAFT)</li>
  *   <li>{@link #publishTask}        → {@code POST   /v1/tasks/{uuid}/publish} (DRAFT → PUBLISHED)</li>
  *   <li>{@link #closeTask}          → {@code POST   /v1/tasks/{uuid}/archive} (PUBLISHED → ARCHIVED)</li>
  * </ul>
@@ -103,10 +103,8 @@ export class TaskApiService {
   }
 
   /**
-   * Edita un task. El backend rechaza con {@code 409} si la lifecycle
-   * es {@code CLOSED} o si es {@code PUBLISHED} y ya pasó
-   * {@code dueAt}. Esos códigos se mapean en el store a errores
-   * inline en el form.
+   * Edita una tarea en DRAFT. El backend rechaza las tareas
+   * PUBLISHED o CLOSED con {@code TASK_INVALID_STATE}.
    */
   updateTask(publicUuid: string, patch: UpdateTaskRequest): Observable<TaskDetail> {
     return this.api

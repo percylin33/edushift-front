@@ -1,3 +1,4 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 ﻿import { Routes } from '@angular/router';
 import { authChildGuard } from '@core/guards';
 
@@ -14,7 +15,8 @@ export const HELP_ROUTES: Routes = [
     canActivateChild: [authChildGuard],
     children: [
       {
-        path: '',
+        canDeactivate: [pendingChangesGuard],
+    path: '',
         pathMatch: 'full',
         loadComponent: () =>
           import('./pages/family-uat-hub/family-uat-hub-page.component').then(
@@ -22,14 +24,16 @@ export const HELP_ROUTES: Routes = [
           ),
       },
       {
-        path: 'script/:roleKey',
+        canDeactivate: [pendingChangesGuard],
+    path: 'script/:roleKey',
         loadComponent: () =>
           import('./pages/family-uat-script/family-uat-script-page.component').then(
             (m) => m.FamilyUatScriptPageComponent,
           ),
       },
       {
-        path: 'lead',
+        canDeactivate: [pendingChangesGuard],
+    path: 'lead',
         pathMatch: 'full',
         loadComponent: () =>
           import('./pages/family-uat-lead/family-uat-lead-page.component').then(
@@ -37,7 +41,8 @@ export const HELP_ROUTES: Routes = [
           ),
       },
       {
-        path: 'reports',
+        canDeactivate: [pendingChangesGuard],
+    path: 'reports',
         loadComponent: () =>
           import('./pages/qa-report/qa-report-page.component').then(
             (m) => m.QaReportPageComponent,

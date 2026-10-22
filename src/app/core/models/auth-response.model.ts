@@ -47,6 +47,7 @@ export interface UserResponseRaw {
   publicUuid: string;
   firstName?: string | null;
   lastName?: string | null;
+  secondLastName?: string | null;
   fullName: string;
   email: string;
   phone?: string | null;

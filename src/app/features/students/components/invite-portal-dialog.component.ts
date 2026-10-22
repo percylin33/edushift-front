@@ -1,3 +1,4 @@
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -23,14 +24,14 @@ import { PortalInvitationResult } from '../models';
   selector: 'app-invite-portal-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="invite-portal-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div class="card w-full max-w-lg shadow-xl" (click)="$event.stopPropagation()">
         @if (lastInvitation(); as inv) {

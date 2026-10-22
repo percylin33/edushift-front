@@ -51,18 +51,18 @@ export const environment: AppEnvironment = runtimeOverrides({
     reports: true,
     notifications: true,
     settings: true,
-    // LMS (Sprint 7a). Kept off in production until the pilot signs off
-    // on the back-end (BE-7a.0..5). The flag is consulted by
-    // `featureFlagGuard` to short-circuit the whole `/lms/*` tree.
-    lms: false,
+    // Feature routes enabled for this deployment.
+    lms: true,
     // FIX BUG-2026-07-30-09 / -10 / -18 / -19: type parity with the
     // shared AppEnvironment shape. Toggle per deployment as needed;
     // announcements/schedule/family/me ship behind featureFlagGuard.
-    announcements: false,
-    schedule: false,
-    family: false,
-    me: false,
-    gmailSend: false
+    announcements: true,
+    schedule: true,
+    family: true,
+    disclosures: true,
+    admissions: true,
+    me: true,
+    gmailSend: true
   },
   logging: {
     level: 'warn',
@@ -76,8 +76,17 @@ export const environment: AppEnvironment = runtimeOverrides({
     pwaDisplay: 'standalone',
     pwaStartUrl: '/attendance/scanner'
   },
-  // Production Firebase config intentionally left undefined until the
-  // operator provisions a dedicated EduShift project and uploads the
-  // real config via the deploy pipeline (see docs/infra/firebase.md).
-  firebase: undefined
+  // Firebase Web configuration for the current EduShift test project.
+  // These client values and the VAPID public key are published in the FE bundle;
+  // keep the Admin SDK private key exclusively in the backend environment.
+  firebase: {
+    apiKey: 'AIzaSyAnWp4Xcy6QqFzGkGNzSB7WXw0yYIRpj6U',
+    authDomain: 'edushift-f03db.firebaseapp.com',
+    projectId: 'edushift-f03db',
+    storageBucket: 'edushift-f03db.firebasestorage.app',
+    messagingSenderId: '390884898100',
+    appId: '1:390884898100:web:9fe332355e52403587e161',
+    messagingVapidKey:
+      'BBit7vIdDVzI2ph9gx8Ggpi6E5UwNRuu45jEUC3tu1a25gDaR71xBv9vDfAm8-TCCeV87tAgwHQuWCqsjN8EdC4',
+  },
 });

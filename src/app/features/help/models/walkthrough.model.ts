@@ -66,7 +66,7 @@ export interface WalkthroughProgress {
 
 export const WALKTHROUGH_FILES: ReadonlyArray<{ roleKey: RoleKey; slug: string; title: string }> = [
   { roleKey: 'super-admin', slug: 'super-admin', title: 'SUPER_ADMIN' },
-  { roleKey: 'tenant-admin', slug: 'tenant-admin', title: 'TENANT_ADMIN' },
+  { roleKey: 'tenant-admin', slug: 'tenant-admin', title: 'Administrador de institución' },
   { roleKey: 'teacher', slug: 'teacher', title: 'TEACHER' },
   { roleKey: 'student', slug: 'student', title: 'STUDENT' },
   { roleKey: 'parent', slug: 'parent', title: 'PARENT' },

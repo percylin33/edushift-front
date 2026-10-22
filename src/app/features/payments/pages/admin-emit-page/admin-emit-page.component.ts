@@ -8,13 +8,12 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { Subject, Subscription, debounceTime, distinctUntilChanged, switchMap, of, catchError } from 'rxjs';
 import { firstValueFrom } from 'rxjs';
 import { AcademicApiService } from '@features/academic/services';
 import { SectionRow } from '@features/academic/models';
 import { StudentsApiService } from '@features/students/services';
-import { StudentRow } from '@features/students/models';
+import { StudentPaymentRecipient } from '@features/students/models';
 import { PaymentsApiService } from '../../services/payments-api.service';
 import {
   PaymentConcept,
@@ -35,23 +34,9 @@ import {
   selector: 'app-admin-emit-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   template: `
-    <section class="mx-auto max-w-3xl px-4 py-8 sm:py-10">
-      <header class="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 class="text-xl font-bold text-slate-900 dark:text-slate-100 sm:text-2xl">
-            Emitir cuotas
-          </h1>
-          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Emite una cuota individual o un lote por sección / todos matriculados.
-          </p>
-        </div>
-        <a routerLink="/payments/admin/invoices" class="text-sm font-semibold text-indigo-600">
-          Ir a conciliación
-        </a>
-      </header>
-
+    <section class="mx-auto max-w-3xl">
       @if (banner(); as b) {
         <div
           class="mb-4 rounded-md px-4 py-3 text-sm"
@@ -62,10 +47,40 @@ import {
         </div>
       }
 
-      <!-- Single emit -->
+      <nav class="mb-4 flex gap-2" aria-label="Tipo de generación" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          id="generation-individual-tab"
+          aria-controls="generation-panel"
+          [attr.aria-selected]="generationMode() === 'individual'"
+          [class]="generationTabClass(generationMode() === 'individual')"
+          (click)="generationMode.set('individual')"
+        >
+          Individual
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="generation-bulk-tab"
+          aria-controls="generation-panel"
+          [attr.aria-selected]="generationMode() === 'bulk'"
+          [class]="generationTabClass(generationMode() === 'bulk')"
+          (click)="generationMode.set('bulk')"
+        >
+          Masiva
+        </button>
+      </nav>
+
+      <div
+        id="generation-panel"
+        role="tabpanel"
+        [attr.aria-labelledby]="generationMode() === 'individual' ? 'generation-individual-tab' : 'generation-bulk-tab'"
+      >
+      @if (generationMode() === 'individual') {
       <div class="mb-8 rounded-2xl bg-white p-5 ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
         <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Emisión individual
+          Para un estudiante
         </h2>
         <form class="grid gap-3 sm:grid-cols-2" (ngSubmit)="submitEmit()">
           <div class="relative block text-sm sm:col-span-2">
@@ -93,8 +108,14 @@ import {
                 class="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                 [ngModel]="studentQuery()"
                 (ngModelChange)="onStudentQuery($event)"
+                (keydown)="onStudentKeydown($event)"
                 name="studentQuery"
                 autocomplete="off"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-controls="emit-student-listbox"
+                [attr.aria-expanded]="studentHits().length > 0"
+                [attr.aria-activedescendant]="activeStudentOptionId()"
                 placeholder="Buscar por nombre, apellido o DNI…"
               />
               @if (studentSearching()) {
@@ -102,13 +123,19 @@ import {
               }
               @if (studentHits().length > 0) {
                 <ul
+                  id="emit-student-listbox"
+                  role="listbox"
                   class="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
                 >
-                  @for (s of studentHits(); track s.publicUuid) {
+                  @for (s of studentHits(); track s.publicUuid; let i = $index) {
                     <li>
                       <button
                         type="button"
+                        [id]="studentOptionId(i)"
+                        role="option"
+                        [attr.aria-selected]="i === activeStudentIndex()"
                         class="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+                        [class.bg-slate-50]="i === activeStudentIndex()"
                         (click)="pickStudent(s)"
                       >
                         <span class="font-medium text-slate-900 dark:text-slate-100">
@@ -141,7 +168,7 @@ import {
             </select>
           </label>
           <label class="block text-sm">
-            <span class="font-medium text-slate-700 dark:text-slate-300">Periodo</span>
+            <span class="font-medium text-slate-700 dark:text-slate-300">Periodo de la cuota</span>
             <input
               class="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
               [(ngModel)]="emit.periodLabel"
@@ -200,16 +227,17 @@ import {
               class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
               [disabled]="emitting()"
             >
-              {{ emitting() ? 'Emitiendo…' : 'Emitir cuota' }}
+              {{ emitting() ? 'Generando…' : 'Generar cuota' }}
             </button>
           </div>
         </form>
       </div>
+      }
 
-      <!-- Bulk -->
+      @if (generationMode() === 'bulk') {
       <div class="rounded-2xl bg-white p-5 ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
         <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Emisión masiva
+          Para varios estudiantes
         </h2>
         <form class="grid gap-3 sm:grid-cols-2" (ngSubmit)="previewBulk()">
           <label class="flex items-center gap-2 text-sm sm:col-span-2">
@@ -248,7 +276,7 @@ import {
             </select>
           </label>
           <label class="block text-sm">
-            <span class="font-medium text-slate-700 dark:text-slate-300">Periodo</span>
+            <span class="font-medium text-slate-700 dark:text-slate-300">Periodo de las cuotas</span>
             <input
               class="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
               [(ngModel)]="bulk.periodLabel"
@@ -320,6 +348,8 @@ import {
           </div>
         }
       </div>
+      }
+      </div>
     </section>
   `,
 })
@@ -336,13 +366,21 @@ export class AdminEmitPageComponent implements OnInit, OnDestroy {
   readonly sections = signal<readonly SectionRow[]>([]);
   readonly emitting = signal(false);
   readonly bulking = signal(false);
+  readonly generationMode = signal<'individual' | 'bulk'>('individual');
   readonly banner = signal<{ ok: boolean; message: string } | null>(null);
   readonly preview = signal<BulkEmitInvoicesResponse | null>(null);
 
+  generationTabClass(selected: boolean): string {
+    return selected
+      ? 'rounded-t-md border-b-2 border-indigo-600 px-3 py-2 text-sm font-semibold text-indigo-700 dark:text-indigo-300'
+      : 'rounded-t-md border-b-2 border-transparent px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white';
+  }
+
   readonly studentQuery = signal('');
-  readonly studentHits = signal<StudentRow[]>([]);
+  readonly studentHits = signal<StudentPaymentRecipient[]>([]);
+  readonly activeStudentIndex = signal(0);
   readonly studentSearching = signal(false);
-  readonly selectedStudent = signal<StudentRow | null>(null);
+  readonly selectedStudent = signal<StudentPaymentRecipient | null>(null);
 
   emit = {
     conceptPublicUuid: '',
@@ -381,18 +419,19 @@ export class AdminEmitPageComponent implements OnInit, OnDestroy {
           const term = q.trim();
           if (term.length < 2) {
             this.studentSearching.set(false);
-            return of([] as StudentRow[]);
+            return of([] as StudentPaymentRecipient[]);
           }
           this.studentSearching.set(true);
-          return this.studentsApi.list({ search: term }, { page: 0, size: 15 }).pipe(
+          return this.studentsApi.listPaymentRecipients(term, { page: 0, size: 15 }).pipe(
             switchMap((page) => of(page.content ?? [])),
-            catchError(() => of([] as StudentRow[])),
+            catchError(() => of([] as StudentPaymentRecipient[])),
           );
         }),
       )
       .subscribe((rows) => {
         this.studentSearching.set(false);
         this.studentHits.set(rows);
+        this.activeStudentIndex.set(0);
       });
   }
 
@@ -402,10 +441,43 @@ export class AdminEmitPageComponent implements OnInit, OnDestroy {
 
   onStudentQuery(value: string): void {
     this.studentQuery.set(value);
+    this.activeStudentIndex.set(0);
     this.studentSearch$.next(value);
   }
 
-  pickStudent(s: StudentRow): void {
+  onStudentKeydown(event: KeyboardEvent): void {
+    const hits = this.studentHits();
+    if (event.key === 'Escape') {
+      if (hits.length > 0) {
+        event.preventDefault();
+        this.studentHits.set([]);
+      }
+      return;
+    }
+    if (hits.length === 0) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.activeStudentIndex.update((index) => Math.min(index + 1, hits.length - 1));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.activeStudentIndex.update((index) => Math.max(index - 1, 0));
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      const student = hits[this.activeStudentIndex()];
+      if (student) this.pickStudent(student);
+    }
+  }
+
+  activeStudentOptionId(): string | null {
+    return this.studentHits().length > 0 ? this.studentOptionId(this.activeStudentIndex()) : null;
+  }
+
+  protected studentOptionId(index: number): string {
+    return `emit-student-option-${index}`;
+  }
+
+  pickStudent(s: StudentPaymentRecipient): void {
     this.selectedStudent.set(s);
     this.studentHits.set([]);
     this.studentQuery.set('');
@@ -458,14 +530,14 @@ export class AdminEmitPageComponent implements OnInit, OnDestroy {
           this.emitting.set(false);
           this.banner.set({
             ok: true,
-            message: `Cuota ${inv.periodLabel} emitida para ${student.fullName}.`,
+            message: `Cuota ${inv.periodLabel} generada para ${student.fullName}.`,
           });
         },
         error: (e) => {
           this.emitting.set(false);
           this.banner.set({
             ok: false,
-            message: e?.error?.message ?? 'No se pudo emitir la cuota',
+            message: e?.error?.message ?? 'No se pudo generar la cuota',
           });
         },
       });
@@ -520,7 +592,7 @@ export class AdminEmitPageComponent implements OnInit, OnDestroy {
             this.preview.set(null);
             this.banner.set({
               ok: true,
-              message: `Creadas ${res.createdCount} cuotas (${res.skippedDuplicateCount} duplicados omitidos).`,
+              message: `Generadas ${res.createdCount} cuotas (${res.skippedDuplicateCount} duplicados omitidos).`,
             });
           }
         },
@@ -528,7 +600,7 @@ export class AdminEmitPageComponent implements OnInit, OnDestroy {
           this.bulking.set(false);
           this.banner.set({
             ok: false,
-            message: e?.error?.message ?? 'Falló la emisión masiva',
+            message: e?.error?.message ?? 'Falló la generación masiva',
           });
         },
       });

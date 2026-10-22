@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -38,14 +40,14 @@ import { schoolInvitationAcceptUrl } from '@core/navigation/school-login.navigat
   selector: 'app-invite-user-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, IconComponent, SpinnerComponent, UserRoleBadgeComponent],
+  imports: [SafeBackdropDirective, FormsModule, IconComponent, SpinnerComponent, UserRoleBadgeComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="invite-user-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div class="card w-full max-w-lg shadow-xl" (click)="$event.stopPropagation()">
         @if (created(); as inv) {
@@ -128,7 +130,7 @@ import { schoolInvitationAcceptUrl } from '@core/navigation/school-login.navigat
             <div>
               <h2 id="invite-user-title" class="card-title">Invitar a un nuevo usuario</h2>
               <p class="card-description">
-                Recibirá un enlace para crear su contraseña y entrar al workspace.
+                Recibirá un enlace para crear su contraseña y entrar a la institución.
               </p>
             </div>
             <button
@@ -192,6 +194,18 @@ import { schoolInvitationAcceptUrl } from '@core/navigation/school-login.navigat
                   name="lastName"
                 />
               </div>
+            </div>
+
+            <div class="field">
+              <label class="label" for="invite-secondLastName">Apellido materno</label>
+              <input
+                id="invite-secondLastName"
+                type="text"
+                class="input"
+                [ngModel]="secondLastName()"
+                (ngModelChange)="secondLastName.set($event)"
+                name="secondLastName"
+              />
             </div>
 
             <div class="grid gap-3 sm:grid-cols-12">
@@ -284,6 +298,12 @@ import { schoolInvitationAcceptUrl } from '@core/navigation/school-login.navigat
   `,
 })
 export class InviteUserModalComponent {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.store.lastCreated() ? null : [this.email(), this.firstName(), this.lastName(), this.secondLastName(), this.documentType(), this.documentNumber(), [...this.selectedRoles()].sort()],
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly store = inject(InvitationsStore);
   private readonly tenant = inject(TenantService);
 
@@ -300,6 +320,7 @@ export class InviteUserModalComponent {
   protected readonly email = signal('');
   protected readonly firstName = signal('');
   protected readonly lastName = signal('');
+  protected readonly secondLastName = signal('');
   protected readonly documentType = signal<DocumentType>(DocumentType.Dni);
   protected readonly documentNumber = signal('');
   protected readonly selectedRoles = signal<UserRole[]>([UserRole.Teacher]);
@@ -361,12 +382,14 @@ export class InviteUserModalComponent {
   }
 
   protected close(): void {
-    /* The store keeps {@link InvitationsStore#lastCreated} populated
-     * across re-opens; we only blow it away when we explicitly bail. */
-    this.store.clearLastCreated();
-    this.store.clearError();
-    this.resetForm();
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      /* The store keeps {@link InvitationsStore#lastCreated} populated
+      * across re-opens; we only blow it away when we explicitly bail. */
+      this.store.clearLastCreated();
+      this.store.clearError();
+      this.resetForm();
+      this.closed.emit();
+    });
   }
 
   protected newAnother(): void {
@@ -394,6 +417,7 @@ export class InviteUserModalComponent {
       email: this.email().trim(),
       firstName: this.firstName().trim(),
       lastName: this.lastName().trim(),
+      secondLastName: this.secondLastName().trim() || undefined,
       documentType: this.documentType(),
       documentNumber: this.documentNumber().trim(),
       roles: this.selectedRoles(),
@@ -428,6 +452,7 @@ export class InviteUserModalComponent {
     this.email.set('');
     this.firstName.set('');
     this.lastName.set('');
+    this.secondLastName.set('');
     this.documentType.set(DocumentType.Dni);
     this.documentNumber.set('');
     this.selectedRoles.set([UserRole.Teacher]);

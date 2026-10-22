@@ -139,7 +139,11 @@ type LaidOutItem =
       </div>
       <!-- Vista Desktop: Grid alineada por hora -->
       <div class="hidden overflow-x-auto md:block">
-        <div class="sch-shell min-w-[800px]" [class.sch-shell--weekend]="showWeekend()">
+        <div
+          class="sch-shell min-w-[800px]"
+          [class.sch-shell--weekend]="showWeekend()"
+          [class.sch-shell--day]="focusDay() !== null"
+        >
           <!-- Header -->
           <div
             class="sch-grid sch-grid--header rounded-t-lg border border-border-subtle bg-border-subtle"
@@ -151,6 +155,13 @@ type LaidOutItem =
                 [class.sch-day-head--weekend]="day.value > 5"
               >
                 {{ day.label }}
+                @if (dayDateLabels()[day.value]) {
+                  <span
+                    class="mt-1 block text-[10px] font-medium normal-case tracking-normal text-content-subtle"
+                  >
+                    {{ dayDateLabels()[day.value] }}
+                  </span>
+                }
               </div>
             }
           </div>
@@ -537,6 +548,10 @@ type LaidOutItem =
         box-shadow: 0 1px 3px rgb(15 23 42 / 6%);
       }
 
+      .sch-shell.sch-shell--day {
+        min-width: 0;
+      }
+
       .sch-grid {
         display: grid;
         grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -795,6 +810,10 @@ export class ScheduleGridComponent {
 
   /** Nominal period length from API (fallback: inferred from suggested periods). */
   readonly periodMinutes = input<number | null>(null);
+  /** Optional single weekday focus for compact student day view. */
+  readonly focusDay = input<number | null>(null);
+  /** Optional localized date label per weekday (1 = Monday). */
+  readonly dayDateLabels = input<Readonly<Record<number, string>>>({});
 
   readonly addRequested = output<number>();
   readonly slotSelected = output<ScheduleSlotItem>();
@@ -803,9 +822,11 @@ export class ScheduleGridComponent {
   protected readonly colorView = signal(readLsFlag(LS_COLOR_VIEW, false));
   protected readonly showWeekend = signal(readLsFlag(LS_SHOW_WEEKEND, false));
 
-  protected readonly visibleDays = computed(() =>
-    this.showWeekend() ? DAYS_OF_WEEK : DAYS_OF_WEEK.filter((d) => d.value <= 5),
-  );
+  protected readonly visibleDays = computed(() => {
+    const focusDay = this.focusDay();
+    if (focusDay !== null) return DAYS_OF_WEEK.filter((day) => day.value === focusDay);
+    return this.showWeekend() ? DAYS_OF_WEEK : DAYS_OF_WEEK.filter((day) => day.value <= 5);
+  });
 
   protected readonly gridTemplateColumns = computed(
     () => `repeat(${this.visibleDays().length}, minmax(0, 1fr))`,

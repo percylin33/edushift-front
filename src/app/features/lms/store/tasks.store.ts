@@ -1,5 +1,7 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { extractApiError } from '@shared/utils/auth-error.util';
 import { TaskApiService } from '../services';
 import {
   CreateTaskRequest,
@@ -207,8 +209,13 @@ export class TasksStore {
       this._selected.set(updated);
       this.refreshRowFromDetail(updated);
       return updated;
-    } catch {
-      this._error.set('No pudimos guardar los cambios.');
+    } catch (error) {
+      const apiError = error instanceof HttpErrorResponse ? extractApiError(error) : null;
+      this._error.set(
+        apiError?.code === 'TASK_INVALID_STATE'
+          ? 'Esta tarea ya fue publicada o cerrada y no admite cambios. Vuelve al detalle para revisar su estado.'
+          : 'No pudimos guardar los cambios. Inténtalo de nuevo.',
+      );
       return null;
     } finally {
       this._saving.set(false);

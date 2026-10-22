@@ -1,0 +1,857 @@
+<main class="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <a
+        routerLink="/admissions"
+        [queryParams]="{ yearId: yearUuid() }"
+        class="text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-300"
+        >← Volver a Admisiones</a
+      >
+      <h1 class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+        {{ creationPage ? 'Nueva solicitud de admisión' : 'Consultas de familias' }}
+      </h1>
+      <p class="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-300">
+        El equipo de Admisiones atiende consultas y continúa la admisión cuando la familia visita el
+        colegio. El DNI se registra recién al formalizar una postulación.
+      </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <select
+        [value]="yearUuid()"
+        (change)="selectYear($event)"
+        aria-label="Año académico"
+        class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+      >
+        @for (year of years(); track year.publicUuid) {
+          <option [value]="year.publicUuid">{{ year.name }}</option>
+        }
+      </select>
+      @if (canFormalize() && !creationPage) {
+        <a
+          routerLink="/admissions/new"
+          [queryParams]="{ yearId: yearUuid() }"
+          class="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:text-white dark:text-white dark:hover:text-white"
+          >Nueva solicitud</a
+        >
+      }
+      @if (!creationPage) {
+        <a
+          [href]="publicFormUrl()"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-200"
+          >Abrir formulario público ↗</a
+        >
+        <button
+          type="button"
+          (click)="copyPublicUrl()"
+          class="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+        >
+          Copiar enlace
+        </button>
+      }
+    </div>
+  </header>
+
+  <app-admissions-navigation [year]="yearUuid()" />
+  @if (
+    creationPage && !presentialOpen() && !convertInquiry() && !editUuid && !existingStudentSignal()
+  ) {
+    <section class="grid gap-4 md:grid-cols-3" aria-label="Origen de la nueva solicitud">
+      <button
+        type="button"
+        (click)="openPresential()"
+        class="rounded-2xl border border-indigo-200 bg-white p-6 text-left dark:border-indigo-900 dark:bg-slate-900"
+      >
+        <strong class="block">Postulante nuevo</strong
+        ><span class="mt-2 block text-sm text-slate-500"
+          >Registra sus datos y los de su apoderado.</span
+        >
+      </button>
+      <button
+        type="button"
+        (click)="existingStudentSignal.set(true)"
+        class="rounded-2xl border bg-white p-6 dark:border-slate-700 dark:bg-slate-900"
+      >
+        <strong class="block">Estudiante existente</strong
+        ><span class="mt-2 block text-sm text-slate-500"
+          >Busca una ficha registrada por nombre o documento.</span
+        >
+      </button>
+      @if (canReadInquiries()) {
+        <a
+          routerLink="/admissions/inquiries"
+          [queryParams]="{ yearId: yearUuid() }"
+          class="rounded-2xl border bg-white p-6 dark:border-slate-700 dark:bg-slate-900"
+          ><strong class="block">Desde una consulta</strong
+          ><span class="mt-2 block text-sm text-slate-500"
+            >Recupera el contacto familiar y continúa su admisión.</span
+          ></a
+        >
+      }
+    </section>
+  }
+  @if (existingStudentSignal()) {
+    <app-existing-student-admission
+      [year]="yearUuid()"
+      (dirty)="existingDirtySignal.set(true)"
+      (busy)="existingBusySignal.set($event)"
+      (cancelled)="cancelExisting()"
+      (created)="openCreated($event)"
+    />
+  }
+  @if (error()) {
+    <div
+      role="alert"
+      class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-200"
+    >
+      {{ error() }}
+    </div>
+  }
+  @if (notice()) {
+    <div
+      role="status"
+      class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200"
+    >
+      {{ notice() }}
+    </div>
+  }
+  @if (!creationPage && !convertInquiry() && !presentialOpen()) {
+    <details
+      class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+    >
+      <summary class="cursor-pointer font-semibold">Formulario público del colegio</summary>
+      <p class="mt-2 break-all">{{ publicFormUrl() }}</p>
+    </details>
+
+    <section
+      class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
+    >
+      <div
+        class="flex flex-col gap-3 border-b border-slate-200 p-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Bandeja de consultas</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            {{ inquiries().length }} consultas · ordenadas de la más reciente a la más antigua
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <input
+            [ngModel]="searchTerm()"
+            (ngModelChange)="searchTerm.set($event); pageSignal.set(0)"
+            placeholder="Nombre, celular o grado"
+            aria-label="Buscar por nombre, celular o grado"
+            class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+          />
+          <select
+            aria-label="Seguimientos pendientes"
+            [ngModel]="overdueSignal()"
+            (ngModelChange)="overdueSignal.set($event)"
+            class="rounded-xl border bg-white px-3 py-2 text-sm dark:bg-slate-950"
+          >
+            <option [ngValue]="false">Todas las atenciones</option>
+            <option [ngValue]="true">Atenciones pendientes</option>
+          </select>
+          <select
+            [ngModel]="gradeFilter()"
+            (ngModelChange)="gradeFilter.set($event); pageSignal.set(0)"
+            aria-label="Grado de interés"
+            class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+          >
+            <option value="">Todos los grados</option>
+            @for (grade of grades(); track grade.publicUuid) {
+              <option [value]="grade.publicUuid">{{ grade.name }}</option>
+            }
+          </select>
+          <select
+            [ngModel]="statusFilter()"
+            (ngModelChange)="statusFilter.set($event); pageSignal.set(0)"
+            aria-label="Filtrar consultas"
+            class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+          >
+            <option value="ALL">Todos los estados</option>
+            @for (status of statuses; track status) {
+              <option [value]="status">{{ statusLabel(status) }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      @if (loading() && !inquiries().length) {
+        <div class="p-10 text-center text-sm text-slate-500">Cargando consultas…</div>
+      } @else if (!filteredInquiries().length) {
+        <div class="p-10 text-center">
+          <p class="font-medium text-slate-800 dark:text-slate-100">
+            {{
+              inquiries().length
+                ? 'No hay consultas con estos filtros'
+                : 'Aún no hay consultas recibidas'
+            }}
+          </p>
+          <p class="mt-1 text-sm text-slate-500">
+            Comparte el formulario público para que las familias puedan contactarte.
+          </p>
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-left text-sm">
+            <thead
+              class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950/60 dark:text-slate-400"
+            >
+              <tr>
+                <th class="px-4 py-3">Familia y contacto</th>
+                <th class="px-4 py-3">Interés</th>
+                <th class="px-4 py-3">Consulta / solicitud</th>
+                <th class="px-4 py-3">Seguimiento</th>
+                <th class="px-4 py-3">Recibida</th>
+                <th class="px-4 py-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+              @for (item of pagedInquiries(); track item.publicUuid) {
+                <tr>
+                  <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">
+                    {{ item.contactName
+                    }}<span class="block text-xs font-normal text-slate-500"
+                      >{{ item.contactValue }} ·
+                      {{ item.contactType === 'EMAIL' ? 'correo' : 'teléfono' }}</span
+                    >
+                  </td>
+                  <td class="px-4 py-3 text-slate-700 dark:text-slate-200">
+                    {{ gradeLabel(item.gradePublicUuid, item.gradeName)
+                    }}<span class="block text-xs text-slate-500"
+                      >Año {{ item.academicYearName }}</span
+                    >
+                  </td>
+                  <td class="px-4 py-3">
+                    <span
+                      class="rounded-full px-2.5 py-1 text-xs font-semibold"
+                      [ngClass]="statusClass(item.status)"
+                      >{{ statusLabel(item.status) }}</span
+                    >
+                    @if (item.convertedApplicationStatus) {
+                      <span class="mt-1 block text-xs text-slate-500"
+                        >Solicitud:
+                        {{ applicationStatusLabel(item.convertedApplicationStatus) }}</span
+                      >
+                    }
+                  </td>
+                  <td class="px-4 py-3 text-xs text-slate-500">
+                    {{ item.responsibleName || 'Sin responsable'
+                    }}<span class="block">{{
+                      (item.nextAttentionDate | date: 'dd/MM/yyyy') || 'Sin próxima atención'
+                    }}</span
+                    ><span class="block">{{ item.nextAction || '' }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-slate-500">
+                    {{ item.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex flex-wrap justify-end gap-1.5">
+                      @if (
+                        canFormalize() && item.status !== 'CLOSED' && item.status !== 'CONVERTED'
+                      ) {
+                        <button
+                          (click)="openConvert(item)"
+                          class="rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500"
+                        >
+                          Continuar admisión
+                        </button>
+                      }
+                      @if (
+                        canManageInquiries() &&
+                        item.status !== 'CLOSED' &&
+                        item.status !== 'CONVERTED'
+                      ) {
+                        <button
+                          (click)="
+                            openNote(item); noteStatus = 'CLOSED'; attentionChannel = 'Cierre'
+                          "
+                          class="min-h-10 rounded-lg border px-3 py-2 text-xs text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                        >
+                          Cerrar
+                        </button>
+                      }
+                      @if (item.status === 'CONVERTED') {
+                        @if (item.convertedApplicationPublicUuid && canReadApplications()) {
+                          <a
+                            [routerLink]="[
+                              '/admissions/applications',
+                              item.convertedApplicationPublicUuid,
+                            ]"
+                            [queryParams]="{
+                              yearId:
+                                item.convertedAcademicYearPublicUuid ?? item.academicYearPublicUuid,
+                            }"
+                            class="text-xs font-semibold text-indigo-600 underline dark:text-indigo-300"
+                            >Ver solicitud</a
+                          >
+                        }
+                      }
+                      @if (
+                        canManageInquiries() &&
+                        item.status !== 'CONVERTED' &&
+                        item.status !== 'CLOSED'
+                      ) {
+                        <button
+                          (click)="openNote(item)"
+                          class="min-h-10 rounded-lg border px-3 py-2 text-xs dark:border-slate-700"
+                        >
+                          Registrar atención
+                        </button>
+                      }
+                      <button
+                        (click)="showHistory(item)"
+                        class="min-h-10 rounded-lg border px-3 py-2 text-xs hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                      >
+                        Historial
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-admissions-pagination
+          [page]="visiblePage()"
+          [total]="filteredInquiries().length"
+          (changed)="pageSignal.set($event)"
+        />
+      }
+    </section>
+  }
+  @if (convertInquiry() || presentialOpen()) {
+    @let inquiry = convertInquiry();
+    <div
+      class="rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+    >
+      <section
+        aria-labelledby="convert-title"
+        class="mx-auto w-full max-w-3xl space-y-4 p-5 sm:p-6"
+        (click)="$event.stopPropagation()"
+      >
+        <div>
+          <h2
+            id="convert-title"
+            tabindex="-1"
+            class="text-xl font-bold text-slate-900 dark:text-white"
+          >
+            {{
+              editingSignal()
+                ? 'Corregir expediente'
+                : inquiry
+                  ? 'Continuar admisión'
+                  : 'Nueva solicitud'
+            }}
+          </h2>
+          <p class="mt-1 text-sm text-slate-500">
+            {{
+              inquiry
+                ? inquiry.contactName + ' · ' + inquiry.gradeName
+                : 'Registro de postulante nuevo'
+            }}
+            · Año {{ selectedYearName() }}. Aquí se capturan los documentos para el expediente
+            formal.
+          </p>
+        </div>
+        @if (error()) {
+          <p
+            role="alert"
+            class="rounded-xl bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950 dark:text-rose-200"
+          >
+            {{ error() }}
+          </p>
+        }
+        <ol
+          aria-label="Pasos de la solicitud"
+          class="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4"
+        >
+          @for (label of stepLabels; track $index) {
+            <li
+              [attr.aria-current]="wizardStepSignal() === $index ? 'step' : null"
+              class="rounded-lg px-3 py-2"
+              [class.bg-indigo-100]="wizardStepSignal() === $index"
+              [class.font-bold]="wizardStepSignal() === $index"
+              [class.text-indigo-900]="wizardStepSignal() === $index"
+            >
+              {{ $index + 1 }}. {{ label }}
+            </li>
+          }
+        </ol>
+        <form
+          #admissionForm="ngForm"
+          ngNativeValidate
+          class="space-y-5"
+          (ngSubmit)="admissionForm.valid && advanceStep()"
+        >
+          @if (wizardStepSignal() === 0) {
+            @if (!inquiry && !editingSignal()) {
+              @if (canReadInquiries()) {
+                <label class="block text-sm font-medium"
+                  >Buscar consultas previas<input
+                    name="antecedentSearch"
+                    [ngModel]="antecedentSearchSignal()"
+                    (ngModelChange)="antecedentSearchSignal.set($event)"
+                    placeholder="Nombre del contacto o teléfono"
+                    class="mt-1 w-full rounded-xl border p-3 dark:bg-slate-950"
+                /></label>
+                @if (antecedentsLoadingSignal()) {
+                  <p role="status" class="text-sm">Buscando antecedentes…</p>
+                }
+                @for (match of antecedentsSignal(); track match.publicUuid) {
+                  <div
+                    class="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3 text-sm dark:border-slate-700"
+                  >
+                    <span
+                      >{{ match.contactName }} · {{ match.contactValue }} ·
+                      {{ match.gradeName }}</span
+                    >
+                    @if (match.status !== 'CONVERTED' && match.status !== 'CLOSED') {
+                      <button
+                        type="button"
+                        (click)="openConvert(match)"
+                        class="font-semibold text-indigo-600 dark:text-indigo-300"
+                      >
+                        Continuar esta consulta
+                      </button>
+                    } @else {
+                      <span>{{ statusLabel(match.status) }}</span>
+                    }
+                  </div>
+                }
+              }
+              <p class="text-sm text-amber-700 dark:text-amber-300">
+                Busca primero por nombre o celular para verificar si la familia ya tiene una
+                consulta.
+              </p>
+            }
+            <label class="block text-sm font-medium"
+              >Año de admisión<select
+                name="admissionYear"
+                [(ngModel)]="draftYearUuid"
+                (ngModelChange)="loadAntecedents()"
+                [disabled]="editingSignal()"
+                required
+                class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+              >
+                @for (year of years(); track year.publicUuid) {
+                  @if (year.status !== 'CLOSED') {
+                    <option [value]="year.publicUuid">{{ year.name }}</option>
+                  }
+                }
+              </select></label
+            >
+            <label class="block text-sm font-medium"
+              >Grado solicitado<select
+                name="presentialGrade"
+                [(ngModel)]="draftGradeUuid"
+                [disabled]="editingSignal()"
+                required
+                class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+              >
+                <option value="">Seleccionar grado</option>
+                @for (grade of grades(); track grade.publicUuid) {
+                  <option [value]="grade.publicUuid">{{ grade.name }}</option>
+                }
+              </select></label
+            >
+          }
+          @if (wizardStepSignal() === 1) {
+            <div>
+              <h3 class="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">
+                Datos del estudiante
+              </h3>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <label class="text-sm font-medium"
+                  >Tipo de documento<select
+                    name="studentDocumentType"
+                    [(ngModel)]="draft.studentDocumentType"
+                    required
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                  >
+                    <option>DNI</option>
+                    <option>CE</option>
+                    <option>PASSPORT</option>
+                    <option>OTHER</option>
+                  </select></label
+                >
+                <label class="text-sm font-medium"
+                  >Número de documento<input
+                    name="studentDocumentNumber"
+                    [(ngModel)]="draft.studentDocumentNumber"
+                    required
+                    minlength="4"
+                    maxlength="20"
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                /></label>
+                <label class="text-sm font-medium"
+                  >Nombres<input
+                    name="studentFirstName"
+                    [(ngModel)]="draft.studentFirstName"
+                    required
+                    maxlength="100"
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                /></label>
+                <label class="text-sm font-medium"
+                  >Primer apellido<input
+                    name="studentLastName"
+                    [(ngModel)]="draft.studentLastName"
+                    required
+                    maxlength="100"
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                /></label>
+                <label class="text-sm font-medium"
+                  >Segundo apellido<input
+                    name="studentSecondLastName"
+                    [(ngModel)]="draft.studentSecondLastName"
+                    maxlength="100"
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                /></label>
+                <label class="text-sm font-medium"
+                  >Fecha de nacimiento<input
+                    name="studentBirthDate"
+                    type="date"
+                    [(ngModel)]="draft.studentBirthDate"
+                    required
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                /></label>
+                <label class="text-sm font-medium"
+                  >Sexo<select
+                    name="studentGender"
+                    [(ngModel)]="draft.studentGender"
+                    required
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                  >
+                    <option value="NOT_SPECIFIED">Sin especificar</option>
+                    <option value="FEMALE">Femenino</option>
+                    <option value="MALE">Masculino</option>
+                    <option value="OTHER">Otro</option>
+                  </select></label
+                >
+              </div>
+            </div>
+            @if (inquiry) {
+              <p class="text-xs text-slate-500">
+                Revisa los nombres y apellidos recuperados del contacto antes de guardar la
+                solicitud.
+              </p>
+            }
+          }
+          @if (wizardStepSignal() === 2) {
+            <div>
+              <h3 class="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">
+                Datos del apoderado principal
+              </h3>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <label class="text-sm font-medium"
+                  >Tipo de documento<select
+                    name="guardianDocumentType"
+                    [(ngModel)]="draft.guardianDocumentType"
+                    required
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                  >
+                    <option>DNI</option>
+                    <option>CE</option>
+                    <option>PASSPORT</option>
+                    <option>OTHER</option>
+                  </select></label
+                >
+                <label class="text-sm font-medium"
+                  >Número de documento<input
+                    name="guardianDocumentNumber"
+                    [(ngModel)]="draft.guardianDocumentNumber"
+                    required
+                    minlength="4"
+                    maxlength="20"
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                /></label>
+                <label class="text-sm font-medium"
+                  >Nombres<input
+                    name="guardianFirstName"
+                    [(ngModel)]="draft.guardianFirstName"
+                    required
+                    maxlength="100"
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                /></label>
+                <label class="text-sm font-medium"
+                  >Apellidos<input
+                    name="guardianLastName"
+                    [(ngModel)]="draft.guardianLastName"
+                    required
+                    maxlength="100"
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                /></label>
+                <label class="text-sm font-medium"
+                  >Correo del apoderado (opcional)<input
+                    name="guardianEmail"
+                    type="email"
+                    [(ngModel)]="draft.guardianEmail"
+                    maxlength="254"
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                /></label>
+                <label class="text-sm font-medium"
+                  >Teléfono<input
+                    name="guardianPhone"
+                    type="tel"
+                    [(ngModel)]="draft.guardianPhone"
+                    required
+                    maxlength="32"
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                /></label>
+                <label class="text-sm font-medium"
+                  >Parentesco<select
+                    name="guardianRelationship"
+                    [(ngModel)]="draft.guardianRelationship"
+                    required
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                  >
+                    <option value="MOTHER">Madre</option>
+                    <option value="FATHER">Padre</option>
+                    <option value="GRANDPARENT">Abuelo/a</option>
+                    <option value="GUARDIAN">Apoderado/a</option>
+                    <option value="OTHER">Otro</option>
+                  </select></label
+                >
+                <label class="text-sm font-medium"
+                  >Origen de la solicitud<select
+                    name="source"
+                    [(ngModel)]="draft.source"
+                    class="mt-1 w-full rounded-xl border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+                  >
+                    <option value="WEBSITE">Formulario público</option>
+                    <option value="IN_PERSON">Presencial</option>
+                    <option value="REFERRAL">Recomendación</option>
+                    <option value="OTHER">Otro</option>
+                  </select></label
+                >
+              </div>
+            </div>
+          }
+          @if (wizardStepSignal() === 3) {
+            @if (editingSignal()) {
+              <label class="block text-sm font-medium"
+                >Motivo de la corrección<textarea
+                  name="correctionReason"
+                  [(ngModel)]="correctionReason"
+                  required
+                  maxlength="500"
+                  rows="2"
+                  class="mt-1 w-full rounded-xl border p-2 dark:bg-slate-950"
+                ></textarea>
+              </label>
+            }
+            <section class="space-y-3 rounded-xl bg-slate-50 p-4 text-sm dark:bg-slate-950">
+              <h3 class="font-semibold">
+                {{
+                  editingSignal() ? 'Revisa la corrección' : 'Revisa antes de crear la solicitud'
+                }}
+              </h3>
+              <p>
+                <strong>Destino:</strong> {{ selectedYearName() }} ·
+                {{ gradeLabel(draftGradeUuid, '') }}
+              </p>
+              <p>
+                <strong>Estudiante:</strong> {{ draft.studentFirstName }}
+                {{ draft.studentLastName }} {{ draft.studentSecondLastName }}
+              </p>
+              <p>
+                {{ draft.studentDocumentType }} {{ draft.studentDocumentNumber }} ·
+                {{ draft.studentBirthDate }}
+              </p>
+              <p>
+                <strong>Apoderado:</strong> {{ draft.guardianFirstName }}
+                {{ draft.guardianLastName }}
+              </p>
+              <p>
+                {{ draft.guardianDocumentType }} {{ draft.guardianDocumentNumber }} ·
+                {{ draft.guardianPhone }}
+              </p>
+              <p>{{ draft.guardianEmail || 'Sin correo (opcional)' }}</p>
+              <p class="text-xs text-slate-500">
+                Crear la solicitud no reserva una vacante. La reserva se realiza al admitir.
+              </p>
+            </section>
+          }
+          <div
+            class="flex flex-col-reverse justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800 sm:flex-row"
+          >
+            <button
+              type="button"
+              (click)="closeConvert()"
+              class="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              Cancelar</button
+            ><button
+              type="button"
+              [disabled]="saving() || wizardStepSignal() === 0"
+              (click)="wizardStepSignal.update(previousStep)"
+              class="rounded-xl border px-4 py-2 text-sm disabled:opacity-50"
+            >
+              Anterior</button
+            ><button
+              type="submit"
+              [disabled]="saving()"
+              class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {{
+                saving()
+                  ? 'Guardando…'
+                  : wizardStepSignal() === 3
+                    ? editingSignal()
+                      ? 'Guardar corrección'
+                      : 'Crear solicitud de admisión'
+                    : 'Continuar'
+              }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+
+  @if (noteInquiry(); as inquiry) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+      <section
+        role="dialog"
+        aria-modal="true"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+        aria-labelledby="attention-title"
+        class="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-2xl bg-white p-5 dark:bg-slate-900"
+      >
+        @if (error()) {
+          <p
+            role="alert"
+            class="rounded-xl bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950 dark:text-rose-200"
+          >
+            {{ error() }}
+          </p>
+        }
+        <h2 id="attention-title" class="text-lg font-bold">
+          Registrar atención: {{ inquiry.contactName }}
+        </h2>
+        <label class="block text-sm"
+          >Medio de atención<select
+            [(ngModel)]="attentionChannel"
+            class="mt-1 w-full rounded-xl border p-2 dark:bg-slate-950"
+          >
+            <option>Presencial</option>
+            <option>Llamada</option>
+            <option>WhatsApp</option>
+            <option>Otro</option>
+            @if (noteStatus === 'CLOSED') {
+              <option>Cierre</option>
+            }
+          </select></label
+        >
+        <label class="block text-sm"
+          >Responsable del seguimiento<input
+            [(ngModel)]="responsibleName"
+            maxlength="100"
+            placeholder="Nombre del responsable"
+            class="mt-1 w-full rounded-xl border p-2 dark:bg-slate-950"
+        /></label>
+        <label class="block text-sm"
+          >Próxima atención<input
+            type="date"
+            [(ngModel)]="nextAttentionDate"
+            class="mt-1 w-full rounded-xl border p-2 dark:bg-slate-950"
+        /></label>
+        <label class="block text-sm"
+          >Próxima acción<input
+            [(ngModel)]="nextAction"
+            maxlength="300"
+            placeholder="Ejemplo: confirmar visita"
+            class="mt-1 w-full rounded-xl border p-2 dark:bg-slate-950"
+        /></label>
+        <label class="block text-sm"
+          >Observaciones<textarea
+            [(ngModel)]="attentionNote"
+            rows="3"
+            maxlength="1900"
+            class="mt-1 w-full rounded-xl border p-2 dark:bg-slate-950"
+          ></textarea>
+        </label>
+        <div class="flex justify-end gap-2">
+          <button (click)="noteInquiry.set(null)" class="rounded-xl px-4 py-2">Cancelar</button
+          ><button
+            (click)="saveNote()"
+            [disabled]="saving() || !attentionNote.trim()"
+            class="rounded-xl bg-indigo-600 px-4 py-2 text-white disabled:opacity-50"
+          >
+            Guardar atención
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+  @if (historyInquiry(); as inquiry) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
+      role="presentation"
+      (click)="historyInquiry.set(null)"
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+        aria-labelledby="inquiry-history-title"
+        class="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="inquiry-history-title" class="text-lg font-bold text-slate-900 dark:text-white">
+              Historial de consulta
+            </h2>
+            <p class="text-sm text-slate-500">
+              {{ inquiry.contactName }} · {{ inquiry.gradeName }}
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="historyInquiry.set(null)"
+            aria-label="Cerrar historial"
+            class="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            ✕
+          </button>
+        </div>
+        @if (historyLoadingSignal()) {
+          <p role="status" class="mt-4 text-sm">Cargando historial…</p>
+        } @else if (historyErrorSignal()) {
+          <p role="alert" class="mt-4 text-sm">
+            {{ historyErrorSignal() }}
+            <button type="button" (click)="showHistory(inquiry)" class="underline">
+              Reintentar
+            </button>
+          </p>
+        } @else {
+          <ol class="mt-4 max-h-80 space-y-4 overflow-y-auto">
+            @for (event of historyEvents(); track $index) {
+              <li class="relative border-l-2 border-indigo-200 pl-4 dark:border-indigo-900">
+                <span class="absolute -left-[5px] top-1 h-2 w-2 rounded-full bg-indigo-500"></span>
+                <p class="font-semibold text-slate-800 dark:text-slate-100">
+                  {{ statusLabel(event.toStatus) }}
+                </p>
+                <time class="text-xs text-slate-400"
+                  >{{ event.createdAt | date: 'dd/MM/yyyy HH:mm' }} ·
+                  {{ event.actorType === 'SYSTEM' ? 'Sistema' : 'Personal de Admisiones' }}</time
+                >
+                @if (event.note) {
+                  <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                    {{ event.note }}
+                  </p>
+                }
+              </li>
+            } @empty {
+              <li class="text-sm text-slate-500">Todavía no hay eventos registrados.</li>
+            }
+          </ol>
+        }
+      </section>
+    </div>
+  }
+</main>

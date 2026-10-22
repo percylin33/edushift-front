@@ -70,6 +70,7 @@ import { TokenRefreshService } from '@features/auth/services/token-refresh.servi
  */
 export const tokenRefreshInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith(environment.apiUrl)) return next(req);
+  if (req.headers.has('X-Admin-Impersonation')) return next(req);
   if (isAuthFlowEndpoint(req.url)) return next(req);
 
   const refresher = inject(TokenRefreshService);
@@ -96,7 +97,6 @@ export const tokenRefreshInterceptor: HttpInterceptorFn = (req, next) => {
           });
           return next(retryReqWithFlag);
         }),
-        catchError(() => throwError(() => error)),
       );
     }),
   );
@@ -107,7 +107,8 @@ export const tokenRefreshInterceptor: HttpInterceptorFn = (req, next) => {
  * how to surface bad credentials, expired refresh, etc.
  */
 function isAuthFlowEndpoint(url: string): boolean {
-  return url === API.AUTH.LOGIN || url === API.AUTH.REFRESH || url === API.AUTH.LOGOUT;
+  return url === API.AUTH.LOGIN || url === API.AUTH.REFRESH || url === API.AUTH.LOGOUT ||
+    url.includes('/admin/login') || url.includes('/admin/mfa/') || url.includes('/admin/dev/');
 }
 
 /**

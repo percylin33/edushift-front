@@ -349,7 +349,7 @@ export class StudentQrPageComponent implements OnInit, OnDestroy {
       const status = (err as { status?: number }).status;
       this.loadError.set(
         status === 404
-          ? 'No encontramos al alumno en este tenant.'
+          ? 'No encontramos al alumno en esta institución.'
           : 'Ocurrió un error al cargar los datos del alumno.',
       );
       console.error('[student-qr] load failed', err);

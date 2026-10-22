@@ -1,3 +1,4 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 
 /**
@@ -8,18 +9,21 @@ import { Routes } from '@angular/router';
 export const ONBOARDING_ROUTES: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'welcome' },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'welcome',
     data: { title: 'Bienvenido', breadcrumb: 'Bienvenida' },
     loadComponent: () =>
       import('./pages/welcome/welcome.component').then((m) => m.OnboardingWelcomeComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'school',
     data: { title: 'Institución', breadcrumb: 'Institución' },
     loadComponent: () =>
       import('./pages/school/school.component').then((m) => m.OnboardingSchoolComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'complete',
     data: { title: '¡Listo!', breadcrumb: 'Listo' },
     loadComponent: () =>

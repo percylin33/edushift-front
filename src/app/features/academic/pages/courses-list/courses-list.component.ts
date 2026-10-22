@@ -60,8 +60,7 @@ import { courseChipForeground, resolveCourseVisual } from '../../utils/course-vi
       <div class="min-w-0">
         <h2 class="text-lg font-semibold text-content">Cursos</h2>
         <p class="text-sm text-content-muted">
-          Catálogo del workspace. Cada curso aplica a uno o más niveles y se asigna a docentes en
-          BE-4.7.
+          Catálogo de cursos de la institución. Cada curso puede corresponder a uno o más niveles.
         </p>
       </div>
       <button

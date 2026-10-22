@@ -32,7 +32,7 @@ import {
  * <ul>
  *   <li>Carga el árbol de competencias y capacidades en un solo flujo
  *       al recibir {@link #courseUuid}.</li>
- *   <li>Botón "Seed MINEDU" que invoca el endpoint de seed. Si ya
+ *   <li>Botón "Base CNEB (parcial)" que carga la referencia curricular. Si ya
  *       está sembrado, muestra un toast/banner informativo.</li>
  *   <li>Accordion jerárquico: cada competencia expandible muestra sus
  *       capacidades. Botones CRUD por nivel.</li>
@@ -65,10 +65,10 @@ import {
           class="btn btn-outline btn-sm"
           [disabled]="saving() || !courseUuid()"
           (click)="onSeed()"
-          aria-label="Seed MINEDU"
+          aria-label="Cargar referencia CNEB parcial"
         >
           <app-icon name="sparkles" [size]="14" />
-          <span class="hidden sm:inline" aria-hidden="true">Seed MINEDU</span>
+          <span class="hidden sm:inline" aria-hidden="true">Base CNEB (parcial)</span>
         </button>
         <button
           type="button"
@@ -101,11 +101,11 @@ import {
         <app-empty-state
           icon="target"
           title="Aún no hay competencias en este curso"
-          description="Crea la primera o usa el Seed MINEDU para cargar el catálogo predeterminado."
+          description="Crea la primera o carga la referencia parcial del CNEB para Primaria. El colegio puede adaptarla."
         >
           <div class="flex gap-2">
             <button type="button" class="btn btn-outline btn-sm" (click)="onSeed()">
-              Seed MINEDU
+              Base CNEB (parcial)
             </button>
             <button type="button" class="btn btn-primary btn-sm" (click)="openCompetencyCreate()">
               Nueva Competencia
@@ -132,6 +132,14 @@ import {
                     <span class="badge badge-neutral ml-2 text-[10px]">
                       {{ originLabel(comp.origin) }}
                     </span>
+                    @if (comp.sourceContentStatus) {
+                      <span
+                        class="badge badge-info ml-2 text-[10px]"
+                        [title]="sourceHint(comp.sourceCatalogVersion, comp.sourceLevelCode, comp.sourceCycleCodes)"
+                      >
+                        {{ sourceStatusLabel(comp.sourceContentStatus) }}
+                      </span>
+                    }
                     @if (!comp.isActive) {
                       <span class="badge badge-neutral ml-2 text-[10px]"> Inactiva </span>
                     }
@@ -189,6 +197,11 @@ import {
                               {{ cap.displayOrder }}.
                             </span>
                             {{ cap.name }}
+                            @if (cap.sourceContentStatus) {
+                              <span class="badge badge-neutral ml-2 text-[10px]">
+                                {{ sourceStatusLabel(cap.sourceContentStatus) }}
+                              </span>
+                            }
                             @if (!cap.isActive) {
                               <span class="badge badge-neutral ml-2 text-[10px]"> Inactiva </span>
                             }
@@ -345,10 +358,23 @@ export class CourseCompetenciesTabComponent implements OnChanges {
   }
 
   protected originLabel(origin: string | undefined): string {
-    if (origin === 'MINEDU') return 'MINEDU';
+    if (origin === 'MINEDU') return 'Base nacional';
     if (origin === 'TEACHER') return 'Docente';
     return 'Colegio';
   }
+
+  protected sourceStatusLabel(status: string): string {
+    if (status === 'MINEDU_SUMMARY') return 'CNEB · resumen parcial';
+    if (status === 'MINEDU_TRANSCRIPTION') return 'CNEB · transcripción';
+    if (status === 'INSTITUTIONAL_ADAPTATION') return 'Adaptación del colegio';
+    return 'Origen por verificar';
+  }
+
+  protected sourceHint(version: string | null | undefined,
+			level: string | null | undefined, cycles: string | null | undefined): string {
+		const parts = [version, level, cycles ? `Ciclos ${cycles}` : null].filter(Boolean);
+		return parts.join(' · ');
+	}
 
   protected async confirmPromote(comp: CompetencyRow): Promise<void> {
     const ok = await this.confirmDialog.open({

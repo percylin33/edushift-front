@@ -37,6 +37,7 @@ export type EmailSource = 'REAL' | 'SYNTHETIC';
 export interface User extends UserSummary {
   firstName?: string;
   lastName?: string;
+  secondLastName?: string;
   phone?: string;
   emailVerified?: boolean;
   /** CRED-7 — synthetic mailboxes must not receive mail until replaced. */

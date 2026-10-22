@@ -10,7 +10,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
-import { EnrollmentStatus } from '@core/enums';
+import { EnrollmentStatus, Permission, UserRole } from '@core/enums';
+import { AuthService } from '@core/services';
 import {
   EmptyStateComponent,
   IconComponent,
@@ -66,16 +67,20 @@ import { StudentListFilters } from '../../models';
     <app-page-container size="wide">
       <app-page-header
         title="Estudiantes"
-        subtitle="Listado activo del workspace, con filtros y carga masiva."
+        subtitle="Listado activo de la institución, con filtros y carga masiva."
       >
-        <button type="button" class="btn btn-outline btn-sm" (click)="openBulkModal()">
-          <app-icon name="upload" [size]="16" />
-          <span class="hidden sm:inline">Importar</span>
-        </button>
-        <a [routerLink]="newRoute" class="btn btn-primary btn-sm">
-          <app-icon name="plus" [size]="16" />
-          <span class="hidden sm:inline">Nuevo estudiante</span>
-        </a>
+        @if (canBulkImport()) {
+          <button type="button" class="btn btn-outline btn-sm" (click)="openBulkModal()">
+            <app-icon name="upload" [size]="16" />
+            <span class="hidden sm:inline">Importar</span>
+          </button>
+        }
+        @if (canCreate()) {
+          <a [routerLink]="newRoute" class="btn btn-primary btn-sm">
+            <app-icon name="plus" [size]="16" />
+            <span class="hidden sm:inline">Nuevo estudiante</span>
+          </a>
+        }
       </app-page-header>
 
       <!-- Filtros -->
@@ -157,10 +162,14 @@ import { StudentListFilters } from '../../models';
             title="Aún no hay estudiantes"
             description="Crea el primero o cárgalos en lote desde un .xlsx."
           >
-            <a [routerLink]="newRoute" class="btn btn-primary btn-sm">Nuevo estudiante</a>
-            <button type="button" class="btn btn-ghost btn-sm" (click)="openBulkModal()">
-              Importar .xlsx
-            </button>
+            @if (canCreate()) {
+              <a [routerLink]="newRoute" class="btn btn-primary btn-sm">Nuevo estudiante</a>
+            }
+            @if (canBulkImport()) {
+              <button type="button" class="btn btn-ghost btn-sm" (click)="openBulkModal()">
+                Importar .xlsx
+              </button>
+            }
           </app-empty-state>
         } @else {
           <div class="overflow-x-auto">
@@ -204,15 +213,17 @@ import { StudentListFilters } from '../../models';
                     </td>
                     <td class="text-right">
                       <div class="flex items-center justify-end gap-1">
-                        <a
-                          [routerLink]="qrLink(student.publicUuid)"
-                          class="btn btn-ghost btn-sm"
-                          [attr.aria-label]="'Generar credencial QR de ' + student.fullName"
-                          title="Credencial QR"
-                          data-testid="student-qr-link"
-                        >
-                          <app-icon name="qr-code" [size]="16" />
-                        </a>
+                        @if (canOpenQr()) {
+                          <a
+                            [routerLink]="qrLink(student.publicUuid)"
+                            class="btn btn-ghost btn-sm"
+                            [attr.aria-label]="'Generar credencial QR de ' + student.fullName"
+                            title="Credencial QR"
+                            data-testid="student-qr-link"
+                          >
+                            <app-icon name="qr-code" [size]="16" />
+                          </a>
+                        }
                         <a
                           [routerLink]="detailLink(student.publicUuid)"
                           class="btn btn-ghost btn-sm"
@@ -276,12 +287,25 @@ import { StudentListFilters } from '../../models';
 })
 export class StudentsListComponent implements OnInit {
   private readonly store = inject(StudentsStore);
+  private readonly auth = inject(AuthService);
   private readonly academicApi = inject(AcademicApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
   protected readonly Math = Math;
   protected readonly newRoute = ROUTES.STUDENTS.NEW;
+
+  protected canCreate(): boolean {
+    return this.auth.hasPermission(Permission.StudentsCreateGranular);
+  }
+
+  protected canBulkImport(): boolean {
+    return this.auth.hasRole(UserRole.TenantAdmin);
+  }
+
+  protected canOpenQr(): boolean {
+    return this.auth.hasRole(UserRole.TenantAdmin, UserRole.Teacher);
+  }
 
   protected readonly search = signal<string>('');
   protected readonly enrollmentStatus = signal<EnrollmentStatus | null>(null);

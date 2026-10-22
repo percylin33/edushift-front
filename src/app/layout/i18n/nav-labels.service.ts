@@ -32,11 +32,11 @@ export class NavLabels {
 		// item `id`s). Legacy aliases kept so older keys still resolve.
 		switch (id) {
 			case 'workspace':
-				return $localize`:@@nav.group.workspace:Espacio de trabajo`;
+				return $localize`:@@nav.group.workspace:Institución`;
 			case 'academic':
 				return $localize`:@@nav.group.academic:Acad\u00e9mico`;
 			case 'lms':
-				return $localize`:@@nav.group.lms:Mis cursos`;
+				return $localize`:@@nav.group.lms:Aula virtual`;
 			case 'attendance':
 				return $localize`:@@nav.group.attendance:Asistencia`;
 			case 'payments':
@@ -113,6 +113,8 @@ export class NavLabels {
 			case 'payments-admin':
 			case 'reconciliation':
 				return $localize`:@@nav.item.reconciliation:Conciliaci\u00f3n`;
+			case 'payments-collections':
+				return $localize`:@@nav.item.payments-collections:Cobros`;
 			case 'payments-emit':
 				return $localize`:@@nav.item.payments-emit:Emitir cuotas`;
 			case 'payments-concepts':
@@ -121,6 +123,8 @@ export class NavLabels {
 				return $localize`:@@nav.item.payments-plans:Planes autom\u00e1ticos`;
 			case 'payments-policy':
 				return $localize`:@@nav.item.payments-policy:Pol\u00edtica de cobro`;
+			case 'payments-methods':
+				return $localize`:@@nav.item.payments-methods:M\u00e9todos de pago`;
 			case 'ai':
 				return $localize`:@@nav.item.ai:Asistente IA`;
 			case 'reports':

@@ -53,6 +53,11 @@
           },
           "configurations": {
             "production": {
+              "optimization": {
+                "styles": {
+                  "inlineCritical": false
+                }
+              },
               "serviceWorker": "ngsw-config.json",
               "budgets": [
                 {
@@ -84,6 +89,20 @@
                   "with": "src/environments/environment.development.ts"
                 }
               ]
+            },
+            "pwaTunnel": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "3mb",
+                  "maximumError": "4mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "4kB",
+                  "maximumError": "8kB"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -94,15 +113,29 @@
             "production": {
               "buildTarget": "edushift-front:build:production"
             },
+            "pwaTunnel": {
+              "buildTarget": "edushift-front:build:production,pwaTunnel",
+              "port": 4201,
+              "host": "0.0.0.0",
+              "proxyConfig": "proxy.conf.mjs",
+              "allowedHosts": [".trycloudflare.com"]
+            },
             "development": {
               "buildTarget": "edushift-front:build:development",
               "port": 4201,
               "host": "0.0.0.0",
+              "proxyConfig": "proxy.conf.mjs",
               "allowedHosts": [
+                ".localhost",
                 ".loca.lt",
                 ".trycloudflare.com",
                 ".brs.devtunnels.ms",
-                ".devtunnels.ms"
+                ".devtunnels.ms",
+                ".ngrok.io",
+                ".ngrok-free.app",
+                ".ngrok.app",
+                ".ngrok.dev",
+                ".lhr.life"
               ]
             }
           },

@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { FileUploadService } from '@core/services/file-upload.service';
-import { IconComponent, IconName } from '@shared/components';
+import { FilePreviewDialogComponent, IconComponent, IconName } from '@shared/components';
 import { HasPermissionDirective } from '@shared/directives';
 import { Permission } from '@core/enums';
 import {
@@ -23,7 +23,7 @@ import {
 @Component({
   selector: 'app-material-card',
   standalone: true,
-  imports: [CommonModule, IconComponent, HasPermissionDirective],
+  imports: [CommonModule, IconComponent, HasPermissionDirective, FilePreviewDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <article class="card transition-shadow hover:shadow-md">
@@ -71,6 +71,14 @@ import {
         } @else {
           <button
             type="button"
+            class="btn btn-secondary btn-sm"
+            (click)="onPreview()"
+          >
+            <app-icon name="eye" [size]="14" />
+            Ver documento
+          </button>
+          <button
+            type="button"
             class="btn btn-ghost btn-sm"
             [disabled]="downloading()"
             (click)="onDownload()"
@@ -89,6 +97,12 @@ import {
           Eliminar
         </button>
       </footer>
+      <app-file-preview-dialog
+        [open]="previewOpen()"
+        [filePublicUuid]="material.filePublicUuid"
+        [filename]="material.filename || material.title || 'material'"
+        (closed)="previewOpen.set(false)"
+      />
     </article>
   `,
 })
@@ -100,6 +114,11 @@ export class MaterialCardComponent {
 
   protected readonly permission = Permission;
   protected readonly downloading = signal(false);
+  protected readonly previewOpen = signal(false);
+
+  protected onPreview(): void {
+    if (this.material.filePublicUuid) this.previewOpen.set(true);
+  }
 
   iconName(): IconName {
     return materialTypeIcon(this.material.type) as IconName;

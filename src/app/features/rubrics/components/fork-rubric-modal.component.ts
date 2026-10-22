@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -26,14 +28,14 @@ import { RUBRIC_NAME_MAX_LENGTH, RubricRow } from '../models';
   selector: 'app-fork-rubric-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="fork-rubric-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div class="card w-full max-w-md shadow-xl" (click)="$event.stopPropagation()">
         <header class="card-header flex items-start justify-between gap-3">
@@ -73,7 +75,7 @@ import { RUBRIC_NAME_MAX_LENGTH, RubricRow } from '../models';
             @if (showError('name'); as msg) {
               <p class="field-error">{{ msg }}</p>
             } @else {
-              <p class="field-hint">Único dentro del tenant (case-insensitive).</p>
+              <p class="field-hint">Único en la institución. No distingue mayúsculas y minúsculas.</p>
             }
           </div>
 
@@ -99,6 +101,12 @@ import { RUBRIC_NAME_MAX_LENGTH, RubricRow } from '../models';
   `,
 })
 export class ForkRubricModalComponent {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(RubricsStore);
 
@@ -140,8 +148,10 @@ export class ForkRubricModalComponent {
   }
 
   protected cancel(): void {
-    this.store.clearError();
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.store.clearError();
+      this.closed.emit();
+    });
   }
 
   protected showError(controlName: string): string | null {

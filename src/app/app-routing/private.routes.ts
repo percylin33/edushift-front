@@ -1,3 +1,4 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { MainLayoutComponent } from '@layout/index';
 import { authChildGuard, featureFlagGuard, tenantGuard } from '@core/guards';
@@ -15,6 +16,7 @@ import { FeatureKey } from '@core/enums';
  */
 export const PRIVATE_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     component: MainLayoutComponent,
     canActivate: [tenantGuard],
@@ -150,7 +152,7 @@ export const PRIVATE_ROUTES: Routes = [
       {
         path: 'lms',
         canActivate: [featureFlagGuard],
-        data: { feature: FeatureKey.Lms, breadcrumb: 'Mis cursos', title: 'Mis cursos' },
+        data: { feature: FeatureKey.Lms, breadcrumb: 'Aula virtual', title: 'Aula virtual' },
         loadChildren: () => import('@features/lms/lms.routes').then((m) => m.LMS_ROUTES),
       },
       /*
@@ -184,6 +186,20 @@ export const PRIVATE_ROUTES: Routes = [
         data: { feature: FeatureKey.Family, breadcrumb: 'Familia', title: 'Familia' },
         loadChildren: () =>
           import('@features/family/family.routes').then((m) => m.FAMILY_ROUTES),
+      },
+      {
+        path: 'disclosures',
+        canActivate: [featureFlagGuard],
+        data: { feature: FeatureKey.Disclosures, breadcrumb: 'Información anual', title: 'Información anual' },
+        loadChildren: () =>
+          import('@features/disclosures/disclosures.routes').then((m) => m.DISCLOSURES_ROUTES),
+      },
+      {
+        path: 'admissions',
+        canActivate: [featureFlagGuard],
+        data: { feature: FeatureKey.Admissions, breadcrumb: 'Admisiones', title: 'Admisiones' },
+        loadChildren: () =>
+          import('@features/admissions/admissions.routes').then((m) => m.ADMISSIONS_ROUTES),
       },
       {
         path: 'me',

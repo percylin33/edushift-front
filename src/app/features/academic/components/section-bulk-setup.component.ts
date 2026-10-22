@@ -94,7 +94,24 @@ function cellKey(gradeUuid: string, letter: SectionLetter): string {
                 }
               </select>
             </div>
-            <div class="flex flex-wrap gap-2 sm:col-span-8 sm:justify-end">
+            <div class="sm:col-span-4">
+              <label class="label" for="bulk-section-capacity">Capacidad por sección</label>
+              <input
+                id="bulk-section-capacity"
+                type="number"
+                class="input"
+                [ngModel]="capacityPerSection()"
+                (ngModelChange)="onCapacityChange($event)"
+                min="1"
+                step="1"
+                required
+                aria-describedby="bulk-section-capacity-hint"
+              />
+              <p id="bulk-section-capacity-hint" class="field-hint">
+                Se aplicará a todas las secciones que crees en este lote.
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-2 sm:col-span-4 sm:justify-end">
               <button
                 type="button"
                 class="btn btn-primary btn-sm"
@@ -250,6 +267,7 @@ export class SectionBulkSetupComponent {
 
   protected readonly expanded = signal(false);
   protected readonly yearUuid = signal<string | null>(null);
+  protected readonly capacityPerSection = signal<number | null>(30);
   /** Selección pendiente: keys {@code gradeUuid:letter}. */
   protected readonly selected = signal<Set<string>>(new Set());
   protected readonly busy = signal(false);
@@ -296,7 +314,12 @@ export class SectionBulkSetupComponent {
   });
 
   protected readonly canSubmit = computed(
-    () => !!this.yearUuid() && this.pendingCount() > 0 && !this.busy() && !this.bulkProgress(),
+    () =>
+      !!this.yearUuid() &&
+      this.isValidCapacity(this.capacityPerSection()) &&
+      this.pendingCount() > 0 &&
+      !this.busy() &&
+      !this.bulkProgress(),
   );
 
   constructor() {
@@ -414,9 +437,14 @@ export class SectionBulkSetupComponent {
     }
   }
 
+  protected onCapacityChange(value: number | null): void {
+    this.capacityPerSection.set(value);
+  }
+
   protected async submit(): Promise<void> {
     const yearId = this.yearUuid();
-    if (!yearId || this.pendingCount() === 0) return;
+    const capacity = this.capacityPerSection();
+    if (!yearId || !this.isValidCapacity(capacity) || this.pendingCount() === 0) return;
 
     const existing = this.existingKeys();
     const items: CreateSectionRequest[] = [];
@@ -424,7 +452,7 @@ export class SectionBulkSetupComponent {
       if (existing.has(key)) continue;
       const [gradePublicUuid, name] = key.split(':');
       if (!gradePublicUuid || !name) continue;
-      items.push({ academicYearPublicUuid: yearId, gradePublicUuid, name });
+      items.push({ academicYearPublicUuid: yearId, gradePublicUuid, name, capacity });
     }
     if (items.length === 0) return;
 
@@ -458,6 +486,10 @@ export class SectionBulkSetupComponent {
   /** Siempre cerrado al montar / cambiar año / tras crear. */
   private syncExpandedForMode(): void {
     this.expanded.set(false);
+  }
+
+  private isValidCapacity(value: number | null): value is number {
+    return value !== null && Number.isInteger(value) && value >= 1;
   }
 
   /** Pre-marca A en grados sin ninguna sección del año (arranque típico). */

@@ -19,6 +19,11 @@ export interface NavigationItem {
   feature?: FeatureKey;
   roles?: UserRole[];
   permissions?: Permission[];
+  /** Show the item when the user has any listed role or permission. */
+  visibleIfAny?: {
+    roles?: UserRole[];
+    permissions?: Permission[];
+  };
 }
 
 /** Sidebar groups separate items with an optional section header. */

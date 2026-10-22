@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -40,14 +42,14 @@ import { AttendanceRecord, AttendanceRecordStatus, UpdateRecordRequest } from '.
   selector: 'app-edit-record-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [SafeBackdropDirective, CommonModule, FormsModule, IconComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-record-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card flex max-h-[90vh] w-full max-w-lg flex-col shadow-xl"
@@ -125,11 +127,18 @@ import { AttendanceRecord, AttendanceRecordStatus, UpdateRecordRequest } from '.
   `,
 })
 export class EditRecordModalComponent {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => [this.status, this.notes],
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   readonly record = input.required<AttendanceRecord>();
   /** Fires with the validated request on submit. */
   readonly save = output<UpdateRecordRequest>();
   /** Fires when the docente dismisses the dialog without submitting. */
   readonly cancelled = output<void>();
+  readonly saving = input(false);
 
   private readonly auth = inject(AuthService);
 
@@ -158,7 +167,9 @@ export class EditRecordModalComponent {
   }
 
   protected close(): void {
-    this.cancelled.emit();
+    this.formProtection.requestClose(() => {
+      this.cancelled.emit();
+    });
   }
 
   protected submit(): void {

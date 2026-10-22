@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -45,21 +47,21 @@ import { AcademicLevel } from '../models';
   selector: 'app-level-form-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="level-form-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div class="card w-full max-w-lg shadow-xl" (click)="$event.stopPropagation()">
         <header class="card-header flex items-start justify-between gap-3">
           <div>
             <h2 id="level-form-title" class="card-title">{{ title() }}</h2>
             <p class="card-description">
-              Define un nivel educativo del workspace (ej. INICIAL, PRIMARIA, IGCSE).
+              Define un nivel educativo de la institución (ej. Inicial, Primaria o Secundaria).
             </p>
           </div>
           <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
@@ -152,6 +154,12 @@ import { AcademicLevel } from '../models';
   `,
 })
 export class LevelFormModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(AcademicStore);
 
@@ -242,8 +250,10 @@ export class LevelFormModalComponent implements OnInit {
   }
 
   protected cancel(): void {
-    this.store.clearError();
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.store.clearError();
+      this.closed.emit();
+    });
   }
 
   protected showError(controlName: string): string | null {
