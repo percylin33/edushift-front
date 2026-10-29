@@ -15,7 +15,7 @@ import {
   template: `
     <div class="min-h-screen bg-slate-950 text-slate-100 py-6 px-4 sm:px-6 lg:px-8">
       <div class="max-w-7xl mx-auto">
-        
+
         <!-- Header -->
         <div class="rounded-2xl bg-slate-900/80 border border-slate-700/50 p-6 sm:p-8 mb-8">
           <div class="flex items-center justify-between gap-4">
@@ -55,7 +55,7 @@ import {
             <caption class="text-sm text-slate-400 font-medium mb-4">
               Lista de Reclamos
             </caption>
-            
+
             <!-- Table Header -->
             <thead class="border-b border-slate-700/50 sticky top-0 bg-slate-950/80">
             <tr class="text-xs text-slate-400">
@@ -68,7 +68,7 @@ import {
               <th class="w-40 px-4 py-3 font-medium text-left text-right">Acciones</th>
             </tr>
             </thead>
-            
+
             <!-- Table Body -->
             <tbody>
             @if (state.claims().length === 0) {
@@ -127,7 +127,7 @@ import {
           <span class="text-sm text-slate-400">
             Mostrando {{ (state.currentPage() * state.pageSize()) + 1 }}-{{ Math.min(((state.currentPage() + 1) * state.pageSize()), state.totalElements() )}} de {{ state.totalElements() }} reclamos
           </span>
-          
+
           <div class="flex gap-2">
             <button
               (click)="changePage(state.currentPage() - 1)"
@@ -136,7 +136,7 @@ import {
             >
               Anterior
             </button>
-            
+
             <button
               (click)="changePage(state.currentPage() + 1)"
               [disabled]="state.currentPage() >= state.totalPages() - 1"
@@ -157,7 +157,7 @@ export class AdminClaimsComponent {
   readonly state = inject(ClaimsAdminState);
   readonly Math = Math;
   filterStatus: '' | 'PENDING' | 'IN_PROCESS' | 'ATTENDED' = '';
-  
+
   constructor() {
     // Cargar la primera página al inicializar
     this.loadClaims();

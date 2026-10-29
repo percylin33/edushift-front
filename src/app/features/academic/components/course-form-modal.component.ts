@@ -77,7 +77,7 @@ import {
   selector: 'app-course-form-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SafeBackdropDirective, 
+  imports: [SafeBackdropDirective,
     CommonModule,
     ReactiveFormsModule,
     ChipMultiSelectComponent,

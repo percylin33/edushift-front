@@ -388,7 +388,7 @@ type AssignMode = 'bulk' | 'single';
               </div>
             }
 
-            
+
 
             <!-- Shared billing fields -->
             <label class="block text-sm sm:col-span-2">
@@ -738,7 +738,7 @@ type AssignMode = 'bulk' | 'single';
         }
       </div>
 
-      
+
     </section>
   `,
 })

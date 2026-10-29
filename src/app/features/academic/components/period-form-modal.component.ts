@@ -62,7 +62,7 @@ import { PeriodTimelineComponent, TimelinePreviewItem } from './period-timeline.
   selector: 'app-period-form-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SafeBackdropDirective, 
+  imports: [SafeBackdropDirective,
     CommonModule,
     ReactiveFormsModule,
     IconComponent,

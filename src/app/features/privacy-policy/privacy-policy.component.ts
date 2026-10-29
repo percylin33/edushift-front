@@ -11,7 +11,7 @@ import { PublicContactEmailsService } from '@core/services/public-contact-emails
     <div class="min-h-screen bg-slate-900 text-slate-100 py-12 px-4 sm:px-6 lg:px-8">
       <!-- Container -->
       <div class="max-w-4xl mx-auto space-y-8">
-        
+
         <!-- Header -->
         <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-900/40 via-indigo-900/40 to-slate-800/60 p-8 border border-slate-700/60 shadow-2xl backdrop-blur-md">
           <div class="flex items-center justify-between gap-4 flex-wrap">
@@ -76,7 +76,7 @@ import { PublicContactEmailsService } from '@core/services/public-contact-emails
 
         <!-- Content Body -->
         <div class="bg-slate-800/40 rounded-2xl border border-slate-700/50 p-6 sm:p-10 space-y-8 text-slate-300 text-sm leading-relaxed">
-          
+
           <!-- Section 1 -->
           <section class="space-y-3">
             <h2 class="text-lg font-bold text-white flex items-center gap-2">

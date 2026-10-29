@@ -65,7 +65,7 @@ const GUARDIAN_OPTIONAL_KEYS = [
   selector: 'app-bulk-import-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SafeBackdropDirective, 
+  imports: [SafeBackdropDirective,
     CommonModule,
     FormsModule,
     IconComponent,

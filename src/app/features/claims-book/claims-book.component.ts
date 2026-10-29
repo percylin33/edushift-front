@@ -43,7 +43,7 @@ export interface ClaimIssuedResponse {
   template: `
     <div class="min-h-screen bg-slate-900 text-slate-100 py-12 px-4 sm:px-6 lg:px-8">
       <div class="max-w-3xl mx-auto space-y-8">
-        
+
         <!-- Header -->
         <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-950/40 via-slate-800 to-slate-900 p-6 sm:p-8 border border-slate-700/60 shadow-2xl backdrop-blur-md">
           <div class="flex items-center justify-between gap-4 flex-wrap">
@@ -144,7 +144,7 @@ export interface ClaimIssuedResponse {
         } @else {
           <!-- Formulario de Registro -->
           <form [formGroup]="form" (ngSubmit)="onSubmit()" class="bg-slate-800/40 rounded-2xl border border-slate-700/50 p-6 sm:p-8 space-y-6">
-            
+
             @if (errorMessage(); as msg) {
               <app-alert variant="error" [message]="msg" />
             }
