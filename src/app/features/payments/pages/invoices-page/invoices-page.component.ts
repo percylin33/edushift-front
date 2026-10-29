@@ -86,7 +86,9 @@ import { Invoice, STATUS_BADGE, STATUS_LABELS, formatMoney } from '../../models/
                     <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
                       <td class="px-5 py-4"><p class="font-semibold text-slate-900 dark:text-slate-100">{{ i.periodLabel }}</p><p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Emitida {{ i.issuedAt | date: 'dd MMM yyyy' }}</p></td>
                       <td class="px-5 py-4 text-slate-600 dark:text-slate-300">{{ i.dueAt | date: 'dd MMM yyyy' }}</td>
-                      <td class="px-5 py-4 font-semibold text-slate-900 dark:text-slate-100">{{ money(i.totalCents, i.currency) }}</td>
+                      <td class="px-5 py-4 font-semibold text-slate-900 dark:text-slate-100">{{ money(amountForDisplay(i), i.currency) }}
+                        @if ((i.advanceAppliedCents ?? 0) > 0 && i.status !== 'PAID') { <span class="mt-1 block text-xs font-normal text-slate-500">Saldo luego del anticipo</span> }
+                      </td>
                       <td class="px-5 py-4"><span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold {{ badgeClass(i.status) }}"><span class="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true"></span>{{ statusLabel(i.status) }}</span></td>
                       <td class="px-5 py-4 text-right"><a [routerLink]="['/payments/invoices', i.publicUuid]" class="inline-flex min-h-9 items-center rounded-lg bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-700 transition hover:bg-primary-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 dark:bg-primary-950/50 dark:text-primary-300 dark:hover:bg-primary-900/60">{{ actionLabel(i.status) }} <span class="ml-1" aria-hidden="true">→</span></a></td>
                     </tr>
@@ -96,7 +98,7 @@ import { Invoice, STATUS_BADGE, STATUS_LABELS, formatMoney } from '../../models/
             </div>
             <ul class="divide-y divide-slate-100 md:hidden dark:divide-slate-800">
               @for (i of visibleItems(); track i.publicUuid) {
-                <li class="p-4"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><h3 class="truncate font-semibold text-slate-900 dark:text-slate-100">{{ i.periodLabel }}</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Vence {{ i.dueAt | date: 'dd MMM yyyy' }}</p></div><p class="shrink-0 font-bold text-slate-900 dark:text-slate-100">{{ money(i.totalCents, i.currency) }}</p></div><div class="mt-3 flex items-center justify-between gap-3"><span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold {{ badgeClass(i.status) }}"><span class="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true"></span>{{ statusLabel(i.status) }}</span><a [routerLink]="['/payments/invoices', i.publicUuid]" class="text-sm font-semibold text-primary-700 dark:text-primary-300">{{ actionLabel(i.status) }} →</a></div></li>
+                <li class="p-4"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><h3 class="truncate font-semibold text-slate-900 dark:text-slate-100">{{ i.periodLabel }}</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Vence {{ i.dueAt | date: 'dd MMM yyyy' }}</p></div><p class="shrink-0 text-right font-bold text-slate-900 dark:text-slate-100">{{ money(amountForDisplay(i), i.currency) }}@if ((i.advanceAppliedCents ?? 0) > 0 && i.status !== 'PAID') {<span class="mt-1 block text-xs font-normal text-slate-500">Saldo</span>}</p></div><div class="mt-3 flex items-center justify-between gap-3"><span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold {{ badgeClass(i.status) }}"><span class="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true"></span>{{ statusLabel(i.status) }}</span><a [routerLink]="['/payments/invoices', i.publicUuid]" class="text-sm font-semibold text-primary-700 dark:text-primary-300">{{ actionLabel(i.status) }} →</a></div></li>
               }
             </ul>
           }
@@ -133,7 +135,7 @@ export class InvoicesPageComponent implements OnInit {
   readonly pendingCount = computed(() => this.pendingItems().length);
   readonly paidTotal = computed(() => this.paidItems().reduce((total, invoice) => total + invoice.totalCents, 0));
   readonly pendingTotal = computed(() =>
-    this.pendingItems().reduce((total, invoice) => total + invoice.totalCents, 0),
+    this.pendingItems().reduce((total, invoice) => total + (invoice.balanceCents ?? invoice.totalCents), 0),
   );
 
   ngOnInit(): void {
@@ -173,5 +175,10 @@ export class InvoicesPageComponent implements OnInit {
   }
   money(cents: number, c: string) {
     return formatMoney(cents, c);
+  }
+  amountForDisplay(invoice: Invoice): number {
+    return invoice.status === 'PAID'
+      ? invoice.totalCents
+      : (invoice.balanceCents ?? invoice.totalCents);
   }
 }

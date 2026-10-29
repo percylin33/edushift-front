@@ -10,9 +10,8 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DocumentType, InvitationStatus, UserRole } from '@core/enums';
+import { DocumentType, UserRole } from '@core/enums';
 import { IconComponent, SpinnerComponent } from '@shared/components';
-import { Invitation } from '../models';
 import { InvitationsStore } from '../store';
 import { UserRoleBadgeComponent } from './user-role-badge.component';
 import { TenantService } from '@core/services';
@@ -23,7 +22,7 @@ import { schoolInvitationAcceptUrl } from '@core/navigation/school-login.navigat
  *
  * <h3>Steps</h3>
  * <ol>
- *   <li><b>Form</b> — collect email, name and roles. Submits to
+ *   <li><b>Form</b> — collect email, name and general access roles. Submits to
  *       {@link InvitationsStore#create}.</li>
  *   <li><b>Success</b> — render the freshly minted invitation link
  *       and a "copy to clipboard" button. Sprint 9 will add automatic
@@ -251,7 +250,7 @@ import { schoolInvitationAcceptUrl } from '@core/navigation/school-login.navigat
             </div>
 
             <div class="field">
-              <span class="label">Roles</span>
+              <span class="label">Acceso general</span>
               <div class="grid gap-2 sm:grid-cols-2">
                 @for (option of roleOptions; track option.value) {
                   <label
@@ -271,8 +270,12 @@ import { schoolInvitationAcceptUrl } from '@core/navigation/school-login.navigat
                   </label>
                 }
               </div>
+              <p class="hint">
+                Para docentes, estudiantes y tutores, crea la ficha en su sección y envía la
+                invitación desde allí. Así la cuenta queda vinculada correctamente.
+              </p>
               @if (selectedRoles().length === 0) {
-                <p class="hint">Selecciona al menos un rol.</p>
+                <p class="hint">Selecciona Administrador o Staff.</p>
               }
             </div>
 
@@ -323,7 +326,7 @@ export class InviteUserModalComponent {
   protected readonly secondLastName = signal('');
   protected readonly documentType = signal<DocumentType>(DocumentType.Dni);
   protected readonly documentNumber = signal('');
-  protected readonly selectedRoles = signal<UserRole[]>([UserRole.Teacher]);
+  protected readonly selectedRoles = signal<UserRole[]>([UserRole.Staff]);
   protected readonly justCopied = signal(false);
 
   /** Exposed to the template for DNI-specific validation copy. */
@@ -336,9 +339,6 @@ export class InviteUserModalComponent {
   protected readonly roleOptions: ReadonlyArray<{ value: UserRole; label: string }> = [
     { value: UserRole.TenantAdmin, label: 'Administrador' },
     { value: UserRole.Staff, label: 'Staff' },
-    { value: UserRole.Teacher, label: 'Profesor' },
-    { value: UserRole.Student, label: 'Estudiante' },
-    { value: UserRole.Parent, label: 'Tutor' },
   ];
 
   protected readonly docTypeOptions: ReadonlyArray<{ value: DocumentType; label: string }> = [
@@ -404,6 +404,7 @@ export class InviteUserModalComponent {
   }
 
   protected toggleRole(role: UserRole, event: Event): void {
+    if (!this.roleOptions.some((option) => option.value === role)) return;
     const checked = (event.target as HTMLInputElement).checked;
     this.selectedRoles.update((roles) => {
       const without = roles.filter((r) => r !== role);
@@ -455,7 +456,7 @@ export class InviteUserModalComponent {
     this.secondLastName.set('');
     this.documentType.set(DocumentType.Dni);
     this.documentNumber.set('');
-    this.selectedRoles.set([UserRole.Teacher]);
+    this.selectedRoles.set([UserRole.Staff]);
   }
 
   private static isDocumentValid(type: DocumentType, raw: string): boolean {

@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { SessionsApiService } from './sessions-api.service';
 import { ApiService } from '@core/services';
+import { provideHttpClient } from '@angular/common/http';
 import { SessionStatus } from '../models';
 
 describe('SessionsApiService', () => {
@@ -60,7 +61,7 @@ describe('SessionsApiService', () => {
   beforeEach(() => {
     apiSpy = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'post', 'put', 'delete']);
     TestBed.configureTestingModule({
-      providers: [SessionsApiService, { provide: ApiService, useValue: apiSpy }],
+      providers: [provideHttpClient(), SessionsApiService, { provide: ApiService, useValue: apiSpy }],
     });
     service = TestBed.inject(SessionsApiService);
   });

@@ -14,7 +14,7 @@ import {
   StatCardComponent,
 } from '@shared/components';
 import { AttendanceRecentSession, AttendanceSessionSlot, AttendanceTopSection, TeacherDashboardSnapshot, TeacherMySession } from '../../models';
-import { AnalyticsApiService, AnalyticsChartPoint, AnalyticsChartSeries, AnalyticsKpiEntry } from '../../services/analytics-api.service';
+import { AnalyticsApiService, AnalyticsChartPoint, AnalyticsKpiEntry } from '../../services/analytics-api.service';
 import { DashboardApiService } from '../../services/dashboard-api.service';
 import { DashboardStore } from '../../store/dashboard.store';
 import { AnalyticsTrendChartComponent } from '../../components/analytics-trend-chart';
@@ -272,7 +272,8 @@ const SLOT_LABEL: Record<AttendanceSessionSlot, string> = {
                 }
               </p>
             </div>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
+              <a routerLink="/academic/years" class="btn btn-primary btn-sm">Configurar año escolar</a>
               <a routerLink="/disclosures" class="btn btn-outline btn-sm">Información anual</a>
               <a routerLink="/admissions" class="btn btn-outline btn-sm">Admisiones</a>
             </div>

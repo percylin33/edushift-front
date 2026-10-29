@@ -71,14 +71,10 @@ describe('MaterialApiService', () => {
       publicUuid: 'mat-1',
       sectionPublicUuid: 's-1',
       title: 'Doc',
-      type: MaterialType.Doc,
-      filename: 'doc.docx',
-      sizeBytes: 2048,
-      contentType: 'application/msword',
-      url: null,
-      uploadedByTeacherPublicUuid: 'tch-1',
-      uploadedByTeacherName: 'Prof.',
-      downloadUrl: null,
+      kind: 'FILE',
+      file: { publicUuid: 'file-1', originalName: 'doc.docx', sizeBytes: 2048, contentType: 'application/msword', url: null, createdAt: '2026-01-01T00:00:00.000Z' },
+      externalUrl: null,
+      ownerPublicUuid: 'tch-1',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: null,
     };
@@ -95,14 +91,10 @@ describe('MaterialApiService', () => {
       publicUuid: 'mat-new',
       sectionPublicUuid: 's-1',
       title: 'Nuevo',
-      type: MaterialType.Pdf,
-      filename: 'nuevo.pdf',
-      sizeBytes: 512,
-      contentType: 'application/pdf',
-      url: null,
-      uploadedByTeacherPublicUuid: 'tch-1',
-      uploadedByTeacherName: 'Prof.',
-      downloadUrl: null,
+      kind: 'FILE',
+      file: { publicUuid: 'file-2', originalName: 'nuevo.pdf', sizeBytes: 512, contentType: 'application/pdf', url: null, createdAt: '2026-01-01T00:00:00.000Z' },
+      externalUrl: null,
+      ownerPublicUuid: 'tch-1',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: null,
     };
@@ -114,6 +106,7 @@ describe('MaterialApiService', () => {
       type: MaterialType.Pdf,
       file: new File(['data'], 'nuevo.pdf', { type: 'application/pdf' }),
       url: null,
+      teacherAssignmentPublicUuid: 'assignment-1',
     };
 
     service.upload('s-1', req).subscribe((p) => {
@@ -129,14 +122,10 @@ describe('MaterialApiService', () => {
       publicUuid: 'mat-link',
       sectionPublicUuid: 's-1',
       title: 'Enlace',
-      type: MaterialType.Link,
-      filename: null,
-      sizeBytes: null,
-      contentType: null,
-      url: 'https://ejemplo.com',
-      uploadedByTeacherPublicUuid: 'tch-1',
-      uploadedByTeacherName: 'Prof.',
-      downloadUrl: null,
+      kind: 'VIDEO_LINK',
+      file: null,
+      externalUrl: 'https://ejemplo.com',
+      ownerPublicUuid: 'tch-1',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: null,
     };
@@ -148,6 +137,7 @@ describe('MaterialApiService', () => {
         title: 'Enlace',
         type: MaterialType.Link,
         url: 'https://ejemplo.com',
+        teacherAssignmentPublicUuid: 'assignment-1',
       })
       .subscribe((p) => {
         if (p.kind === 'Response') {

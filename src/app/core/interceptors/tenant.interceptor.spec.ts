@@ -49,10 +49,10 @@ describe('tenantInterceptor', () => {
     req.flush({});
   });
 
-  it('usa defaultTenant como slug en /auth/login si no hay slug', () => {
+  it('no inventa un tenant en /auth/login si no hay slug resuelto', () => {
     httpClient.post(API.AUTH.LOGIN, {}).subscribe();
     const req = httpMock.expectOne(API.AUTH.LOGIN);
-    expect(req.request.headers.get('X-Tenant-Slug')).toBe('demo');
+    expect(req.request.headers.has('X-Tenant-Slug')).toBeFalse();
     req.flush({});
   });
 });

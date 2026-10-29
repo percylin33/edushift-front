@@ -78,7 +78,7 @@ describe('TenantAssetsService', () => {
   it('toSameOriginAssetUrl reescribe URLs del API a path relativo', () => {
     expect(
       toSameOriginAssetUrl(
-        'http://localhost:8081/api/v1/files/public/0a8c3cb7-f02a-418c-8b14-0c99656d913f',
+        'http://localhost:8080/api/v1/files/public/0a8c3cb7-f02a-418c-8b14-0c99656d913f',
       ),
     ).toBe('/api/v1/files/public/0a8c3cb7-f02a-418c-8b14-0c99656d913f');
   });

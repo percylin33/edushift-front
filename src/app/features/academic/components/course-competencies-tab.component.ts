@@ -4,7 +4,6 @@ import {
   Component,
   OnChanges,
   SimpleChanges,
-  computed,
   effect,
   inject,
   input,
@@ -18,7 +17,7 @@ import {
   SpinnerComponent,
 } from '@shared/components';
 import { CompetenciesStore } from '../store';
-import { CapacityDetail, CompetencyDetail, CompetencyRow } from '../models';
+import {  CompetencyDetail, CompetencyRow } from '../models';
 import { AcademicApiService } from '../services';
 import {
   CompetencyCapacityFormModalComponent,

@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, inject, signal } from '@angular/core';
 import { IconComponent } from '@shared/components/icon';
 import { PwaInstallService } from '@core/services/pwa-install.service';
-import * as QRCode from 'qrcode';
 
 @Component({
   selector: 'app-pwa-install-button',
@@ -82,6 +81,7 @@ export class PwaInstallButtonComponent {
         const installUrl = new URL('/install', window.location.origin);
         const tenantSlug = new URLSearchParams(window.location.search).get('tenant');
         if (tenantSlug) installUrl.searchParams.set('tenant', tenantSlug);
+        const QRCode = await import('qrcode');
         this.qrDataUrl.set(await QRCode.toDataURL(installUrl.toString(), {
           width: 240,
           margin: 2,

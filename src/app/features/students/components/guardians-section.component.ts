@@ -160,7 +160,7 @@ import { portalStatus } from '../models';
                     <button
                       type="button"
                       class="btn btn-outline btn-sm"
-                      [disabled]="!g.email || saving()"
+                      [disabled]="saving()"
                       (click)="openInvite(g)"
                     >
                       Activar portal

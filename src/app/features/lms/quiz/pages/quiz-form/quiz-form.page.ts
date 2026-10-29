@@ -25,7 +25,6 @@ import { HasPermissionDirective } from '@shared/directives/has-permission.direct
 import { QuizzesStore } from '../../store/quizzes.store';
 import {
   CreateQuestionRequest,
-  QuestionRow,
   QuestionType,
   QuizDetail,
   isQuizEditable,

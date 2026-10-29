@@ -3,7 +3,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
-  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -25,7 +24,6 @@ import {
   TeacherScheduleTabComponent,
 } from '../../components';
 import { TeachersStore } from '../../store';
-import { EMPLOYMENT_STATUS_LABELS } from '../../models';
 
 type TabId = 'info' | 'account' | 'assignments' | 'specializations' | 'schedule';
 

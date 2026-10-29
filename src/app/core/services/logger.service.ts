@@ -16,6 +16,8 @@ export class LoggerService {
   private readonly minLevel = LEVELS[environment.logging.level];
 
   debug(...args: unknown[]): void {
+    // The central logger is the only authorized direct console entry point.
+    // eslint-disable-next-line no-console
     if (this.minLevel <= LEVELS.debug) console.debug('[debug]', ...args);
   }
 

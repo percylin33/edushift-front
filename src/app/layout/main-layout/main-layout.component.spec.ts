@@ -1,4 +1,6 @@
-import { Component, ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { Component } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { MainLayoutComponent } from './main-layout.component';
 
@@ -13,6 +15,7 @@ describe('MainLayoutComponent', () => {
     await TestBed.configureTestingModule({
       imports: [MainLayoutComponent],
       providers: [
+        provideHttpClient(),
         provideRouter([
           {
             path: 'teachers',

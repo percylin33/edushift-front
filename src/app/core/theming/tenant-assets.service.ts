@@ -19,7 +19,7 @@ export const PLATFORM_DEFAULT_LOGIN_BG_URL = '/branding/default-login-bg.svg';
 /**
  * Rewrite branding URLs that point at our own API so the browser loads them
  * same-origin via the Angular proxy ({@code /api/...} on :4200/:4201) instead
- * of hitting {@code localhost:8081} directly. That avoids
+ * of hitting {@code localhost:8080} directly. That avoids
  * {@code ERR_BLOCKED_BY_RESPONSE.NotSameOrigin} from CORP on the API.
  * External URLs (Unsplash, CDN) are left untouched.
  */

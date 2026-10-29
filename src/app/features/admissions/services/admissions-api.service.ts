@@ -18,6 +18,11 @@ import {
   PublicAdmissionInquiry,
   PublicAdmissionOffer,
   PublicInquiryReceipt,
+  CreatePresentialInquiry,
+  AdmissionEnrollmentCompletion,
+  AdmissionReservation,
+  AdmissionReservationAdvance,
+  AdmissionReservationAdvanceEvent,
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -59,6 +64,16 @@ export class AdmissionsApiService {
 
   listInquiries(yearPublicUuid: string): Observable<AdmissionInquiry[]> {
     return this.api.get<AdmissionInquiry[]>(API.ADMISSIONS.INQUIRIES(yearPublicUuid));
+  }
+
+  createPresentialInquiry(
+    yearPublicUuid: string,
+    request: CreatePresentialInquiry,
+  ): Observable<ApiResponse<AdmissionInquiry>> {
+    return this.api.post<ApiResponse<AdmissionInquiry>, CreatePresentialInquiry>(
+      API.ADMISSIONS.INQUIRIES(yearPublicUuid),
+      request,
+    );
   }
 
   inquiryHistory(inquiryPublicUuid: string): Observable<AdmissionInquiryEvent[]> {
@@ -111,10 +126,16 @@ export class AdmissionsApiService {
   completeEnrollment(
     applicationPublicUuid: string,
     request: { sectionPublicUuid: string; enrolledAt: string; notes?: string },
-  ): Observable<ApiResponse<AdmissionApplication>> {
-    return this.api.post<ApiResponse<AdmissionApplication>, typeof request>(
+  ): Observable<ApiResponse<AdmissionEnrollmentCompletion>> {
+    return this.api.post<ApiResponse<AdmissionEnrollmentCompletion>, typeof request>(
       API.ADMISSIONS.COMPLETE_ENROLLMENT(applicationPublicUuid),
       request,
+    );
+  }
+
+  retryEnrollmentSetup(applicationPublicUuid: string): Observable<ApiResponse<AdmissionEnrollmentCompletion>> {
+    return this.api.post<ApiResponse<AdmissionEnrollmentCompletion>>(
+      API.ADMISSIONS.RETRY_ENROLLMENT_SETUP(applicationPublicUuid),
     );
   }
 
@@ -154,6 +175,57 @@ export class AdmissionsApiService {
 
   vacancies(yearPublicUuid: string): Observable<GradeVacancy[]> {
     return this.api.get<GradeVacancy[]>(API.ADMISSIONS.VACANCIES(yearPublicUuid));
+  }
+
+  reservations(yearPublicUuid: string): Observable<AdmissionReservation[]> {
+    return this.api.get<AdmissionReservation[]>(API.ADMISSIONS.RESERVATIONS(yearPublicUuid));
+  }
+
+  reserve(applicationPublicUuid: string, expiresAt: string, reason?: string): Observable<ApiResponse<AdmissionReservation>> {
+    return this.api.post<ApiResponse<AdmissionReservation>, { expiresAt: string; reason?: string }>(
+      API.ADMISSIONS.APPLICATION_RESERVATION(applicationPublicUuid),
+      { expiresAt, reason },
+    );
+  }
+
+  releaseReservation(reservationPublicUuid: string, reason?: string): Observable<ApiResponse<AdmissionReservation>> {
+    return this.api.patch<ApiResponse<AdmissionReservation>, { status: 'RELEASED'; reason?: string }>(
+      API.ADMISSIONS.RESERVATION(reservationPublicUuid),
+      { status: 'RELEASED', reason },
+    );
+  }
+
+  reservationAdvances(reservationPublicUuid: string): Observable<AdmissionReservationAdvance[]> {
+    return this.api.get<AdmissionReservationAdvance[]>(
+      API.ADMISSIONS.RESERVATION_ADVANCES(reservationPublicUuid),
+    );
+  }
+
+  reservationAdvanceEvents(reservationPublicUuid: string): Observable<AdmissionReservationAdvanceEvent[]> {
+    return this.api.get<AdmissionReservationAdvanceEvent[]>(
+      API.ADMISSIONS.RESERVATION_ADVANCE_EVENTS(reservationPublicUuid),
+    );
+  }
+
+  recordReservationAdvance(
+    reservationPublicUuid: string,
+    request: { amountCents: number; method: AdmissionReservationAdvance['method']; reference?: string; notes?: string },
+  ): Observable<ApiResponse<AdmissionReservationAdvance>> {
+    return this.api.post<ApiResponse<AdmissionReservationAdvance>, typeof request>(
+      API.ADMISSIONS.RESERVATION_ADVANCES(reservationPublicUuid),
+      request,
+    );
+  }
+
+  refundReservationAdvance(
+    reservationPublicUuid: string,
+    advancePublicUuid: string,
+    request: { reference: string; notes?: string },
+  ): Observable<ApiResponse<AdmissionReservationAdvance>> {
+    return this.api.post<ApiResponse<AdmissionReservationAdvance>, typeof request>(
+      API.ADMISSIONS.RESERVATION_ADVANCE_REFUND(reservationPublicUuid, advancePublicUuid),
+      request,
+    );
   }
 
   create(

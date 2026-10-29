@@ -1,4 +1,3 @@
-import { environment } from '@env/environment';
 
 export const STORAGE_KEYS = {
   // SECURITY FIX: Tokens are now in httpOnly cookies, not localStorage

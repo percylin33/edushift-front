@@ -32,7 +32,7 @@ export type FormFieldTheme = 'light' | 'dark';
   template: `
     <div class="space-y-1.5">
       @if (label) {
-        <label [attr.for]="fieldId" class="block text-sm font-medium text-content">
+        <label [attr.for]="fieldId" [class]="theme === 'dark' ? 'block text-sm font-medium text-slate-300' : 'block text-sm font-medium text-content'">
           {{ label }}
         </label>
       }
@@ -49,7 +49,7 @@ export type FormFieldTheme = 'light' | 'dark';
           [id]="fieldId"
           [type]="type"
           [formControl]="control"
-          [placeholder]="placeholder || null"
+          [attr.placeholder]="placeholder || null"
           [attr.autocomplete]="autocomplete || null"
           [attr.inputmode]="inputmode || null"
           [attr.maxlength]="maxlength || null"

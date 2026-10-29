@@ -120,6 +120,13 @@ describe('TenantService', () => {
     }
   });
 
+  it('prioriza el colegio del subdominio e ignora slugs de hosts de plataforma', () => {
+    expect(TenantService.subdomainSlug('school-a.edushift.pe')).toBe('school-a');
+    expect(TenantService.subdomainSlug('app.edushift.pe')).toBeNull();
+    expect(TenantService.subdomainSlug('api.edushift.pe')).toBeNull();
+    expect(TenantService.subdomainSlug('preview-123.trycloudflare.com')).toBeNull();
+  });
+
   it('setSlug rechaza slug con formato Vercel preview', () => {
     if (!environment.multiTenant.enabled) return;
     storage.set.calls.reset();

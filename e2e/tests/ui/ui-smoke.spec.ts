@@ -38,7 +38,7 @@ const PRIVATE_ROUTES = [
 test.describe('UI smoke — auth flow', () => {
   test('login → /me returns user', async () => {
     // Single shared context: keep it open through the whole test.
-    const ctx = await playwrightRequest.newContext({ baseURL: 'http://localhost:8081' });
+    const ctx = await playwrightRequest.newContext({ baseURL: 'http://localhost:8080' });
     try {
       // 1. POST /api/v1/auth/login.
       const login = await ctx.post('/api/v1/auth/login', {

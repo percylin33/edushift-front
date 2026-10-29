@@ -1,6 +1,5 @@
 import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
-import { BlankLayoutComponent } from '@layout/index';
 
 /**
  * Layout-less error pages. Catch-all wildcard at the bottom redirects every
@@ -10,11 +9,12 @@ export const ERROR_ROUTES: Routes = [
   {
     canDeactivate: [pendingChangesGuard],
     path: '',
-    component: BlankLayoutComponent,
+    loadComponent: () =>
+      import('@layout/blank-layout/blank-layout.component').then((m) => m.BlankLayoutComponent),
     children: [
       {
         canDeactivate: [pendingChangesGuard],
-    path: '403',
+        path: '403',
         data: { title: 'Acceso denegado' },
         loadComponent: () =>
           import('@features/errors/pages/forbidden/forbidden.component').then(
@@ -23,7 +23,7 @@ export const ERROR_ROUTES: Routes = [
       },
       {
         canDeactivate: [pendingChangesGuard],
-    path: '404',
+        path: '404',
         data: { title: 'Página no encontrada' },
         loadComponent: () =>
           import('@features/errors/pages/not-found/not-found.component').then(

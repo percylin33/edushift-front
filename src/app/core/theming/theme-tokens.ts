@@ -34,6 +34,8 @@ export const THEME_TOKENS = {
 
   /** Base border-radius applied across `.btn`, `.card`, `.input`, etc. */
   radius: '--radius-base',
+  primaryAction: '--color-action-primary',
+  primaryActionHover: '--color-action-primary-hover',
 
   /** Sans font stack. Tenant-provided value is prepended to the default. */
   fontSans: '--font-sans',
@@ -43,6 +45,8 @@ export const THEME_TOKENS = {
 export const ALL_TENANT_VARS: readonly string[] = [
   ...THEME_TOKENS.primaryPalette,
   ...THEME_TOKENS.accentPalette,
+  THEME_TOKENS.primaryAction,
+  THEME_TOKENS.primaryActionHover,
   THEME_TOKENS.radius,
   THEME_TOKENS.fontSans,
 ];

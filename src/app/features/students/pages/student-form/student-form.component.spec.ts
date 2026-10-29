@@ -8,9 +8,10 @@ import { StudentFormComponent } from './student-form.component';
 import { StudentsStore } from '../../store';
 import { AcademicApiService } from '@features/academic/services';
 import { AcademicYearRow, AcademicYearStatus, SectionRow } from '@features/academic/models';
-import { StudentDetail, CreateStudentRequest, UpdateStudentRequest } from '../../models';
+import { StudentDetail } from '../../models';
 import { DocumentType, EnrollmentStatus, Gender } from '@core/enums';
 import { ROUTES } from '@core/constants';
+import { StudentsApiService } from '../../services';
 
 @Component({ template: '', standalone: true })
 class DummyComponent {}
@@ -86,6 +87,13 @@ describe('StudentFormComponent', () => {
       providers: [
         provideRouter([{ path: '**', component: DummyComponent }]),
         { provide: StudentsStore, useValue: fakeStore },
+        {
+          provide: StudentsApiService,
+          useValue: {
+            listEnrollments: () => of([]),
+            updateEnrollment: () => of({ publicUuid: 'enrollment-1' }),
+          },
+        },
         { provide: AcademicApiService, useValue: fakeAcademicApi },
         {
           provide: ActivatedRoute,
@@ -111,20 +119,20 @@ describe('StudentFormComponent', () => {
       await component.ngOnInit();
 
       expect(fakeStore.clearError).toHaveBeenCalled();
-      expect((component as any).editing()).toBeFalse();
+      expect(component['editing']()).toBeFalse();
       expect(fakeAcademicApi.listYears).toHaveBeenCalled();
-      expect((component as any).activeYear()?.publicUuid).toBe('y-1');
+      expect(component['activeYear']()?.publicUuid).toBe('y-1');
     });
 
     it('title/subtitle en create', () => {
       configureModule();
-      expect((component as any).title()).toBe('Nuevo estudiante');
-      expect((component as any).submitLabel()).toBe('Crear estudiante');
+      expect(component['title']()).toBe('Nuevo estudiante');
+      expect(component['submitLabel']()).toBe('Crear estudiante');
     });
 
     it('onSubmit inválido no llama create', async () => {
       configureModule();
-      await (component as any).onSubmit();
+      await component['onSubmit']();
       expect(fakeStore.create).not.toHaveBeenCalled();
     });
 
@@ -138,12 +146,12 @@ describe('StudentFormComponent', () => {
       fakeStore.create.and.returnValue(Promise.resolve(created));
       spyOn(router, 'navigate');
 
-      (component as any).form.patchValue({
+      component['form'].patchValue({
         documentNumber: '12345678',
         firstName: 'Juan',
         lastName: 'Perez',
       });
-      await (component as any).onSubmit();
+      await component['onSubmit']();
 
       expect(fakeStore.create).toHaveBeenCalled();
       expect(router.navigate).toHaveBeenCalledWith([ROUTES.STUDENTS.detail('s-1')]);
@@ -160,15 +168,19 @@ describe('StudentFormComponent', () => {
       fakeStore.enrollStudent.and.returnValue(Promise.resolve({ publicUuid: 'enroll-1' } as any));
       spyOn(router, 'navigate');
 
-      (component as any).form.patchValue({
+      component['form'].patchValue({
         documentNumber: '12345678',
         firstName: 'Juan',
         lastName: 'Perez',
         sectionPublicUuid: 'sec-1',
+        enrollmentDate: '2026-03-02',
       });
-      await (component as any).onSubmit();
+      await component['onSubmit']();
 
-      expect(fakeStore.enrollStudent).toHaveBeenCalled();
+      expect(fakeStore.enrollStudent).toHaveBeenCalledWith(
+        's-1',
+        jasmine.objectContaining({ enrolledAt: '2026-03-02' }),
+      );
     });
   });
 
@@ -179,16 +191,16 @@ describe('StudentFormComponent', () => {
       await component.ngOnInit();
 
       expect(fakeStore.loadDetail).toHaveBeenCalledWith('s-1');
-      expect((component as any).editing()).toBeTrue();
-      expect((component as any).form.get('firstName')?.value).toBe('Juan');
-      expect((component as any).form.get('documentNumber')?.value).toBe('12345678');
+      expect(component['editing']()).toBeTrue();
+      expect(component['form'].get('firstName')?.value).toBe('Juan');
+      expect(component['form'].get('documentNumber')?.value).toBe('12345678');
     });
 
     it('title/subtitle en edit', () => {
       configureModule();
-      (component as any)['editing'].set(true);
-      expect((component as any).title()).toBe('Editar estudiante');
-      expect((component as any).submitLabel()).toBe('Guardar cambios');
+      component['editing'].set(true);
+      expect(component['title']()).toBe('Editar estudiante');
+      expect(component['submitLabel']()).toBe('Guardar cambios');
     });
 
     it('onSubmit llama store.update y navega', async () => {
@@ -199,7 +211,7 @@ describe('StudentFormComponent', () => {
       fakeStore.update.and.returnValue(Promise.resolve(detail));
       spyOn(router, 'navigate');
 
-      await (component as any).onSubmit();
+      await component['onSubmit']();
       expect(fakeStore.update).toHaveBeenCalledWith('s-1', jasmine.any(Object));
       expect(router.navigate).toHaveBeenCalledWith([ROUTES.STUDENTS.detail('s-1')]);
     });
@@ -216,22 +228,22 @@ describe('StudentFormComponent', () => {
   describe('showError', () => {
     it('retorna null para control sin errores y no tocado', () => {
       configureModule();
-      expect((component as any).showError('firstName')).toBeNull();
+      expect(component['showError']('firstName')).toBeNull();
     });
 
     it('retorna string para required', () => {
       configureModule();
-      const ctrl = (component as any).form.get('firstName')!;
+      const ctrl = component['form'].get('firstName')!;
       ctrl.markAsTouched();
-      expect((component as any).showError('firstName')).toBe('Campo requerido.');
+      expect(component['showError']('firstName')).toBe('Campo requerido.');
     });
 
     it('retorna mensaje de pattern para documentNumber inválido', () => {
       configureModule();
-      const ctrl = (component as any).form.get('documentNumber')!;
+      const ctrl = component['form'].get('documentNumber')!;
       ctrl.setValue('abcd$');
       ctrl.markAsTouched();
-      expect((component as any).showError('documentNumber')).toBe(
+      expect(component['showError']('documentNumber')).toBe(
         'Solo letras, dígitos y guiones.',
       );
     });
@@ -243,8 +255,8 @@ describe('StudentFormComponent', () => {
       const err = new HttpErrorResponse({
         error: { errors: [{ code: 'STUDENT_DOCUMENT_TAKEN', message: 'ya existe' }] },
       });
-      (component as any)['applyServerErrors'](err);
-      expect((component as any)['fieldErrors']()['documentNumber']).toContain('documento');
+      component['applyServerErrors'](err);
+      expect(component['fieldErrors']()['documentNumber']).toContain('documento');
     });
 
     it('mapea STUDENT_EMAIL_TAKEN', () => {
@@ -252,19 +264,20 @@ describe('StudentFormComponent', () => {
       const err = new HttpErrorResponse({
         error: { errors: [{ code: 'STUDENT_EMAIL_TAKEN', message: 'email en uso' }] },
       });
-      (component as any)['applyServerErrors'](err);
-      expect((component as any)['fieldErrors']()['email']).toContain('email');
+      component['applyServerErrors'](err);
+      expect(component['fieldErrors']()['email']).toContain('email');
     });
   });
 
   it('toDateInput formatea correcto', () => {
     configureModule();
-    const date = new Date('2026-01-15T00:00:00Z');
-    expect((component as any)['toDateInput'](date)).toBe('2026-01-15');
+    // The API adapter parses calendar dates as local noon to avoid UTC day shifts.
+    const date = new Date(2026, 0, 15, 12);
+    expect(component['toDateInput'](date)).toBe('2026-01-15');
   });
 
   it('toDateInput null retorna null', () => {
     configureModule();
-    expect((component as any)['toDateInput'](undefined)).toBeNull();
+    expect(component['toDateInput'](undefined)).toBeNull();
   });
 });

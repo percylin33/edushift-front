@@ -16,6 +16,7 @@ describe('GradeRecordsPageComponent', () => {
   const paramMap = new Map<string, string>();
 
   beforeEach(async () => {
+    paramMap.set('publicUuid', 'e1');
     storeSpy = jasmine.createSpyObj(
       'GradeRecordsStore',
       [
@@ -45,7 +46,7 @@ describe('GradeRecordsPageComponent', () => {
         name: 'Examen 1',
         scale: EvaluationScale.SCORE_0_20,
         status: EvaluationStatus.DRAFT,
-        assignment: { label: 'Test' },
+        assignment: { publicUuid: 'a1', label: 'Test' },
       } as any),
     );
 
@@ -67,6 +68,7 @@ describe('GradeRecordsPageComponent', () => {
     fixture = TestBed.createComponent(GradeRecordsPageComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    await fixture.whenStable();
   });
 
   it('se crea correctamente', () => {

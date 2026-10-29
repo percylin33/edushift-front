@@ -1,11 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, UrlTree, provideRouter } from '@angular/router';
+import { UrlTree, provideRouter } from '@angular/router';
 import { roleGuard } from './role.guard';
 import { AuthService } from '@core/services';
 import { UserRole } from '@core/enums';
 
 describe('roleGuard', () => {
-  let router: Router;
   let authSpy: jasmine.SpyObj<AuthService>;
 
   beforeEach(() => {
@@ -13,7 +12,6 @@ describe('roleGuard', () => {
     TestBed.configureTestingModule({
       providers: [provideRouter([]), { provide: AuthService, useValue: authSpy }],
     });
-    router = TestBed.inject(Router);
   });
 
   it('permite acceso cuando no hay roles definidos', () => {

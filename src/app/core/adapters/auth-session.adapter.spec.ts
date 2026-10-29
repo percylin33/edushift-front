@@ -50,7 +50,7 @@ describe('toUser', () => {
       emailVerified: true,
       mfaEnabled: false,
       roles: ['TENANT_ADMIN'],
-      permissions: ['users:read'],
+      permissions: [Permission.StudentsRead],
       lastLoginAt: null,
       createdAt: '2024-01-01',
       updatedAt: '2024-01-01',
@@ -58,7 +58,7 @@ describe('toUser', () => {
     };
     const user = toUser(raw as any);
     expect(user.roles).toContain(UserRole.TenantAdmin);
-    expect(user.permissions).toContain('users:read' as Permission);
+    expect(user.permissions).toContain(Permission.StudentsRead);
   });
 });
 
@@ -75,8 +75,8 @@ describe('toRoles', () => {
 
 describe('toPermissions', () => {
   it('filtra solo permisos conocidos', () => {
-    const result = toPermissions(['users:read', 'unknown:perm']);
-    expect(result).toEqual(['users:read' as Permission]);
+    const result = toPermissions([Permission.StudentsRead, 'unknown:perm']);
+    expect(result).toEqual([Permission.StudentsRead]);
   });
 
   it('retorna array vacío para undefined', () => {

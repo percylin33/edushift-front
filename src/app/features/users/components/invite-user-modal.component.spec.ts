@@ -27,11 +27,20 @@ describe('InviteUserModalComponent', () => {
     documentType: DocumentType.Dni,
     documentNumber: '87654321',
     fullName: 'A B',
-    roles: [UserRole.Teacher],
+    roles: [UserRole.Staff],
     status: InvitationStatus.Pending,
     token: 'tok-1',
     expiresAt: new Date('2026-12-31'),
   };
+
+  function checkboxEvent(checked: boolean): Event {
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = checked;
+    const event = new Event('change');
+    Object.defineProperty(event, 'target', { value: input });
+    return event;
+  }
 
   function configureModule(): void {
     fakeStore = {
@@ -58,75 +67,78 @@ describe('InviteUserModalComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('inicia con email/firstName vacíos y rol Teacher por defecto', () => {
+  it('inicia con email/firstName vacíos y rol Staff por defecto', () => {
     configureModule();
-    expect((component as any).email()).toBe('');
-    expect((component as any).firstName()).toBe('');
-    expect((component as any).lastName()).toBe('');
-    expect((component as any).selectedRoles()).toEqual([UserRole.Teacher]);
+    expect(component['email']()).toBe('');
+    expect(component['firstName']()).toBe('');
+    expect(component['lastName']()).toBe('');
+    expect(component['selectedRoles']()).toEqual([UserRole.Staff]);
   });
 
   it('canSubmit requiere email + nombres + documento + roles', () => {
     configureModule();
-    expect((component as any).canSubmit()).toBeFalse();
-    (component as any).email.set('a@b.com');
-    (component as any).firstName.set('A');
-    (component as any).lastName.set('B');
-    (component as any).documentNumber.set('87654321');
-    expect((component as any).canSubmit()).toBeTrue();
-    (component as any).documentNumber.set('123');
-    expect((component as any).canSubmit()).toBeFalse();
-    (component as any).documentNumber.set('87654321');
-    (component as any).selectedRoles.set([]);
-    expect((component as any).canSubmit()).toBeFalse();
+    expect(component['canSubmit']()).toBeFalse();
+    component['email'].set('a@b.com');
+    component['firstName'].set('A');
+    component['lastName'].set('B');
+    component['documentNumber'].set('87654321');
+    expect(component['canSubmit']()).toBeTrue();
+    component['documentNumber'].set('123');
+    expect(component['canSubmit']()).toBeFalse();
+    component['documentNumber'].set('87654321');
+    component['selectedRoles'].set([]);
+    expect(component['canSubmit']()).toBeFalse();
   });
 
   it('acceptLink construye URL con origin y tenant del colegio', () => {
     configureModule();
     fakeStore.lastCreated.set(invitation);
-    const link = (component as any).acceptLink() as string;
+    const link = component['acceptLink']() as string;
     expect(link).toContain('/invitation/tok-1');
-    expect(link).toContain('tenant=acme');
+    expect(new URL(link).hostname).toBe('acme.localhost');
   });
 
   it('acceptLink vacío si no hay token', () => {
     configureModule();
-    fakeStore.lastCreated.set({ ...invitation, token: null as any });
-    expect((component as any).acceptLink()).toBe('');
+    fakeStore.lastCreated.set({ ...invitation, token: '' });
+    expect(component['acceptLink']()).toBe('');
   });
 
   it('hasRole refleja selección', () => {
     configureModule();
-    (component as any).selectedRoles.set([UserRole.Teacher, UserRole.Staff]);
-    expect((component as any).hasRole(UserRole.Teacher)).toBeTrue();
-    expect((component as any).hasRole(UserRole.Parent)).toBeFalse();
+    component['selectedRoles'].set([UserRole.Staff, UserRole.TenantAdmin]);
+    expect(component['hasRole'](UserRole.Staff)).toBeTrue();
+    expect(component['hasRole'](UserRole.Parent)).toBeFalse();
   });
 
   it('toggleRole agrega y quita roles', () => {
     configureModule();
-    const evtTrue = { target: { checked: true } } as any;
-    (component as any).toggleRole(UserRole.Parent, evtTrue);
-    expect((component as any).selectedRoles()).toContain(UserRole.Parent);
-    const evtFalse = { target: { checked: false } } as any;
-    (component as any).toggleRole(UserRole.Teacher, evtFalse);
-    expect((component as any).selectedRoles()).not.toContain(UserRole.Teacher);
+    const evtTrue = checkboxEvent(true);
+    component['toggleRole'](UserRole.TenantAdmin, evtTrue);
+    expect(component['selectedRoles']()).toContain(UserRole.TenantAdmin);
+    component['toggleRole'](UserRole.Teacher, evtTrue);
+    expect(component['selectedRoles']()).not.toContain(UserRole.Teacher);
+    const evtFalse = checkboxEvent(false);
+    component['toggleRole'](UserRole.Staff, evtFalse);
+    expect(component['selectedRoles']()).not.toContain(UserRole.Staff);
   });
 
   it('onSubmit llama store con payload limpio', async () => {
     configureModule();
-    (component as any).email.set('a@b.com');
-    (component as any).firstName.set('A');
-    (component as any).lastName.set('B');
-    (component as any).documentNumber.set('87654321');
-    (component as any).selectedRoles.set([UserRole.Teacher]);
-    await (component as any).onSubmit();
+    component['email'].set('a@b.com');
+    component['firstName'].set('A');
+    component['lastName'].set('B');
+    component['documentNumber'].set('87654321');
+    component['selectedRoles'].set([UserRole.Staff]);
+    await component['onSubmit']();
     expect(fakeStore.create).toHaveBeenCalledWith({
       email: 'a@b.com',
       firstName: 'A',
       lastName: 'B',
+      secondLastName: undefined,
       documentType: DocumentType.Dni,
       documentNumber: '87654321',
-      roles: [UserRole.Teacher],
+      roles: [UserRole.Staff],
     });
   });
 
@@ -134,7 +146,7 @@ describe('InviteUserModalComponent', () => {
     configureModule();
     const closedSpy = jasmine.createSpy('closed');
     component.closed.subscribe(closedSpy);
-    (component as any).close();
+    component['close']();
     expect(fakeStore.clearLastCreated).toHaveBeenCalled();
     expect(fakeStore.clearError).toHaveBeenCalled();
     expect(closedSpy).toHaveBeenCalled();
@@ -142,39 +154,39 @@ describe('InviteUserModalComponent', () => {
 
   it('newAnother limpia lastCreated y reset form', () => {
     configureModule();
-    (component as any).email.set('a@b.com');
+    component['email'].set('a@b.com');
     fakeStore.lastCreated.set(invitation);
-    (component as any).newAnother();
+    component['newAnother']();
     expect(fakeStore.clearLastCreated).toHaveBeenCalled();
-    expect((component as any).email()).toBe('');
+    expect(component['email']()).toBe('');
   });
 
   it('copyLink setea justCopied si clipboard funciona', async () => {
     configureModule();
     fakeStore.lastCreated.set(invitation);
     spyOn(navigator.clipboard, 'writeText').and.returnValue(Promise.resolve());
-    await (component as any).copyLink();
-    expect((component as any).justCopied()).toBeTrue();
+    await component['copyLink']();
+    expect(component['justCopied']()).toBeTrue();
   });
 
   it('copyLink silencioso si clipboard falla', async () => {
     configureModule();
     fakeStore.lastCreated.set(invitation);
     spyOn(navigator.clipboard, 'writeText').and.returnValue(Promise.reject('denied'));
-    await (component as any).copyLink();
-    expect((component as any).justCopied()).toBeFalse();
+    await component['copyLink']();
+    expect(component['justCopied']()).toBeFalse();
   });
 
   it('formatDate formatea fecha en es', () => {
     configureModule();
-    const formatted = (component as any).formatDate(new Date('2026-06-15'));
+    const formatted = component['formatDate'](new Date('2026-06-15'));
     expect(formatted).toContain('2026');
   });
 
   it('copyHint refleja justCopied', () => {
     configureModule();
-    expect((component as any).copyHint()).toContain('Copiar');
-    (component as any).justCopied.set(true);
-    expect((component as any).copyHint()).toContain('Copiado');
+    expect(component['copyHint']()).toContain('Copiar');
+    component['justCopied'].set(true);
+    expect(component['copyHint']()).toContain('Copiado');
   });
 });

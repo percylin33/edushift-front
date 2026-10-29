@@ -10,11 +10,12 @@ describe('STUDENTS_ROUTES', () => {
     expect(paths).toContain(':id/qr');
   });
 
-  it('cada ruta declara canActivate roleGuard', () => {
-    for (const r of STUDENTS_ROUTES) {
-      expect(r.canActivate).toBeDefined();
-      expect(r.canActivate!.length).toBeGreaterThan(0);
+  it('las rutas del módulo se autorizan con canMatch y la credencial con roleGuard', () => {
+    for (const route of STUDENTS_ROUTES.filter((item) => item.path !== ':id/qr')) {
+      expect(route.canMatch).toBeDefined();
     }
+    const qrRoute = STUDENTS_ROUTES.find((route) => route.path === ':id/qr')!;
+    expect(qrRoute.canActivate).toBeDefined();
   });
 
   it('ruta raíz usa StudentsListComponent (lazy)', () => {

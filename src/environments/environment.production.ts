@@ -76,17 +76,7 @@ export const environment: AppEnvironment = runtimeOverrides({
     pwaDisplay: 'standalone',
     pwaStartUrl: '/attendance/scanner'
   },
-  // Firebase Web configuration for the current EduShift test project.
-  // These client values and the VAPID public key are published in the FE bundle;
-  // keep the Admin SDK private key exclusively in the backend environment.
-  firebase: {
-    apiKey: 'AIzaSyAnWp4Xcy6QqFzGkGNzSB7WXw0yYIRpj6U',
-    authDomain: 'edushift-f03db.firebaseapp.com',
-    projectId: 'edushift-f03db',
-    storageBucket: 'edushift-f03db.firebasestorage.app',
-    messagingSenderId: '390884898100',
-    appId: '1:390884898100:web:9fe332355e52403587e161',
-    messagingVapidKey:
-      'BBit7vIdDVzI2ph9gx8Ggpi6E5UwNRuu45jEUC3tu1a25gDaR71xBv9vDfAm8-TCCeV87tAgwHQuWCqsjN8EdC4',
-  },
+  // Intentionally unset until production Firebase/FCM is configured.
+  // Never ship the development project's identifiers in a production bundle.
+  firebase: undefined,
 });

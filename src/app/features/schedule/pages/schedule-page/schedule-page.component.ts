@@ -8,7 +8,7 @@ import {
 	signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService, TenantService } from '@core/services';
 import { UserRole } from '@core/enums';
@@ -22,6 +22,8 @@ import {
 } from '@shared/components';
 import { AcademicApiService } from '@features/academic/services';
 import {
+	AcademicYearRow,
+	AcademicYearStatus,
 	NonTeachingBlockItem,
 	ScheduleSlotItem,
 	SectionRow,
@@ -43,6 +45,8 @@ import {
 import { MeApiService } from '@features/me/services/me-api.service';
 import { TeachersApiService } from '@features/teachers/services';
 import { ScheduleApiService } from '../../services/schedule-api.service';
+import { ScheduleAdminNavComponent } from '../../components/schedule-admin-nav.component';
+import { selectScheduleYear } from '../../utils/schedule-context.util';
 
 /**
  * Top-level {@code /schedule} route — role-aware landing.
@@ -69,6 +73,7 @@ import { ScheduleApiService } from '../../services/schedule-api.service';
 		SpinnerComponent,
 		ScheduleGridComponent,
 		TimeSlotFormModalComponent,
+		ScheduleAdminNavComponent,
 	],
 	template: `
 		<app-page-container size="wide">
@@ -77,16 +82,6 @@ import { ScheduleApiService } from '../../services/schedule-api.service';
 				[title]="title()"
 				[subtitle]="subtitle()"
 			>
-				@if (isAdmin()) {
-					<a [routerLink]="ROUTES.SCHEDULE.JORNADA" class="btn btn-primary btn-sm">
-						<app-icon name="calendar" [size]="14" />
-						<span>Jornada</span>
-					</a>
-					<a [routerLink]="ROUTES.SCHEDULE.WORKLOAD" class="btn btn-outline btn-sm">
-						<app-icon name="users" [size]="14" />
-						<span>Carga docente</span>
-					</a>
-				}
 				@if (isTeacher()) {
 					<a [routerLink]="ROUTES.SCHEDULE.MINE" class="btn btn-primary btn-sm">
 						<app-icon name="user" [size]="14" />
@@ -95,73 +90,87 @@ import { ScheduleApiService } from '../../services/schedule-api.service';
 				}
 			</app-page-header>
 
-			@if (isAdmin() && !loading()) {
-				<section class="mb-8 grid gap-4 sm:grid-cols-2">
-					<a
-						[routerLink]="ROUTES.SCHEDULE.JORNADA"
-						class="card transition-shadow hover:shadow-md"
-					>
-						<div class="card-body">
-							<div class="mb-2 flex items-center gap-2 text-content">
-								<app-icon name="calendar" [size]="20" />
-								<h2 class="text-base font-semibold">Jornada y recreos</h2>
-							</div>
-							<p class="text-sm text-content-muted">
-								Paso 1–2: definí la jornada escolar (recreos, almuerzo y periodos) por
-								nivel. Después volvé acá para asignar cursos en cada sección.
-							</p>
-						</div>
-					</a>
-					<a
-						[routerLink]="ROUTES.SCHEDULE.WORKLOAD"
-						class="card transition-shadow hover:shadow-md"
-					>
-						<div class="card-body">
-							<div class="mb-2 flex items-center gap-2 text-content">
-								<app-icon name="users" [size]="20" />
-								<h2 class="text-base font-semibold">Carga horaria docente</h2>
-							</div>
-							<p class="text-sm text-content-muted">
-								Revisá minutos semanales, cantidad de bloques, secciones y cursos por
-								docente en el periodo seleccionado.
-							</p>
-						</div>
-					</a>
-				</section>
-
+			@if (isAdmin()) {
+				<app-schedule-admin-nav
+					[active]="'sections'"
+					[yearUuid]="selectedYearUuid()"
+					[periodUuid]="periodContextUuid()"
+				/>
 				<section class="card mb-8">
 					<header class="card-header flex flex-wrap items-end justify-between gap-3">
 						<div>
 							<h2 class="card-title">Horario por sección</h2>
 							<p class="card-description">
-								Creá o editá bloques de clase. Si el horario invade un recreo, el modal
-								muestra el error SCHEDULE_CONFLICT.
+								Elige un año y una sección para revisar sus clases y completar los espacios vacíos.
 							</p>
 						</div>
 						@if (selectedSectionUuid()) {
-							<button type="button" class="btn btn-primary btn-sm" (click)="openCreate(1)">
+							<button
+								type="button"
+								class="btn btn-primary btn-sm"
+								[disabled]="sectionLoading() || assignmentOptions().length === 0"
+								(click)="openCreate(1)"
+							>
 								<app-icon name="plus" [size]="14" />
-								Nuevo bloque
+								Agregar clase
 							</button>
 						}
 					</header>
 					<div class="card-body space-y-4">
-						<div class="field max-w-md">
-							<label class="label" for="schedule-section">Sección</label>
-							<select
-								id="schedule-section"
-								class="select"
-								[ngModel]="selectedSectionUuid()"
-								(ngModelChange)="onSectionChange($event)"
-							>
-								<option [ngValue]="null">Selecciona una sección…</option>
-								@for (s of sections(); track s.publicUuid) {
-									<option [ngValue]="s.publicUuid">
-										{{ s.levelCode }} · {{ s.gradeName }} — {{ s.name }}
-									</option>
-								}
-							</select>
+						<div class="grid gap-4 sm:grid-cols-2">
+							<div class="field">
+								<label class="label" for="schedule-year">Año académico</label>
+								<select
+									id="schedule-year"
+									class="select"
+									[ngModel]="selectedYearUuid()"
+									(ngModelChange)="onYearChange($event)"
+								>
+									<option value="">Selecciona un año…</option>
+									@for (year of years(); track year.publicUuid) {
+										<option [value]="year.publicUuid">{{ year.name }}{{ isActiveYear(year) ? ' · Vigente' : '' }}</option>
+									}
+								</select>
+							</div>
+							<div class="field">
+								<label class="label" for="schedule-section">Sección</label>
+								<select
+									id="schedule-section"
+									class="select"
+									[ngModel]="selectedSectionUuid()"
+									(ngModelChange)="onSectionChange($event)"
+									[disabled]="!selectedYearUuid() || sectionsLoading() || sections().length === 0"
+								>
+									<option [ngValue]="null">Selecciona una sección…</option>
+									@for (group of sectionGroups(); track group.label) {
+										<optgroup [label]="group.label">
+											@for (section of group.sections; track section.publicUuid) {
+												<option [ngValue]="section.publicUuid">
+													{{ section.levelCode }} · {{ section.gradeName }} — Sección {{ section.name }}
+												</option>
+											}
+										</optgroup>
+									}
+								</select>
+							</div>
 						</div>
+
+						@if (sectionsLoading()) {
+							<div class="flex items-center justify-center py-8">
+								<app-spinner [size]="20" label="Cargando secciones…" />
+							</div>
+						} @else if (sectionListError()) {
+							<div role="alert" class="alert alert-danger">
+								<app-icon name="alert-circle" [size]="18" />
+								<p class="flex-1 text-sm">{{ sectionListError() }}</p>
+								<button type="button" class="btn btn-ghost btn-sm" (click)="reloadSections()">Reintentar</button>
+							</div>
+						} @else if (selectedYearUuid() && sections().length === 0) {
+							<div class="rounded-lg border border-dashed border-border-subtle p-6 text-center">
+								<p class="font-medium text-content">No hay secciones para este año</p>
+								<p class="mt-1 text-sm text-content-muted">Crea las secciones del año académico para poder armar sus horarios.</p>
+							</div>
+						}
 
 						@if (sectionLoading()) {
 							<div class="flex items-center justify-center py-12">
@@ -181,6 +190,7 @@ import { ScheduleApiService } from '../../services/schedule-api.service';
 								[nonTeachingBlocks]="nonTeachingBlocks()"
 								[suggestedPeriods]="suggestedPeriods()"
 								[editable]="true"
+								[showDayAddActions]="false"
 								[showSectionView]="false"
 								[showTeacherView]="true"
 								emptyTitle="Aún no hay horario para esta sección"
@@ -188,11 +198,15 @@ import { ScheduleApiService } from '../../services/schedule-api.service';
 								(slotSelected)="openEdit($event)"
 								(periodSelected)="openFromPeriod($event)"
 							/>
+						} @else if (!selectedYearUuid()) {
+							<p class="text-sm text-content-muted">Selecciona un año académico para revisar los horarios de sus secciones.</p>
 						} @else {
-							<p class="text-sm text-content-muted">
-								Elegí una sección para ver recreos y bloques de clase, y para probar
-								conflictos (UAT-SCH-05).
-							</p>
+							@if (sections().length > 0) {
+								<p class="text-sm text-content-muted">Selecciona una sección para ver su horario.</p>
+							}
+						}
+						@if (selectedSectionUuid() && assignmentOptions().length === 0 && !sectionLoading()) {
+							<p class="text-sm text-amber-700">Asigna al menos un curso y docente a esta sección antes de agregar clases.</p>
 						}
 					</div>
 				</section>
@@ -246,6 +260,7 @@ import { ScheduleApiService } from '../../services/schedule-api.service';
 })
 export class SchedulePageComponent implements OnInit {
 	private readonly route = inject(ActivatedRoute);
+	private readonly router = inject(Router);
 	private readonly auth = inject(AuthService);
 	private readonly tenant = inject(TenantService);
 	private readonly scheduleApi = inject(ScheduleApiService);
@@ -263,6 +278,29 @@ export class SchedulePageComponent implements OnInit {
 	protected readonly suggestedPeriods = signal<readonly SuggestedPeriodItem[]>([]);
 
 	protected readonly sections = signal<SectionRow[]>([]);
+	protected readonly sectionGroups = computed(() => {
+		const grouped = new Map<string, SectionRow[]>();
+		const ordered = [...this.sections()].sort((left, right) =>
+			left.levelCode.localeCompare(right.levelCode) ||
+			left.gradeOrdinal - right.gradeOrdinal ||
+			left.name.localeCompare(right.name),
+		);
+		for (const section of ordered) {
+			const label = `${section.levelCode} · ${section.gradeName}`;
+			const group = grouped.get(label) ?? [];
+			group.push(section);
+			grouped.set(label, group);
+		}
+		return [...grouped].map(([label, sections]) => ({ label, sections }));
+	});
+	protected readonly years = signal<AcademicYearRow[]>([]);
+	protected readonly periodContextUuid = signal(this.route.snapshot.queryParamMap.get('period'));
+	protected isActiveYear(year: AcademicYearRow): boolean {
+		return year.status === AcademicYearStatus.Active;
+	}
+	protected readonly selectedYearUuid = signal('');
+	protected readonly sectionsLoading = signal(false);
+	protected readonly sectionListError = signal<string | null>(null);
 	protected readonly selectedSectionUuid = signal<string | null>(null);
 	protected readonly sectionLoading = signal(false);
 	protected readonly sectionError = signal<string | null>(null);
@@ -280,6 +318,7 @@ export class SchedulePageComponent implements OnInit {
 
 	protected readonly title = computed(() => {
 		if (this.route.snapshot.url[0]?.path === 'me') return 'Mi horario';
+		if (this.isAdmin()) return 'Horario por sección';
 		return 'Horarios';
 	});
 
@@ -290,8 +329,8 @@ export class SchedulePageComponent implements OnInit {
 		}
 		if (this.isAdmin()) {
 			return tenantName
-				? `Jornada, carga docente y edición de bloques — ${tenantName}.`
-				: 'Jornada, carga docente y edición de bloques de clase.';
+				? `Organiza las clases por año y sección — ${tenantName}.`
+				: 'Organiza las clases por año y sección.';
 		}
 		return 'Horarios de tu sección.';
 	});
@@ -307,14 +346,14 @@ export class SchedulePageComponent implements OnInit {
 			return 'Cuando un administrador te asigne a una sección con horario, aparecerá acá.';
 		}
 		if (this.isAdmin()) {
-			return 'Usá Jornada para configurar recreos y plantillas, o el editor por sección más abajo.';
+			return 'Selecciona un año y una sección para revisar o completar su horario.';
 		}
 		return 'Cuando el administrador configure el horario de tu sección, aparecerá acá.';
 	});
 
 	async ngOnInit(): Promise<void> {
 		if (this.isAdmin()) {
-			await this.loadSections();
+			await this.loadAdminSchedule();
 			return;
 		}
 		if (this.isTeacher()) {
@@ -326,8 +365,30 @@ export class SchedulePageComponent implements OnInit {
 		}
 	}
 
+	protected async onYearChange(yearUuid: string): Promise<void> {
+		this.selectedYearUuid.set(yearUuid);
+		this.periodContextUuid.set(null);
+		this.selectedSectionUuid.set(null);
+		this.slots.set([]);
+		this.nonTeachingBlocks.set([]);
+		this.suggestedPeriods.set([]);
+		this.assignmentOptions.set([]);
+		this.sectionError.set(null);
+		await this.router.navigate([], {
+			relativeTo: this.route,
+			queryParams: { year: yearUuid || null, section: null, period: null },
+			queryParamsHandling: 'merge',
+		});
+		await this.loadSectionsForYear(yearUuid);
+	}
+
 	protected onSectionChange(uuid: string | null): void {
 		this.selectedSectionUuid.set(uuid);
+		void this.router.navigate([], {
+			relativeTo: this.route,
+			queryParams: { section: uuid },
+			queryParamsHandling: 'merge',
+		});
 		if (uuid) {
 			void this.loadSectionSchedule(uuid);
 		} else {
@@ -342,6 +403,10 @@ export class SchedulePageComponent implements OnInit {
 	protected reloadSection(): void {
 		const uuid = this.selectedSectionUuid();
 		if (uuid) void this.loadSectionSchedule(uuid);
+	}
+
+	protected reloadSections(): void {
+		void this.loadSectionsForYear(this.selectedYearUuid());
 	}
 
 	protected openCreate(dayOfWeek: number): void {
@@ -382,12 +447,76 @@ export class SchedulePageComponent implements OnInit {
 		if (uuid) void this.loadSectionSchedule(uuid);
 	}
 
-	private async loadSections(): Promise<void> {
+	private async loadAdminSchedule(): Promise<void> {
+		this.sectionsLoading.set(true);
+		this.sectionListError.set(null);
 		try {
-			const rows = await firstValueFrom(this.academicApi.listSections());
-			this.sections.set(rows);
-		} catch {
+			const years = await firstValueFrom(this.academicApi.listYears());
+			this.years.set(years ?? []);
+			const requestedYear = this.route.snapshot.queryParamMap.get('year');
+			const yearUuid = selectScheduleYear(years ?? [], requestedYear)?.publicUuid ?? '';
+			this.selectedYearUuid.set(yearUuid);
+			if (requestedYear !== yearUuid) {
+				await this.router.navigate([], {
+					relativeTo: this.route,
+					queryParams: {
+						year: yearUuid || null,
+						section: yearUuid ? this.route.snapshot.queryParamMap.get('section') : null,
+						period: yearUuid ? this.route.snapshot.queryParamMap.get('period') : null,
+					},
+					queryParamsHandling: 'merge',
+					replaceUrl: true,
+				});
+			}
+			await this.loadSectionsForYear(yearUuid, this.route.snapshot.queryParamMap.get('section'));
+		} catch (err: unknown) {
 			this.sections.set([]);
+			this.sectionListError.set(
+				err && typeof err === 'object' && 'message' in err
+					? String((err as { message: unknown }).message)
+					: 'No se pudieron cargar los años académicos.',
+			);
+		} finally {
+			this.sectionsLoading.set(false);
+		}
+	}
+
+	private async loadSectionsForYear(yearUuid: string, preferredSectionUuid?: string | null): Promise<void> {
+		this.sectionsLoading.set(true);
+		this.sectionListError.set(null);
+		try {
+			const rows = yearUuid
+				? await firstValueFrom(this.academicApi.listSections({ academicYearPublicUuid: yearUuid }))
+				: [];
+			this.sections.set(rows ?? []);
+			const preferred = rows?.find((section) => section.publicUuid === preferredSectionUuid);
+			const nextSectionUuid = preferred?.publicUuid ?? rows?.[0]?.publicUuid ?? null;
+			this.selectedSectionUuid.set(nextSectionUuid);
+			if (nextSectionUuid) {
+				if (preferredSectionUuid !== nextSectionUuid) {
+					await this.router.navigate([], {
+						relativeTo: this.route,
+						queryParams: { section: nextSectionUuid },
+						queryParamsHandling: 'merge',
+						replaceUrl: true,
+					});
+				}
+				await this.loadSectionSchedule(nextSectionUuid);
+			} else {
+				this.slots.set([]);
+				this.nonTeachingBlocks.set([]);
+				this.suggestedPeriods.set([]);
+			}
+		} catch (err: unknown) {
+			this.sections.set([]);
+			this.selectedSectionUuid.set(null);
+			this.sectionListError.set(
+				err && typeof err === 'object' && 'message' in err
+					? String((err as { message: unknown }).message)
+					: 'No se pudieron cargar las secciones de este año.',
+			);
+		} finally {
+			this.sectionsLoading.set(false);
 		}
 	}
 

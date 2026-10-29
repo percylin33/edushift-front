@@ -4,9 +4,12 @@ export type AdmissionStatus =
 export type AdmissionSource = 'IN_PERSON' | 'REFERRAL' | 'WEBSITE' | 'OTHER';
 export type AdmissionInquiryStatus =
   'RECEIVED' | 'CONTACTED' | 'QUALIFIED' | 'CONVERTED' | 'CLOSED';
+export type AdmissionInquirySource = 'WEBSITE' | 'PRESENTIAL';
+export type AdmissionInquiryChannel = 'WEBSITE' | 'PRESENTIAL' | 'PHONE' | 'WHATSAPP' | 'OTHER';
 export type AdmissionContactType = 'EMAIL' | 'PHONE';
 export type AdmissionOfferStatus =
   'NOT_REQUIRED' | 'PENDING' | 'CONFIRMED' | 'DECLINED' | 'AT_RISK' | 'RELEASED';
+export type AdmissionReservationStatus = 'TEMPORARY' | 'COMMITTED' | 'CONSUMED' | 'EXPIRED' | 'RELEASED';
 
 export interface AdmissionApplication {
   publicUuid: string;
@@ -36,6 +39,7 @@ export interface GradeVacancy {
   configuredCapacity: number;
   activeEnrollments: number;
   admittedApplications: number;
+  temporaryReservations: number;
   availableSeats: number;
   capacityConfigured: boolean;
 }
@@ -56,6 +60,9 @@ export interface CreateAdmissionApplication {
 }
 
 export interface AdmissionInquiry {
+  source?: AdmissionInquirySource;
+  initialChannel?: AdmissionInquiryChannel;
+  privacyNoticeGivenAt?: string | null;
   responsibleName?: string | null;
   nextAttentionDate?: string | null;
   nextAction?: string | null;
@@ -73,6 +80,19 @@ export interface AdmissionInquiry {
   convertedApplicationStatus?: AdmissionStatus | null;
   convertedAcademicYearPublicUuid?: string | null;
   createdAt: string;
+}
+
+export interface CreatePresentialInquiry {
+  gradePublicUuid: string;
+  contactName: string;
+  contactType: AdmissionContactType;
+  contactValue: string;
+  initialChannel: AdmissionInquiryChannel;
+  note?: string;
+  responsibleName?: string;
+  nextAttentionDate?: string | null;
+  nextAction?: string;
+  privacyNoticeGiven: boolean;
 }
 
 export interface AdmissionInquiryEvent {
@@ -184,4 +204,58 @@ export interface AdmissionSectionVacancy {
   capacity: number | null;
   activeEnrollments: number;
   availableSeats: number | null;
+}
+
+export interface AdmissionReservation {
+  publicUuid: string;
+  applicationPublicUuid: string;
+  studentPublicUuid: string | null;
+  studentFullName: string;
+  academicYearPublicUuid: string;
+  academicYearName: string;
+  gradePublicUuid: string;
+  gradeName: string;
+  status: AdmissionReservationStatus;
+  expiresAt: string | null;
+  reason: string | null;
+  advanceReceivedCents: number;
+  advanceAvailableCents: number;
+}
+
+export interface AdmissionReservationAdvance {
+  publicUuid: string;
+  reservationPublicUuid: string;
+  amountCents: number;
+  appliedCents: number;
+  availableCents: number;
+  currency: string;
+  method: 'CASH' | 'TRANSFER' | 'POS' | 'OTHER';
+  status: 'AVAILABLE' | 'PARTIALLY_APPLIED' | 'APPLIED' | 'REFUNDED';
+  reference: string | null;
+  notes: string | null;
+  receivedAt: string;
+}
+
+export interface AdmissionReservationAdvanceEvent {
+  advancePublicUuid: string;
+  action: 'RECEIVED' | 'APPLIED' | 'REFUNDED';
+  amountCents: number;
+  invoicePublicUuid: string | null;
+  note: string | null;
+  actorUserId: string | null;
+  createdAt: string;
+}
+
+export interface AdmissionEnrollmentCompletion {
+  application: AdmissionApplication;
+  billingStatus: 'NOT_CONFIGURED' | 'PENDING' | 'PAID' | 'ISSUE_FAILED';
+  enrollmentInvoice: {
+    publicUuid: string;
+    totalCents: number;
+    advanceAppliedCents?: number;
+    balanceCents?: number;
+    status: 'PENDING' | 'PENDING_REVIEW' | 'PAID' | 'OVERDUE' | 'CANCELLED' | 'REFUNDED';
+    periodLabel: string;
+  } | null;
+  portalAccessStatus: 'LINKED' | 'INVITATION_SENT' | 'PENDING' | 'REVIEW_REQUIRED';
 }

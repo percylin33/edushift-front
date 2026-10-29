@@ -11,7 +11,6 @@ import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
 import { AcademicApiService } from '@features/academic/services';
-import { AcademicYearStatus, SectionRow } from '@features/academic/models';
 import {
   PageContainerComponent,
   PageHeaderComponent,

@@ -152,7 +152,7 @@ export class FamilyUatHubPageComponent {
   private readonly router = inject(Router);
 
   goBack(): void {
-    const previous = this.router.lastSuccessfulNavigation?.previousNavigation;
+    const previous = this.router.lastSuccessfulNavigation()?.previousNavigation;
     if (previous) {
       this.location.back();
       return;

@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { STORAGE_KEYS } from '@core/constants';
 import { Permission, UserRole } from '@core/enums';
-import { AuthSession, User, UserSummary } from '@core/models';
+import { AuthSession, User } from '@core/models';
 import { StorageService } from './storage.service';
 
 /**

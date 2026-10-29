@@ -3,7 +3,7 @@ import { of } from 'rxjs';
 import { ApiService } from '@core/services';
 import { SpringPage } from '@core/models';
 import { TaskApiService } from './task-api.service';
-import { TaskLifecycle, TaskResponseRaw, TaskSummaryRaw, toTaskDetail, toTaskRow } from '../models';
+import { TaskLifecycle, TaskResponseRaw, TaskSummaryRaw, toTaskDetail } from '../models';
 
 describe('TaskApiService', () => {
   let service: TaskApiService;
@@ -57,8 +57,12 @@ describe('TaskApiService', () => {
     apiSpy.get.and.returnValue(of(pageOf([])));
     service.listBySection('s-1', { lifecycle: TaskLifecycle.Published }).subscribe(() => {
       expect(apiSpy.get).toHaveBeenCalledWith(
-        jasmine.stringMatching(/\/sections\/s-1\/assignments$/),
-        { lifecycle: TaskLifecycle.Published, dueBefore: undefined },
+        jasmine.stringMatching(/\/sections\/s-1\/tasks$/),
+        {
+          lifecycle: TaskLifecycle.Published,
+          dueBefore: undefined,
+          assignmentPublicUuid: undefined,
+        },
       );
       done();
     });
@@ -78,6 +82,8 @@ describe('TaskApiService', () => {
       requiresAttachment: false,
       lifecycle: TaskLifecycle.Draft,
       createdByTeacherPublicUuid: 'tch-1',
+      ownerPublicUuid: 'tch-1',
+      status: 'DRAFT',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: null,
     };
@@ -103,6 +109,8 @@ describe('TaskApiService', () => {
       requiresAttachment: false,
       lifecycle: TaskLifecycle.Draft,
       createdByTeacherPublicUuid: 'tch-1',
+      ownerPublicUuid: 'tch-1',
+      status: 'DRAFT',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: null,
     };
@@ -118,6 +126,7 @@ describe('TaskApiService', () => {
         maxScore: 20,
         allowResubmissions: true,
         requiresAttachment: false,
+        teacherAssignmentPublicUuid: 'assignment-1',
       })
       .subscribe((detail) => {
         expect(detail.publicUuid).toBe('t-new');
@@ -181,7 +190,7 @@ describe('TaskApiService', () => {
     apiSpy.get.and.returnValue(of(pageOf([])));
     service.listByStudent('st-1').subscribe(() => {
       expect(apiSpy.get).toHaveBeenCalledWith(
-        jasmine.stringMatching(/\/students\/st-1\/assignments$/),
+        jasmine.stringMatching(/\/students\/st-1\/tasks$/),
       );
       done();
     });

@@ -44,6 +44,20 @@ describe('computeSmartDayPlanLayout', () => {
     expect(last.endTime).toBe('13:00');
   });
 
+  it('repositions a recess when the school day is shortened', () => {
+    const layout = computeSmartDayPlanLayout({
+      dayStart: '08:00',
+      dayEnd: '12:00',
+      periodMinutes: 45,
+      recessMinutes: [30],
+      includeLunch: false,
+      lunchMinutes: 45,
+    });
+
+    expect(layout.recesses.length).toBe(1);
+    expect(layout.recesses[0].endTime).toBe('10:00');
+  });
+
   it('places second recess on short Inicial day', () => {
     const layout = computeSmartDayPlanLayout({
       dayStart: '08:00',

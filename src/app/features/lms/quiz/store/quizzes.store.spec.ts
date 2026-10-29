@@ -173,7 +173,7 @@ describe('QuizzesStore', () => {
     apiSpy.listBySection.and.returnValue(of([rowOf()]));
     await store.loadBySection('s-1');
     apiSpy.createQuiz.and.returnValue(of(detailOf({ publicUuid: 'q-2' })));
-    const created = await store.createQuiz('s-1', { title: 'Nuevo', maxAttempts: 1, maxScore: 50 });
+    const created = await store.createQuiz('s-1', { title: 'Nuevo', maxAttempts: 1, maxScore: 50, teacherAssignmentPublicUuid: 'assignment-1' });
     expect(created?.publicUuid).toBe('q-2');
     expect(store.selected()?.publicUuid).toBe('q-2');
   });

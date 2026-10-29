@@ -10,6 +10,7 @@ import { StudentDetail } from '../../models';
 import { AttendanceQrInfo } from '@features/attendance/models';
 import { DocumentType, EnrollmentStatus } from '@core/enums';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ConfirmDialogService } from '@shared/components/confirm-dialog/confirm-dialog.service';
 
 @Component({ template: '', standalone: true })
 class DummyComponent {}
@@ -22,6 +23,7 @@ describe('StudentQrPageComponent', () => {
   let fakeTenant: { tenant: ReturnType<typeof signal<{ name: string } | null>> };
   let fakeAuth: { hasRole: jasmine.Spy; user: ReturnType<typeof signal<unknown>> };
   let fakeNotify: { success: jasmine.Spy; error: jasmine.Spy };
+  let fakeConfirm: jasmine.SpyObj<ConfirmDialogService>;
 
   const detail: StudentDetail = {
     publicUuid: 's-1',
@@ -54,6 +56,8 @@ describe('StudentQrPageComponent', () => {
       user: signal(null),
     };
     fakeNotify = { success: jasmine.createSpy('success'), error: jasmine.createSpy('error') };
+    fakeConfirm = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['open']);
+    fakeConfirm.open.and.resolveTo(false);
 
     TestBed.configureTestingModule({
       imports: [StudentQrPageComponent],
@@ -64,6 +68,7 @@ describe('StudentQrPageComponent', () => {
         { provide: TenantService, useValue: fakeTenant },
         { provide: AuthService, useValue: fakeAuth },
         { provide: NotificationService, useValue: fakeNotify },
+        { provide: ConfirmDialogService, useValue: fakeConfirm },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: (_: string) => id } } },
@@ -81,14 +86,14 @@ describe('StudentQrPageComponent', () => {
 
   it('expone backRoute apuntando al listado', () => {
     configureModule();
-    expect((component as any).backRoute).toBe('/students');
+    expect(component['backRoute']).toBe('/students');
   });
 
   it('ngOnInit sin id setea loadError', async () => {
     configureModule(null);
     await component.ngOnInit();
-    expect((component as any).loadError()).toBe('Falta el identificador del alumno.');
-    expect((component as any).loading()).toBeFalse();
+    expect(component['loadError']()).toBe('Falta el identificador del alumno.');
+    expect(component['loading']()).toBeFalse();
   });
 
   it('ngOnInit carga student y qrInfo', async () => {
@@ -96,9 +101,9 @@ describe('StudentQrPageComponent', () => {
     fakeStudentsApi.get.and.returnValue(of(detail));
     fakeAttendanceApi.getQrInfo.and.returnValue(of(qrInfo));
     await component.ngOnInit();
-    expect((component as any).student()?.fullName).toBe('Juan Perez');
-    expect((component as any).qrInfo()?.issuedAt).toBeInstanceOf(Date);
-    expect((component as any).loading()).toBeFalse();
+    expect(component['student']()?.fullName).toBe('Juan Perez');
+    expect(component['qrInfo']()?.issuedAt).toBeInstanceOf(Date);
+    expect(component['loading']()).toBeFalse();
   });
 
   it('ngOnInit maneja 404 con mensaje específico', async () => {
@@ -107,7 +112,7 @@ describe('StudentQrPageComponent', () => {
     fakeStudentsApi.get.and.returnValue(throwError(() => err));
     fakeAttendanceApi.getQrInfo.and.returnValue(throwError(() => err));
     await component.ngOnInit();
-    expect((component as any).loadError()).toContain('No encontramos al alumno');
+    expect(component['loadError']()).toContain('No encontramos al alumno');
   });
 
   it('ngOnInit maneja error genérico con mensaje genérico', async () => {
@@ -115,7 +120,7 @@ describe('StudentQrPageComponent', () => {
     fakeStudentsApi.get.and.returnValue(throwError(() => ({ status: 500 })));
     fakeAttendanceApi.getQrInfo.and.returnValue(of(qrInfo));
     await component.ngOnInit();
-    expect((component as any).loadError()).toContain('error');
+    expect(component['loadError']()).toContain('error');
   });
 
   it('reload dispara loadStudentAndQrMetadata', async () => {
@@ -123,8 +128,8 @@ describe('StudentQrPageComponent', () => {
     fakeStudentsApi.get.and.returnValue(of(detail));
     fakeAttendanceApi.getQrInfo.and.returnValue(of(qrInfo));
     await component.ngOnInit();
-    (component as any).publicUuid.set('s-1');
-    await (component as any).reload();
+    component['publicUuid'].set('s-1');
+    await component['reload']();
     expect(fakeStudentsApi.get).toHaveBeenCalled();
   });
 
@@ -137,7 +142,7 @@ describe('StudentQrPageComponent', () => {
     fakeAttendanceApi.downloadQr.and.returnValue(of(blob));
     spyOn(URL, 'createObjectURL').and.returnValue('blob:fake');
     spyOn(URL, 'revokeObjectURL');
-    await (component as any).issueAndDownload('svg');
+    await component['issueAndDownload']('svg');
     expect(fakeNotify.success).toHaveBeenCalled();
     expect(fakeAttendanceApi.getQrInfo).toHaveBeenCalled();
   });
@@ -148,21 +153,21 @@ describe('StudentQrPageComponent', () => {
     fakeAttendanceApi.getQrInfo.and.returnValue(of(qrInfo));
     await component.ngOnInit();
     fakeAttendanceApi.downloadQr.and.returnValue(throwError(() => new Error('boom')));
-    await (component as any).issueAndDownload('png');
+    await component['issueAndDownload']('png');
     expect(fakeNotify.error).toHaveBeenCalled();
   });
 
   it('issueAndDownload no dispara si busy', async () => {
     configureModule();
-    (component as any).issuingFormat.set('svg');
-    await (component as any).issueAndDownload('png');
+    component['issuingFormat'].set('svg');
+    await component['issueAndDownload']('png');
     expect(fakeAttendanceApi.downloadQr).not.toHaveBeenCalled();
   });
 
   it('rotate requiere canRotate', async () => {
     configureModule();
     fakeAuth.hasRole.and.returnValue(false);
-    await (component as any).rotate();
+    await component['rotate']();
     expect(fakeAttendanceApi.rotateQr).not.toHaveBeenCalled();
   });
 
@@ -172,9 +177,9 @@ describe('StudentQrPageComponent', () => {
     fakeStudentsApi.get.and.returnValue(of(detail));
     fakeAttendanceApi.getQrInfo.and.returnValue(of(qrInfo));
     await component.ngOnInit();
-    spyOn(window, 'confirm').and.returnValue(true);
+    fakeConfirm.open.and.resolveTo(true);
     fakeAttendanceApi.rotateQr.and.returnValue(of({ ...qrInfo }));
-    await (component as any).rotate();
+    await component['rotate']();
     expect(fakeAttendanceApi.rotateQr).toHaveBeenCalled();
     expect(fakeNotify.success).toHaveBeenCalled();
   });
@@ -182,8 +187,8 @@ describe('StudentQrPageComponent', () => {
   it('rotate cancelado por usuario no llama API', async () => {
     configureModule();
     fakeAuth.hasRole.and.returnValue(true);
-    spyOn(window, 'confirm').and.returnValue(false);
-    await (component as any).rotate();
+    fakeConfirm.open.and.resolveTo(false);
+    await component['rotate']();
     expect(fakeAttendanceApi.rotateQr).not.toHaveBeenCalled();
   });
 
@@ -193,27 +198,27 @@ describe('StudentQrPageComponent', () => {
     fakeStudentsApi.get.and.returnValue(of(detail));
     fakeAttendanceApi.getQrInfo.and.returnValue(of(qrInfo));
     await component.ngOnInit();
-    spyOn(window, 'confirm').and.returnValue(true);
+    fakeConfirm.open.and.resolveTo(true);
     fakeAttendanceApi.rotateQr.and.returnValue(throwError(() => new Error('x')));
-    await (component as any).rotate();
+    await component['rotate']();
     expect(fakeNotify.error).toHaveBeenCalled();
   });
 
   it('formatDate formatea en es', () => {
     configureModule();
-    const formatted = (component as any).formatDate(new Date('2026-06-15T10:30'));
+    const formatted = component['formatDate'](new Date('2026-06-15T10:30'));
     expect(formatted).toContain('2026');
   });
 
   it('canRotate / hasActiveQr / busy reflejan signals', () => {
     configureModule();
     fakeAuth.hasRole.and.returnValue(true);
-    expect((component as any).canRotate()).toBeTrue();
-    expect((component as any).hasActiveQr()).toBeFalse();
-    expect((component as any).busy()).toBeFalse();
-    (component as any).qrInfo.set(qrInfo);
-    expect((component as any).hasActiveQr()).toBeTrue();
-    (component as any).rotating.set(true);
-    expect((component as any).busy()).toBeTrue();
+    expect(component['canRotate']()).toBeTrue();
+    expect(component['hasActiveQr']()).toBeFalse();
+    expect(component['busy']()).toBeFalse();
+    component['qrInfo'].set(qrInfo);
+    expect(component['hasActiveQr']()).toBeTrue();
+    component['rotating'].set(true);
+    expect(component['busy']()).toBeTrue();
   });
 });

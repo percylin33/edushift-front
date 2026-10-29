@@ -8,7 +8,6 @@ import {
   Input,
   OnChanges,
   Output,
-  SimpleChanges,
   computed,
   signal,
 } from '@angular/core';
@@ -177,7 +176,7 @@ export class AdminPaymentActionModalComponent implements OnChanges {
   /** Mode-specific copy. Re-derived whenever the input changes. */
   copy = computed(() => this.copyFor(this.kind));
 
-  ngOnChanges(changes: SimpleChanges): void {
+  ngOnChanges(): void {
     // Reset the form on mode switch so a previous reason doesn't bleed
     // into a different action.
     this.form.reset({ reason: '', note: '' });

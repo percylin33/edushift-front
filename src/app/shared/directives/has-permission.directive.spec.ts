@@ -22,7 +22,6 @@ describe('HasPermissionDirective', () => {
   let permissionsSignal: ReturnType<typeof signal<Permission[]>>;
   let userSignal: ReturnType<typeof signal<{ email: string } | null>>;
   let fixture: ComponentFixture<HostComponent>;
-  let component: HostComponent;
 
   function recompile(): void {
     TestBed.resetTestingModule();
@@ -39,7 +38,6 @@ describe('HasPermissionDirective', () => {
       ],
     });
     fixture = TestBed.createComponent(HostComponent);
-    component = fixture.componentInstance;
     fixture.detectChanges();
   }
 

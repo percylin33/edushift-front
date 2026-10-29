@@ -93,7 +93,7 @@ export class EvaluationsLandingComponent implements OnInit {
       }
 
       if (isTeacher) {
-        const assignments = await this.sectionContext.loadMyAssignments();
+        const assignments = await this.sectionContext.loadCurrentYearAssignments();
         if (assignments.length === 1) {
           await this.router.navigateByUrl(
             this.sectionContext.evaluationsUrlForAssignment(assignments[0]!),

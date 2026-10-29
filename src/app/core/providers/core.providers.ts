@@ -2,11 +2,9 @@ import {
   ENVIRONMENT_INITIALIZER,
   EnvironmentProviders,
   Provider,
-  importProvidersFrom,
   inject,
 } from '@angular/core';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
-import { provideAnimations } from '@angular/platform-browser/animations';
 import { HTTP_INTERCEPTORS_CHAIN } from '@core/interceptors';
 import { AuthService, LoggerService, TenantService } from '@core/services';
 import { reconcileTenantWithSession } from '@core/services/tenant-session.reconcile';
@@ -66,18 +64,5 @@ export function provideCore(): (Provider | EnvironmentProviders)[] {
         });
       },
     },
-    // The social-login SDK requires the Angular animations provider
-    // even when the host application does not use animations directly.
-    // It's cheap to ship in production; no runtime cost unless a
-    // Google popup is opened.
-    provideAnimations(),
   ];
 }
-
-/**
- * Re-export of {@link importProvidersFrom} for ergonomic use from
- * bootstrap glue. Removed the dynamic-import helper that used to
- * live here; the SDK is now loaded exclusively from `main.ts` so the
- * providers file stays free of any reference to it.
- */
-export { importProvidersFrom };

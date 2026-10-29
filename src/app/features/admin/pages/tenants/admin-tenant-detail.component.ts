@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { ROUTES } from '@core/constants';
 import { AdminInvoicesService, AdminPlansService, AdminTenantsService, PrepPackageVariant } from '../../services';
-import { AdminTenantDetail } from '../../models';
+import { AdminTenantAiSettings, AdminTenantDetail } from '../../models';
 import { tenantPublicUrl } from './tenant-url';
 
 interface TenantModuleCard {
@@ -163,6 +163,36 @@ interface TenantModuleCard {
           </div>
 
           <aside class="space-y-5">
+            <section class="rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-6" aria-labelledby="ai-settings-title">
+              <div class="flex items-center justify-between gap-3">
+                <h2 id="ai-settings-title" class="text-lg font-bold text-white">Asistentes IA</h2>
+                @if (svc.tenantAiSettings(); as aiStatus) {
+                  <span [class]="aiStatusClass(aiStatus)">{{ aiStatusLabel(aiStatus) }}</span>
+                }
+              </div>
+              @if (svc.tenantAiSettingsLoading()) {
+                <p class="mt-4 text-sm text-slate-400" role="status">Consultando acceso a IA…</p>
+              } @else if (svc.tenantAiSettingsError()) {
+                <p class="mt-4 text-sm text-red-300" role="alert">{{ svc.tenantAiSettingsError() }}</p>
+                <button type="button" (click)="reloadAiSettings(t.publicUuid)" class="mt-3 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800">Reintentar</button>
+              } @else {
+                @if (svc.tenantAiSettings(); as ai) {
+                  @if (ai.planAvailable) {
+                    <p class="mt-3 text-sm leading-6 text-slate-300">El plan {{ ai.planCode }} permite hasta <strong class="text-white">{{ fmt(ai.dailyRequestLimit) }}</strong> solicitudes diarias y <strong class="text-white">{{ fmt(ai.monthlyTokenLimit) }}</strong> tokens al mes.</p>
+                    @if (!ai.configured) {
+                      <p class="mt-3 rounded-lg border border-indigo-900 bg-indigo-950/40 p-3 text-xs leading-5 text-indigo-200">Al activar, se creará la configuración del colegio con los límites heredados del plan.</p>
+                    }
+                  } @else {
+                    <p class="mt-3 rounded-lg border border-amber-900 bg-amber-950/30 p-3 text-sm leading-5 text-amber-200">El plan o la suscripción actual no permite usar asistentes IA. No se puede activar hasta que el acceso del plan esté vigente.</p>
+                  }
+                  <button type="button" (click)="toggleAiSettings(ai)" [disabled]="aiActionBusy() || (!ai.planAvailable && !ai.enabled)" class="mt-4 w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40" [class.bg-emerald-700]="!ai.enabled" [class.hover:bg-emerald-600]="!ai.enabled" [class.bg-slate-700]="ai.enabled" [class.hover:bg-slate-600]="ai.enabled">
+                    {{ aiActionBusy() ? 'Guardando…' : ai.enabled ? 'Desactivar IA para este colegio' : 'Activar IA para este colegio' }}
+                  </button>
+                  <p class="mt-2 text-xs leading-5 text-slate-500">Los límites efectivos nunca superan el plan. El cambio queda registrado en auditoría.</p>
+                }
+              }
+            </section>
+
             <section class="rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-6" aria-labelledby="subscription-title">
               <div class="flex items-center justify-between gap-3"><h2 id="subscription-title" class="text-lg font-bold text-white">Suscripción B2B</h2><span [class]="subscriptionBadgeClass(t.subscription?.status)">{{ subscriptionStatusLabel(t.subscription?.status) }}</span></div>
               @if (t.subscription; as sub) {
@@ -227,6 +257,7 @@ export class AdminTenantDetailComponent implements OnInit {
   protected readonly prepBusy = signal(false);
   protected readonly prepError = signal<string | null>(null);
   protected readonly actionBusy = signal<'suspend' | 'reactivate' | 'plan' | null>(null);
+  protected readonly aiActionBusy = signal(false);
   protected readonly actionError = signal<string | null>(null);
   protected readonly actionSuccess = signal<string | null>(null);
   protected readonly copied = signal<string | null>(null);
@@ -246,7 +277,51 @@ export class AdminTenantDetailComponent implements OnInit {
     const uuid = this.route.snapshot.paramMap.get('uuid');
     if (!uuid) return;
     this.svc.loadTenantDetail(uuid);
+    this.svc.loadTenantAiSettings(uuid);
     this.invoices.loadTenantInvoices(uuid);
+  }
+
+  protected reloadAiSettings(uuid: string): void {
+    this.svc.loadTenantAiSettings(uuid);
+  }
+
+  protected aiStatusClass(settings: AdminTenantAiSettings): string {
+    if (settings.planAvailable && settings.enabled) {
+      return 'rounded-md border border-emerald-800 bg-emerald-950 px-2.5 py-1 text-xs font-semibold text-emerald-300';
+    }
+    if (!settings.planAvailable) {
+      return 'rounded-md border border-amber-800 bg-amber-950 px-2.5 py-1 text-xs font-semibold text-amber-200';
+    }
+    return 'rounded-md border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-300';
+  }
+
+  protected aiStatusLabel(settings: AdminTenantAiSettings): string {
+    if (!settings.planAvailable) return 'Sin acceso por plan';
+    return settings.enabled ? 'Activa' : 'Desactivada';
+  }
+
+  protected toggleAiSettings(settings: AdminTenantAiSettings): void {
+    const tenant = this.svc.selectedTenant();
+    const enabled = !settings.enabled;
+    if (!tenant || this.aiActionBusy() || (enabled && !settings.planAvailable)) return;
+    const message = enabled
+      ? `¿Activar asistentes IA para ${tenant.name}? Se aplicarán los límites del plan ${settings.planCode}.`
+      : `¿Desactivar asistentes IA para ${tenant.name}? Sus usuarios perderán el acceso; el historial se conservará.`;
+    if (!window.confirm(message)) return;
+
+    this.aiActionBusy.set(true);
+    this.actionError.set(null);
+    this.actionSuccess.set(null);
+    this.svc.updateTenantAiSettings(tenant.publicUuid, enabled)
+      .pipe(finalize(() => this.aiActionBusy.set(false)))
+      .subscribe({
+        next: (updated) => this.actionSuccess.set(
+          updated.enabled ? 'Asistentes IA activados para la institución.' : 'Asistentes IA desactivados para la institución.',
+        ),
+        error: (error: { error?: { message?: string }; statusText?: string }) => {
+          this.actionError.set(error.error?.message ?? error.statusText ?? 'No se pudo actualizar el acceso a IA.');
+        },
+      });
   }
 
   protected fmt(value: number | null | undefined): string {

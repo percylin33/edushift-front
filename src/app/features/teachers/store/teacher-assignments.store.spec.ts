@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { TeacherAssignmentsStore } from './teacher-assignments.store';
 import { TeachersApiService } from '../services';
-import { AssignmentRow, AssignmentDetail, SectionTeacherItem } from '../models';
+import { AssignmentRow, AssignmentDetail, SectionTeacherItem, CreateAssignmentRequest } from '../models';
 import { PeriodType } from '@features/academic/models';
 
 describe('TeacherAssignmentsStore', () => {
@@ -106,7 +106,7 @@ describe('TeacherAssignmentsStore', () => {
       sectionPublicUuid: 'sec-2',
       coursePublicUuid: 'c-2',
       academicPeriodPublicUuid: 'p-1',
-    } as any);
+    });
 
     expect(result).toEqual(mockDetail);
     expect(store.assignments()).toHaveSize(1);
@@ -118,7 +118,11 @@ describe('TeacherAssignmentsStore', () => {
     apiSpy.listAssignments.and.returnValue(of([]));
     await store.loadAssignmentsFor('t-1');
 
-    await store.create('t-2', {} as any);
+    await store.create('t-2', {
+      sectionPublicUuid: 'sec-2',
+      coursePublicUuid: 'c-2',
+      academicPeriodPublicUuid: 'p-1',
+    });
     expect(store.assignments()).toEqual([]);
   });
 
@@ -126,7 +130,7 @@ describe('TeacherAssignmentsStore', () => {
     apiSpy.listAssignments.and.returnValue(of([]));
     await store.loadAssignmentsFor('t-1');
 
-    apiSpy.createAssignment.and.callFake((_t: string, req: any) => {
+    apiSpy.createAssignment.and.callFake((_t: string, req: CreateAssignmentRequest) => {
       if (req.academicPeriodPublicUuid === 'p-2') {
         return throwError(() => ({
           status: 409,
@@ -158,7 +162,7 @@ describe('TeacherAssignmentsStore', () => {
   it('createCombinations crea cursos × periodos', async () => {
     apiSpy.listAssignments.and.returnValue(of([]));
     await store.loadAssignmentsFor('t-1');
-    apiSpy.createAssignment.and.callFake((_t: string, req: any) =>
+    apiSpy.createAssignment.and.callFake((_t: string, req: CreateAssignmentRequest) =>
       of({
         ...mockDetail,
         publicUuid: `a-${req.coursePublicUuid}-${req.academicPeriodPublicUuid}`,

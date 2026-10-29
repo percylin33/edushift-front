@@ -266,12 +266,23 @@ export class EnrollStudentModalComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.store.clearError();
-    /* Default razonable de la fecha = hoy si está dentro del rango,
-     * sino el inicio del año. Lo seteamos después de cargar el año. */
+    /* Prioriza la fecha institucional del estudiante en su primera sección;
+     * para cambios de sección usa hoy. Ambas deben caer dentro del año activo. */
     await this.fetchCatalogs();
     const today = this.toIsoDate(new Date());
+    const studentDate = this.student().enrollmentDate
+      ? this.toIsoDate(this.student().enrollmentDate!)
+      : '';
+    const preferredDate =
+      !this.isTransfer() &&
+      studentDate >= this.yearMinDate() &&
+      studentDate <= this.yearMaxDate()
+        ? studentDate
+        : today;
     this.enrolledAt.set(
-      today >= this.yearMinDate() && today <= this.yearMaxDate() ? today : this.yearMinDate(),
+      preferredDate >= this.yearMinDate() && preferredDate <= this.yearMaxDate()
+        ? preferredDate
+        : this.yearMinDate(),
     );
   }
 

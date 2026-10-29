@@ -57,6 +57,23 @@ export class LmsSectionContextService {
     }
   }
 
+  /** Picker entries belong to the active year; assignment.active only means not unassigned. */
+  async loadCurrentYearAssignments(): Promise<AssignmentRow[]> {
+    if (!this.auth.hasRole(UserRole.Teacher)) return [];
+    const [assignments, sections] = await Promise.all([
+      this.loadMyAssignments(),
+      firstValueFrom(this.academicApi.listSections()),
+    ]);
+    const sectionUuids = new Set(
+      sections
+        .filter((section) => section.academicYearStatus === 'ACTIVE')
+        .map((section) => section.publicUuid),
+    );
+    return assignments.filter(
+      (assignment) => assignment.active && sectionUuids.has(assignment.sectionPublicUuid),
+    );
+  }
+
   /**
    * Materias del aula. Un docente ve las suyas; un administrador del colegio
    * ve todas las asignaciones activas de la sección.
@@ -151,7 +168,7 @@ export class LmsSectionContextService {
     courseUuid: string,
     preferredPeriodUuid: string | null = null,
   ): Promise<{ course: LmsCourseOption | null; sections: LmsCourseSectionOption[] }> {
-    const assignments = (await this.loadMyAssignments()).filter(
+    const assignments = (await this.loadCurrentYearAssignments()).filter(
       (a) => a.active && a.coursePublicUuid === courseUuid,
     );
     if (assignments.length === 0) {
@@ -176,8 +193,7 @@ export class LmsSectionContextService {
       const preferred =
         (preferredPeriodUuid
           ? rows.find((r) => r.academicPeriodPublicUuid === preferredPeriodUuid)
-          : undefined) ??
-        [...rows].sort((a, b) => a.periodOrdinal - b.periodOrdinal)[0]!;
+          : undefined) ?? [...rows].sort((a, b) => a.periodOrdinal - b.periodOrdinal)[0]!;
       const section = sectionByUuid.get(sectionUuid);
       const label = section
         ? formatSectionDisplayLabel(section.name, section.gradeName)
@@ -214,6 +230,7 @@ export class LmsSectionContextService {
     for (const a of assignments) {
       if (!a.active || seen.has(a.sectionPublicUuid)) continue;
       const section = sectionByUuid.get(a.sectionPublicUuid);
+      if (!section) continue;
       const label = section
         ? formatSectionDisplayLabel(section.name, section.gradeName)
         : a.sectionName;

@@ -385,7 +385,7 @@ import {
     </main>
   `,
 })
-export class DisclosureWorkspacePage implements OnInit {
+export class DisclosureWorkspacePageComponent implements OnInit {
   private readonly academicApi = inject(AcademicApiService);
   private readonly api = inject(DisclosuresApiService);
   private readonly files = inject(FileUploadService);

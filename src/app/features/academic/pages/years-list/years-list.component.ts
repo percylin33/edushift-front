@@ -58,7 +58,7 @@ import { AcademicYearRow, AcademicYearStatus, isYearMutable } from '../../models
         </a>
         <a [routerLink]="newRoute" class="btn btn-primary btn-sm self-start sm:self-auto">
           <app-icon name="plus" [size]="16" />
-          <span class="hidden sm:inline">Nuevo año</span>
+          <span>Nuevo año</span>
         </a>
       </div>
     </header>

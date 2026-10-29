@@ -28,6 +28,10 @@ export interface Invoice {
   discountCents: number;
   taxCents: number;
   totalCents: number;
+  /** Portion already paid as an admission reservation advance. */
+  advanceAppliedCents?: number;
+  /** Remaining amount to pay after reservation advances. */
+  balanceCents?: number;
   status: InvoiceStatus;
   issuedAt: string;
   dueAt: string;

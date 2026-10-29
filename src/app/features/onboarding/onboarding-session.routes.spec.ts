@@ -16,15 +16,32 @@ describe('Onboarding requires a session before showing upload controls', () => {
   let signedIn: boolean;
   beforeEach(() => {
     signedIn = false;
-    const wizard = PUBLIC_ROUTES.find(route => route.path === 'onboarding')!;
-    TestBed.configureTestingModule({ providers: [
-      { provide: AuthService, useValue: { isAuthenticated: () => signedIn, user: () => ({ mustChangePassword: false }) } },
-      { provide: TenantService, useValue: { tenant: () => ({ slug: 'colegioqa' }), setTenant: () => undefined } },
-      provideRouter([
-        { ...wizard, component: WizardShell, loadChildren: undefined, children: [{ path: 'school', component: SchoolStep }] },
-        { path: 'auth/login', component: SchoolLogin },
-      ]),
-    ] });
+    const wizard = PUBLIC_ROUTES.find((route) => route.path === 'onboarding')!;
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: AuthService,
+          useValue: {
+            isAuthenticated: () => signedIn,
+            user: () => ({ mustChangePassword: false }),
+          },
+        },
+        {
+          provide: TenantService,
+          useValue: { tenant: () => ({ slug: 'colegioqa' }), setTenant: () => undefined },
+        },
+        provideRouter([
+          {
+            ...wizard,
+            component: WizardShell,
+            loadComponent: undefined,
+            loadChildren: undefined,
+            children: [{ path: 'school', component: SchoolStep }],
+          },
+          { path: 'auth/login', component: SchoolLogin },
+        ]),
+      ],
+    });
   });
   it('redirects a new origin without a session to login, preserving the onboarding destination', async () => {
     const harness = await RouterTestingHarness.create('/onboarding/school');

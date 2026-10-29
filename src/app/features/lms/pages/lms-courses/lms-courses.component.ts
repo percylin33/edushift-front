@@ -153,7 +153,7 @@ export class LmsCoursesComponent implements OnInit {
 
   async #load(): Promise<void> {
     try {
-      const assignments = await this.sectionContext.loadMyAssignments();
+      const assignments = await this.sectionContext.loadCurrentYearAssignments();
       this.courses.set(this.sectionContext.groupCoursesFromAssignments(assignments));
     } finally {
       this.loading.set(false);

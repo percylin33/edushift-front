@@ -231,8 +231,24 @@ export const API = {
       `${BASE}/admissions/applications/${encodeURIComponent(applicationPublicUuid)}/offer-link`,
     COMPLETE_ENROLLMENT: (applicationPublicUuid: string) =>
       `${BASE}/admissions/applications/${encodeURIComponent(applicationPublicUuid)}/complete-enrollment`,
+    RETRY_ENROLLMENT_SETUP: (applicationPublicUuid: string) =>
+      `${BASE}/admissions/applications/${encodeURIComponent(applicationPublicUuid)}/retry-enrollment-setup`,
     VACANCIES: (yearPublicUuid: string) =>
       `${BASE}/admissions/years/${encodeURIComponent(yearPublicUuid)}/vacancies`,
+    RESERVATIONS: (yearPublicUuid: string) =>
+      `${BASE}/admissions/years/${encodeURIComponent(yearPublicUuid)}/reservations`,
+    APPLICATION_RESERVATION: (applicationPublicUuid: string) =>
+      `${BASE}/admissions/applications/${encodeURIComponent(applicationPublicUuid)}/reservations`,
+    RESERVATION: (reservationPublicUuid: string) =>
+      `${BASE}/admissions/reservations/${encodeURIComponent(reservationPublicUuid)}`,
+    RESERVATION_HISTORY: (reservationPublicUuid: string) =>
+      `${BASE}/admissions/reservations/${encodeURIComponent(reservationPublicUuid)}/history`,
+    RESERVATION_ADVANCES: (reservationPublicUuid: string) =>
+      `${BASE}/admissions/reservations/${encodeURIComponent(reservationPublicUuid)}/advances`,
+    RESERVATION_ADVANCE_EVENTS: (reservationPublicUuid: string) =>
+      `${BASE}/admissions/reservations/${encodeURIComponent(reservationPublicUuid)}/advances/events`,
+    RESERVATION_ADVANCE_REFUND: (reservationPublicUuid: string, advancePublicUuid: string) =>
+      `${BASE}/admissions/reservations/${encodeURIComponent(reservationPublicUuid)}/advances/${encodeURIComponent(advancePublicUuid)}/refund`,
     STATUS: (applicationPublicUuid: string) =>
       `${BASE}/admissions/applications/${encodeURIComponent(applicationPublicUuid)}/status`,
     ENROLLMENT: (applicationPublicUuid: string) =>
@@ -376,6 +392,8 @@ export const API = {
       SEED_DEFAULTS: `${BASE}/schedule/day-templates/seed-defaults`,
       APPLY_DAY_PLAN: (uuid: string) =>
         `${BASE}/schedule/day-templates/${encodeURIComponent(uuid)}/apply-day-plan`,
+      REVIEW_DAY_TEMPLATE: (uuid: string) =>
+        `${BASE}/schedule/day-templates/${encodeURIComponent(uuid)}/review`,
       VALIDATION_WARNINGS: `${BASE}/schedule/validation-warnings`,
       BOOTSTRAP: (yearUuid: string) =>
         `${BASE}/schedule/bootstrap/${encodeURIComponent(yearUuid)}`,
@@ -471,6 +489,8 @@ export const API = {
         `${BASE}/admin/payments/invoices/${encodeURIComponent(invoicePublicUuid)}/mark-paid-cash`,
       APPROVE_EVIDENCE: (invoicePublicUuid: string) =>
         `${BASE}/admin/payments/invoices/${encodeURIComponent(invoicePublicUuid)}/approve-evidence`,
+      SUBMIT_EVIDENCE: (invoicePublicUuid: string) =>
+        `${BASE}/admin/payments/invoices/${encodeURIComponent(invoicePublicUuid)}/evidence`,
       REJECT_EVIDENCE: (invoicePublicUuid: string) =>
         `${BASE}/admin/payments/invoices/${encodeURIComponent(invoicePublicUuid)}/reject-evidence`,
       MORA_EXEMPT: (invoicePublicUuid: string) =>
@@ -791,6 +811,8 @@ export const API = {
     /** `GET|PATCH /v1/admin/tenants/{publicUuid}` — detail / suspend. */
     TENANTS_BY_ID: (publicUuid: string) =>
       `${BASE}/admin/tenants/${encodeURIComponent(publicUuid)}`,
+    TENANT_AI_SETTINGS: (publicUuid: string) =>
+      `${BASE}/admin/tenants/${encodeURIComponent(publicUuid)}/ai-settings`,
     /** `GET /v1/admin/tenants/{publicUuid}/invoices` — institution billing history. */
     TENANT_INVOICES: (publicUuid: string) =>
       `${BASE}/admin/tenants/${encodeURIComponent(publicUuid)}/invoices`,
@@ -870,63 +892,63 @@ export const API = {
     /** Impersonation: `POST /v1/admin/impersonate/stop` — stop impersonating. */
     IMPERSONATE_STOP: `${BASE}/admin/impersonate/stop`,
   },
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   CLAIMS: {
     /** `GET /v1/admin/claims?status=&page=&size=` — list claims (TENTANT_ADMIN+SUPER_ADMIN). */
     ROOT: `${BASE}/admin/claims`,
     /** `POST /v1/admin/claims/{uuid}/respond` — respond to a claim. */
     RESPOND: (uuid: string) => `${BASE}/admin/claims/${encodeURIComponent(uuid)}/respond`,
   },
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   LMS: {
     ROOT: `${BASE}/lms`,
     // ---------------------------------------------------------------------

@@ -25,7 +25,7 @@ describe('PAYMENTS_ROUTES', () => {
   it('admin usa permissionGuard con LMS_PAYMENT_ADMIN', () => {
     const admin = PAYMENTS_ROUTES.find((r) => r.path === 'admin')!;
     expect(admin.canMatch).toBeDefined();
-    expect((admin.data as any).permissions).toBe('LMS_PAYMENT_ADMIN');
+    expect((admin.data?.['permissions'] as string[])).toContain('LMS_PAYMENT_ADMIN');
   });
 
   it('invoices es lazy loadComponent', () => {

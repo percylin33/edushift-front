@@ -1,5 +1,5 @@
 import { pendingChangesGuard } from '@shared/services/form-protection.service';
-﻿import { Routes } from '@angular/router';
+import { Routes } from '@angular/router';
 import { authChildGuard } from '@core/guards';
 
 /**

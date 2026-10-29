@@ -3,7 +3,6 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
-import * as QRCode from 'qrcode';
 
 import { AuthService } from '@core/services';
 import { ROUTES } from '@core/constants';
@@ -193,6 +192,7 @@ export class MfaEnrollComponent implements OnInit {
       next: async (res) => {
         this.enrollment.set({ secretBase32: res.secretBase32 });
         try {
+          const QRCode = await import('qrcode');
           const dataUrl = await QRCode.toDataURL(res.otpauthUri, {
             width: 256,
             margin: 1,

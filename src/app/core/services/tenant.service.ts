@@ -31,6 +31,8 @@ export class TenantService {
    * <p>On local development hosts, only {@code <hostname>.localhost} identifies
    * a school. Query parameters, cached state, and the default tenant are ignored
    * there so the root localhost URL cannot silently open a school's login.</p>
+   * <p>With the subdomain strategy, a school hostname takes precedence over
+   * {@code ?tenant=} so a URL parameter cannot relabel an established school host.</p>
    * <p>Outside localhost, the existing strategy remains available for deployed
    * subdomains, tunnels, and legacy non-local environments.</p>
    */
@@ -48,6 +50,14 @@ export class TenantService {
       };
     }
 
+    // On a school subdomain, the hostname is the authoritative tenant
+    // selector. A query parameter may select a tenant on root/tunnel hosts,
+    // but must not relabel a school URL.
+    if (environment.multiTenant.strategy === 'subdomain') {
+      const hostSlug = TenantService.subdomainSlug(host);
+      if (hostSlug) return { slug: hostSlug, resolvedFrom: 'subdomain' };
+    }
+
     const queryOverride = this.readSlugFromQuery();
     if (queryOverride && TenantService.isLikelyRealTenantSlug(queryOverride)) {
       this.storage.set(STORAGE_KEYS.CURRENT_TENANT, queryOverride);
@@ -56,16 +66,6 @@ export class TenantService {
 
     switch (environment.multiTenant.strategy) {
       case 'subdomain': {
-        const host = window.location.hostname;
-        // Skip hosts where the first DNS label is a deploy-platform identifier
-        // (Vercel preview, ngrok tunnel id, etc.) — those are not tenant slugs.
-        if (!TenantService.isTunnelHost(host)) {
-          const parts = host.split('.');
-          const candidate = parts.length > 2 ? parts[0] : null;
-          if (candidate && candidate !== 'www' && TenantService.isLikelyRealTenantSlug(candidate)) {
-            return { slug: candidate, resolvedFrom: 'subdomain' };
-          }
-        }
         break;
       }
       case 'path': {
@@ -80,7 +80,11 @@ export class TenantService {
     }
 
     const cached = this.storage.get<string>(STORAGE_KEYS.CURRENT_TENANT);
-    if (cached && !this.isStaleTunnelCache(cached) && TenantService.isLikelyRealTenantSlug(cached)) {
+    if (
+      cached &&
+      !this.isStaleTunnelCache(cached) &&
+      TenantService.isLikelyRealTenantSlug(cached)
+    ) {
       return { slug: cached, resolvedFrom: 'default' };
     }
     if (cached) {
@@ -131,7 +135,28 @@ export class TenantService {
   }
 
   private static isLocalhostDomain(host: string): boolean {
-    return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.localhost');
+    return (
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === '[::1]' ||
+      host.endsWith('.localhost')
+    );
+  }
+
+  /** Returns a valid school slug from a subdomain, excluding platform hosts. */
+  static subdomainSlug(hostname: string): string | null {
+    const host = hostname.toLowerCase().replace(/\.$/, '');
+    if (TenantService.isTunnelHost(host)) return null;
+
+    const candidate = host.split('.').length > 2 ? host.split('.')[0] : null;
+    if (
+      !candidate ||
+      TenantService.PLATFORM_SUBDOMAINS.has(candidate) ||
+      !TenantService.isLikelyRealTenantSlug(candidate)
+    ) {
+      return null;
+    }
+    return candidate;
   }
 
   /** Returns the one-label, dash-free school alias from `school.localhost`. */
@@ -192,6 +217,18 @@ export class TenantService {
     '.render.com',
     '.onrender.com',
   ];
+
+  private static readonly PLATFORM_SUBDOMAINS = new Set([
+    'www',
+    'app',
+    'api',
+    'admin',
+    'auth',
+    'mail',
+    'support',
+    'static',
+    'cdn',
+  ]);
 
   private static isTunnelHost(host: string): boolean {
     const lower = host.toLowerCase();

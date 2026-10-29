@@ -1,13 +1,15 @@
 import { NOTIFICATIONS_ROUTES } from './notifications.routes';
 
 describe('NOTIFICATIONS_ROUTES', () => {
-  it('define ruta raíz', () => {
-    expect(NOTIFICATIONS_ROUTES.length).toBe(1);
+  it('define inicio, preferencias y administración de plantillas', () => {
+    expect(NOTIFICATIONS_ROUTES.length).toBe(3);
     expect(NOTIFICATIONS_ROUTES[0].path).toBe('');
+    expect(NOTIFICATIONS_ROUTES.map((route) => route.path)).toContain('preferences');
+    expect(NOTIFICATIONS_ROUTES.map((route) => route.path)).toContain('templates');
   });
 
   it('carga NotificationsHomeComponent', async () => {
-    const mod = await (NOTIFICATIONS_ROUTES[0].loadComponent! as () => Promise<any>)();
-    expect(mod.NotificationsHomeComponent).toBeDefined();
+    const component = await NOTIFICATIONS_ROUTES[0].loadComponent!();
+    expect(component).toBeDefined();
   });
 });

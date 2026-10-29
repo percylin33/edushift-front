@@ -286,7 +286,7 @@ type InquiryField =
     </main>
   `,
 })
-export class PublicAdmissionsPage {
+export class PublicAdmissionsPageComponent {
   protected readonly formProtection = createFormProtection({
     snapshot: () => this.form,
     saving: () => this.saving(),

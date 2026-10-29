@@ -1,6 +1,5 @@
 import {
   TaskLifecycle,
-  SubmissionStatus,
   TaskSummaryRaw,
   TaskResponseRaw,
   toTaskRow,
@@ -66,6 +65,8 @@ describe('task.model', () => {
         requiresAttachment: false,
         lifecycle: TaskLifecycle.Published,
         createdByTeacherPublicUuid: 'tch-1',
+        ownerPublicUuid: 'tch-1',
+        status: 'PUBLISHED',
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: null,
       };

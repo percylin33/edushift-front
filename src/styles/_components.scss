@@ -20,7 +20,15 @@
   }
 
   .btn-primary {
-    @apply bg-primary-600 text-white hocus:bg-primary-700;
+    @apply text-white;
+    background-color: rgb(var(--color-action-primary));
+    &:hover, &:focus-visible {
+      background-color: rgb(var(--color-action-primary-hover));
+    }
+    &:focus-visible {
+      outline: 2px solid rgb(var(--color-content));
+      outline-offset: 2px;
+    }
   }
   .btn-secondary {
     @apply bg-surface-muted text-content hocus:bg-border;

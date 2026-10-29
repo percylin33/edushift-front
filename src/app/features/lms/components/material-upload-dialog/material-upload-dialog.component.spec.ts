@@ -12,6 +12,7 @@ describe('MaterialUploadDialogComponent', () => {
     fixture = TestBed.createComponent(MaterialUploadDialogComponent);
     component = fixture.componentInstance;
     fixture.componentRef.setInput('open', true);
+    fixture.componentRef.setInput('teacherAssignmentPublicUuid', 'assignment-1');
     fixture.detectChanges();
   });
 
@@ -29,24 +30,30 @@ describe('MaterialUploadDialogComponent', () => {
   });
 
   it('emite submit con CreateMaterialRequest', () => {
-    spyOn(component.submit, 'emit');
+    spyOn(component.submitted, 'emit');
     component.form.patchValue({ title: 'Mi material', type: 'LINK', url: 'https://ejemplo.com' });
+    component.onTypeChange();
     component.onSubmit();
-    expect((component as any).submit.emit).toHaveBeenCalledWith(
-      jasmine.objectContaining({ title: 'Mi material', type: 'LINK', url: 'https://ejemplo.com' }),
+    expect(component.submitted.emit).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        title: 'Mi material',
+        type: 'LINK',
+        url: 'https://ejemplo.com',
+        teacherAssignmentPublicUuid: 'assignment-1',
+      }),
     );
   });
 
   it('no emite si form inválido', () => {
-    spyOn(component.submit, 'emit');
+    spyOn(component.submitted, 'emit');
     component.onSubmit();
-    expect((component as any).submit.emit).not.toHaveBeenCalled();
+    expect(component.submitted.emit).not.toHaveBeenCalled();
   });
 
   it('emite cancelled al cancelar', () => {
-    spyOn(component.cancelled, 'emit');
+    spyOn(component.dialogClosed, 'emit');
     component.onCancel();
-    expect((component as any).cancelled.emit).toHaveBeenCalled();
+    expect(component.dialogClosed.emit).toHaveBeenCalled();
   });
 
   it('isLinkSelected detecta tipo LINK', () => {

@@ -25,7 +25,7 @@ import { ApiError } from '@core/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { AcademicStore } from '../store';
 import {
-  AcademicLevel,
+
   AcademicYearRow,
   AcademicYearStatus,
   Grade,

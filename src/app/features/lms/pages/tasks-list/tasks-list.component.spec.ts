@@ -1,14 +1,21 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { TasksListComponent } from './tasks-list.component';
 import { TasksStore } from '../../store';
 import { TaskLifecycle } from '../../models';
 
 describe('TasksListComponent', () => {
-  let component: any;
+  let component: TasksListComponent;
   let fixture: ComponentFixture<TasksListComponent>;
   let mockStore: jasmine.SpyObj<TasksStore>;
+  const testApi = () =>
+    component as unknown as {
+      lifecycleLabel(lifecycle: TaskLifecycle): string;
+      emptyTitle(): string;
+      emptyDescription(): string;
+      reload(): void;
+    };
 
   beforeEach(async () => {
     mockStore = jasmine.createSpyObj<TasksStore>(
@@ -24,9 +31,23 @@ describe('TasksListComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [TasksListComponent],
-      providers: [provideRouter([]), { provide: TasksStore, useValue: mockStore }],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: { get: (key: string) => (key === 'sectionUuid' ? 's-1' : null) },
+              queryParamMap: { get: () => null },
+            },
+          },
+        },
+        { provide: TasksStore, useValue: mockStore },
+      ],
     }).compileComponents();
 
+    const router = TestBed.inject(Router);
+    spyOnProperty(router, 'url', 'get').and.returnValue('/lms/sections/s-1/assignments');
     fixture = TestBed.createComponent(TasksListComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -37,22 +58,25 @@ describe('TasksListComponent', () => {
   });
 
   it('lifecycleLabel retorna label en español', () => {
-    expect(component.lifecycleLabel(TaskLifecycle.Draft)).toBe('Borrador');
-    expect(component.lifecycleLabel(TaskLifecycle.Published)).toBe('Publicada');
-    expect(component.lifecycleLabel(TaskLifecycle.Closed)).toBe('Cerrada');
+    expect(testApi().lifecycleLabel(TaskLifecycle.Draft)).toBe('Borrador');
+    expect(testApi().lifecycleLabel(TaskLifecycle.Published)).toBe('Publicada');
+    expect(testApi().lifecycleLabel(TaskLifecycle.Closed)).toBe('Cerrada');
   });
 
   it('emptyTitle retorna string para no-student', () => {
-    expect(component.emptyTitle()).toBe('Aún no hay tareas');
+    expect(testApi().emptyTitle()).toBe('Aún no hay tareas');
   });
 
   it('emptyDescription sin filtro activo', () => {
-    expect(component.emptyDescription()).toContain('Crea la primera tarea');
+    expect(testApi().emptyDescription()).toContain('Crea la primera tarea');
   });
 
   it('reload llama clearError y loadBySection', () => {
-    (component as any).__set('_sectionUuid', 's-1');
-    component.reload();
+    testApi().reload();
     expect(mockStore.clearError).toHaveBeenCalled();
+    expect(mockStore.loadBySection).toHaveBeenCalledWith('s-1', {
+      lifecycle: undefined,
+      assignmentPublicUuid: undefined,
+    });
   });
 });

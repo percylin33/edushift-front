@@ -16,8 +16,6 @@ import { QuizzesStore } from '../../store/quizzes.store';
 import {
   AnswerRow,
   AttemptStatus,
-  AttemptSummaryRow,
-  isAttemptFinal,
   canRevealCorrectnessFor,
 } from '../../models/attempt.model';
 import { QuestionRow, QuizDetail } from '../../models/quiz.model';

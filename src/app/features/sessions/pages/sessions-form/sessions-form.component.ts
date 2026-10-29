@@ -10,7 +10,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormArray, FormsModule } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators, FormArray, FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ROUTES, API } from '@core/constants';
@@ -24,6 +24,8 @@ import {
 import { RouterLink } from '@angular/router';
 import { SessionsApiService } from '../../services';
 import { AcademicApiService } from '@features/academic/services';
+import { CompetencyRow, UnitRow } from '@features/academic/models';
+import { AssignmentListItemRaw } from '@features/teachers/models/assignment.model';
 import { SessionTemplatesApiService } from '@features/academic/services/session-templates-api.service';
 import {
   CreateLearningSessionRequest,
@@ -745,12 +747,12 @@ export class SessionsFormComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
-  protected readonly assignments = signal<any[]>([]);
+  protected readonly assignments = signal<AssignmentListItemRaw[]>([]);
   protected readonly periods = signal<AcademicPeriodRow[]>([]);
   protected readonly selectedPeriodUuid = signal<string | null>(null);
   protected readonly currentPeriodId = signal<string | null>(null);
-  protected readonly units = signal<any[]>([]);
-  protected readonly competencies = signal<any[]>([]);
+  protected readonly units = signal<UnitRow[]>([]);
+  protected readonly competencies = signal<CompetencyRow[]>([]);
   protected readonly addingCompetency = signal(false);
   protected readonly draftCompetencyName = signal('');
   protected readonly draftCapacities = signal<string[]>(['']);
@@ -994,9 +996,6 @@ export class SessionsFormComponent implements OnInit {
       title: session.title,
       objective: session.summary,
     });
-    // #region agent log
-    fetch('http://127.0.0.1:7639/ingest/f4773d1b-17bd-44c3-8d39-badf894fd980',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'325667'},body:JSON.stringify({sessionId:'325667',runId:'post-fix',hypothesisId:'A',location:'sessions-form.component.ts:applySessionDraft',message:'draft applied',data:{grade:this.primaryGrade(),objectiveHasInicial:/inicial/i.test(session.summary ?? ''),objectiveHasPrimaria:/primaria/i.test(session.summary ?? '')},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     // El formulario guarda actividades y materiales como texto (igual que la
     // plantilla de sesión). La IA devuelve objetos; se aplanan a una línea.
     this.activitiesArray.clear();
@@ -1083,9 +1082,6 @@ export class SessionsFormComponent implements OnInit {
         }
       }
       this.sheetDrafts.set(drafts);
-      // #region agent log
-      fetch('http://127.0.0.1:7639/ingest/f4773d1b-17bd-44c3-8d39-badf894fd980',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'325667'},body:JSON.stringify({sessionId:'325667',runId:'post-fix',hypothesisId:'C',location:'sessions-form.component.ts:generateSheetDrafts',message:'sheet drafts ready',data:{count:drafts.length,grades:drafts.map((row)=>row.grade),kinds:drafts.map((row)=>row.kind)},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
     } catch (err) {
       this.sheetDrafts.set([]);
       this.sheetError.set(err instanceof Error ? err.message : 'No se pudo generar la ficha.');
@@ -1129,16 +1125,16 @@ export class SessionsFormComponent implements OnInit {
   protected readonly selectedCourseUuid = computed(() => {
     const assignmentUuid = this.selectedAssignmentUuid();
     if (!assignmentUuid) return null;
-    const assignment = this.assignments().find((a: any) => a.publicUuid === assignmentUuid);
+    const assignment = this.assignments().find((a) => a.publicUuid === assignmentUuid);
     return assignment?.coursePublicUuid || null;
   });
 
-  get activitiesArray(): FormArray {
-    return this.form.get('activities') as FormArray;
+  get activitiesArray(): FormArray<FormControl<string | null>> {
+    return this.form.get('activities') as FormArray<FormControl<string | null>>;
   }
 
-  get materialsArray(): FormArray {
-    return this.form.get('materials') as FormArray;
+  get materialsArray(): FormArray<FormControl<string | null>> {
+    return this.form.get('materials') as FormArray<FormControl<string | null>>;
   }
 
   async ngOnInit(): Promise<void> {
@@ -1244,7 +1240,7 @@ export class SessionsFormComponent implements OnInit {
     try {
       const data = await firstValueFrom(this.academicApi.listAssignments({ activeOnly: true }));
       this.assignments.set(data);
-    } catch (err) {
+    } catch {
       this.errorMessage.set('Error al cargar asignaciones');
     }
   }
@@ -1297,8 +1293,8 @@ export class SessionsFormComponent implements OnInit {
   private async loadUnits(courseUuid: string): Promise<void> {
     try {
       const data = await firstValueFrom(this.academicApi.listUnits(courseUuid));
-      this.units.set(data.filter((u: any) => u.isActive));
-    } catch (err) {
+      this.units.set(data.filter((unit) => unit.isActive));
+    } catch {
       this.errorMessage.set('Error al cargar unidades');
     }
   }
@@ -1410,7 +1406,7 @@ export class SessionsFormComponent implements OnInit {
         }),
       );
       this.competencies.set(hydrated);
-    } catch (err) {
+    } catch {
       this.errorMessage.set('Error al cargar competencias');
     }
   }
@@ -1462,7 +1458,7 @@ export class SessionsFormComponent implements OnInit {
       // Forzar la carga de unidades y competencias de este curso
       await this.loadUnits(session.assignment.course.publicUuid);
       await this.loadCompetencies(session.assignment.course.publicUuid);
-    } catch (err) {
+    } catch {
       this.errorMessage.set('Error al cargar la sesión');
     } finally {
       this.loading.set(false);
@@ -1504,7 +1500,7 @@ export class SessionsFormComponent implements OnInit {
       const comp = this.competencies().find((c) => c.publicUuid === publicUuid);
       if (comp) {
         const capSet = new Set(this.selectedCapacities());
-        comp.capacities.forEach((cap: any) => capSet.delete(cap.publicUuid));
+        comp.capacities.forEach((capacity) => capSet.delete(capacity.publicUuid));
         this.selectedCapacities.set(capSet);
       }
     }

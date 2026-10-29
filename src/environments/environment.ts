@@ -17,7 +17,7 @@ export const environment: AppEnvironment = runtimeOverrides({
   uatMode: true,
   appName: 'EduShift',
   appVersion: '0.0.0',
-  apiUrl: 'http://localhost:8081/api',
+  apiUrl: 'http://localhost:8080/api',
   apiVersion: 'v1',
   defaultLocale: 'es',
   supportedLocales: ['es', 'en'],

@@ -1,22 +1,23 @@
 import { notificationDeepLink, notificationDisplaySubject } from './notification-deep-link';
 import { NotificationItem } from '../models';
 
+function item(partial: Partial<NotificationItem>): NotificationItem {
+  return {
+    id: 'n-1',
+    publicUuid: 'n-1',
+    templateKey: 'QUIZ_PUBLISHED',
+    category: 'QUIZ',
+    channel: 'IN_APP',
+    status: 'SENT',
+    subject: 'QUIZ_PUBLISHED · null',
+    bodyHtml: '',
+    sentAt: '',
+    payload: {},
+    ...partial,
+  } as NotificationItem;
+}
+
 describe('notificationDeepLink', () => {
-  function item(partial: Partial<NotificationItem>): NotificationItem {
-    return {
-      id: 'n-1',
-      publicUuid: 'n-1',
-      templateKey: 'QUIZ_PUBLISHED',
-      category: 'QUIZ',
-      channel: 'IN_APP',
-      status: 'SENT',
-      subject: 'QUIZ_PUBLISHED · null',
-      bodyHtml: '',
-      sentAt: '',
-      payload: {},
-      ...partial,
-    } as NotificationItem;
-  }
 
   it('routes QUIZ to take when quizPublicUuid is present', () => {
     expect(
@@ -59,20 +60,20 @@ describe('notificationDeepLink', () => {
 
 describe('notificationDisplaySubject', () => {
   it('rebuilds Spanish title from raw templateKey · null subject', () => {
-    const n = {
+    const n = item({
       templateKey: 'QUIZ_PUBLISHED',
       subject: 'QUIZ_PUBLISHED · null',
       payload: { quizTitle: 'PRACTICA 2', courseName: 'Curso A' },
-    } as NotificationItem;
+    });
     expect(notificationDisplaySubject(n)).toBe('Nueva práctica disponible — PRACTICA 2');
   });
 
   it('keeps a proper BE-rendered Spanish subject', () => {
-    const n = {
+    const n = item({
       templateKey: 'GRADE_PUBLISHED',
       subject: 'Nueva calificación publicada — Examen 1',
       payload: { evaluationTitle: 'Examen 1' },
-    } as NotificationItem;
+    });
     expect(notificationDisplaySubject(n)).toBe('Nueva calificación publicada — Examen 1');
   });
 });

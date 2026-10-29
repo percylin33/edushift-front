@@ -3,6 +3,12 @@ import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import { Subject } from 'rxjs';
 import { AuthService } from '@core/services/auth.service';
 
+declare global {
+  interface Window {
+    __EDUSHIFT_API_BASE__?: string;
+  }
+}
+
 /**
  * Realtime STOMP client (Sprint 10 / FE-10.2, ADR-10.3, ADR-10.4).
  *
@@ -112,13 +118,13 @@ export class RealtimeService {
 
   /**
    * Derive the WS URL from the current API base URL.
-   *   https://api.edushift.com/api/v1 → wss://api.edushift.com/ws/notify
+   *   https://api.edushift.pe/api/v1 → wss://api.edushift.pe/ws/notify
    */
   private resolveWsUrl(): string {
     // We piggyback on the auth service's known host. The API base
     // is in the env config; for MVP we hardcode the well-known
     // path. A future refactor injects an env token here.
-    const apiBase = (window as any).__EDUSHIFT_API_BASE__ ?? '';
+    const apiBase = window.__EDUSHIFT_API_BASE__ ?? '';
     if (apiBase) {
       return apiBase.replace(/^http/, 'ws').replace(/\/api\/.*$/, '') + '/ws/notify';
     }

@@ -21,7 +21,7 @@ const PAY = '/api/v1/payments';
 test.describe('Payments school — emit + access-status', () => {
   test('ADMIN can hit emit/bulk/policy/subscriptions endpoints (non-5xx)', async () => {
     const api = await apiContextFor({ user: TENANT_ADMIN });
-    const base = process.env['API_URL'] ?? 'http://localhost:8081';
+    const base = process.env['API_URL'] ?? 'http://localhost:8080';
     try {
       const policy = await api.get(`${base}${ADMIN_PAY}/policy`);
       expect(policy.status()).toBeLessThan(500);
@@ -51,7 +51,7 @@ test.describe('Payments school — emit + access-status', () => {
       test.skip(true, ctx.reason);
       return;
     }
-    const base = process.env['API_URL'] ?? 'http://localhost:8081';
+    const base = process.env['API_URL'] ?? 'http://localhost:8080';
     try {
       const res = await ctx.api.get(`${base}${PAY}/access-status`);
       expect(res.status()).toBe(200);

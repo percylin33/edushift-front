@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import '@angular/localize/init';
 
 /**
  * Centralized navigation labels (cierre-D / I4 bulk translation).
@@ -50,6 +49,10 @@ export class NavLabels {
 			// Nav item labels.
 			case 'dashboard':
 				return $localize`:@@nav.item.dashboard:Panel`;
+			case 'admissions':
+				return $localize`:@@nav.item.admissions:Admisiones`;
+			case 'disclosures':
+				return $localize`:@@nav.item.disclosures:Información anual`;
 			case 'students':
 				return $localize`:@@nav.item.students:Estudiantes`;
 			case 'teachers':

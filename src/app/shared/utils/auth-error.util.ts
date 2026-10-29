@@ -103,6 +103,10 @@ export function mapHttpError(err: HttpErrorResponse, opts: HttpErrorOptions = {}
   const code = apiError?.code;
   const backendMessage = apiError?.message;
 
+  if (code === 'VALIDATION_ERROR' && backendMessage && !isGenericBackendMessage(backendMessage)) {
+    return backendMessage;
+  }
+
   if (code && AUTH_ERROR_MESSAGES[code]) {
     return AUTH_ERROR_MESSAGES[code];
   }

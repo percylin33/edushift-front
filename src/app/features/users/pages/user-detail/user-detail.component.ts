@@ -249,7 +249,7 @@ interface StaffPermissionGroup {
             <header class="card-header">
               <div>
                 <h2 class="card-title">Roles</h2>
-                <p class="card-description">El conjunto se reemplaza por completo al guardar.</p>
+                <p class="card-description">Administra aquí el acceso general a la institución.</p>
               </div>
             </header>
             <div class="card-body grid gap-2">
@@ -272,6 +272,21 @@ interface StaffPermissionGroup {
                   <app-user-role-badge [role]="option.value" />
                 </label>
               }
+
+              <div class="rounded-md border border-border-subtle bg-surface-muted/40 p-3">
+                <p class="text-sm font-medium text-content">Accesos ligados a una ficha</p>
+                <p class="mt-1 text-xs text-content-muted">
+                  Los roles de docente, estudiante y tutor se asignan desde sus fichas. Al invitar
+                  o vincular desde esas secciones, la cuenta queda asociada correctamente.
+                </p>
+                @if (profileManagedRoles(u).length > 0) {
+                  <div class="mt-2 flex flex-wrap gap-1.5">
+                    @for (role of profileManagedRoles(u); track role) {
+                      <app-user-role-badge [role]="role" />
+                    }
+                  </div>
+                }
+              </div>
 
               @if (isSelf()) {
                 <p class="mt-1 text-xs text-content-muted">
@@ -737,7 +752,7 @@ interface StaffPermissionGroup {
             @if (isSyntheticEmail()) {
               <p class="text-xs text-content-muted">
                 Este usuario tiene correo sintético
-                <span class="font-mono">(*.accounts.edushift.local)</span>;
+                generado para ingresar;
                 el envío por email no está disponible.
               </p>
             }
@@ -878,21 +893,6 @@ export class UserDetailComponent implements OnInit {
       label: 'Staff',
       description: 'Personal administrativo del colegio sin acceso de admin.',
     },
-    {
-      value: UserRole.Teacher,
-      label: 'Profesor',
-      description: 'Carga académica, asistencia y notas.',
-    },
-    {
-      value: UserRole.Student,
-      label: 'Estudiante',
-      description: 'Acceso al portal del alumno (lectura).',
-    },
-    {
-      value: UserRole.Parent,
-      label: 'Tutor',
-      description: 'Tutor o apoderado de uno o más estudiantes.',
-    },
   ];
 
   ngOnInit(): void {
@@ -952,6 +952,15 @@ export class UserDetailComponent implements OnInit {
 
   protected hasRole(role: UserRole): boolean {
     return this.pendingRoles().includes(role);
+  }
+
+  protected profileManagedRoles(user: UserDetail): UserRole[] {
+    const profileRoles: readonly UserRole[] = [
+      UserRole.Teacher,
+      UserRole.Student,
+      UserRole.Parent,
+    ];
+    return user.roles.filter((role) => profileRoles.includes(role));
   }
 
   /**

@@ -42,6 +42,13 @@ describe('NotificationsStore', () => {
     store = TestBed.inject(NotificationsStore);
   });
 
+  function setCache(items: NotificationItem[]): void {
+    store.setItems(items);
+    store['_unreadCount'].set(
+      items.filter((item) => !item.readAt && item.status !== 'READ').length,
+    );
+  }
+
   it('inicia con estado vacío', () => {
     expect(store.items()).toEqual([]);
     expect(store.unreadCount()).toBe(0);
@@ -88,7 +95,7 @@ describe('NotificationsStore', () => {
       apiSpy.get.and.returnValue(
         of({ success: true, data: { unreadCount: 1 }, timestamp: '2026-07-22' })
       );
-      store.setItems([
+      setCache([
         { ...unreadRow, publicUuid: 'p-1', sentAt: '2026-07-22T10:00:00Z' },
         { ...unreadRow, publicUuid: 'p-2', sentAt: '2026-07-22T11:00:00Z' },
         { ...unreadRow, publicUuid: 'p-3', sentAt: '2026-07-22T12:00:00Z' },
@@ -147,7 +154,7 @@ describe('NotificationsStore', () => {
       apiSpy.get.and.returnValue(throwError(() => new Error('boom')));
 
       store.loadAll().subscribe({
-        complete: () => {
+        error: () => {
           expect(store.loading()).toBeFalse();
           expect(store.error()).toBeTruthy();
           done();
@@ -163,7 +170,7 @@ describe('NotificationsStore', () => {
   describe('markRead', () => {
     it('decrementa unreadCount inmediatamente', () => {
       apiSpy.patch.and.returnValue(of({ ...unreadRow, status: 'READ', readAt: '2026-07-22T10:10:00Z' }));
-      store.setItems([unreadRow, unreadRow]);
+      setCache([unreadRow, unreadRow]);
       expect(store.unreadCount()).toBe(2);
 
       store.markRead('p-1').subscribe(() => {
@@ -174,7 +181,7 @@ describe('NotificationsStore', () => {
 
     it('revierte unreadCount si el backend falla', (done) => {
       apiSpy.patch.and.returnValue(throwError(() => new Error('boom')));
-      store.setItems([unreadRow]);
+      setCache([unreadRow]);
       expect(store.unreadCount()).toBe(1);
 
       store.markRead('p-1').subscribe(() => {
@@ -186,7 +193,7 @@ describe('NotificationsStore', () => {
 
     it('no decrementa si el row ya estaba leído', () => {
       apiSpy.patch.and.returnValue(of({ ...readRow }));
-      store.setItems([readRow]);
+      setCache([readRow]);
       expect(store.unreadCount()).toBe(0);
 
       store.markRead('p-2').subscribe(() => {
@@ -197,7 +204,7 @@ describe('NotificationsStore', () => {
 
   describe('markAllRead', () => {
     it('setea unreadCount a 0', () => {
-      store.setItems([unreadRow, unreadRow]);
+      setCache([unreadRow, unreadRow]);
       expect(store.unreadCount()).toBe(2);
 
       store.markAllRead();
@@ -208,7 +215,7 @@ describe('NotificationsStore', () => {
 
   describe('reset', () => {
     it('limpia items y unreadCount', () => {
-      store.setItems([unreadRow]);
+      setCache([unreadRow]);
       expect(store.unreadCount()).toBe(1);
       store.setError('err');
       store.reset();

@@ -1,10 +1,39 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { FormGroup } from '@angular/forms';
 import { GradeRecordFormModalComponent } from './grade-record-form-modal.component';
 import { EvaluationScale } from '@features/evaluations/models';
+import { GradeRecordRow } from '../models';
 
+const gradeRecordRow: GradeRecordRow = {
+  publicUuid: 'record-1',
+  studentPublicUuid: 'a3f7e2c8-1234-4abc-9999-aaaaaaaaaaaa',
+  studentFullName: 'Juan Pérez',
+  studentLastName: 'Pérez',
+  studentFirstName: 'Juan',
+  score: 12,
+  literal: null,
+  comments: null,
+  recordedAt: null,
+  isActive: true,
+  createdAt: new Date('2026-01-01'),
+  updatedAt: new Date('2026-01-01'),
+};
+interface GradeRecordFormTestApi {
+  title(): string;
+  editing(): boolean;
+  submitLabel(): string;
+  form: FormGroup;
+  onSubmit(): void;
+  showError(field: string): string | null;
+  cancel(): void;
+}
 describe('GradeRecordFormModalComponent', () => {
-  let component: any;
+  let component: GradeRecordFormModalComponent;
   let fixture: ComponentFixture<GradeRecordFormModalComponent>;
+
+  function testApi(): GradeRecordFormTestApi {
+    return component as unknown as GradeRecordFormTestApi;
+  }
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -23,24 +52,24 @@ describe('GradeRecordFormModalComponent', () => {
   });
 
   it('muestra título "Registrar nota" en modo creación', () => {
-    expect(component.title()).toBe('Registrar nota');
+    expect(testApi().title()).toBe('Registrar nota');
   });
 
   describe('editing', () => {
     it('retorna false por defecto', () => {
-      expect(component.editing()).toBeFalse();
+      expect(testApi().editing()).toBeFalse();
     });
 
     it('retorna true si row está presente', () => {
-      fixture.componentRef.setInput('row', { studentFullName: 'Juan' } as any);
+      fixture.componentRef.setInput('row', gradeRecordRow);
       fixture.detectChanges();
-      expect(component.editing()).toBeTrue();
+      expect(testApi().editing()).toBeTrue();
     });
   });
 
   describe('submitLabel', () => {
     it('retorna "Registrar" en modo creación', () => {
-      expect(component.submitLabel()).toBe('Registrar');
+      expect(testApi().submitLabel()).toBe('Registrar');
     });
   });
 
@@ -51,31 +80,31 @@ describe('GradeRecordFormModalComponent', () => {
       ]);
       fixture.detectChanges();
       const emitSpy = spyOn(component.submitted, 'emit');
-      component.form.patchValue({
+      testApi().form.patchValue({
         studentPublicUuid: 'a3f7e2c8-1234-4abc-9999-aaaaaaaaaaaa',
         score: 15,
         literal: '',
         comments: '',
       });
-      component.onSubmit();
+      testApi().onSubmit();
       expect(emitSpy).toHaveBeenCalled();
     });
 
     it('no emite si UUID es inválido', () => {
       const emitSpy = spyOn(component.submitted, 'emit');
-      component.form.patchValue({
+      testApi().form.patchValue({
         studentPublicUuid: 'invalido',
         score: 15,
         literal: '',
         comments: '',
       });
-      component.onSubmit();
+      testApi().onSubmit();
       expect(emitSpy).not.toHaveBeenCalled();
     });
 
     it('no emite si form es inválido', () => {
       const emitSpy = spyOn(component.submitted, 'emit');
-      component.onSubmit();
+      testApi().onSubmit();
       expect(emitSpy).not.toHaveBeenCalled();
     });
   });
@@ -94,10 +123,7 @@ describe('GradeRecordFormModalComponent', () => {
     });
 
     it('no muestra select de estudiante en modo edición', () => {
-      fixture.componentRef.setInput('row', {
-        studentFullName: 'Juan',
-        studentPublicUuid: 'a3f7e2c8-1234-4abc-9999-aaaaaaaaaaaa',
-      } as any);
+      fixture.componentRef.setInput('row', gradeRecordRow);
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('#grade-student')).toBeNull();
     });
@@ -105,21 +131,21 @@ describe('GradeRecordFormModalComponent', () => {
 
   describe('showError', () => {
     it('retorna null si control no tiene errores', () => {
-      expect(component.showError('score')).toBeNull();
+      expect(testApi().showError('score')).toBeNull();
     });
 
     it('retorna "Requerido" si required', () => {
-      const ctrl = component.form.get('studentPublicUuid');
+      const ctrl = testApi().form.get('studentPublicUuid');
       ctrl!.setErrors({ required: true });
       ctrl!.markAsTouched();
-      expect(component.showError('studentPublicUuid')).toBe('Requerido.');
+      expect(testApi().showError('studentPublicUuid')).toBe('Requerido.');
     });
   });
 
   describe('cancel', () => {
     it('emite closed', () => {
       const emitSpy = spyOn(component.closed, 'emit');
-      component.cancel();
+      testApi().cancel();
       expect(emitSpy).toHaveBeenCalled();
     });
   });

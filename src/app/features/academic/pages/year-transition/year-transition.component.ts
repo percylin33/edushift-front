@@ -15,7 +15,7 @@ import { ConfirmDialogService, IconComponent, SpinnerComponent } from '@shared/c
 import { AcademicApiService } from '../../services';
 import { AcademicStore } from '../../store';
 import {
-  AcademicLevel,
+
   AcademicPeriodRow,
   AcademicYearRow,
   AcademicYearStatus,

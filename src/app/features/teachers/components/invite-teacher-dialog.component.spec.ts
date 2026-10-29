@@ -6,6 +6,14 @@ import { DocumentType, EmploymentStatus } from '@core/enums';
 import { TeachersStore } from '../store';
 import { TenantService } from '@core/services';
 
+interface InviteTeacherDialogTestApi {
+  hasEmail(): boolean;
+  onConfirm(): Promise<void>;
+  close(): void;
+  acceptLink(): string;
+  formatDate(date: Date): string;
+}
+
 class FakeTeachersStore {
   lastInvitation = signal<TeacherInvitationResult | null>(null);
   inviting = signal(false);
@@ -18,7 +26,7 @@ class FakeTeachersStore {
     this.error.set(null);
   }
 
-  async invite(publicUuid: string): Promise<TeacherInvitationResult | null> {
+  async invite(_publicUuid: string): Promise<TeacherInvitationResult | null> {
     return null;
   }
 }
@@ -51,12 +59,16 @@ describe('InviteTeacherDialogComponent', () => {
     email: 'maria@school.com',
   };
 
+  function testApi(): InviteTeacherDialogTestApi {
+    return component as unknown as InviteTeacherDialogTestApi;
+  }
+
   beforeEach(async () => {
     store = new FakeTeachersStore();
     await TestBed.configureTestingModule({
       imports: [InviteTeacherDialogComponent],
       providers: [
-        { provide: TeachersStore, useValue: store as any },
+        { provide: TeachersStore, useValue: store as unknown as TeachersStore },
         { provide: TenantService, useValue: { tenantSlug: () => 'acme' } },
       ],
     }).compileComponents();
@@ -80,14 +92,14 @@ describe('InviteTeacherDialogComponent', () => {
   });
 
   it('hasEmail es true cuando teacher tiene email', () => {
-    expect(component['hasEmail']()).toBeTrue();
+    expect(testApi().hasEmail()).toBeTrue();
   });
 
   it('onConfirm llama store.invite', async () => {
     const inviteSpy = spyOn(store, 'invite').and.returnValue(Promise.resolve(mockInvitation));
     const invitedSpy = spyOn(component.invited, 'emit');
 
-    await component['onConfirm']();
+    await testApi().onConfirm();
     expect(inviteSpy).toHaveBeenCalledWith('t-1');
     expect(invitedSpy).toHaveBeenCalledWith(mockInvitation);
   });
@@ -96,7 +108,7 @@ describe('InviteTeacherDialogComponent', () => {
     const closedSpy = spyOn(component.closed, 'emit');
     store.lastInvitation.set(mockInvitation);
 
-    component['close']();
+    testApi().close();
 
     expect(store.lastInvitation()).toBeNull();
     expect(closedSpy).toHaveBeenCalled();
@@ -112,14 +124,14 @@ describe('InviteTeacherDialogComponent', () => {
 
   it('acceptLink construye URL con tenant del colegio', () => {
     store.lastInvitation.set(mockInvitation);
-    const link = component['acceptLink']();
+    const link = testApi().acceptLink();
     expect(link).toContain('/invitation/token-abc');
-    expect(link).toContain('tenant=acme');
+    expect(new URL(link).hostname).toBe('acme.localhost');
   });
 
   it('formatDate formatea en español', () => {
     const date = new Date('2026-02-01T12:00:00Z');
-    const formatted = component['formatDate'](date);
+    const formatted = testApi().formatDate(date);
     expect(formatted).toContain('2026');
   });
 });

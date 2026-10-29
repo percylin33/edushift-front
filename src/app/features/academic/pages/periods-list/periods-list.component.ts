@@ -21,7 +21,6 @@ import {
   PeriodFormModalComponent,
   PeriodTimelineComponent,
 } from '../../components';
-import { TimelinePreviewItem } from '../../components/period-timeline.component';
 import { AcademicStore } from '../../store';
 import {
   AcademicPeriodDetail,
@@ -478,10 +477,8 @@ export class PeriodsListComponent implements OnInit {
   // ---------------------------------------------------------------------------
 
   /**
-   * Confirm con preview del plan. Si ya hay periodos del mismo type
-   * en el año seleccionado, lo decimos explícitamente — el BE
-   * responderá 409 si los rangos colisionan, pero el plan lo decide
-   * el admin.
+   * Preview calendar ranges before creating periods. Existing periods of
+   * the selected type must be edited rather than regenerated.
    */
   protected async openBulkPreview(): Promise<void> {
     const year = this.resolvedYear();
@@ -494,20 +491,27 @@ export class PeriodsListComponent implements OnInit {
       (p) => p.academicYearPublicUuid === year.publicUuid && p.periodType === type,
     ).length;
 
+    if (existingSameType > 0) {
+      this.notifications.warning(
+        `Ya existen ${existingSameType} periodos de tipo ${PERIOD_TYPE_LABELS[type]} en este año. ` +
+        'Edita los periodos existentes o crea manualmente los que falten.',
+      );
+      return;
+    }
+
     const lines = plan.parts.map(
       (p) => `  • ${p.name} → ${this.formatDate(p.startDate)} - ${this.formatDate(p.endDate)}`,
     );
     const header =
-      existingSameType > 0
-        ? `Ya existen ${existingSameType} periodo(s) de tipo ${PERIOD_TYPE_LABELS[type]}.\n` +
-          'El backend rechazará los duplicados o solapamientos. ¿Continuar?\n\n'
-        : `Se crearán ${plan.parts.length} periodos de tipo ${PERIOD_TYPE_LABELS[type]}:\n\n`;
+      `Se crearán ${plan.parts.length} periodos de tipo ${PERIOD_TYPE_LABELS[type]}. ` +
+      'Las fechas dividen el año en rangos continuos; no descuentan vacaciones ni días no lectivos. ' +
+      'Puedes ajustar las fechas después de crearlos.\n\n';
 
     const ok = await this.confirmDialog.open({
       title: 'Generar periodos',
       message: header + lines.join('\n'),
       confirmLabel: 'Crear',
-      variant: existingSameType > 0 ? 'warning' : 'default',
+      variant: 'default',
     });
     if (!ok) return;
 

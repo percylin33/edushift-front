@@ -1,6 +1,5 @@
 import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
-import { AuthLayoutComponent, OnboardingLayoutComponent } from '@layout/index';
 import { authChildGuard, featureFlagGuard, tenantHostGuard } from '@core/guards';
 import { FeatureKey } from '@core/enums';
 
@@ -20,18 +19,25 @@ export const PUBLIC_ROUTES: Routes = [
     canDeactivate: [pendingChangesGuard],
     path: 'public/admissions/:tenantSlug',
     data: { title: 'Consulta de admisión' },
-    loadComponent: () => import('@features/admissions/pages/public-admissions-page').then((m) => m.PublicAdmissionsPage),
+    loadComponent: () =>
+      import('@features/admissions/pages/admissions-public-form.page').then(
+        (m) => m.PublicAdmissionsPageComponent,
+      ),
   },
   {
     canDeactivate: [pendingChangesGuard],
     path: 'public/admissions/:tenantSlug/offer/:token',
     data: { title: 'Confirmar oferta de vacante' },
-    loadComponent: () => import('@features/admissions/pages/public-admissions-page').then((m) => m.PublicAdmissionsPage),
+    loadComponent: () =>
+      import('@features/admissions/pages/admissions-public-form.page').then(
+        (m) => m.PublicAdmissionsPageComponent,
+      ),
   },
   {
     canDeactivate: [pendingChangesGuard],
     path: '',
-    component: AuthLayoutComponent,
+    loadComponent: () =>
+      import('@layout/auth-layout/auth-layout.component').then((m) => m.AuthLayoutComponent),
     children: [
       {
         path: 'auth',
@@ -52,7 +58,7 @@ export const PUBLIC_ROUTES: Routes = [
        */
       {
         canDeactivate: [pendingChangesGuard],
-    path: 'invitation/:token',
+        path: 'invitation/:token',
         canActivate: [tenantHostGuard],
         data: { title: 'Activar cuenta' },
         loadComponent: () =>
@@ -66,7 +72,10 @@ export const PUBLIC_ROUTES: Routes = [
     canDeactivate: [pendingChangesGuard],
     path: 'onboarding',
     canActivateChild: [authChildGuard],
-    component: OnboardingLayoutComponent,
+    loadComponent: () =>
+      import('@layout/onboarding-layout/onboarding-layout.component').then(
+        (m) => m.OnboardingLayoutComponent,
+      ),
     data: { title: 'Onboarding' },
     loadChildren: () =>
       import('@features/onboarding/onboarding.routes').then((m) => m.ONBOARDING_ROUTES),

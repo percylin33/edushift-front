@@ -42,7 +42,14 @@ describe('FamilyApiService', () => {
     payments.flush({ data: [] });
 
     service.getChildSchedule('child-1').subscribe((response) => {
-      expect(response.data).toEqual({ slots: [], nonTeachingBlocks: [], suggestedPeriods: [] });
+      expect(response.data).toEqual({
+        slots: [],
+        nonTeachingBlocks: [],
+        suggestedPeriods: [],
+        dayStart: null,
+        dayEnd: null,
+        periodMinutes: null,
+      });
     });
     const schedule = http.expectOne('/api/v1/family/children/child-1/schedule');
     expect(schedule.request.method).toBe('GET');

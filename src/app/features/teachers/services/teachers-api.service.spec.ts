@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
+import { provideHttpClient } from '@angular/common/http';
 import { ApiService } from '@core/services';
 import { API } from '@core/constants';
 import { TeachersApiService } from './teachers-api.service';
@@ -62,7 +63,7 @@ describe('TeachersApiService', () => {
   beforeEach(() => {
     apiSpy = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'post', 'put', 'delete']);
     TestBed.configureTestingModule({
-      providers: [TeachersApiService, { provide: ApiService, useValue: apiSpy }],
+      providers: [provideHttpClient(), TeachersApiService, { provide: ApiService, useValue: apiSpy }],
     });
     service = TestBed.inject(TeachersApiService);
   });

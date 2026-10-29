@@ -76,7 +76,7 @@ import {
         <h2 class="text-lg font-semibold text-content">Secciones</h2>
         <p class="text-sm text-content-muted">
           Subdivisiones de un grado dentro de un año académico (ej.
-          <span class="font-medium">1ro Primaria — A</span>).
+          <span class="font-medium">3 años — A</span>).
         </p>
       </div>
       <button

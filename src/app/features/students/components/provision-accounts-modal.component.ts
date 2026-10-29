@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
-  OnInit,
   inject,
   input,
   output,
@@ -165,7 +164,7 @@ import { SectionProvisionApiService } from '../services';
     </div>
   `,
 })
-export class ProvisionAccountsModalComponent implements OnInit {
+export class ProvisionAccountsModalComponent {
   private readonly api = inject(SectionProvisionApiService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
@@ -178,10 +177,6 @@ export class ProvisionAccountsModalComponent implements OnInit {
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly result = signal<ProvisionSectionAccountsResponse | null>(null);
   protected readonly handoutDownloaded = signal(false);
-
-  ngOnInit(): void {
-    // no-op
-  }
 
   protected toggleGuardians(event: Event): void {
     const target = event.target as HTMLInputElement | null;

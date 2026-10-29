@@ -14,8 +14,18 @@ import { Router, RouterLink } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { NotificationsApiService } from '../../services/notifications-api.service';
 import { NotificationItem } from '../../models/notification.model';
-import { RealtimeService } from '@core/realtime/realtime.service';
+import { NotificationPushPayload, RealtimeService } from '@core/realtime/realtime.service';
 import { AuthService } from '@core/services/auth.service';
+
+interface NotificationBellItem {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  readAt: string | null;
+  category: string;
+  payload?: Record<string, unknown>;
+}
 
 /**
  * Notification bell + dropdown (Sprint 9 / FE-9.1, Sprint 10 / FE-10.2).
@@ -138,7 +148,7 @@ import { AuthService } from '@core/services/auth.service';
                       type="button"
                       class="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
                       [class.bg-emerald-50]="!n.readAt"
-                      [class.dark:bg-emerald-900/20]="!n.readAt"
+                      [ngClass]="{ 'dark:bg-emerald-900/20': !n.readAt }"
                       (click)="onItemClick(n)"
                     >
                       <span
@@ -190,7 +200,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly open = signal(false);
-  readonly items = signal<NotificationItem[]>([]);
+  readonly items = signal<NotificationBellItem[]>([]);
   readonly unreadCount = signal(0);
   readonly loading = signal(false);
   readonly hideRealtimeDot = signal(false);
@@ -202,7 +212,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // 1) Initial fetch of unread count.
     this.api.listUnreadCount().subscribe({
-      next: (res) => this.unreadCount.set((res as any)?.data?.unreadCount ?? 0),
+      next: (res) => this.unreadCount.set(res.data.unreadCount),
       error: () => {
         /* keep 0 */
       },
@@ -210,9 +220,9 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
 
     // 2) Connect to STOMP and subscribe to the per-user topic.
     this.realtime.connect();
-    this.auth.user$.pipe(takeUntil(this.stop$)).subscribe((u: any) => {
-      if (u?.tenantId && u?.id) {
-        const dest = `/topic/tenant/${u.tenantId}/user/${u.id}`;
+    this.auth.user$.pipe(takeUntil(this.stop$)).subscribe((user) => {
+      if (user?.tenantId && user.publicUuid) {
+        const dest = `/topic/tenant/${user.tenantId}/user/${user.publicUuid}`;
         this.realtime.subscribe(dest);
       }
     });
@@ -226,13 +236,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     this.stop$.complete();
   }
 
-  private onRealtime(p: {
-    notificationUuid: string;
-    subject: string | null;
-    templateKey: string;
-    category: string;
-    occurredAt: string;
-  }): void {
+  private onRealtime(p: NotificationPushPayload): void {
     // 1) Bump the unread count.
     this.unreadCount.update((c) => c + 1);
     // 2) If the dropdown is open, prepend a synthetic item.
@@ -245,7 +249,9 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
             body: 'Nueva notificación',
             createdAt: p.occurredAt,
             readAt: null,
-          } as any,
+            category: p.category,
+            payload: {},
+          },
           ...list,
         ].slice(0, 10),
       );
@@ -263,14 +269,14 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.api.list(false).subscribe({
       next: (page) => {
-        this.items.set(page?.data ?? []);
+        this.items.set((page?.data ?? []).map((item) => this.toBellItem(item)));
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
     });
   }
 
-  onItemClick(n: NotificationItem): void {
+  onItemClick(n: NotificationBellItem): void {
     if (!n.readAt) {
       this.api.markRead(n.id).subscribe(() => {
         this.items.update((list) =>
@@ -284,6 +290,18 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     if (n.category === 'ANNOUNCEMENT' && typeof announcementId === 'string' && announcementId) {
       void this.router.navigate(['/announcements'], { queryParams: { focus: announcementId } });
     }
+  }
+
+  private toBellItem(item: NotificationItem): NotificationBellItem {
+    return {
+      id: item.id,
+      title: item.subject,
+      body: item.bodyHtml,
+      createdAt: item.sentAt,
+      readAt: item.readAt ?? null,
+      category: item.category,
+      payload: item.payload,
+    };
   }
 
   markAllRead(): void {

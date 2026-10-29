@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ReactiveFormsModule } from '@angular/forms';
 
@@ -83,6 +83,7 @@ describe('RegisterComponent', () => {
 
   it('validación: tenantSlug solo permite letras y números, sin guiones', () => {
     component.tenantSlugCtrl.setValue('mi-colegio');
+    component.tenantSlugCtrl.markAsTouched();
     expect(component.invalid('tenantSlug')).toBeTrue();
     component.tenantSlugCtrl.setValue('micolegio');
     expect(component.invalid('tenantSlug')).toBeFalse();
@@ -126,7 +127,7 @@ describe('RegisterComponent', () => {
 
   it('markSlugAsTouched fija _slugTouchedByUser', () => {
     component.markSlugAsTouched();
-    expect((component as any)._slugTouchedByUser).toBeTrue();
+    expect(component['_slugTouchedByUser']).toBeTrue();
   });
 
   it('onSubmit no llama register si el form es inválido', () => {
@@ -151,10 +152,10 @@ describe('RegisterComponent', () => {
     expect(component.form.valid).toBeTrue();
 
     const beginSpy = spyOn(store, 'beginSubmit').and.callThrough();
-    const redirectSpy = spyOn<any>(component, 'redirectToSchoolOnboarding');
+    const redirectSpy = spyOn(component as unknown as { redirectToSchoolOnboarding: () => void }, 'redirectToSchoolOnboarding');
     component.onSubmit();
     expect(beginSpy).toHaveBeenCalled();
-    expect(redirectSpy).toHaveBeenCalledWith('micole');
+    expect(redirectSpy).toHaveBeenCalledOnceWith();
   });
 
   it('applyServerErrors mapea TENANT_SLUG_TAKEN a error de campo', () => {
@@ -162,7 +163,7 @@ describe('RegisterComponent', () => {
       error: { code: 'TENANT_SLUG_TAKEN' },
       status: 409,
     });
-    (component as any).applyServerErrors(err);
+    component['applyServerErrors'](err);
     expect(component.form.get('tenantSlug')!.hasError('serverField')).toBeTrue();
     expect(store.error()).toContain('identificador');
   });
@@ -172,7 +173,7 @@ describe('RegisterComponent', () => {
       error: { code: 'EMAIL_TAKEN' },
       status: 409,
     });
-    (component as any).applyServerErrors(err);
+    component['applyServerErrors'](err);
     expect(component.form.get('adminEmail')!.hasError('serverField')).toBeTrue();
     expect(store.error()).toContain('correo');
   });
@@ -182,7 +183,7 @@ describe('RegisterComponent', () => {
       error: { message: 'Server error' },
       status: 500,
     });
-    (component as any).applyServerErrors(err);
+    component['applyServerErrors'](err);
     expect(store.error()).toContain('error inesperado');
   });
 

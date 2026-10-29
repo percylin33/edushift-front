@@ -44,7 +44,7 @@ describe('AlertComponent', () => {
 
   it('respeta role override', () => {
     create('info', 'info');
-    component.role = 'alert';
+    fixture.componentRef.setInput('role', 'alert');
     fixture.detectChanges();
     const el = fixture.nativeElement.querySelector('[role="alert"]');
     expect(el).toBeTruthy();

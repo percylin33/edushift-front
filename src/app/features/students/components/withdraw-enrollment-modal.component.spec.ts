@@ -21,6 +21,7 @@ describe('WithdrawEnrollmentModalComponent', () => {
     studentFullName: 'Juan',
     sectionPublicUuid: 'sec-1',
     sectionName: 'A',
+    gradeName: null,
     academicYearPublicUuid: 'y-1',
     academicYearName: '2026',
     enrolledAt: new Date('2026-01-15'),
@@ -55,69 +56,69 @@ describe('WithdrawEnrollmentModalComponent', () => {
 
   it('ngOnInit setea fecha default a hoy si >= enrolledAt', () => {
     configureModule();
-    expect((component as any).withdrawnAt()).toBeTruthy();
-    expect((component as any).status()).toBe(StudentEnrollmentStatus.Withdrawn);
+    expect(component['withdrawnAt']()).toBeTruthy();
+    expect(component['status']()).toBe(StudentEnrollmentStatus.Withdrawn);
   });
 
   it('minDate retorna ISO de enrolledAt', () => {
     configureModule();
-    expect((component as any).minDate()).toBe('2026-01-15');
+    expect(component['minDate']()).toBe('2026-01-15');
   });
 
   it('canSubmit false sin fecha', () => {
     configureModule();
-    (component as any).withdrawnAt.set('');
-    expect((component as any).canSubmit()).toBeFalse();
+    component['withdrawnAt'].set('');
+    expect(component['canSubmit']()).toBeFalse();
   });
 
   it('canSubmit true con fecha válida posterior al enrolledAt', () => {
     configureModule();
-    (component as any).withdrawnAt.set('2026-02-01');
-    expect((component as any).canSubmit()).toBeTrue();
+    component['withdrawnAt'].set('2026-02-01');
+    expect(component['canSubmit']()).toBeTrue();
   });
 
   it('canSubmit false si fecha anterior al enrolledAt', () => {
     configureModule();
-    (component as any).withdrawnAt.set('2025-12-31');
-    expect((component as any).canSubmit()).toBeFalse();
+    component['withdrawnAt'].set('2025-12-31');
+    expect(component['canSubmit']()).toBeFalse();
   });
 
   it('statusDescription retorna copy según status', () => {
     configureModule();
-    (component as any).status.set(StudentEnrollmentStatus.Withdrawn);
-    expect((component as any).statusDescription()).toContain('iniciativa propia');
-    (component as any).status.set(StudentEnrollmentStatus.Transferred);
-    expect((component as any).statusDescription()).toContain('traslada');
-    (component as any).status.set(StudentEnrollmentStatus.Graduated);
-    expect((component as any).statusDescription()).toContain('terminó el ciclo');
-    (component as any).status.set(StudentEnrollmentStatus.Active);
-    expect((component as any).statusDescription()).toBe('');
+    component['status'].set(StudentEnrollmentStatus.Withdrawn);
+    expect(component['statusDescription']()).toContain('iniciativa propia');
+    component['status'].set(StudentEnrollmentStatus.Transferred);
+    expect(component['statusDescription']()).toContain('traslada');
+    component['status'].set(StudentEnrollmentStatus.Graduated);
+    expect(component['statusDescription']()).toContain('terminó el ciclo');
+    component['status'].set(StudentEnrollmentStatus.Active);
+    expect(component['statusDescription']()).toBe('');
   });
 
   it('close emite closed y limpia error', () => {
     configureModule();
     const closedSpy = jasmine.createSpy('closed');
     component.closed.subscribe(closedSpy);
-    (component as any).close();
+    component['close']();
     expect(fakeStore.clearError).toHaveBeenCalled();
     expect(closedSpy).toHaveBeenCalled();
   });
 
   it('onSubmit no dispara si canSubmit es false', async () => {
     configureModule();
-    (component as any).withdrawnAt.set('');
-    await (component as any).onSubmit();
+    component['withdrawnAt'].set('');
+    await component['onSubmit']();
     expect(fakeStore.withdrawEnrollment).not.toHaveBeenCalled();
   });
 
   it('onSubmit llama store y emite withdrew', async () => {
     configureModule();
-    (component as any).withdrawnAt.set('2026-02-01');
-    (component as any).status.set(StudentEnrollmentStatus.Withdrawn);
+    component['withdrawnAt'].set('2026-02-01');
+    component['status'].set(StudentEnrollmentStatus.Withdrawn);
     fakeStore.withdrawEnrollment.and.returnValue(Promise.resolve({ publicUuid: 'e-1' }));
     const withdrewSpy = jasmine.createSpy('withdrew');
     component.withdrew.subscribe(withdrewSpy);
-    await (component as any).onSubmit();
+    await component['onSubmit']();
     expect(fakeStore.withdrawEnrollment).toHaveBeenCalledWith('e-1', {
       status: StudentEnrollmentStatus.Withdrawn,
       withdrawnAt: '2026-02-01',
@@ -127,22 +128,22 @@ describe('WithdrawEnrollmentModalComponent', () => {
 
   it('onSubmit no emite withdrew si store retorna null', async () => {
     configureModule();
-    (component as any).withdrawnAt.set('2026-02-01');
+    component['withdrawnAt'].set('2026-02-01');
     fakeStore.withdrawEnrollment.and.returnValue(Promise.resolve(null));
     const withdrewSpy = jasmine.createSpy('withdrew');
     component.withdrew.subscribe(withdrewSpy);
-    await (component as any).onSubmit();
+    await component['onSubmit']();
     expect(withdrewSpy).not.toHaveBeenCalled();
   });
 
   it('statusLabel retorna etiqueta en español', () => {
     configureModule();
-    expect((component as any).statusLabel(StudentEnrollmentStatus.Withdrawn)).toBe('Retirado');
+    expect(component['statusLabel'](StudentEnrollmentStatus.Withdrawn)).toBe('Retirado');
   });
 
   it('terminalStatuses expone los tres estados terminales', () => {
     configureModule();
-    const opts = (component as any).terminalStatuses;
+    const opts = component['terminalStatuses'];
     expect(opts).toContain(StudentEnrollmentStatus.Withdrawn);
     expect(opts).toContain(StudentEnrollmentStatus.Transferred);
     expect(opts).toContain(StudentEnrollmentStatus.Graduated);

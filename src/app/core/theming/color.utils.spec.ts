@@ -35,7 +35,7 @@ describe('rgbToHsl', () => {
   });
 
   it('convierte negro', () => {
-    const [h, s, l] = rgbToHsl([0, 0, 0]);
+    const [, , l] = rgbToHsl([0, 0, 0]);
     expect(l).toBe(0);
   });
 });

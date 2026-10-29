@@ -3,7 +3,6 @@ import { UserRoleBadgeComponent } from './user-role-badge.component';
 import { UserRole } from '@core/enums';
 
 describe('UserRoleBadgeComponent', () => {
-  let component: UserRoleBadgeComponent;
   let fixture: ComponentFixture<UserRoleBadgeComponent>;
 
   beforeEach(async () => {
@@ -12,7 +11,6 @@ describe('UserRoleBadgeComponent', () => {
     }).compileComponents();
 
     fixture = TestBed.createComponent(UserRoleBadgeComponent);
-    component = fixture.componentInstance;
   });
 
   it('muestra label Administrador para TenantAdmin', () => {

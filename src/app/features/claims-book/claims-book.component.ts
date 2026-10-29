@@ -1,11 +1,12 @@
 import { createFormProtection } from '@shared/services/form-protection.service';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { API } from '@core/constants';
-import { AlertComponent, FormFieldComponent, SpinnerComponent, SubmitButtonComponent } from '@shared/components';
+import { AlertComponent, FormFieldComponent, SubmitButtonComponent } from '@shared/components';
+import { ApiResponse } from '@core/models';
 
 export interface ClaimIssuedResponse {
   id: string;
@@ -36,7 +37,6 @@ export interface ClaimIssuedResponse {
     RouterLink,
     AlertComponent,
     FormFieldComponent,
-    SpinnerComponent,
     SubmitButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -372,8 +372,8 @@ export class ClaimsBookComponent {
     consumerRequest: ['', [Validators.required, Validators.minLength(5)]],
   });
 
-  getCtrl(name: string) {
-    return this.form.get(name) as any;
+  getCtrl(name: string): FormControl<string | null> {
+    return this.form.get(name) as FormControl<string | null>;
   }
 
   resetForm(): void {
@@ -399,10 +399,10 @@ export class ClaimsBookComponent {
 
     const raw = this.form.getRawValue();
 
-    this.http.post<any>(`${API.BASE}/public/claims`, raw).subscribe({
+    this.http.post<ApiResponse<ClaimIssuedResponse>>(`${API.BASE}/public/claims`, raw).subscribe({
       next: (res) => {
         this.loading.set(false);
-        const claim = res.data || res;
+        const claim = res.data;
         this.issuedClaim.set({
           id: claim.id,
           claimCode: claim.claimCode,

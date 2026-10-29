@@ -87,6 +87,13 @@ describe('StudentsApiService', () => {
     service.get('s-1').subscribe((detail) => {
       expect(detail.fullName).toBe('Juan Perez');
       expect(detail.birthDate).toBeInstanceOf(Date);
+      expect(detail.birthDate?.getFullYear()).toBe(2010);
+      expect(detail.birthDate?.getMonth()).toBe(4);
+      expect(detail.birthDate?.getDate()).toBe(15);
+      expect(detail.enrollmentDate?.getFullYear()).toBe(2026);
+      expect(detail.enrollmentDate?.getMonth()).toBe(0);
+      expect(detail.enrollmentDate?.getDate()).toBe(1);
+      expect(detail.createdAt?.toISOString()).toBe('2026-01-01T00:00:00.000Z');
       expect(apiSpy.get).toHaveBeenCalledWith(API.STUDENTS.BY_ID('s-1'));
       done();
     });

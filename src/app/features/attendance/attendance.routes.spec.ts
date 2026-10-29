@@ -16,10 +16,10 @@ describe('ATTENDANCE_ROUTES', () => {
     expect(home.pathMatch).toBe('full');
   });
 
-  it('scanner, hub, sessions y sessions/:uuid usan roleGuard', () => {
+  it('scanner, hub, sessions y sessions/:uuid usan permissionGuard al hacer match', () => {
     for (const p of ['scanner', 'hub', 'sessions', 'sessions/:uuid']) {
       const r = ATTENDANCE_ROUTES.find((x) => x.path === p)!;
-      expect(r.canActivate).toBeDefined();
+      expect(r.canMatch).toBeDefined();
       expect(typeof r.loadComponent).toBe('function');
     }
   });

@@ -51,6 +51,6 @@ export class SubmitButtonComponent {
     if (this.theme === 'dark') {
       return `${base} bg-indigo-600 hover:bg-indigo-500 focus-visible:ring-indigo-500/40`;
     }
-    return `${base} bg-primary-600 hover:bg-primary-700 focus-visible:ring-primary-500/40`;
+    return `${base} btn-primary focus-visible:ring-primary-500/40`;
   }
 }

@@ -8,8 +8,9 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { AuthService } from '@core/services';
 import { ROUTES } from '@core/constants';
 import {
   ConfirmDialogService,
@@ -19,6 +20,7 @@ import {
   PageHeaderComponent,
   SpinnerComponent,
 } from '@shared/components';
+import { createFormProtection } from '@shared/services/form-protection.service';
 import { AcademicApiService } from '@features/academic/services';
 import {
   AcademicLevel,
@@ -40,6 +42,8 @@ import {
 } from '@features/academic/models';
 import { DayPlanTimelineComponent } from '../../components/day-plan-timeline/day-plan-timeline.component';
 import { ScheduleApiService } from '../../services/schedule-api.service';
+import { ScheduleAdminNavComponent } from '../../components/schedule-admin-nav.component';
+import { selectScheduleYear } from '../../utils/schedule-context.util';
 import {
   DayPlanHardInterval,
   DayPlanPreviewItem,
@@ -94,22 +98,25 @@ interface DayPlanDraft {
     EmptyStateComponent,
     SpinnerComponent,
     DayPlanTimelineComponent,
+    ScheduleAdminNavComponent,
   ],
   template: `
     <app-page-container size="wide">
       <app-page-header
         eyebrow="Horarios"
-        title="Jornada y recreos"
-        subtitle="Define cómo se organiza un día escolar: horarios, recreos y periodos de clase."
-      >
-        <a [routerLink]="ROUTES.SCHEDULE.WORKLOAD" class="btn btn-outline btn-sm">
-          <app-icon name="users" [size]="14" />
-          <span>Carga docente</span>
-        </a>
-        <a [routerLink]="ROUTES.SCHEDULE.ROOT" class="btn btn-ghost btn-sm">
-          <span>Volver</span>
-        </a>
-      </app-page-header>
+        [title]="editingTemplateUuid() ? 'Editar jornada' : 'Jornada y recreos'"
+        [subtitle]="
+          editingTemplateUuid()
+            ? 'Define el horario del día, los recreos y las actividades de esta jornada.'
+            : 'Organiza el día escolar y revisa las jornadas de cada nivel.'
+        "
+      />
+
+      <app-schedule-admin-nav
+        [active]="'jornada'"
+        [yearUuid]="selectedYearUuid()"
+        [periodUuid]="periodContextUuid()"
+      />
 
       @if (bootLoading()) {
         <div class="flex items-center justify-center py-16">
@@ -131,7 +138,7 @@ interface DayPlanDraft {
               >
                 <option value="">Seleccionar año…</option>
                 @for (y of years(); track y.publicUuid) {
-                  <option [value]="y.publicUuid">{{ y.name }}</option>
+                  <option [value]="y.publicUuid">{{ y.name }}{{ isActiveYear(y) ? ' · Vigente' : '' }}</option>
                 }
               </select>
             </div>
@@ -355,12 +362,12 @@ interface DayPlanDraft {
                           <h3 class="font-semibold text-content">{{ tpl.name }}</h3>
                           <span
                             class="rounded-full px-2 py-0.5 text-xs"
-                            [class.bg-surface-muted]="isTemplateConfigured(tpl)"
-                            [class.text-success]="isTemplateConfigured(tpl)"
-                            [class.bg-amber-100]="!isTemplateConfigured(tpl)"
-                            [class.text-amber-800]="!isTemplateConfigured(tpl)"
+                            [class.bg-surface-muted]="isTemplateReviewed(tpl)"
+                            [class.text-success]="isTemplateReviewed(tpl)"
+                            [class.bg-amber-100]="!isTemplateReviewed(tpl)"
+                            [class.text-amber-800]="!isTemplateReviewed(tpl)"
                           >
-                            {{ isTemplateConfigured(tpl) ? 'Configurada' : 'Revisar jornada' }}
+                            {{ templateStatus(tpl) }}
                           </span>
                         </div>
                         <p class="mt-1 text-sm text-content-muted">
@@ -390,6 +397,9 @@ interface DayPlanDraft {
                             vincularla automáticamente.
                           </p>
                         }
+                        @if (tpl.reviewedAt) {
+                          <p class="mt-2 text-xs text-success">{{ reviewDetails(tpl) }}</p>
+                        }
                       </div>
                       <button
                         type="button"
@@ -413,7 +423,11 @@ interface DayPlanDraft {
                       Puedes continuar aunque aún falten jornadas por configurar.
                     </p>
                   </div>
-                  <a [routerLink]="ROUTES.SCHEDULE.ROOT" class="btn btn-primary">
+                  <a
+                    [routerLink]="ROUTES.SCHEDULE.ROOT"
+                    [queryParams]="{ year: selectedYearUuid() }"
+                    class="btn btn-primary"
+                  >
                     Ir a horarios por sección
                     <app-icon name="arrow-right" [size]="16" />
                   </a>
@@ -481,8 +495,9 @@ interface DayPlanDraft {
                       <header class="mb-3">
                         <h4 class="text-sm font-semibold text-content">Día escolar</h4>
                         <p class="text-xs text-content-muted">
-                          Podés editar la hora de cada recreo. Si preferís, usá «Acomodar
-                          automáticamente» según entrada, salida y duración.
+                          Si reduces la hora de salida, los recreos que queden fuera se reubican
+                          automáticamente cuando hay espacio. También puedes usar «Proponer horarios
+                          de recreo» para reorganizarlos.
                         </p>
                       </header>
 
@@ -502,7 +517,7 @@ interface DayPlanDraft {
                             class="input input-sm"
                             type="time"
                             [(ngModel)]="dayPlanDrafts[tpl.publicUuid].dayEnd"
-                            (ngModelChange)="touchPlan(tpl.publicUuid)"
+                            (ngModelChange)="onDayEndChange(tpl.publicUuid)"
                           />
                         </div>
                         <div class="sm:col-span-2">
@@ -818,17 +833,22 @@ interface DayPlanDraft {
                     <div
                       class="sticky bottom-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border-subtle bg-surface-raised/95 p-3 shadow-lg backdrop-blur"
                     >
-                      <p
-                        class="text-sm"
-                        [class.text-amber-700]="hasUnsavedPlan(tpl.publicUuid)"
-                        [class.text-content-muted]="!hasUnsavedPlan(tpl.publicUuid)"
-                      >
-                        {{
-                          hasUnsavedPlan(tpl.publicUuid)
-                            ? 'Tienes cambios sin guardar'
-                            : 'Todos los cambios están guardados'
-                        }}
-                      </p>
+                      <div class="space-y-1">
+                        <p
+                          class="text-sm"
+                          [class.text-amber-700]="hasUnsavedPlan(tpl.publicUuid)"
+                          [class.text-content-muted]="!hasUnsavedPlan(tpl.publicUuid)"
+                        >
+                          {{ hasUnsavedPlan(tpl.publicUuid) ? 'Tienes cambios sin guardar' : 'Todos los cambios están guardados' }}
+                        </p>
+                        @if (hasUnsavedPlan(tpl.publicUuid)) {
+                          <p class="text-xs text-amber-700">Al guardar, esta jornada volverá a quedar pendiente de revisión.</p>
+                        } @else if (tpl.reviewedAt) {
+                          <p class="text-xs text-success">{{ reviewDetails(tpl) }}</p>
+                        } @else if (isTemplateConfigured(tpl)) {
+                          <p class="text-xs text-content-muted">Esta jornada está lista para revisión.</p>
+                        }
+                      </div>
                       <div class="flex gap-2">
                         <button
                           type="button"
@@ -855,6 +875,23 @@ interface DayPlanDraft {
                           }
                           Guardar jornada
                         </button>
+                        @if (isTemplateConfigured(tpl) && !tpl.reviewedAt) {
+                          <button
+                            type="button"
+                            class="btn btn-outline"
+                            [disabled]="
+                              hasUnsavedPlan(tpl.publicUuid) ||
+                              applyingPlan()[tpl.publicUuid] ||
+                              reviewingTemplateUuid() === tpl.publicUuid
+                            "
+                            (click)="markTemplateReviewed(tpl)"
+                          >
+                            @if (reviewingTemplateUuid() === tpl.publicUuid) {
+                              <app-spinner [size]="14" />
+                            }
+                            Marcar como revisada
+                          </button>
+                        }
                       </div>
                     </div>
                     @if (planValidationMessage(tpl.publicUuid); as validationMessage) {
@@ -873,7 +910,7 @@ interface DayPlanDraft {
               <div>
                 <h2 id="schedule-warnings" class="card-title text-base">Revisión de horarios</h2>
                 <p class="text-sm text-content-muted">
-                  Hay {{ warnings().length }} aspecto(s) para revisar al asignar cursos.
+                  Hay {{ warnings().length }} alertas para revisar en las secciones y sus horarios.
                 </p>
               </div>
               <button
@@ -886,8 +923,37 @@ interface DayPlanDraft {
               </button>
             </header>
             <ul class="divide-y divide-border-subtle px-5">
+              @if (missingHomeroomWarnings().length > 0) {
+                <li class="py-4 text-sm">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-medium text-content">
+                      Falta asignar docente tutor a {{ missingHomeroomCount() }}
+                      {{ missingHomeroomCount() === 1 ? 'sección' : 'secciones' }}
+                    </span>
+                    <span class="badge badge-warning">Advertencia</span>
+                  </div>
+                  <p class="mt-1 text-content-muted">
+                    En estas secciones enseñan varios docentes y aún no se ha designado a una
+                    persona como profesor de aula (docente tutor). Se refiere al profesor
+                    responsable de la sección, no a un salón físico.
+                  </p>
+                  @if (missingHomeroomSections().length > 0) {
+                    <ul class="mt-2 flex flex-wrap gap-2" aria-label="Secciones sin docente tutor">
+                      @for (section of missingHomeroomSections(); track section.publicUuid) {
+                        <li class="rounded-md bg-surface-subtle px-2 py-1 text-xs text-content">
+                          {{ section.gradeName }} · Sección {{ section.name }}
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="mt-2 text-xs text-content-muted">
+                      No se pudieron cargar los nombres de las secciones afectadas.
+                    </p>
+                  }
+                </li>
+              }
               @for (
-                w of warnings();
+                w of otherWarnings();
                 track (w.sectionUuid ?? '') +
                   '|' +
                   (w.gradeUuid ?? '') +
@@ -904,7 +970,7 @@ interface DayPlanDraft {
                     <span class="text-content-muted"> — {{ w.message }}</span>
                   }
                   <span class="mt-0.5 block text-xs text-content-muted"
-                    >{{ warningSeverityLabel(w.severity) }} · {{ w.code }}</span
+                    >{{ warningSeverityLabel(w.severity) }}</span
                   >
                 </li>
               }
@@ -982,6 +1048,9 @@ interface DayPlanDraft {
   `,
 })
 export class JornadaPageComponent implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
   private readonly scheduleApi = inject(ScheduleApiService);
   private readonly academicApi = inject(AcademicApiService);
   private readonly confirmDialog = inject(ConfirmDialogService);
@@ -1011,12 +1080,37 @@ export class JornadaPageComponent implements OnInit {
   protected readonly activeTemplateUuid = signal('');
 
   protected readonly years = signal<AcademicYearRow[]>([]);
+  protected readonly periodContextUuid = signal(this.route.snapshot.queryParamMap.get('period'));
   protected readonly levels = signal<AcademicLevel[]>([]);
   protected readonly sections = signal<SectionRow[]>([]);
   protected readonly selectedYearUuid = signal('');
   protected readonly recessPolicy = signal<RecessPolicy>('STAGGERED');
   protected readonly templates = signal<DayTemplate[]>([]);
   protected readonly warnings = signal<ScheduleWarningItem[]>([]);
+  protected readonly missingHomeroomWarnings = computed(() =>
+    this.warnings().filter((warning) => warning.code === 'MISSING_HOMEROOM'),
+  );
+  protected readonly otherWarnings = computed(() =>
+    this.warnings().filter((warning) => warning.code !== 'MISSING_HOMEROOM'),
+  );
+  protected readonly missingHomeroomCount = computed(() => {
+    const sectionUuids = new Set(
+      this.missingHomeroomWarnings()
+        .map((warning) => warning.sectionUuid)
+        .filter((uuid): uuid is string => !!uuid),
+    );
+    return sectionUuids.size || this.missingHomeroomWarnings().length;
+  });
+  protected readonly missingHomeroomSections = computed(() => {
+    const sectionsByUuid = new Map(this.sections().map((section) => [section.publicUuid, section]));
+    const seen = new Set<string>();
+    return this.missingHomeroomWarnings().flatMap((warning) => {
+      const section = warning.sectionUuid ? sectionsByUuid.get(warning.sectionUuid) : undefined;
+      if (!section || seen.has(section.publicUuid)) return [];
+      seen.add(section.publicUuid);
+      return [section];
+    });
+  });
   protected readonly bootstrapDocs = signal<ScheduleSourceDocument[]>([]);
   protected readonly selectedFile = signal<File | null>(null);
   protected readonly showCreateTemplate = signal(false);
@@ -1043,6 +1137,18 @@ export class JornadaPageComponent implements OnInit {
 
   protected readonly applyingPlan = signal<Record<string, boolean>>({});
   protected readonly planVersion = signal(0);
+  protected readonly reviewingTemplateUuid = signal('');
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => {
+      const uuid = this.editingTemplateUuid();
+      return uuid ? this.dayPlanDrafts[uuid] ?? null : null;
+    },
+    saving: () => {
+      const uuid = this.editingTemplateUuid();
+      return !!uuid && !!this.applyingPlan()[uuid];
+    },
+    active: () => !!this.editingTemplateUuid(),
+  });
 
   protected readonly activeTemplate = computed(
     () => this.templates().find((t) => t.publicUuid === this.activeTemplateUuid()) ?? null,
@@ -1059,10 +1165,41 @@ export class JornadaPageComponent implements OnInit {
       this.years.set(years ?? []);
       this.levels.set(levels ?? []);
       this.recessPolicy.set(settings?.recessPolicy ?? 'STAGGERED');
-      const active = years?.find((y) => y.status === AcademicYearStatus.Active) ?? years?.[0];
-      if (active) {
-        this.selectedYearUuid.set(active.publicUuid);
+      const requestedYear = this.route.snapshot.queryParamMap.get('year');
+      const selectedYear = selectScheduleYear(years ?? [], requestedYear);
+      const templateUuid = this.route.snapshot.paramMap.get('templateUuid') ?? '';
+      if (selectedYear) {
+        this.selectedYearUuid.set(selectedYear.publicUuid);
+        this.activeTemplateUuid.set(templateUuid);
+        this.editingTemplateUuid.set(templateUuid);
+        if (requestedYear !== selectedYear.publicUuid) {
+          await this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { year: selectedYear.publicUuid },
+            queryParamsHandling: 'merge',
+            replaceUrl: true,
+          });
+        }
         await this.reloadYearData();
+        if (templateUuid && !this.templates().some((template) => template.publicUuid === templateUuid)) {
+          this.pageError.set('No encontramos esta jornada en el año seleccionado.');
+          this.editingTemplateUuid.set('');
+          this.activeTemplateUuid.set('');
+          await this.router.navigate([ROUTES.SCHEDULE.JORNADA], {
+            queryParams: {
+              year: selectedYear.publicUuid,
+              period: this.periodContextUuid(),
+            },
+            replaceUrl: true,
+          });
+        }
+      } else if (requestedYear) {
+        await this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { year: null, period: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
       }
     } catch (err: unknown) {
       this.pageError.set(this.errMsg(err, 'No se pudo cargar la jornada.'));
@@ -1073,6 +1210,10 @@ export class JornadaPageComponent implements OnInit {
 
   protected shiftLabel(shift: string | null): string {
     return formatDayTemplateShift(shift);
+  }
+
+  protected isActiveYear(year: AcademicYearRow): boolean {
+    return year.status === AcademicYearStatus.Active;
   }
 
   protected warningLabel(w: ScheduleWarningItem): string {
@@ -1090,10 +1231,15 @@ export class JornadaPageComponent implements OnInit {
   protected selectTemplate(uuid: string): void {
     this.activeTemplateUuid.set(uuid);
     this.editingTemplateUuid.set(uuid);
+    void this.router.navigate([ROUTES.SCHEDULE.JORNADA, uuid], {
+      queryParams: { year: this.selectedYearUuid(), period: this.periodContextUuid() },
+    });
   }
 
   protected backToTemplates(): void {
-    this.editingTemplateUuid.set('');
+    void this.router.navigate([ROUTES.SCHEDULE.JORNADA], {
+      queryParams: { year: this.selectedYearUuid(), period: this.periodContextUuid() },
+    });
   }
 
   protected toggleSpecialBlock(templateUuid: string): void {
@@ -1118,6 +1264,34 @@ export class JornadaPageComponent implements OnInit {
 
   protected isTemplateConfigured(template: DayTemplate): boolean {
     return !!template.dayStart && !!template.dayEnd && !!template.periodMinutes;
+  }
+
+  protected isTemplateReviewed(template: DayTemplate): boolean {
+    return this.isTemplateConfigured(template) && !!template.reviewedAt;
+  }
+
+  protected templateStatus(template: DayTemplate): string {
+    if (!this.isTemplateConfigured(template)) return 'Completar jornada';
+    return template.reviewedAt ? 'Revisada' : 'Por revisar';
+  }
+
+  protected reviewDetails(template: DayTemplate): string {
+    if (!template.reviewedAt) return '';
+    const reviewer = template.reviewedByUuid === this.auth.user()?.publicUuid
+      ? 'por ti'
+      : template.reviewedByUuid
+        ? 'por otro administrador'
+        : 'sin usuario asociado';
+    return `Revisada ${reviewer} el ${this.formatReviewDate(template.reviewedAt)}`;
+  }
+
+  private formatReviewDate(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat('es-PE', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(date);
   }
 
   protected recessCount(template: DayTemplate): number {
@@ -1182,6 +1356,14 @@ export class JornadaPageComponent implements OnInit {
     };
     for (const recess of draft.recesses) {
       if (!addInterval(recess.startTime, recess.endTime, null)) {
+        if (
+          recess.startTime &&
+          recess.endTime &&
+          (this.minutes(recess.startTime) < this.minutes(draft.dayStart) ||
+            this.minutes(recess.endTime) > this.minutes(draft.dayEnd))
+        ) {
+          return 'Este recreo queda fuera de la jornada. Amplía la hora de salida o ajusta el horario.';
+        }
         return 'Cada recreo debe quedar dentro de la jornada y tener una hora de fin posterior.';
       }
     }
@@ -1214,23 +1396,30 @@ export class JornadaPageComponent implements OnInit {
     return hours * 60 + minutes;
   }
 
-  protected async onYearChange(uuid: string): Promise<void> {
-    if (this.hasAnyUnsavedPlans()) {
-      const discard = await this.confirmDialog.open({
-        title: 'Cambios sin guardar',
-        message: 'Si cambias de año, se descartarán las modificaciones pendientes de las jornadas.',
-        confirmLabel: 'Descartar y cambiar',
-        variant: 'danger',
-      });
-      if (!discard) return;
+  protected onYearChange(uuid: string): void {
+    if (!uuid || uuid === this.selectedYearUuid()) return;
+    const change = (): void => { void this.changeYear(uuid); };
+    if (this.editingTemplateUuid()) {
+      this.formProtection.requestChange(change);
+      return;
     }
+    change();
+  }
+
+  private async changeYear(uuid: string): Promise<void> {
+    const leavingDetail = !!this.route.snapshot.paramMap.get('templateUuid');
     this.dayPlanDrafts = {};
     this.savedPlanSnapshots = {};
     this.cloneSourceYearUuid = '';
     this.selectedYearUuid.set(uuid);
+    this.periodContextUuid.set(null);
     this.activeTemplateUuid.set('');
     this.editingTemplateUuid.set('');
-    await this.reloadYearData();
+    this.formProtection.markSaved();
+    await this.router.navigate([ROUTES.SCHEDULE.JORNADA], {
+      queryParams: { year: uuid, period: null },
+    });
+    if (!leavingDetail) await this.reloadYearData();
   }
 
   protected hasAnyUnsavedPlans(): boolean {
@@ -1313,6 +1502,7 @@ export class JornadaPageComponent implements OnInit {
       icon: 'trash',
     });
     if (!ok) return;
+    const wasEditing = this.editingTemplateUuid() === tpl.publicUuid;
     try {
       await firstValueFrom(this.scheduleApi.deleteDayTemplate(tpl.publicUuid));
       if (this.activeTemplateUuid() === tpl.publicUuid) {
@@ -1321,6 +1511,12 @@ export class JornadaPageComponent implements OnInit {
       if (this.editingTemplateUuid() === tpl.publicUuid) this.editingTemplateUuid.set('');
       delete this.dayPlanDrafts[tpl.publicUuid];
       delete this.savedPlanSnapshots[tpl.publicUuid];
+      if (wasEditing) {
+        this.formProtection.markSaved();
+        await this.router.navigate([ROUTES.SCHEDULE.JORNADA], {
+          queryParams: { year: this.selectedYearUuid(), period: this.periodContextUuid() },
+        });
+      }
       await this.reloadTemplates();
     } catch (err: unknown) {
       this.pageError.set(this.errMsg(err, 'No se pudo eliminar la plantilla.'));
@@ -1552,6 +1748,13 @@ export class JornadaPageComponent implements OnInit {
       includeLunch: draft.lunch.enabled,
       lunchMinutes: Number(draft.lunch.minutes) || 45,
     });
+    if (
+      layout.recesses.length !== draft.recesses.length ||
+      (draft.lunch.enabled && !layout.lunch)
+    ) {
+      this.touchPlan(templateUuid);
+      return;
+    }
     draft.recesses = layout.recesses.map((slot, i) => ({
       startTime: slot.startTime,
       endTime: slot.endTime,
@@ -1569,6 +1772,30 @@ export class JornadaPageComponent implements OnInit {
     }
     if (draft.recesses.length === 0) {
       draft.recesses = [{ startTime: '', endTime: '', minutes: 30 }];
+    }
+    this.touchPlan(templateUuid);
+  }
+
+  protected onDayEndChange(templateUuid: string): void {
+    const draft = this.dayPlanDrafts[templateUuid];
+    if (!draft) return;
+    const dayStart = this.minutes(draft.dayStart);
+    const dayEnd = this.minutes(draft.dayEnd);
+    const recessOutsideDay = draft.recesses.some(
+      (recess) =>
+        !!recess.startTime &&
+        !!recess.endTime &&
+        (this.minutes(recess.startTime) < dayStart || this.minutes(recess.endTime) > dayEnd),
+    );
+    const lunchOutsideDay =
+      draft.lunch.enabled &&
+      !!draft.lunch.startTime &&
+      !!draft.lunch.endTime &&
+      (this.minutes(draft.lunch.startTime) < dayStart ||
+        this.minutes(draft.lunch.endTime) > dayEnd);
+    if (recessOutsideDay || lunchOutsideDay) {
+      this.autoArrangeDayPlan(templateUuid);
+      return;
     }
     this.touchPlan(templateUuid);
   }
@@ -1716,10 +1943,31 @@ export class JornadaPageComponent implements OnInit {
       delete this.savedPlanSnapshots[tpl.publicUuid];
       this.ensureDayPlanDraft(saved);
       this.planVersion.update((version) => version + 1);
+      this.formProtection.markSaved();
     } catch (err: unknown) {
       this.pageError.set(this.errMsg(err, 'No se pudo guardar el día escolar.'));
     } finally {
       this.applyingPlan.update((m) => ({ ...m, [tpl.publicUuid]: false }));
+    }
+  }
+
+  protected async markTemplateReviewed(template: DayTemplate): Promise<void> {
+    if (!this.isTemplateConfigured(template) || this.hasUnsavedPlan(template.publicUuid)) return;
+    this.reviewingTemplateUuid.set(template.publicUuid);
+    this.pageError.set(null);
+    try {
+      const reviewed = await firstValueFrom(
+        this.scheduleApi.markDayTemplateReviewed(template.publicUuid),
+      );
+      this.templates.update((templates) =>
+        templates.map((current) => current.publicUuid === reviewed.publicUuid ? reviewed : current),
+      );
+      this.settingsMessage.set(`Jornada «${reviewed.name}» marcada como revisada.`);
+      this.formProtection.markSaved();
+    } catch (err: unknown) {
+      this.pageError.set(this.errMsg(err, 'No se pudo marcar la jornada como revisada.'));
+    } finally {
+      this.reviewingTemplateUuid.set('');
     }
   }
 

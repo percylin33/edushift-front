@@ -1,7 +1,6 @@
 import { createFormProtection } from '@shared/services/form-protection.service';
 import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,

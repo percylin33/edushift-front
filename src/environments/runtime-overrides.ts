@@ -22,6 +22,11 @@ function resolveApiUrl(builtInApiUrl: string): string {
     return builtInApiUrl;
   }
   const host = window.location.hostname.toLowerCase();
+  // Production DNS serves the SPA and API behind the same Nginx host.
+  // Keep auth cookies same-site and host-only on root and tenant subdomains.
+  if (host === 'edushift.pe' || host.endsWith('.edushift.pe')) {
+    return '/api';
+  }
   // Tenant pages on `<slug>.localhost` use a same-origin API URL. The dev
   // server and local Docker Nginx proxy `/api` to the backend, avoiding
   // cross-port browser restrictions while keeping host-only auth cookies.
@@ -39,14 +44,14 @@ function resolveApiUrl(builtInApiUrl: string): string {
     // no explicit port, so fall back to the local Compose backend port.
     try {
       const built = new URL(builtInApiUrl);
-      const port = built.port || '8081';
+      const port = built.port || '8080';
       return `${window.location.protocol}//${window.location.hostname}:${port}${built.pathname.replace(/\/$/, '')}`;
     } catch {
       return builtInApiUrl;
     }
   }
   // Public tunnels: same-origin `/api` so `ng serve` proxy → local BE works.
-  // Without this, the browser would call `http://localhost:8081` on the
+  // Without this, the browser would call `http://localhost:8080` on the
   // remote device and fail.
   if (
     host.endsWith('.trycloudflare.com') ||

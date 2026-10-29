@@ -9,7 +9,6 @@ import {
   SpinnerComponent,
 } from '@shared/components';
 import { RubricSystemBadgeComponent } from '@features/rubrics/components/rubric-system-badge.component';
-import { RubricDetail } from '@features/rubrics/models';
 import { EvaluationsStore } from '../store';
 import { EvaluationDetail } from '../models';
 import { RubricAttachModalComponent } from './rubric-attach-modal.component';

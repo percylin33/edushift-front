@@ -71,11 +71,28 @@ export class TenantThemeService {
   private applyPalette(root: HTMLElement, name: 'primary' | 'accent', color?: string): void {
     const vars = name === 'primary' ? THEME_TOKENS.primaryPalette : THEME_TOKENS.accentPalette;
     if (!color) {
+      if (name === 'primary') {
+        root.style.removeProperty(THEME_TOKENS.primaryAction);
+        root.style.removeProperty(THEME_TOKENS.primaryActionHover);
+      }
       for (const v of vars) root.style.removeProperty(v);
       return;
     }
     const palette = buildPalette(color);
     if (!palette) return;
+    if (name === 'primary') {
+      const shades = PALETTE_SHADES.filter((shade) => shade >= 600);
+      const accessible = shades.filter((shade) => {
+        const channels = palette[shade].split(' ').map(Number).map((value) => {
+          const channel = value / 255;
+          return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+        });
+        const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+        return 1.05 / (luminance + 0.05) >= 4.5;
+      });
+      root.style.setProperty(THEME_TOKENS.primaryAction, palette[accessible[0] ?? 950]);
+      root.style.setProperty(THEME_TOKENS.primaryActionHover, palette[accessible[1] ?? 950]);
+    }
     PALETTE_SHADES.forEach((shade) => {
       root.style.setProperty(`--color-${name}-${shade}`, palette[shade]);
     });

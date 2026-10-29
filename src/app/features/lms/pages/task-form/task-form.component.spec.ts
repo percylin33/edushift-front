@@ -1,8 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { TaskFormComponent } from './task-form.component';
 import { TasksStore } from '../../store';
+import { TaskLifecycle } from '../../models';
 
 describe('TaskFormComponent', () => {
   let component: any;
@@ -29,22 +30,41 @@ describe('TaskFormComponent', () => {
         periodPublicUuid: 'p-1',
         title: 'Nueva',
         description: null,
+        attachmentPublicUuid: null,
         dueAt: null,
         maxScore: 20,
         allowResubmissions: true,
         requiresAttachment: false,
-        lifecycle: 'DRAFT' as any,
+        lifecycle: TaskLifecycle.Draft,
         createdByTeacherPublicUuid: 'tch-1',
         createdAt: new Date(),
         updatedAt: null,
         submissionsCount: 0,
         gradedSubmissionsCount: 0,
+        teacherAssignmentPublicUuid: null,
+        courseName: 'Curso 1',
+        periodLabel: 'Periodo 1',
       }),
     );
 
     await TestBed.configureTestingModule({
       imports: [TaskFormComponent],
-      providers: [provideRouter([]), { provide: TasksStore, useValue: mockStore }],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: { get: () => null },
+              queryParamMap: {
+                get: (key: string) =>
+                  key === 'section' ? 's-1' : key === 'assignment' ? 'a-1' : null,
+              },
+            },
+          },
+        },
+        { provide: TasksStore, useValue: mockStore },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TaskFormComponent);
@@ -108,7 +128,6 @@ describe('TaskFormComponent', () => {
       dueAt: '2030-06-01T12:00',
       maxScore: 20,
     });
-    component['#sectionUuid'] = 's-1';
     await component.onSubmit();
     expect(mockStore.createTask).toHaveBeenCalled();
   });

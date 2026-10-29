@@ -25,7 +25,8 @@
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
-              "zone.js"
+              "zone.js",
+              "@angular/localize/init"
             ],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
@@ -62,7 +63,7 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kb",
+                  "maximumWarning": "850kb",
                   "maximumError": "1mb"
                 },
                 {
@@ -115,14 +116,14 @@
             },
             "pwaTunnel": {
               "buildTarget": "edushift-front:build:production,pwaTunnel",
-              "port": 4201,
+              "port": 4200,
               "host": "0.0.0.0",
               "proxyConfig": "proxy.conf.mjs",
               "allowedHosts": [".trycloudflare.com"]
             },
             "development": {
               "buildTarget": "edushift-front:build:development",
-              "port": 4201,
+              "port": 4200,
               "host": "0.0.0.0",
               "proxyConfig": "proxy.conf.mjs",
               "allowedHosts": [
@@ -149,6 +150,7 @@
           "options": {
             "polyfills": [
               "zone.js",
+              "@angular/localize/init",
               "zone.js/testing"
             ],
             "tsConfig": "tsconfig.spec.json",

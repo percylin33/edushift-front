@@ -20,6 +20,8 @@ describe('NavLabels', () => {
 
   it('translates nav item ids', () => {
     expect(labels.labelFor('dashboard')).toBe('Panel');
+    expect(labels.labelFor('admissions')).toBe('Admisiones');
+    expect(labels.labelFor('disclosures')).toBe('Información anual');
     expect(labels.labelFor('students')).toBe('Estudiantes');
     expect(labels.labelFor('teachers')).toBe('Docentes');
     expect(labels.labelFor('courses')).toBe('Cursos');

@@ -14,6 +14,6 @@ export const DISCLOSURES_ROUTES: Routes = [
       title: 'Información anual',
     },
     loadComponent: () =>
-      import('./pages/disclosure-workspace.page').then((module) => module.DisclosureWorkspacePage),
+      import('./pages/disclosures-workspace.page').then((module) => module.DisclosureWorkspacePageComponent),
   },
 ];

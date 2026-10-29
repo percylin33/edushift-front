@@ -177,7 +177,10 @@ type SectionTab = 'info' | 'roster' | 'teachers' | 'schedule';
             />
           }
           @case ('schedule') {
-            <app-section-schedule-tab [sectionPublicUuid]="sec.publicUuid" />
+            <app-section-schedule-tab
+              [sectionPublicUuid]="sec.publicUuid"
+              [academicYearPublicUuid]="sec.academicYearPublicUuid"
+            />
           }
         }
       } @else if (loading()) {

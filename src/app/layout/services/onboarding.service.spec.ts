@@ -11,7 +11,7 @@ describe('OnboardingService', () => {
   ];
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({ providers: [OnboardingService] });
     service = TestBed.inject(OnboardingService);
   });
 

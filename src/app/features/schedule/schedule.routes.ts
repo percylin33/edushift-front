@@ -23,7 +23,17 @@ export const SCHEDULE_ROUTES: Routes = [
 	},
 	{
 		canDeactivate: [pendingChangesGuard],
-    path: 'jornada',
+		path: 'jornada/:templateUuid',
+		canActivate: [roleGuard],
+		data: { roles: [UserRole.TenantAdmin], title: 'Detalle de jornada' },
+		loadComponent: () =>
+			import('./pages/jornada-page/jornada-page.component').then(
+				(m) => m.JornadaPageComponent,
+			),
+	},
+	{
+		canDeactivate: [pendingChangesGuard],
+		path: 'jornada',
 		canActivate: [roleGuard],
 		data: { roles: [UserRole.TenantAdmin], title: 'Jornada y recreos' },
 		loadComponent: () =>

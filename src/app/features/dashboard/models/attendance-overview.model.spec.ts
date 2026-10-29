@@ -1,7 +1,6 @@
 import {
   toDashboardOverview,
   AttendanceDashboardOverviewRaw,
-  AttendanceDashboardOverview,
 } from './attendance-overview.model';
 
 describe('toDashboardOverview', () => {

@@ -4,7 +4,6 @@ import { catchError, switchMap, throwError } from 'rxjs';
 import { environment } from '@env/environment';
 import { HttpStatus } from '@core/enums';
 import { API } from '@core/constants';
-import { AuthService } from '@core/services';
 import { TokenRefreshService } from '@features/auth/services/token-refresh.service';
 
 /**
@@ -109,19 +108,4 @@ export const tokenRefreshInterceptor: HttpInterceptorFn = (req, next) => {
 function isAuthFlowEndpoint(url: string): boolean {
   return url === API.AUTH.LOGIN || url === API.AUTH.REFRESH || url === API.AUTH.LOGOUT ||
     url.includes('/admin/login') || url.includes('/admin/mfa/') || url.includes('/admin/dev/');
-}
-
-/**
- * Replace (not append) the configured authorization header on the
- * retry. We mirror {@code authInterceptor} so the header naming and
- * scheme stay configured in a single place ({@code environment.auth}).
- */
-function applyAuthHeader(
-  req: import('@angular/common/http').HttpRequest<unknown>,
-  accessToken: string,
-) {
-  const headerName = environment.auth.tokenHeaderName;
-  const scheme = environment.auth.tokenScheme;
-  const value = scheme ? `${scheme} ${accessToken}` : accessToken;
-  return req.clone({ setHeaders: { [headerName]: value } });
 }

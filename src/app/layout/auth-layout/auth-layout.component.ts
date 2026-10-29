@@ -16,8 +16,6 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { filter } from 'rxjs/operators';
-import { HttpClient } from '@angular/common/http';
-import { API } from '@core/constants';
 import { TenantService } from '@core/services';
 import { APP } from '@core/constants';
 import { TenantStatus } from '@core/enums';

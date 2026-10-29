@@ -44,4 +44,4 @@ export interface UpsertStudentCompetencyResultsRequest {
   results: CompetencyResultInput[];
 }
 
-export interface CompetencyResultForm extends CompetencyResultInput {}
+export type CompetencyResultForm = CompetencyResultInput;

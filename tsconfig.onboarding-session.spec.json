@@ -6,6 +6,9 @@
     "src/app/core/interceptors/upload-session.interceptor.spec.ts",
     "src/app/features/auth/school-setup.routes.spec.ts",
     "src/app/features/auth/pages/register/register-invitation.component.spec.ts",
+    "src/app/core/services/tenant-session.reconcile.spec.ts",
+    "src/app/core/theming/tenant-theme.service.spec.ts",
+    "src/app/core/theming/theme-tokens.spec.ts",
     "src/**/*.d.ts"
   ]
 }

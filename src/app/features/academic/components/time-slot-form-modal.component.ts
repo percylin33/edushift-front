@@ -64,8 +64,8 @@ interface WireApiError {
               {{ isEdit() ? 'Editar bloque de clase' : 'Nuevo bloque de clase' }}
             </h2>
             <p class="card-description">
-              Patrón semanal. Si la asignación cubre varios bimestres, el bloque se aplica a
-              todo el año. No puede solapar recreo, lonchera u otro slot conflictivo.
+              Se repite cada semana durante los periodos de la asignación. El horario se valida
+              para evitar cruces con recreos y otras clases.
             </p>
           </div>
           <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
@@ -78,9 +78,6 @@ interface WireApiError {
             <div class="alert alert-danger" role="alert">
               <app-icon name="alert-circle" [size]="18" />
               <div class="flex-1">
-                @if (errorCode(); as code) {
-                  <p class="text-xs font-semibold uppercase tracking-wide opacity-80">{{ code }}</p>
-                }
                 <p class="text-sm">{{ err }}</p>
               </div>
             </div>
@@ -88,7 +85,7 @@ interface WireApiError {
 
           @if (assignments().length > 0) {
             <div class="field">
-              <label class="label" for="ts-assignment">Asignación *</label>
+              <label class="label" for="ts-assignment">Curso y docente *</label>
               <select id="ts-assignment" class="select" formControlName="assignmentPublicUuid">
                 <option [ngValue]="null" disabled>Selecciona asignación…</option>
                 @for (a of assignments(); track a.publicUuid) {
@@ -103,7 +100,7 @@ interface WireApiError {
             </div>
           } @else if (!isEdit()) {
             <div class="field">
-              <label class="label" for="ts-assignment">Asignación *</label>
+              <label class="label" for="ts-assignment">Curso y docente *</label>
               <select id="ts-assignment" class="select" formControlName="assignmentPublicUuid" [disabled]="true">
                 <option [ngValue]="null">Sin asignaciones activas</option>
               </select>

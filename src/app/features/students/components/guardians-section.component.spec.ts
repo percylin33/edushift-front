@@ -4,10 +4,12 @@ import { GuardiansSectionComponent } from './guardians-section.component';
 import { StudentsStore } from '../store/students.store';
 import { Guardian } from '../models';
 import { DocumentType, RelationshipType } from '@core/enums';
+import { ConfirmDialogService } from '@shared/components';
 
 describe('GuardiansSectionComponent', () => {
   let fixture: ComponentFixture<GuardiansSectionComponent>;
   let component: GuardiansSectionComponent;
+  let fakeConfirm: jasmine.SpyObj<ConfirmDialogService>;
   let fakeStore: {
     guardians: ReturnType<typeof signal<Guardian[]>>;
     loadingGuardians: ReturnType<typeof signal<boolean>>;
@@ -41,9 +43,14 @@ describe('GuardiansSectionComponent', () => {
       loadGuardians: jasmine.createSpy('loadGuarders').and.returnValue(Promise.resolve()),
       unlinkGuardian: jasmine.createSpy('unlinkGuardian').and.returnValue(Promise.resolve(true)),
     };
+    fakeConfirm = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['open']);
+    fakeConfirm.open.and.returnValue(Promise.resolve(false));
     TestBed.configureTestingModule({
       imports: [GuardiansSectionComponent],
-      providers: [{ provide: StudentsStore, useValue: fakeStore }],
+      providers: [
+        { provide: StudentsStore, useValue: fakeStore },
+        { provide: ConfirmDialogService, useValue: fakeConfirm },
+      ],
     });
     fixture = TestBed.createComponent(GuardiansSectionComponent);
     component = fixture.componentInstance;
@@ -64,39 +71,39 @@ describe('GuardiansSectionComponent', () => {
 
   it('openAddModal y closeAddModal alternan estado', () => {
     configureModule();
-    (component as any).openAddModal();
-    expect((component as any).addOpen()).toBeTrue();
+    component['openAddModal']();
+    expect(component['addOpen']()).toBeTrue();
     expect(fakeStore.clearError).toHaveBeenCalled();
-    (component as any).closeAddModal();
-    expect((component as any).addOpen()).toBeFalse();
+    component['closeAddModal']();
+    expect(component['addOpen']()).toBeFalse();
   });
 
   it('openEditModal y closeEditModal manejan editTarget', () => {
     configureModule();
-    (component as any).openEditModal(guardian);
-    expect((component as any).editTarget()?.linkPublicUuid).toBe('l-1');
-    (component as any).closeEditModal();
-    expect((component as any).editTarget()).toBeNull();
+    component['openEditModal'](guardian);
+    expect(component['editTarget']()?.linkPublicUuid).toBe('l-1');
+    component['closeEditModal']();
+    expect(component['editTarget']()).toBeNull();
   });
 
   it('retry limpia error y recarga tutores', () => {
     configureModule();
-    (component as any).retry();
+    component['retry']();
     expect(fakeStore.clearError).toHaveBeenCalled();
     expect(fakeStore.loadGuardians).toHaveBeenCalledWith('s-1');
   });
 
   it('onUnlink confirmado llama al store', async () => {
     configureModule();
-    spyOn(window, 'confirm').and.returnValue(true);
-    await (component as any).onUnlink(guardian);
+    fakeConfirm.open.and.returnValue(Promise.resolve(true));
+    await component['onUnlink'](guardian);
     expect(fakeStore.unlinkGuardian).toHaveBeenCalledWith('s-1', 'g-1', 'l-1');
   });
 
   it('onUnlink cancelado no llama al store', async () => {
     configureModule();
-    spyOn(window, 'confirm').and.returnValue(false);
-    await (component as any).onUnlink(guardian);
+    fakeConfirm.open.and.returnValue(Promise.resolve(false));
+    await component['onUnlink'](guardian);
     expect(fakeStore.unlinkGuardian).not.toHaveBeenCalled();
   });
 
@@ -122,7 +129,7 @@ describe('GuardiansSectionComponent', () => {
     };
     fakeStore.guardians.set([grandparent, secondary, guardian]);
     fixture.detectChanges();
-    const ordered = (component as any).orderedGuardians();
+    const ordered = component['orderedGuardians']();
     expect(ordered[0].linkPublicUuid).toBe('l-1');
     expect(ordered[1].linkPublicUuid).toBe('l-2');
     expect(ordered[2].linkPublicUuid).toBe('l-3');

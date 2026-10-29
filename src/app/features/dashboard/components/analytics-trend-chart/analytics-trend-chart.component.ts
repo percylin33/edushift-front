@@ -60,7 +60,6 @@ export class AnalyticsTrendChartComponent {
 
 	protected readonly chartData = computed<ChartConfiguration<'line'>['data']>(() => {
 		const points = this.data();
-		const suffix = this.unitSuffix();
 		return {
 			labels: points.map((p) =>
 				new Date(p.periodStart).toLocaleDateString('es-PE', {

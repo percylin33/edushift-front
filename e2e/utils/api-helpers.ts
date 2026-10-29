@@ -36,9 +36,12 @@ export interface ApiContextOptions {
 }
 
 /**
- * Returns a Playwright {@link APIRequestContext} with the bearer
- * token and tenant slug already set as defaults, so the caller can
- * just call {@code api.post('/v1/...')} without repeating headers.
+ * Returns an authenticated Playwright {@link APIRequestContext} with
+ * the tenant slug already set as a default. Current EduShift versions
+ * keep access and refresh tokens in HttpOnly cookies, so this helper
+ * preserves the login request context and its cookie jar. Older
+ * backends that still return an access token in the response body are
+ * supported through the Authorization header fallback.
  *
  * <p>Playwright's {@code request.newContext({ baseURL })} uses the
  * base URL only as the scheme + host — the path component is
@@ -52,16 +55,49 @@ export interface ApiContextOptions {
  */
 export async function apiContextFor(opts: ApiContextOptions): Promise<APIRequestContext> {
   const baseURL = opts.baseURL ?? API_BASE;
-  const session = await loginViaApi(baseURL, opts.user);
-  return request.newContext({
+  const headers = {
+    'X-Tenant-Slug': opts.user.tenantSlug,
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+  const ctx = await request.newContext({
     baseURL,
-    extraHTTPHeaders: {
-      Authorization: `Bearer ${session.accessToken}`,
-      'X-Tenant-Slug': opts.user.tenantSlug,
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
+    extraHTTPHeaders: headers,
   });
+  try {
+    const login = await ctx.post('/api/v1/auth/login', {
+      data: { email: opts.user.email, password: opts.user.password },
+    });
+    if (!login.ok()) {
+      const body = await login.text().catch(() => '');
+      throw new Error(
+        `Login API failed for ${opts.user.email} on tenant ${opts.user.tenantSlug}: ` +
+          `${login.status()} ${login.statusText()}\n${body}`,
+      );
+    }
+    const session = (await login.json()) as LoginResponse;
+    if (!session.user) {
+      throw new Error(
+        `Login API requires additional verification for ${opts.user.email} on tenant ${opts.user.tenantSlug}`,
+      );
+    }
+    if (session.accessToken) {
+      const storageState = await ctx.storageState();
+      await ctx.dispose();
+      return request.newContext({
+        baseURL,
+        extraHTTPHeaders: {
+          ...headers,
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+        storageState,
+      });
+    }
+    return ctx;
+  } catch (error) {
+    await ctx.dispose();
+    throw error;
+  }
 }
 
 /**
@@ -89,37 +125,13 @@ export async function safeApiContextFor(
 }
 
 interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
+  accessToken?: string | null;
+  refreshToken?: string | null;
   tokenType: 'Bearer';
   expiresInSec: number;
-  user: {
+  user?: {
     publicUuid: string;
     email: string;
     role: string;
   };
-}
-
-async function loginViaApi(baseURL: string, user: SeedUser): Promise<LoginResponse> {
-  const ctx = await request.newContext({ baseURL });
-  try {
-    const res = await ctx.post('/api/v1/auth/login', {
-      headers: {
-        'X-Tenant-Slug': user.tenantSlug,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      data: { email: user.email, password: user.password },
-    });
-    if (!res.ok()) {
-      const body = await res.text().catch(() => '');
-      throw new Error(
-        `Login API failed for ${user.email} on tenant ${user.tenantSlug}: ` +
-          `${res.status()} ${res.statusText()}\n${body}`,
-      );
-    }
-    return (await res.json()) as LoginResponse;
-  } finally {
-    await ctx.dispose();
-  }
 }

@@ -1,17 +1,14 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, UrlTree, provideRouter } from '@angular/router';
+import { UrlTree, provideRouter } from '@angular/router';
 import { featureFlagGuard } from './feature-flag.guard';
 import { FeatureKey } from '@core/enums';
 import { environment } from '@env/environment';
 
 describe('featureFlagGuard', () => {
-  let router: Router;
-
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [provideRouter([])],
     });
-    router = TestBed.inject(Router);
   });
 
   it('permite acceso cuando no hay feature key', () => {

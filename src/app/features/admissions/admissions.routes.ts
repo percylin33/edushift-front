@@ -5,9 +5,9 @@ import { Permission, UserRole } from '@core/enums';
 
 const read = [Permission.LmsAdmissionManage, Permission.AdmissionsApplicationsRead];
 const manage = [Permission.LmsAdmissionManage, Permission.AdmissionsApplicationsManage];
-const applications = () => import('./pages/admissions-page').then((m) => m.AdmissionsPage);
+const applications = () => import('./pages/admissions-list.page').then((m) => m.AdmissionsPageComponent);
 const inquiries = () =>
-  import('./pages/admissions-inquiries-page').then((m) => m.AdmissionsInquiriesPage);
+  import('./pages/admissions-inquiries-list.page').then((m) => m.AdmissionsInquiriesPageComponent);
 export const ADMISSIONS_ROUTES: Routes = [
   { path: 'presential', redirectTo: 'new', pathMatch: 'full' },
   {

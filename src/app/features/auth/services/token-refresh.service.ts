@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, finalize, map, shareReplay, tap, throwError } from 'rxjs';
+import { Observable, finalize, map, shareReplay, tap } from 'rxjs';
 import { AuthService } from '@core/services';
 import { AuthApiService } from './auth-api.service';
 

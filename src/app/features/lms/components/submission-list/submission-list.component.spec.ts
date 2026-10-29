@@ -1,18 +1,26 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SubmissionListComponent } from './submission-list.component';
 import { SubmissionRow, SubmissionStatus } from '../../models';
-import { IconComponent } from '@shared/components';
-import { HasPermissionDirective } from '@shared/directives';
-import { Permission } from '@core/enums';
+import { provideHttpClient } from '@angular/common/http';
 
 describe('SubmissionListComponent', () => {
-  let component: any;
+  let component: SubmissionListComponent;
   let fixture: ComponentFixture<SubmissionListComponent>;
   let rows: SubmissionRow[];
+  const testApi = () =>
+    component as unknown as {
+      canGrade(status: SubmissionStatus): boolean;
+      canReturn(status: SubmissionStatus): boolean;
+      onGrade(row: SubmissionRow): void;
+      onReturn(row: SubmissionRow): void;
+      initials(fullName: string): string;
+      statusLabel(status: SubmissionStatus): string;
+    };
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [SubmissionListComponent],
+      providers: [provideHttpClient()],
     }).compileComponents();
     fixture = TestBed.createComponent(SubmissionListComponent);
     component = fixture.componentInstance;
@@ -27,6 +35,9 @@ describe('SubmissionListComponent', () => {
         submittedAt: new Date('2026-01-15T10:00:00Z'),
         grade: null,
         hasAttachment: true,
+        attachmentPublicUuid: 'file-1',
+        attachmentFilename: 'entrega.pdf',
+        attachmentDownloadUrl: '/files/file-1',
       },
     ];
     fixture.componentRef.setInput('rows', rows);
@@ -61,37 +72,37 @@ describe('SubmissionListComponent', () => {
   });
 
   it('canGrade retorna true para Submitted, Late, Returned', () => {
-    expect(component.canGrade(SubmissionStatus.Submitted)).toBeTrue();
-    expect(component.canGrade(SubmissionStatus.Late)).toBeTrue();
-    expect(component.canGrade(SubmissionStatus.Returned)).toBeTrue();
-    expect(component.canGrade(SubmissionStatus.Graded)).toBeFalse();
-    expect(component.canGrade(SubmissionStatus.Pending)).toBeFalse();
+    expect(testApi().canGrade(SubmissionStatus.Submitted)).toBeTrue();
+    expect(testApi().canGrade(SubmissionStatus.Late)).toBeTrue();
+    expect(testApi().canGrade(SubmissionStatus.Returned)).toBeTrue();
+    expect(testApi().canGrade(SubmissionStatus.Graded)).toBeFalse();
+    expect(testApi().canGrade(SubmissionStatus.Pending)).toBeFalse();
   });
 
   it('canReturn true solo para Graded', () => {
-    expect(component.canReturn(SubmissionStatus.Graded)).toBeTrue();
-    expect(component.canReturn(SubmissionStatus.Submitted)).toBeFalse();
+    expect(testApi().canReturn(SubmissionStatus.Graded)).toBeTrue();
+    expect(testApi().canReturn(SubmissionStatus.Submitted)).toBeFalse();
   });
 
   it('emite grade al hacer click', () => {
     spyOn(component.grade, 'emit');
-    component.onGrade(rows[0]);
+    testApi().onGrade(rows[0]);
     expect(component.grade.emit).toHaveBeenCalledWith(rows[0]);
   });
 
   it('emite return al hacer click', () => {
     spyOn(component.return, 'emit');
-    component.onReturn(rows[0]);
+    testApi().onReturn(rows[0]);
     expect(component.return.emit).toHaveBeenCalledWith(rows[0]);
   });
 
   it('initials extrae 2 iniciales', () => {
-    expect(component.initials('Juan Pérez')).toBe('JP');
-    expect(component.initials('María')).toBe('M');
+    expect(testApi().initials('Juan Pérez')).toBe('JP');
+    expect(testApi().initials('María')).toBe('M');
   });
 
   it('statusLabel retorna español', () => {
-    expect(component.statusLabel(SubmissionStatus.Graded)).toBe('Calificada');
-    expect(component.statusLabel(SubmissionStatus.Late)).toBe('Tarde');
+    expect(testApi().statusLabel(SubmissionStatus.Graded)).toBe('Calificada');
+    expect(testApi().statusLabel(SubmissionStatus.Late)).toBe('Tarde');
   });
 });

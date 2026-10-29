@@ -63,6 +63,10 @@ describe('InvoiceModel', () => {
         dueAt: '2026-03-15',
         paidAt: null,
         notes: null,
+        evidenceFilePublicUuid: null,
+        evidenceSubmittedAt: null,
+        evidenceNotes: null,
+        evidenceRejectionReason: null,
         items: [],
       };
       expect(i.subscriptionId).toBeNull();

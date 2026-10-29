@@ -173,7 +173,7 @@ type LaidOutItem =
             >
               @for (day of visibleDays(); track day.value) {
                 <div class="sch-toolbar-cell bg-surface px-2 pt-2" [class.sch-toolbar-cell--weekend]="day.value > 5">
-                  @if (editable() && day.value <= 5) {
+                  @if (editable() && showDayAddActions() && day.value <= 5) {
                     <button
                       type="button"
                       class="sch-add-btn mb-2 flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border-subtle px-1 py-1.5 text-[10px] font-medium text-content-muted transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
@@ -418,11 +418,11 @@ type LaidOutItem =
           </div>
         }
         @for (day of visibleDays(); track day.value) {
-          @if (itemsByDay()[day.value].length > 0 || (editable() && day.value <= 5)) {
+          @if (itemsByDay()[day.value].length > 0 || (editable() && showDayAddActions() && day.value <= 5)) {
             <div class="card">
               <header class="card-header flex items-center justify-between gap-2">
                 <h3 class="card-title text-sm">{{ day.label }}</h3>
-                @if (editable() && day.value <= 5) {
+                @if (editable() && showDayAddActions() && day.value <= 5) {
                   <button
                     type="button"
                     class="btn btn-ghost btn-sm"
@@ -802,6 +802,8 @@ export class ScheduleGridComponent {
   readonly suggestedPeriods = input<readonly SuggestedPeriodItem[]>([]);
   /** When true, shows per-day add controls and makes slots clickable. */
   readonly editable = input(false);
+  /** Hides repeated per-day add buttons when the page already provides one clear action. */
+  readonly showDayAddActions = input(true);
   /** Si es true, muestra la sección en cada slot (modo Teacher-centric). */
   @Input() showSectionView = true;
   /** Si es true, muestra el docente en cada slot (modo Section-centric). */

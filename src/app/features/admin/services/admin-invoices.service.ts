@@ -23,8 +23,8 @@ export class AdminInvoicesService {
   loadInvoices(params: { status?: string; page?: number; size?: number } = {}): void {
     this._loading.set(true);
     this._error.set(null);
-    const query: any = { page: params.page ?? 0, size: params.size ?? 10 };
-    if (params.status) query.status = params.status;
+    const query: Record<string, string | number> = { page: params.page ?? 0, size: params.size ?? 10 };
+    if (params.status) query['status'] = params.status;
 
     this.api.get<{ data: { content: Record<string, unknown>[]; totalPages: number } }>(API.ADMIN.INVOICES_ROOT, query).subscribe({
       next: (res) => {

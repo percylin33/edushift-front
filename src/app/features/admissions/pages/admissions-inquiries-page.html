@@ -137,6 +137,15 @@
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
+          @if (canManageInquiries()) {
+            <button
+              type="button"
+              (click)="openPresentialInquiry()"
+              class="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+            >
+              Registrar consulta presencial
+            </button>
+          }
           <input
             [ngModel]="searchTerm()"
             (ngModelChange)="searchTerm.set($event); pageSignal.set(0)"
@@ -229,6 +238,9 @@
                       [ngClass]="statusClass(item.status)"
                       >{{ statusLabel(item.status) }}</span
                     >
+                    <span class="mt-1 block text-xs text-slate-500">
+                      {{ item.source === 'PRESENTIAL' ? 'Atención del colegio' : 'Formulario web' }}
+                    </span>
                     @if (item.convertedApplicationStatus) {
                       <span class="mt-1 block text-xs text-slate-500"
                         >Solicitud:
@@ -320,6 +332,69 @@
         />
       }
     </section>
+  }
+  @if (presentialInquiryOpen()) {
+    <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4" (click)="closePresentialInquiry()">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="presential-inquiry-title"
+        class="max-h-[90vh] w-full max-w-2xl space-y-4 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl dark:bg-slate-900"
+        (click)="$event.stopPropagation()"
+      >
+        <div>
+          <h2 id="presential-inquiry-title" class="text-xl font-bold">Registrar consulta presencial</h2>
+          <p class="mt-1 text-sm text-slate-500">Registra el interés y programa el seguimiento. Esto no crea una postulación ni reserva una vacante.</p>
+        </div>
+        <form #presentialInquiryForm="ngForm" (ngSubmit)="presentialInquiryForm.valid && savePresentialInquiry()" class="space-y-4">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="text-sm font-medium">Nombre del adulto
+              <input name="intakeContactName" [(ngModel)]="newInquiryContactName" required maxlength="200" class="mt-1 w-full rounded-xl border p-3 dark:bg-slate-950" />
+            </label>
+            <label class="text-sm font-medium">Grado de interés
+              <select name="intakeGrade" [(ngModel)]="newInquiryGradeUuid" required class="mt-1 w-full rounded-xl border p-3 dark:bg-slate-950">
+                <option value="">Seleccionar grado</option>
+                @for (grade of grades(); track grade.publicUuid) { <option [value]="grade.publicUuid">{{ grade.name }}</option> }
+              </select>
+            </label>
+            <label class="text-sm font-medium">Tipo de contacto
+              <select name="intakeContactType" [(ngModel)]="newInquiryContactType" required class="mt-1 w-full rounded-xl border p-3 dark:bg-slate-950">
+                <option value="PHONE">Teléfono</option><option value="EMAIL">Correo</option>
+              </select>
+            </label>
+            <label class="text-sm font-medium">Teléfono o correo
+              <input name="intakeContactValue" [(ngModel)]="newInquiryContactValue" required maxlength="254" [type]="newInquiryContactType === 'EMAIL' ? 'email' : 'tel'" class="mt-1 w-full rounded-xl border p-3 dark:bg-slate-950" />
+            </label>
+            <label class="text-sm font-medium">Canal de atención
+              <select name="intakeChannel" [(ngModel)]="newInquiryChannel" class="mt-1 w-full rounded-xl border p-3 dark:bg-slate-950">
+                <option value="PRESENTIAL">Presencial</option><option value="PHONE">Llamada</option><option value="WHATSAPP">WhatsApp</option><option value="OTHER">Otro</option>
+              </select>
+            </label>
+            <label class="text-sm font-medium">Responsable
+              <input name="intakeResponsible" [(ngModel)]="newInquiryResponsible" maxlength="100" class="mt-1 w-full rounded-xl border p-3 dark:bg-slate-950" />
+            </label>
+            <label class="text-sm font-medium">Próxima atención
+              <input name="intakeNextDate" type="date" [(ngModel)]="newInquiryDate" class="mt-1 w-full rounded-xl border p-3 dark:bg-slate-950" />
+            </label>
+            <label class="text-sm font-medium">Próxima acción
+              <input name="intakeNextAction" [(ngModel)]="newInquiryAction" maxlength="300" class="mt-1 w-full rounded-xl border p-3 dark:bg-slate-950" />
+            </label>
+          </div>
+          <label class="block text-sm font-medium">Nota de atención
+            <textarea name="intakeNote" [(ngModel)]="newInquiryNote" maxlength="2000" rows="3" class="mt-1 w-full rounded-xl border p-3 dark:bg-slate-950"></textarea>
+          </label>
+          <label class="flex items-start gap-2 text-sm">
+            <input name="intakePrivacyNotice" type="checkbox" [(ngModel)]="newInquiryPrivacyNotice" class="mt-1" />
+            <span>Se informó a la familia sobre el tratamiento de sus datos.</span>
+          </label>
+          @if (error()) { <p role="alert" class="text-sm text-rose-700">{{ error() }}</p> }
+          <div class="flex justify-end gap-2 border-t pt-4 dark:border-slate-700">
+            <button type="button" (click)="closePresentialInquiry()" class="rounded-xl border px-4 py-2">Cancelar</button>
+            <button type="submit" [disabled]="saving()" class="rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white disabled:opacity-50">{{ saving() ? 'Guardando…' : 'Guardar consulta' }}</button>
+          </div>
+        </form>
+      </section>
+    </div>
   }
   @if (convertInquiry() || presentialOpen()) {
     @let inquiry = convertInquiry();

@@ -19,6 +19,9 @@ describe('SubmissionsStore', () => {
       submittedAt: new Date('2026-01-15T10:00:00Z'),
       grade: null,
       hasAttachment: false,
+      attachmentPublicUuid: null,
+      attachmentFilename: null,
+      attachmentDownloadUrl: null,
       ...overrides,
     };
   }

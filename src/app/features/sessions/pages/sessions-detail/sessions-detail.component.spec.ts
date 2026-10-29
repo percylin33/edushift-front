@@ -5,11 +5,13 @@ import { AcademicApiService } from '@features/academic/services';
 import { SessionsDetailComponent } from './sessions-detail.component';
 import { SessionsApiService } from '../../services';
 import { LearningSessionDetail, SessionStatus } from '../../models';
+import { ConfirmDialogService } from '@shared/components';
 
 describe('SessionsDetailComponent', () => {
   let fixture: ComponentFixture<SessionsDetailComponent>;
   let component: SessionsDetailComponent;
   let fakeApi: jasmine.SpyObj<SessionsApiService>;
+  let fakeConfirmDialog: jasmine.SpyObj<ConfirmDialogService>;
 
   const detail: LearningSessionDetail = {
     publicUuid: 'sess-1',
@@ -50,11 +52,14 @@ describe('SessionsDetailComponent', () => {
       'completeSession',
       'cancelSession',
     ]);
+    fakeConfirmDialog = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['open']);
+    fakeConfirmDialog.open.and.returnValue(Promise.resolve(false));
     TestBed.configureTestingModule({
       imports: [SessionsDetailComponent],
       providers: [
         provideRouter([]),
         { provide: SessionsApiService, useValue: fakeApi },
+        { provide: ConfirmDialogService, useValue: fakeConfirmDialog },
         { provide: AcademicApiService, useValue: { listAssignments: () => of([]) } },
         {
           provide: ActivatedRoute,
@@ -75,15 +80,15 @@ describe('SessionsDetailComponent', () => {
     configureModule();
     fakeApi.getSession.and.returnValue(of(detail));
     await component.ngOnInit();
-    expect((component as any).session()?.title).toBe('Intro');
-    expect((component as any).loading()).toBeFalse();
+    expect(component['session']()?.title).toBe('Intro');
+    expect(component['loading']()).toBeFalse();
   });
 
   it('ngOnInit maneja error', async () => {
     configureModule();
     fakeApi.getSession.and.returnValue(throwError(() => new Error('boom')));
     await component.ngOnInit();
-    expect((component as any).errorMessage()).toBe('boom');
+    expect(component['errorMessage']()).toBe('boom');
   });
 
   it('ngOnInit sin id navega a LIST', async () => {
@@ -96,79 +101,79 @@ describe('SessionsDetailComponent', () => {
 
   it('isTerminal true para COMPLETED', () => {
     configureModule();
-    (component as any).session.set({ ...detail, status: SessionStatus.COMPLETED });
-    expect((component as any).isTerminal()).toBeTrue();
+    component['session'].set({ ...detail, status: SessionStatus.COMPLETED });
+    expect(component['isTerminal']()).toBeTrue();
   });
 
   it('isTerminal true para CANCELLED', () => {
     configureModule();
-    (component as any).session.set({ ...detail, status: SessionStatus.CANCELLED });
-    expect((component as any).isTerminal()).toBeTrue();
+    component['session'].set({ ...detail, status: SessionStatus.CANCELLED });
+    expect(component['isTerminal']()).toBeTrue();
   });
 
   it('isTerminal false para PLANNED', () => {
     configureModule();
-    (component as any).session.set({ ...detail, status: SessionStatus.PLANNED });
-    expect((component as any).isTerminal()).toBeFalse();
+    component['session'].set({ ...detail, status: SessionStatus.PLANNED });
+    expect(component['isTerminal']()).toBeFalse();
   });
 
   it('getStatusLabel / getStatusBadgeClass delegan', () => {
     configureModule();
-    expect((component as any).getStatusLabel(SessionStatus.PLANNED)).toBe('Planificada');
-    expect((component as any).getStatusBadgeClass(SessionStatus.PLANNED)).toContain('neutral');
+    expect(component['getStatusLabel'](SessionStatus.PLANNED)).toBe('Planificada');
+    expect(component['getStatusBadgeClass'](SessionStatus.PLANNED)).toContain('neutral');
   });
 
   it('editRoute construye URL de edición', () => {
     configureModule();
-    expect((component as any).editRoute()).toContain('/edit');
+    expect(component['editRoute']()).toContain('/edit');
   });
 
   it('formatDate y formatDateTime formatean', () => {
     configureModule();
-    expect((component as any).formatDate(new Date('2026-06-15'))).toContain('2026');
-    expect((component as any).formatDateTime(undefined)).toBe('—');
+    expect(component['formatDate'](new Date('2026-06-15'))).toContain('2026');
+    expect(component['formatDateTime'](undefined)).toBe('—');
   });
 
   it('getCapacitiesForCompetency filtra por competencyUuid', () => {
     configureModule();
-    (component as any).session.set(detail);
-    const caps = (component as any).getCapacitiesForCompetency('comp-1');
+    component['session'].set(detail);
+    const caps = component['getCapacitiesForCompetency']('comp-1');
     expect(caps).toHaveSize(1);
     expect(caps[0].publicUuid).toBe('cap-1');
   });
 
   it('startSession confirmado llama api', async () => {
     configureModule();
-    (component as any).session.set(detail);
-    spyOn(window, 'confirm').and.returnValue(true);
+    component['session'].set(detail);
+    fakeConfirmDialog.open.and.returnValue(Promise.resolve(true));
     fakeApi.startSession.and.returnValue(of({ ...detail, status: SessionStatus.IN_PROGRESS }));
-    await (component as any).startSession();
+    await component['startSession']();
     expect(fakeApi.startSession).toHaveBeenCalledWith('sess-1', jasmine.any(Object));
   });
 
   it('startSession cancelado no llama api', async () => {
     configureModule();
-    (component as any).session.set(detail);
-    spyOn(window, 'confirm').and.returnValue(false);
-    await (component as any).startSession();
+    component['session'].set(detail);
+    fakeConfirmDialog.open.and.returnValue(Promise.resolve(false));
+    await component['startSession']();
     expect(fakeApi.startSession).not.toHaveBeenCalled();
   });
 
   it('completeSession confirmado llama api', async () => {
     configureModule();
-    (component as any).session.set({ ...detail, status: SessionStatus.IN_PROGRESS });
-    spyOn(window, 'confirm').and.returnValue(true);
+    component['session'].set({ ...detail, status: SessionStatus.IN_PROGRESS });
+    fakeConfirmDialog.open.and.returnValue(Promise.resolve(true));
     fakeApi.completeSession.and.returnValue(of({ ...detail, status: SessionStatus.COMPLETED }));
-    await (component as any).completeSession();
+    await component['completeSession']();
     expect(fakeApi.completeSession).toHaveBeenCalled();
   });
 
   it('cancelSession con motivo llama api', async () => {
     configureModule();
-    (component as any).session.set(detail);
+    component['session'].set(detail);
     spyOn(window, 'prompt').and.returnValue('razón');
     fakeApi.cancelSession.and.returnValue(of({ ...detail, status: SessionStatus.CANCELLED }));
-    await (component as any).cancelSession();
+    await component['cancelSession']();
     expect(fakeApi.cancelSession).toHaveBeenCalledWith(
       'sess-1',
       jasmine.objectContaining({ reason: 'razón' }),
@@ -177,9 +182,9 @@ describe('SessionsDetailComponent', () => {
 
   it('cancelSession cancelado por prompt no llama api', async () => {
     configureModule();
-    (component as any).session.set(detail);
+    component['session'].set(detail);
     spyOn(window, 'prompt').and.returnValue(null);
-    await (component as any).cancelSession();
+    await component['cancelSession']();
     expect(fakeApi.cancelSession).not.toHaveBeenCalled();
   });
 });

@@ -8,7 +8,6 @@ import {
   Component,
   computed,
   DestroyRef,
-  HostListener,
   inject,
   signal,
 } from '@angular/core';
@@ -28,6 +27,8 @@ import {
   AdmissionInquiry,
   AdmissionInquiryEvent,
   AdmissionInquiryStatus,
+  AdmissionInquiryChannel,
+  AdmissionContactType,
   CreateAdmissionFromInquiry,
 } from '../models';
 import { AdmissionsApiService } from '../services/admissions-api.service';
@@ -47,7 +48,7 @@ import { AdmissionsApiService } from '../services/admissions-api.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admissions-inquiries-page.html',
 })
-export class AdmissionsInquiriesPage {
+export class AdmissionsInquiriesPageComponent {
   protected readonly formProtection = createFormProtection({
     snapshot: () => {
       const inquiry = this.noteInquiry();
@@ -61,6 +62,13 @@ export class AdmissionsInquiriesPage {
           this.nextAttentionDate,
           this.nextAction,
           this.noteStatus,
+        ];
+      if (this.presentialInquiryOpen())
+        return [
+          'presential-inquiry', this.newInquiryContactName, this.newInquiryContactType,
+          this.newInquiryContactValue, this.newInquiryChannel, this.newInquiryGradeUuid,
+          this.newInquiryNote, this.newInquiryResponsible, this.newInquiryDate,
+          this.newInquiryAction, this.newInquiryPrivacyNotice,
         ];
       if (this.convertInquiry() || this.presentialOpen())
         return [
@@ -77,6 +85,7 @@ export class AdmissionsInquiriesPage {
     saving: () => this.saving() || this.existingBusySignal(),
     active: () =>
       !!this.noteInquiry() ||
+      this.presentialInquiryOpen() ||
       !!this.convertInquiry() ||
       this.presentialOpen() ||
       this.existingStudentSignal(),
@@ -159,12 +168,23 @@ export class AdmissionsInquiriesPage {
   readonly gradeFilter = signal(this.workspace.inquiryGrade);
   readonly grades = signal<{ publicUuid: string; name: string }[]>([]);
   readonly presentialOpen = signal(false);
+  readonly presentialInquiryOpen = signal(false);
   readonly noteInquiry = signal<AdmissionInquiry | null>(null);
   attentionChannel = 'Presencial';
   attentionNote = '';
   draftGradeUuid = '';
   draftYearUuid = '';
   noteStatus: AdmissionInquiryStatus | null = null;
+  newInquiryContactName = '';
+  newInquiryContactType: AdmissionContactType = 'PHONE';
+  newInquiryContactValue = '';
+  newInquiryChannel: AdmissionInquiryChannel = 'PRESENTIAL';
+  newInquiryGradeUuid = '';
+  newInquiryNote = '';
+  newInquiryResponsible = '';
+  newInquiryDate = '';
+  newInquiryAction = '';
+  newInquiryPrivacyNotice = false;
   readonly filteredInquiries = computed(() => {
     const term = this.normalize(this.searchTerm());
     const digits = term.replace(/\D/g, '');
@@ -233,6 +253,9 @@ export class AdmissionsInquiriesPage {
             this.yearUuid.set(active.publicUuid);
             this.draftYearUuid = active.publicUuid;
             this.refresh();
+          }
+          if (this.route.snapshot.queryParamMap.get('newPresential') === '1' && this.canManageInquiries()) {
+            this.openPresentialInquiry();
           }
           if (this.editUuid) this.loadEditableApplicant();
         },
@@ -419,6 +442,56 @@ export class AdmissionsInquiriesPage {
     this.formProtection.markSaved();
     this.loadAntecedents();
     this.focusWizard();
+  }
+  openPresentialInquiry(): void {
+    this.error.set(null);
+    this.newInquiryContactName = '';
+    this.newInquiryContactType = 'PHONE';
+    this.newInquiryContactValue = '';
+    this.newInquiryChannel = 'PRESENTIAL';
+    this.newInquiryGradeUuid = '';
+    this.newInquiryNote = '';
+    this.newInquiryResponsible = '';
+    this.newInquiryDate = '';
+    this.newInquiryAction = '';
+    this.newInquiryPrivacyNotice = false;
+    this.presentialInquiryOpen.set(true);
+    this.formProtection.markSaved();
+  }
+  closePresentialInquiry(): void {
+    this.formProtection.requestClose(() => {
+      this.presentialInquiryOpen.set(false);
+      this.formProtection.markSaved();
+    });
+  }
+  savePresentialInquiry(): void {
+    if (!this.yearUuid() || !this.newInquiryGradeUuid || this.saving()) return;
+    this.saving.set(true);
+    this.error.set(null);
+    this.api.createPresentialInquiry(this.yearUuid(), {
+      gradePublicUuid: this.newInquiryGradeUuid,
+      contactName: this.newInquiryContactName.trim(),
+      contactType: this.newInquiryContactType,
+      contactValue: this.newInquiryContactValue.trim(),
+      initialChannel: this.newInquiryChannel,
+      note: this.newInquiryNote.trim() || undefined,
+      responsibleName: this.newInquiryResponsible.trim() || undefined,
+      nextAttentionDate: this.newInquiryDate || null,
+      nextAction: this.newInquiryAction.trim() || undefined,
+      privacyNoticeGiven: this.newInquiryPrivacyNotice,
+    }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.presentialInquiryOpen.set(false);
+        this.formProtection.markSaved();
+        this.notice.set('Consulta presencial registrada para seguimiento.');
+        this.refresh();
+      },
+      error: (error) => {
+        this.saving.set(false);
+        this.error.set(admissionError(error, 'No se pudo registrar la consulta presencial.'));
+      },
+    });
   }
   closeConvert(): void {
     this.formProtection.requestClose(() => {

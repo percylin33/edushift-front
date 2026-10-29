@@ -36,7 +36,7 @@ export interface StompSubscribeOptions {
   userId: string;
   /** Tenant public UUID — used only for logging. */
   tenantId: string;
-  /** STOMP host. Defaults to {@code http://localhost:8081}. */
+  /** STOMP host. Defaults to {@code http://localhost:8080}. */
   baseUrl?: string;
 }
 
@@ -74,7 +74,7 @@ export async function stompSubscribe(
   api: APIRequestContext,
   opts: StompSubscribeOptions,
 ): Promise<StompSubscription> {
-  const baseUrl = (opts.baseUrl ?? process.env['API_URL'] ?? 'http://localhost:8081').replace(/\/$/, '');
+  const baseUrl = (opts.baseUrl ?? process.env['API_URL'] ?? 'http://localhost:8080').replace(/\/$/, '');
   const wsUrl = baseUrl.replace(/^http/, 'ws') + '/ws';
 
   // We need a bearer token to authenticate the WebSocket upgrade.

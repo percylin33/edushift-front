@@ -10,8 +10,8 @@ export const FAMILY_ROUTES: Routes = [
     canMatch: [permissionGuard],
     data: { permissions: Permission.LmsFamilyRead, title: 'Información del colegio' },
     loadComponent: () =>
-      import('../disclosures/pages/family-disclosures.page').then(
-        (module) => module.FamilyDisclosuresPage,
+      import('../disclosures/pages/family-disclosures-list.page').then(
+        (module) => module.FamilyDisclosuresPageComponent,
       ),
   },
   {

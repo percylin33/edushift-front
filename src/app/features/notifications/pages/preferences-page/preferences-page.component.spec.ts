@@ -2,11 +2,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NotificationPreferencesPageComponent } from './preferences-page.component';
 import { NotificationsApiService } from '../../services/notifications-api.service';
 import { of, throwError } from 'rxjs';
+import { PushNotificationsService } from '../../services/push-notifications.service';
 
 describe('NotificationPreferencesPageComponent', () => {
   let component: NotificationPreferencesPageComponent;
   let fixture: ComponentFixture<NotificationPreferencesPageComponent>;
   let apiSpy: jasmine.SpyObj<NotificationsApiService>;
+  let pushSpy: jasmine.SpyObj<PushNotificationsService>;
 
   beforeEach(async () => {
     apiSpy = jasmine.createSpyObj('NotificationsApiService', [
@@ -14,9 +16,17 @@ describe('NotificationPreferencesPageComponent', () => {
       'updatePreference',
     ]);
     apiSpy.getPreferences.and.returnValue(of([]));
+    pushSpy = jasmine.createSpyObj<PushNotificationsService>(
+      'PushNotificationsService',
+      ['isEnabledForCurrentUser', 'activateForCurrentDevice', 'deactivateForCurrentDevice'],
+    );
+    pushSpy.isEnabledForCurrentUser.and.returnValue(false);
     await TestBed.configureTestingModule({
       imports: [NotificationPreferencesPageComponent],
-      providers: [{ provide: NotificationsApiService, useValue: apiSpy }],
+      providers: [
+        { provide: NotificationsApiService, useValue: apiSpy },
+        { provide: PushNotificationsService, useValue: pushSpy },
+      ],
     }).compileComponents();
     fixture = TestBed.createComponent(NotificationPreferencesPageComponent);
     component = fixture.componentInstance;

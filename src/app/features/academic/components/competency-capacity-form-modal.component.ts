@@ -13,11 +13,8 @@ import {
   SimpleChanges,
   computed,
   inject,
-  signal,
 } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { HttpErrorResponse } from '@angular/common/http';
-import { ApiError } from '@core/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { CompetenciesStore } from '../store';
 import {

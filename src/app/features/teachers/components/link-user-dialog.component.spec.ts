@@ -3,7 +3,7 @@ import { signal } from '@angular/core';
 import { LinkUserDialogComponent } from './link-user-dialog.component';
 import { UsersApiService } from '@features/users/services';
 import { TeachersStore } from '../store';
-import { UserRole, DocumentType, EmploymentStatus, UserStatus } from '@core/enums';
+import { UserRole, DocumentType, UserStatus } from '@core/enums';
 import { UserRow } from '@features/users/models';
 import { TeacherDetail } from '../models';
 import { of, throwError } from 'rxjs';
@@ -82,39 +82,39 @@ describe('LinkUserDialogComponent', () => {
     );
     await component.ngOnInit();
     expect(fakeUsersApi.list).toHaveBeenCalledWith(
-      { role: UserRole.Teacher },
+      {},
       { page: 0, size: 100, sort: 'lastName,ASC' },
     );
-    expect((component as any).users()).toHaveSize(2);
+    expect(component['users']()).toHaveSize(2);
   });
 
   it('fetchUsers con error deja lista vacía', async () => {
     configureModule();
     fakeUsersApi.list.and.returnValue(throwError(() => new Error('fail')));
     await component.ngOnInit();
-    expect((component as any).users()).toEqual([]);
+    expect(component['users']()).toEqual([]);
   });
 
   it('filtered filtra por nombre', async () => {
     configureModule();
-    (component as any)['users'].set(mockUsers);
-    (component as any).search.set('ana');
-    expect((component as any).filtered()).toHaveSize(1);
-    expect((component as any).filtered()[0].publicUuid).toBe('u-1');
+    component['users'].set(mockUsers);
+    component['search'].set('ana');
+    expect(component['filtered']()).toHaveSize(1);
+    expect(component['filtered']()[0].publicUuid).toBe('u-1');
   });
 
   it('filtered filtra por email', async () => {
     configureModule();
-    (component as any)['users'].set(mockUsers);
-    (component as any).search.set('carlos');
-    expect((component as any).filtered()).toHaveSize(1);
-    expect((component as any).filtered()[0].publicUuid).toBe('u-2');
+    component['users'].set(mockUsers);
+    component['search'].set('carlos');
+    expect(component['filtered']()).toHaveSize(1);
+    expect(component['filtered']()[0].publicUuid).toBe('u-2');
   });
 
   it('filtered retorna todos si no hay búsqueda', () => {
     configureModule();
-    (component as any)['users'].set(mockUsers);
-    expect((component as any).filtered()).toHaveSize(2);
+    component['users'].set(mockUsers);
+    expect(component['filtered']()).toHaveSize(2);
   });
 
   it('onSelect llama store.linkUser y emite linked si ok', async () => {
@@ -126,7 +126,7 @@ describe('LinkUserDialogComponent', () => {
     const linkedSpy = jasmine.createSpy('linked');
     component.linked.subscribe(linkedSpy);
 
-    await (component as any).onSelect(mockUsers[0]);
+    await component['onSelect'](mockUsers[0]);
     expect(fakeStore.linkUser).toHaveBeenCalledWith('t-1', { userPublicUuid: 'u-1' });
     expect(linkedSpy).toHaveBeenCalled();
   });
@@ -137,7 +137,7 @@ describe('LinkUserDialogComponent', () => {
     const linkedSpy = jasmine.createSpy('linked');
     component.linked.subscribe(linkedSpy);
 
-    await (component as any).onSelect(mockUsers[0]);
+    await component['onSelect'](mockUsers[0]);
     expect(linkedSpy).not.toHaveBeenCalled();
   });
 
@@ -145,7 +145,7 @@ describe('LinkUserDialogComponent', () => {
     configureModule();
     const closeSpy = jasmine.createSpy('closed');
     component.closed.subscribe(closeSpy);
-    (component as any).close();
+    component['close']();
     expect(fakeStore.clearError).toHaveBeenCalled();
     expect(closeSpy).toHaveBeenCalled();
   });
@@ -153,13 +153,13 @@ describe('LinkUserDialogComponent', () => {
   it('errorMessage expone store.error', () => {
     configureModule();
     fakeStore.error.set('falló');
-    expect((component as any).errorMessage()).toBe('falló');
+    expect(component['errorMessage']()).toBe('falló');
   });
 
   it('linking expone store.saving', () => {
     configureModule();
-    expect((component as any).linking()).toBeFalse();
+    expect(component['linking']()).toBeFalse();
     fakeStore.saving.set(true);
-    expect((component as any).linking()).toBeTrue();
+    expect(component['linking']()).toBeTrue();
   });
 });

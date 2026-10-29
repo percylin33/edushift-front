@@ -5,6 +5,8 @@ import { permissionGuard } from './permission.guard';
 import { AuthService } from '@core/services';
 import { Permission, UserStatus } from '@core/enums';
 import { User } from '@core/models';
+import { AuthApiService } from '@features/auth/services/auth-api.service';
+import { LoggerService } from '@core/services';
 
 /**
  * Spec del `permissionGuard` (FE-7a.4).
@@ -53,51 +55,55 @@ describe('permissionGuard', () => {
     authStub = {
       user: userSignal.asReadonly(),
       permissions: permissionsSignal.asReadonly(),
+      isAuthenticated: signal(false).asReadonly(),
+      hasRole: () => false,
     };
 
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: authStub },
         { provide: Router, useValue: mockRouter },
+        { provide: AuthApiService, useValue: jasmine.createSpyObj('AuthApiService', ['me']) },
+        { provide: LoggerService, useValue: jasmine.createSpyObj('LoggerService', ['warn']) },
       ],
     });
   });
 
-  function run(data: unknown): unknown {
-    return TestBed.runInInjectionContext(() => permissionGuard(buildRoute(data), segments));
+  async function run(data: unknown): Promise<unknown> {
+    return await TestBed.runInInjectionContext(() => permissionGuard(buildRoute(data), segments));
   }
 
-  it('returns true when the route declares no permissions (no-op)', () => {
+  it('returns true when the route declares no permissions (no-op)', async () => {
     userSignal.set(userWith([]));
     permissionsSignal.set([]);
 
-    const result = run({});
+    const result = await run({});
 
     expect(result).toBeTrue();
     expect(mockRouter.createUrlTree).not.toHaveBeenCalled();
   });
 
-  it('grants a STUDENT with LMS_TASK_READ access to a read-only LMS route', () => {
+  it('grants a STUDENT with LMS_TASK_READ access to a read-only LMS route', async () => {
     userSignal.set(userWith([Permission.LmsTaskRead]));
     permissionsSignal.set([Permission.LmsTaskRead]);
 
-    const result = run({ permissions: Permission.LmsTaskRead });
+    const result = await run({ permissions: Permission.LmsTaskRead });
 
     expect(result).toBeTrue();
     expect(mockRouter.createUrlTree).not.toHaveBeenCalled();
   });
 
-  it('blocks a STUDENT without LMS_TASK_GRADE from a grading route', () => {
+  it('blocks a STUDENT without LMS_TASK_GRADE from a grading route', async () => {
     userSignal.set(userWith([Permission.LmsTaskRead, Permission.LmsTaskSubmit]));
     permissionsSignal.set([Permission.LmsTaskRead, Permission.LmsTaskSubmit]);
 
-    const result = run({ permissions: Permission.LmsTaskGrade });
+    const result = await run({ permissions: Permission.LmsTaskGrade });
 
     expect(result).not.toBeTrue();
     expect(mockRouter.createUrlTree).toHaveBeenCalledOnceWith(['/403']);
   });
 
-  it('grants a TEACHER with LMS_TASK_GRADE access to a grading route', () => {
+  it('grants a TEACHER with LMS_TASK_GRADE access to a grading route', async () => {
     userSignal.set(
       userWith([Permission.LmsTaskRead, Permission.LmsTaskCreate, Permission.LmsTaskGrade]),
     );
@@ -107,28 +113,28 @@ describe('permissionGuard', () => {
       Permission.LmsTaskGrade,
     ]);
 
-    const result = run({ permissions: Permission.LmsTaskGrade });
+    const result = await run({ permissions: Permission.LmsTaskGrade });
 
     expect(result).toBeTrue();
     expect(mockRouter.createUrlTree).not.toHaveBeenCalled();
   });
 
-  it('supports an array of permissions in ANY_OF mode (default)', () => {
+  it('supports an array of permissions in ANY_OF mode (default)', async () => {
     userSignal.set(userWith([Permission.LmsTaskSubmit]));
     permissionsSignal.set([Permission.LmsTaskSubmit]);
 
-    const result = run({
+    const result = await run({
       permissions: [Permission.LmsTaskGrade, Permission.LmsTaskSubmit],
     });
 
     expect(result).toBeTrue();
   });
 
-  it('requires ALL listed permissions when permissionMode is "all"', () => {
+  it('requires ALL listed permissions when permissionMode is "all"', async () => {
     userSignal.set(userWith([Permission.LmsTaskRead]));
     permissionsSignal.set([Permission.LmsTaskRead]);
 
-    const result = run({
+    const result = await run({
       permissions: [Permission.LmsTaskRead, Permission.LmsTaskGrade],
       permissionMode: 'all',
     });
@@ -137,11 +143,11 @@ describe('permissionGuard', () => {
     expect(mockRouter.createUrlTree).toHaveBeenCalledOnceWith(['/403']);
   });
 
-  it('passes when permissionMode is "all" and the user holds every authority', () => {
+  it('passes when permissionMode is "all" and the user holds every authority', async () => {
     userSignal.set(userWith([Permission.LmsTaskRead, Permission.LmsTaskGrade]));
     permissionsSignal.set([Permission.LmsTaskRead, Permission.LmsTaskGrade]);
 
-    const result = run({
+    const result = await run({
       permissions: [Permission.LmsTaskRead, Permission.LmsTaskGrade],
       permissionMode: 'all',
     });
@@ -149,11 +155,11 @@ describe('permissionGuard', () => {
     expect(result).toBeTrue();
   });
 
-  it('blocks access when the user has no permissions at all (fail-closed)', () => {
+  it('blocks access when the user has no permissions at all (fail-closed)', async () => {
     userSignal.set(userWith([]));
     permissionsSignal.set([]);
 
-    const result = run({ permissions: Permission.LmsTaskRead });
+    const result = await run({ permissions: Permission.LmsTaskRead });
 
     expect(result).not.toBeTrue();
     expect(mockRouter.createUrlTree).toHaveBeenCalledOnceWith(['/403']);

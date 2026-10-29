@@ -68,7 +68,7 @@ import {
                               } @else {
                                 <dd class="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">Pendiente de completar por la institución</dd>
                               }
-                              @if (info.sources?.length) {
+                              @if (info.sources.length) {
                                 <dd class="mt-2 flex flex-wrap items-center gap-1 text-xs text-slate-500 dark:text-slate-400"><span>Fuentes:</span>
                                   @for (source of info.sources; track source.filePublicUuid) {
                                     @if (attachment(publication.content, source.filePublicUuid); as sourceDocument) {
@@ -109,7 +109,7 @@ import {
     </main>
   `,
 })
-export class FamilyDisclosuresPage implements OnInit {
+export class FamilyDisclosuresPageComponent implements OnInit {
   private readonly api = inject(DisclosuresApiService);
   private readonly files = inject(FileUploadService);
   readonly publications = signal<DisclosurePublication[]>([]);

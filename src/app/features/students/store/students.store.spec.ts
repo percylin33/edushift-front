@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 import { StudentsStore } from './students.store';
 import { StudentsApiService } from '../services';
 import { StudentDetail, StudentRow, Guardian, EnrollmentRow } from '../models';
@@ -145,6 +145,7 @@ describe('StudentsStore', () => {
         studentFullName: 'Juan Perez',
         sectionPublicUuid: 'sec-1',
         sectionName: 'A',
+        gradeName: null,
         academicYearPublicUuid: 'y-1',
         academicYearName: '2026',
         enrolledAt: new Date('2026-01-01'),

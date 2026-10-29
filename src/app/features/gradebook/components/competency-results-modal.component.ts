@@ -2,9 +2,12 @@ import { createFormProtection } from '@shared/services/form-protection.service';
 import { CommonModule } from '@angular/common';
 import { HostListener } from '@angular/core';
 import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { UserRole } from '@core/enums/user-role.enum';
+import { AuthService } from '@core/services/auth.service';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { AcademicApiService } from '@features/academic/services';
 import { CompetencyRow } from '@features/academic/models';
@@ -21,7 +24,7 @@ import { CompetencyResultsApiService } from '../services';
   selector: 'app-competency-results-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SafeBackdropDirective, CommonModule, FormsModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, FormsModule, RouterLink, IconComponent, SpinnerComponent],
   template: `
     <div class="overlay" role="presentation" appSafeBackdrop (click)="onBackdrop($event)">
       <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="competency-title" (click)="$event.stopPropagation()">
@@ -63,7 +66,26 @@ import { CompetencyResultsApiService } from '../services';
           <div class="loading"><app-spinner [size]="22" label="Cargando competencias y resultados…" /></div>
         } @else if (evaluationUuid() && studentUuid()) {
           @if (competencies().length === 0) {
-            <div class="empty">Este curso aún no tiene competencias activas. Configúralas en el catálogo del curso para registrar resultados.</div>
+            <div class="alert alert-warning flex-wrap" role="status">
+              <app-icon name="alert-circle" [size]="18" class="shrink-0 text-warning" />
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold text-content">Este curso aún no tiene competencias activas.</p>
+                @if (canManageCourseCompetencies()) {
+                  <p class="mt-1 text-content">Actívalas en la ficha del curso para poder registrar resultados.</p>
+                } @else {
+                  <p class="mt-1 text-content">Pide al Administrador del colegio que configure las competencias de este curso.</p>
+                }
+              </div>
+              @if (canManageCourseCompetencies()) {
+                <a
+                  class="btn btn-primary btn-sm shrink-0"
+                  [routerLink]="['/academic/courses', courseUuid]"
+                  [queryParams]="{ tab: 'competencies' }"
+                >
+                  Configurar competencias
+                </a>
+              }
+            </div>
           } @else {
             <div class="result-list">
               @for (competency of competencies(); track competency.publicUuid) {
@@ -165,44 +187,47 @@ import { CompetencyResultsApiService } from '../services';
   styles: [`
     :host { position: fixed; inset: 0; z-index: 1000; }
     .overlay { position: fixed; inset: 0; display: grid; place-items: center; padding: 1rem; background: rgb(15 23 42 / .55); }
-    .dialog { display: flex; flex-direction: column; width: min(900px, 100%); max-height: min(92vh, 900px); overflow: hidden; border-radius: .75rem; background: var(--color-surface, #fff); box-shadow: 0 24px 60px rgb(15 23 42 / .25); }
-    .dialog-header, .dialog-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border-subtle, #e5e7eb); }
+    .dialog { display: flex; flex-direction: column; width: min(900px, 100%); max-height: min(92vh, 900px); overflow: hidden; border-radius: .75rem; background: rgb(var(--color-surface, 255 255 255) / 1); box-shadow: 0 24px 60px rgb(15 23 42 / .25); }
+    .dialog-header, .dialog-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid rgb(var(--color-border-subtle, 241 245 249) / 1); }
     .dialog-header h2 { margin: .15rem 0 0; font-size: 1.1rem; font-weight: 700; }
-    .eyebrow, .code { color: var(--color-content-muted, #64748b); font-size: .75rem; }
+    .eyebrow, .code { color: rgb(var(--color-content-muted, 71 85 105) / 1); font-size: .75rem; }
     .icon-button { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .375rem; }
-    .notice { margin: 1rem 1.25rem 0; padding: .75rem; border-radius: .5rem; background: var(--color-primary-50, #eff6ff); color: var(--color-primary-900, #1e3a8a); font-size: .8125rem; line-height: 1.4; }
+    .notice { margin: 1rem 1.25rem 0; padding: .75rem; border-radius: .5rem; background: rgb(var(--color-primary-50, 238 242 255) / 1); color: rgb(var(--color-primary-900, 49 46 129) / 1); font-size: .8125rem; line-height: 1.4; }
     .selectors { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; padding: 1rem 1.25rem; }
     label { display: grid; gap: .3rem; font-size: .75rem; font-weight: 600; }
-    .select, .input, .textarea { width: 100%; border: 1px solid var(--color-border, #cbd5e1); border-radius: .375rem; background: var(--color-surface, #fff); padding: .5rem .6rem; color: var(--color-content, #0f172a); font: inherit; font-weight: 400; }
+    .select, .input, .textarea { width: 100%; border: 1px solid rgb(var(--color-border, 226 232 240) / 1); border-radius: .375rem; background: rgb(var(--color-surface, 255 255 255) / 1); padding: .5rem .6rem; color: rgb(var(--color-content, 15 23 42) / 1); font: inherit; font-weight: 400; }
     .textarea { resize: vertical; }
     .result-list { overflow: auto; padding: 0 1.25rem 1rem; }
-    .result-card { display: grid; gap: .7rem; margin-bottom: .8rem; padding: .9rem; border: 1px solid var(--color-border-subtle, #e2e8f0); border-radius: .5rem; }
+    .result-card { display: grid; gap: .7rem; margin-bottom: .8rem; padding: .9rem; border: 1px solid rgb(var(--color-border-subtle, 241 245 249) / 1); border-radius: .5rem; }
     .competency-heading h3 { margin: .15rem 0 0; font-size: .95rem; font-weight: 650; }
     .competency-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
-    .history-panel { display: grid; gap: .5rem; padding: .75rem; border-radius: .5rem; background: var(--color-surface-subtle, #f8fafc); }
+    .history-panel { display: grid; gap: .5rem; padding: .75rem; border-radius: .5rem; background: rgb(var(--color-surface-subtle, 248 250 252) / 1); }
     .history-panel h4 { margin: 0; font-size: .8rem; }
     .history-panel p { margin: .25rem 0; font-size: .75rem; }
-    .history-item { display: grid; gap: .25rem; padding: .6rem; border: 1px solid var(--color-border-subtle, #e2e8f0); border-radius: .375rem; background: var(--color-surface, #fff); }
+    .history-item { display: grid; gap: .25rem; padding: .6rem; border: 1px solid rgb(var(--color-border-subtle, 241 245 249) / 1); border-radius: .375rem; background: rgb(var(--color-surface, 255 255 255) / 1); }
     .history-title { display: flex; justify-content: space-between; gap: .75rem; font-size: .75rem; }
-    .history-title time, .inactive-history { color: var(--color-content-muted, #64748b); font-size: .7rem; }
+    .history-title time, .inactive-history { color: rgb(var(--color-content-muted, 71 85 105) / 1); font-size: .7rem; }
     .criteria-header { display: flex; align-items: center; justify-content: space-between; }
     .criteria-header h4 { margin: 0; font-size: .8rem; }
     .criterion { display: grid; grid-template-columns: 1.3fr .7fr 1.2fr 1.2fr auto; gap: .5rem; align-items: start; }
-    .link-button { color: var(--color-primary-700, #1d4ed8); font-size: .75rem; font-weight: 600; }
-    .remove-button { color: var(--color-danger-700, #b91c1c); font-size: .75rem; padding: .5rem 0; }
-    .empty, .loading, .readonly-note, .error { margin: 1rem 1.25rem; padding: 1rem; border-radius: .5rem; background: var(--color-surface-subtle, #f8fafc); color: var(--color-content-muted, #475569); font-size: .875rem; }
+    .link-button { color: rgb(var(--color-primary-700, 67 56 202) / 1); font-size: .75rem; font-weight: 600; }
+    .remove-button { color: rgb(var(--color-danger, 185 28 28) / 1); font-size: .75rem; padding: .5rem 0; }
+    .empty, .loading, .readonly-note, .error { margin: 1rem 1.25rem; padding: 1rem; border-radius: .5rem; background: rgb(var(--color-surface-subtle, 248 250 252) / 1); color: rgb(var(--color-content-muted, 71 85 105) / 1); font-size: .875rem; }
     .error { background: #fef2f2; color: #b91c1c; }
     .success { margin: 1rem 1.25rem 0; padding: .75rem; border-radius: .5rem; background: #f0fdf4; color: #166534; font-size: .8125rem; }
     .readonly-note { margin-top: 0; background: #fffbeb; color: #92400e; }
-    .dialog-footer { margin-top: auto; border-top: 1px solid var(--color-border-subtle, #e5e7eb); border-bottom: 0; }
-    .revision-note { color: var(--color-content-muted, #64748b); font-size: .75rem; }
+    .dialog-footer { margin-top: auto; border-top: 1px solid rgb(var(--color-border-subtle, 241 245 249) / 1); border-bottom: 0; }
+    .revision-note { color: rgb(var(--color-content-muted, 71 85 105) / 1); font-size: .75rem; }
     .footer-actions { display: flex; gap: .5rem; }
     @media (max-width: 720px) { .selectors { grid-template-columns: 1fr; } .criterion { grid-template-columns: 1fr 1fr; } .criterion .textarea { grid-column: span 2; } .dialog-footer { align-items: flex-start; flex-direction: column; } }
   `],
 })
 export class CompetencyResultsModalComponent {
   protected readonly formProtection = createFormProtection({
-    snapshot: () => [this.evaluationUuid(), this.studentUuid(), this.forms()],
+    // Selecting a different evaluation or student is navigation context,
+    // not an unsaved result. Only warn when the result fields themselves
+    // differ from the loaded server snapshot.
+    snapshot: () => this.forms(),
     saving: () => this.saving() || this.loading(),
     active: () => true,
   });
@@ -210,10 +235,14 @@ export class CompetencyResultsModalComponent {
   @Input({ required: true }) courseUuid = '';
   @Input({ required: true }) students: GradeBookStudent[] = [];
   @Input({ required: true }) evaluations: GradeBookEvaluation[] = [];
-  @Output() close = new EventEmitter<void>();
+  @Output() closed = new EventEmitter<void>();
 
   private readonly academicApi = inject(AcademicApiService);
   private readonly resultsApi = inject(CompetencyResultsApiService);
+  private readonly auth = inject(AuthService);
+  protected readonly canManageCourseCompetencies = computed(() =>
+    this.auth.roles().includes(UserRole.TenantAdmin),
+  );
   protected readonly competencies = signal<CompetencyRow[]>([]);
   protected readonly forms = signal<Record<string, CompetencyResultForm>>({});
   protected readonly evaluationUuid = signal('');
@@ -246,7 +275,7 @@ export class CompetencyResultsModalComponent {
 
   protected onBackdrop(event: MouseEvent): void { if (event.target === event.currentTarget) this.requestClose(); }
 
-  protected requestClose(): void { this.formProtection.requestClose(() => this.close.emit()); }
+  protected requestClose(): void { this.formProtection.requestClose(() => this.closed.emit()); }
 
   protected onEvaluationChange(value: string): void {
     this.formProtection.requestChange(() => {

@@ -7,7 +7,6 @@ import {
   HostListener,
   OnInit,
   computed,
-  inject,
   input,
   output,
   signal,
@@ -324,10 +323,17 @@ export class GradeRecordsBulkModalComponent implements OnInit {
     if (!UUID_REGEX.test(uuid)) {
       return { index, raw, payload: null, error: 'UUID inválido.' };
     }
-    const comments = rest.length ? rest.join(',').trim() : null;
+
+    // The documented CSV format accepts decimal commas, even though commas
+    // also separate columns. Treat a numeric pair like "11,75" as one score.
+    const hasDecimalComma =
+      rest.length > 0 && /^-?\d+$/.test(valueRaw) && /^\d{1,2}$/.test(rest[0]);
+    const scoreRaw = hasDecimalComma ? `${valueRaw}.${rest[0]}` : valueRaw;
+    const commentCells = hasDecimalComma ? rest.slice(1) : rest;
+    const comments = commentCells.length ? commentCells.join(',').trim() : null;
 
     if (this.scale() === EvaluationScale.SCORE_0_20) {
-      const normalized = valueRaw.replace(',', '.');
+      const normalized = scoreRaw.replace(',', '.');
       if (!/^-?\d+(\.\d+)?$/.test(normalized)) {
         return { index, raw, payload: null, error: 'Nota debe ser numérica.' };
       }

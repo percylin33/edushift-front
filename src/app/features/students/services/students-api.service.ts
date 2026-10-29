@@ -64,7 +64,7 @@ import {
  *   <li>{@link #getBulkImportJob} → {@code GET  /v1/students/bulk-import/{publicUuid}}</li>
  * </ul>
  *
- * <p>Adapters at the bottom narrow ISO timestamps to {@link Date} and
+ * <p>Adapters at the bottom narrow ISO dates and timestamps to {@link Date} and
  * surface backend nulls as {@code undefined} so consumers don't have
  * to keep ternarying their way through optional fields.
  */
@@ -433,7 +433,7 @@ export class StudentsApiService {
       fullName: raw.fullName,
       email: raw.email ?? undefined,
       enrollmentStatus: raw.enrollmentStatus,
-      enrollmentDate: this.parseDate(raw.enrollmentDate),
+      enrollmentDate: this.parseCalendarDate(raw.enrollmentDate),
     };
   }
 
@@ -446,13 +446,13 @@ export class StudentsApiService {
       lastName: raw.lastName,
       secondLastName: raw.secondLastName ?? undefined,
       fullName: raw.fullName,
-      birthDate: this.parseDate(raw.birthDate),
+      birthDate: this.parseCalendarDate(raw.birthDate),
       gender: raw.gender ?? undefined,
       email: raw.email ?? undefined,
       phone: raw.phone ?? undefined,
       address: raw.address ?? undefined,
       enrollmentStatus: raw.enrollmentStatus,
-      enrollmentDate: this.parseDate(raw.enrollmentDate),
+      enrollmentDate: this.parseCalendarDate(raw.enrollmentDate),
       userId: raw.userId ?? undefined,
       pendingInvitationPublicUuid: raw.pendingInvitationPublicUuid ?? undefined,
       metadata: raw.metadata ?? undefined,
@@ -560,8 +560,8 @@ export class StudentsApiService {
       gradeName: raw.gradeName ?? null,
       academicYearPublicUuid: raw.academicYearPublicUuid,
       academicYearName: raw.academicYearName,
-      enrolledAt: this.parseDate(raw.enrolledAt),
-      withdrawnAt: this.parseDate(raw.withdrawnAt),
+      enrolledAt: this.parseCalendarDate(raw.enrolledAt),
+      withdrawnAt: this.parseCalendarDate(raw.withdrawnAt),
       status: raw.status,
       active: raw.active,
     };
@@ -578,8 +578,8 @@ export class StudentsApiService {
       gradeName: raw.gradeName ?? null,
       academicYearPublicUuid: raw.academicYearPublicUuid,
       academicYearName: raw.academicYearName,
-      enrolledAt: this.parseDate(raw.enrolledAt),
-      withdrawnAt: this.parseDate(raw.withdrawnAt),
+      enrolledAt: this.parseCalendarDate(raw.enrolledAt),
+      withdrawnAt: this.parseCalendarDate(raw.withdrawnAt),
       status: raw.status,
       active: raw.active,
       notes: raw.notes ?? undefined,
@@ -596,7 +596,7 @@ export class StudentsApiService {
       studentDocumentNumber: raw.studentDocumentNumber,
       studentDocumentType: raw.studentDocumentType,
       studentEmail: raw.studentEmail ?? undefined,
-      enrolledAt: this.parseDate(raw.enrolledAt),
+      enrolledAt: this.parseCalendarDate(raw.enrolledAt),
     };
   }
 
@@ -604,5 +604,31 @@ export class StudentsApiService {
     if (!value) return undefined;
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? undefined : d;
+  }
+
+  /**
+   * Calendar dates (birth/enrollment dates) are not instants. Some API
+   * responses serialize a LocalDate as YYYY-MM-DD and others as midnight
+   * UTC. Parse the calendar portion into local noon so displaying it in a
+   * timezone west of UTC cannot shift the day backwards. Keep true audit
+   * timestamps on parseDate so their exact instant is preserved.
+   */
+  private parseCalendarDate(value: string | null | undefined): Date | undefined {
+    if (!value) return undefined;
+    const match = /^(\d{4})-(\d{2})-(\d{2})(?:$|T)/.exec(value);
+    if (!match) return this.parseDate(value);
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(year, month - 1, day, 12);
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      return undefined;
+    }
+    return date;
   }
 }

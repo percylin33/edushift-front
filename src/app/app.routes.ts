@@ -1,7 +1,6 @@
 import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { ERROR_ROUTES, PRIVATE_ROUTES, PUBLIC_ROUTES } from './app-routing';
-import { PAYMENTS_ROUTES } from './features/payments/payments.routes';
 
 /**
  * Top-level route composition. Three logical areas, each in its own file:
@@ -33,7 +32,7 @@ export const routes: Routes = [
     path: 'install',
     data: { title: 'Instala EduShift' },
     loadComponent: () =>
-      import('./features/pwa/pages/install-page.component').then((m) => m.InstallPageComponent),
+      import('./features/pwa/pages/pwa-install.page').then((m) => m.InstallPageComponent),
   },
   {
     canDeactivate: [pendingChangesGuard],
@@ -68,15 +67,14 @@ export const routes: Routes = [
     path: 'libro-de-reclamaciones',
     data: { title: 'Libro de Reclamaciones Virtual — Ley N° 32495' },
     loadComponent: () =>
-      import('./features/claims-book/claims-book.component').then(
-        (m) => m.ClaimsBookComponent,
-      ),
+      import('./features/claims-book/claims-book.component').then((m) => m.ClaimsBookComponent),
   },
   ...PUBLIC_ROUTES,
   ...PRIVATE_ROUTES,
   {
     path: 'payments',
-    children: PAYMENTS_ROUTES,
+    loadChildren: () =>
+      import('./features/payments/payments.routes').then((m) => m.PAYMENTS_ROUTES),
   },
   // Sprint 15 — admin console (top-level, no tenant context).
   {
@@ -84,7 +82,9 @@ export const routes: Routes = [
     path: 'admin/login',
     data: { title: 'Admin - Ingreso' },
     loadComponent: () =>
-      import('./features/admin/pages/login/admin-login.component').then((m) => m.AdminLoginComponent),
+      import('./features/admin/pages/login/admin-login.component').then(
+        (m) => m.AdminLoginComponent,
+      ),
   },
   {
     path: 'admin',

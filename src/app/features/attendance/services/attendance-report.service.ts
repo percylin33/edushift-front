@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom, Subscription, timer } from 'rxjs';
-import { switchMap, takeWhile } from 'rxjs/operators';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { ReportsApiService } from '@features/reports/services/reports-api.service';
 import { ReportFormat, ReportJob } from '@features/reports/models/report.model';
 import {

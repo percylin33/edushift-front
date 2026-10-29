@@ -6,7 +6,6 @@ import {
   OnInit,
   computed,
   inject,
-  signal,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -20,11 +19,8 @@ import { ROUTES } from '@core/constants';
 import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
 import { AttemptsStore } from '../../store/attempts.store';
 import {
-  AttemptDetail,
-  AttemptStatus,
   GradingQueueItem,
   ManualGradeAttemptRequest,
-  ManualGradeEntry,
 } from '../../models/attempt.model';
 
 /**

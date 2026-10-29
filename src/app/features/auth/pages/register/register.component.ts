@@ -66,7 +66,7 @@ import { AuthStore } from '../../store/auth.store';
         <h1 class="text-2xl font-semibold tracking-tight text-content">Configura tu institución</h1>
         <p class="text-sm text-content-muted">
           Completa los datos del colegio y tu contraseña de administrador. Luego podrás
-          personalizar branding, usuarios y el resto de la plataforma.
+          personalizar la identidad visual, los usuarios y el resto de la plataforma.
         </p>
       </header>
 
@@ -352,7 +352,7 @@ export class RegisterComponent {
       )
       .subscribe({
         next: () => {
-          this.redirectToSchoolOnboarding(payload.tenantSlug);
+          this.redirectToSchoolOnboarding();
         },
         error: (err: HttpErrorResponse) => {
           this.applyServerErrors(err);
@@ -360,8 +360,8 @@ export class RegisterComponent {
       });
   }
 
-  private redirectToSchoolOnboarding(slug: string): void {
-    const destination = schoolRegistrationDestination(window.location.origin, slug);
+  private redirectToSchoolOnboarding(): void {
+    const destination = schoolRegistrationDestination(window.location.origin);
     if (new URL(destination).origin === window.location.origin) {
       void this.router.navigateByUrl(ROUTES.ONBOARDING.WELCOME);
       return;

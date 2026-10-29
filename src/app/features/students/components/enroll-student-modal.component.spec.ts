@@ -5,7 +5,7 @@ import { AcademicApiService } from '@features/academic/services';
 import { StudentsStore } from '../store';
 import { AcademicYearRow, AcademicYearStatus, SectionRow } from '@features/academic/models';
 import { StudentDetail } from '../models';
-import { DocumentType, EnrollmentStatus, Gender } from '@core/enums';
+import { DocumentType, EnrollmentStatus } from '@core/enums';
 import { of } from 'rxjs';
 
 describe('EnrollStudentModalComponent', () => {
@@ -64,6 +64,7 @@ describe('EnrollStudentModalComponent', () => {
     documentNumber: '12345678',
     email: 'juan@test.com',
     enrollmentStatus: EnrollmentStatus.Enrolled,
+    enrollmentDate: new Date(2026, 2, 2),
     createdAt: new Date('2026-01-01'),
     updatedAt: new Date('2026-01-01'),
   } as any;
@@ -109,10 +110,10 @@ describe('EnrollStudentModalComponent', () => {
     fixture.detectChanges();
 
     expect(fakeAcademicApi.listYears).toHaveBeenCalled();
-    expect((component as any).activeYear()?.publicUuid).toBe('y-1');
-    expect((component as any).sections()).toHaveSize(2);
-    expect((component as any).isTransfer()).toBeFalse();
-    expect((component as any).enrolledAt()).toBeTruthy();
+    expect(component['activeYear']()?.publicUuid).toBe('y-1');
+    expect(component['sections']()).toHaveSize(2);
+    expect(component['isTransfer']()).toBeFalse();
+    expect(component['enrolledAt']()).toBe('2026-03-02');
   });
 
   it('modo matrícula — canSubmit requiere sección + fecha', async () => {
@@ -123,16 +124,16 @@ describe('EnrollStudentModalComponent', () => {
     fixture.componentRef.setInput('activeEnrollmentPublicUuid', null);
     await component.ngOnInit();
 
-    expect((component as any).canSubmit()).toBeFalse();
-    (component as any).sectionUuid.set('sec-1');
-    expect((component as any).canSubmit()).toBeTrue();
+    expect(component['canSubmit']()).toBeFalse();
+    component['sectionUuid'].set('sec-1');
+    expect(component['canSubmit']()).toBeTrue();
   });
 
   it('modo cambio — isTransfer true si activeEnrollmentPublicUuid presente', () => {
     configureModule();
     fixture.componentRef.setInput('student', student);
     fixture.componentRef.setInput('activeEnrollmentPublicUuid', 'enroll-1');
-    expect((component as any).isTransfer()).toBeTrue();
+    expect(component['isTransfer']()).toBeTrue();
   });
 
   it('onSubmit llama store.enrollStudent y emite enrolled si ok', async () => {
@@ -144,11 +145,11 @@ describe('EnrollStudentModalComponent', () => {
     await component.ngOnInit();
 
     fakeStore.enrollStudent.and.returnValue(Promise.resolve(true));
-    (component as any).sectionUuid.set('sec-1');
+    component['sectionUuid'].set('sec-1');
     const enrolledSpy = jasmine.createSpy('enrolled');
     component.enrolled.subscribe(enrolledSpy);
 
-    await (component as any).onSubmit();
+    await component['onSubmit']();
     expect(fakeStore.enrollStudent).toHaveBeenCalledOnceWith(
       's-1',
       jasmine.objectContaining({
@@ -168,9 +169,9 @@ describe('EnrollStudentModalComponent', () => {
     await component.ngOnInit();
 
     fakeStore.transferStudentSection.and.returnValue(Promise.resolve(true));
-    (component as any).sectionUuid.set('sec-2');
+    component['sectionUuid'].set('sec-2');
 
-    await (component as any).onSubmit();
+    await component['onSubmit']();
     expect(fakeStore.transferStudentSection).toHaveBeenCalled();
     expect(fakeStore.enrollStudent).not.toHaveBeenCalled();
   });
@@ -182,7 +183,7 @@ describe('EnrollStudentModalComponent', () => {
     fixture.componentRef.setInput('student', student);
     await component.ngOnInit();
 
-    await (component as any).onSubmit();
+    await component['onSubmit']();
     expect(fakeStore.enrollStudent).not.toHaveBeenCalled();
   });
 
@@ -190,7 +191,7 @@ describe('EnrollStudentModalComponent', () => {
     configureModule();
     const closeSpy = jasmine.createSpy('closed');
     component.closed.subscribe(closeSpy);
-    (component as any).close();
+    component['close']();
     expect(fakeStore.clearError).toHaveBeenCalled();
     expect(closeSpy).toHaveBeenCalled();
   });
@@ -198,7 +199,7 @@ describe('EnrollStudentModalComponent', () => {
   it('errorMessage expone store.error', () => {
     configureModule();
     fakeStore.error.set('algo salió mal');
-    expect((component as any).errorMessage()).toBe('algo salió mal');
+    expect(component['errorMessage']()).toBe('algo salió mal');
   });
 
   it('yearMinDate y yearMaxDate desde activeYear', async () => {
@@ -207,14 +208,14 @@ describe('EnrollStudentModalComponent', () => {
     fakeAcademicApi.listSections.and.returnValue(of([]));
     fixture.componentRef.setInput('student', student);
     await component.ngOnInit();
-    expect((component as any).yearMinDate()).toBe('2026-01-01');
-    expect((component as any).yearMaxDate()).toBe('2026-12-31');
+    expect(component['yearMinDate']()).toBe('2026-01-01');
+    expect(component['yearMaxDate']()).toBe('2026-12-31');
   });
 
   it('yearMinDate / yearMaxDate vacío sin activeYear', () => {
     configureModule();
-    expect((component as any).yearMinDate()).toBe('');
-    expect((component as any).yearMaxDate()).toBe('');
+    expect(component['yearMinDate']()).toBe('');
+    expect(component['yearMaxDate']()).toBe('');
   });
 
   it('onEscape no cierra si saving', () => {
@@ -222,7 +223,7 @@ describe('EnrollStudentModalComponent', () => {
     fixture.componentRef.setInput('student', student);
     fakeStore.savingEnrollment.set(true);
     const closeSpy = spyOn(component as any, 'close');
-    (component as any)['onEscape']();
+    component['onEscape']();
     expect(closeSpy).not.toHaveBeenCalled();
   });
 
@@ -233,6 +234,6 @@ describe('EnrollStudentModalComponent', () => {
     );
     fixture.componentRef.setInput('student', student);
     await component.ngOnInit();
-    expect((component as any).activeYear()).toBeNull();
+    expect(component['activeYear']()).toBeNull();
   });
 });

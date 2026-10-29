@@ -68,7 +68,7 @@ test.describe('Academic — UI', () => {
       const uuid = url.match(/\/years\/([a-f0-9-]+)/)?.[1];
       if (uuid) {
         const ctx = await (await import('@playwright/test')).request.newContext({
-          baseURL: 'http://localhost:8081',
+          baseURL: 'http://localhost:8080',
           extraHTTPHeaders: {
             Authorization: `Bearer ${await page.evaluate(() => localStorage.getItem('edushift.auth.token'))}`,
             'X-Tenant-Slug': 'tecnosur',

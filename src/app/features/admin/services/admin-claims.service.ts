@@ -2,8 +2,18 @@ import { Injectable, inject, signal } from '@angular/core';
 import { ApiService } from '@core/services/api.service';
 import { API } from '@core/constants';
 import { firstValueFrom } from 'rxjs';
+import { ApiResponse } from '@core/models';
+import { readErrorMessage } from '@core/utils/error.utils';
 
 type UUID = string;
+
+interface ClaimPage {
+  content: ClaimSummary[];
+  totalElements?: number;
+  totalPages?: number;
+}
+
+type ClaimListPayload = ClaimSummary[] | ClaimPage;
 
 export interface ClaimSummary {
   id: UUID;
@@ -58,21 +68,16 @@ export class AdminClaimsService {
     const url = `${API.CLAIMS.ROOT}?${query.toString()}`;
 
     try {
-      const response = await firstValueFrom(this.api.get<any>(url));
-      const data = response.data ?? response;
-
-      if (data && Array.isArray(data.content)) {
-        this.state.claims.set(data.content);
-      } else {
-        this.state.claims.set(data ?? []);
-      }
-
-      this.state.totalElements.set(data.totalElements ?? data.length ?? 0);
-      this.state.totalPages.set(data.totalPages ?? 1);
+      const response = await firstValueFrom(this.api.get<ApiResponse<ClaimListPayload>>(url));
+      const data = response.data;
+      const claims = Array.isArray(data) ? data : data.content;
+      this.state.claims.set(claims);
+      this.state.totalElements.set(Array.isArray(data) ? claims.length : data.totalElements ?? claims.length);
+      this.state.totalPages.set(Array.isArray(data) ? 1 : data.totalPages ?? 1);
       this.state.currentPage.set(page);
       this.state.loading.set(false);
-    } catch (err: any) {
-      this.state.errorMessage.set(err?.error?.message ?? 'Error al cargar los reclamos');
+    } catch (err: unknown) {
+      this.state.errorMessage.set(readErrorMessage(err, 'Error al cargar los reclamos'));
       this.state.loading.set(false);
     }
   }
@@ -102,8 +107,8 @@ export class AdminClaimsService {
 
       this.state.loading.set(false);
       return updatedClaim;
-    } catch (err: any) {
-      this.state.errorMessage.set(err?.error?.message ?? 'Error al responder el reclamo');
+    } catch (err: unknown) {
+      this.state.errorMessage.set(readErrorMessage(err, 'Error al responder el reclamo'));
       this.state.loading.set(false);
       throw err;
     }
@@ -116,9 +121,8 @@ export class AdminClaimsService {
     const url = `${API.CLAIMS.RESPOND(String(claimId))}`.replace('/respond', '');
 
     try {
-      const response = await firstValueFrom(this.api.get<any>(url));
-      const data = response.data ?? response;
-      return data ? { ...data, id: data.id as UUID } : null;
+      const response = await firstValueFrom(this.api.get<ApiResponse<ClaimSummary>>(url));
+      return response.data ?? null;
     } catch {
       return null;
     }

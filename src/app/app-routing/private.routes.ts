@@ -1,6 +1,5 @@
 import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
-import { MainLayoutComponent } from '@layout/index';
 import { authChildGuard, featureFlagGuard, tenantGuard } from '@core/guards';
 import { FeatureKey } from '@core/enums';
 
@@ -18,7 +17,8 @@ export const PRIVATE_ROUTES: Routes = [
   {
     canDeactivate: [pendingChangesGuard],
     path: '',
-    component: MainLayoutComponent,
+    loadComponent: () =>
+      import('@layout/main-layout/main-layout.component').then((m) => m.MainLayoutComponent),
     canActivate: [tenantGuard],
     canActivateChild: [authChildGuard],
     children: [

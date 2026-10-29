@@ -2,7 +2,7 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ActivatedRoute, Router, provideRouter, convertToParamMap } from '@angular/router';
 import { detailFixture } from './admission-detail.fixture';
 import { of, Subject } from 'rxjs';
-import { AdmissionsPage } from './admissions-page';
+import { AdmissionsPageComponent } from './admissions-list.page';
 import { AdmissionsApiService } from '../services/admissions-api.service';
 import { AcademicApiService } from '@features/academic/services/academic-api.service';
 import { StudentsApiService } from '@features/students/services';
@@ -10,7 +10,7 @@ import { AuthService } from '@core/services';
 import { AdmissionApplication } from '../models';
 
 describe('Admitted applications without family confirmation', () => {
-  let fixture: ComponentFixture<AdmissionsPage>;
+  let fixture: ComponentFixture<AdmissionsPageComponent>;
   const application: AdmissionApplication = {
     publicUuid: 'application',
     studentPublicUuid: null,
@@ -33,7 +33,7 @@ describe('Admitted applications without family confirmation', () => {
   };
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AdmissionsPage],
+      imports: [AdmissionsPageComponent],
       providers: [
         provideRouter([]),
         {
@@ -46,12 +46,13 @@ describe('Admitted applications without family confirmation', () => {
             },
           },
         },
-        { provide: AuthService, useValue: { hasPermission: () => true } },
+        { provide: AuthService, useValue: { hasPermission: () => true, hasRole: () => false } },
         {
           provide: AdmissionsApiService,
           useValue: {
             list: () => of([application]),
             vacancies: () => of([]),
+            reservations: () => of([]),
             detail: () => of({ success: true, data: detailFixture }),
           },
         },
@@ -65,7 +66,7 @@ describe('Admitted applications without family confirmation', () => {
         { provide: StudentsApiService, useValue: { list: () => of({ content: [] }) } },
       ],
     }).compileComponents();
-    fixture = TestBed.createComponent(AdmissionsPage);
+    fixture = TestBed.createComponent(AdmissionsPageComponent);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -91,10 +92,10 @@ describe('Admitted applications without family confirmation', () => {
     for (const status of fixture.componentInstance.statuses) {
       fixture.componentInstance.applications.set([{ ...application, status }]);
       fixture.detectChanges();
-      const buttons: HTMLButtonElement[] = Array.from(
-        fixture.nativeElement.querySelectorAll('tbody button'),
+      const primaryButtons: HTMLButtonElement[] = Array.from(
+        fixture.nativeElement.querySelectorAll('tbody button.bg-indigo-600'),
       );
-      expect(buttons.length).toBe(1);
+      expect(primaryButtons.length).toBe(1);
     }
   });
   it('clears a linked application filter when changing year', () => {

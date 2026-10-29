@@ -1,16 +1,17 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ActivatedRoute, Router, provideRouter, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
-import { AdmissionsInquiriesPage } from './admissions-inquiries-page';
+import { AdmissionsInquiriesPageComponent } from './admissions-inquiries-list.page';
 import { AdmissionsApiService } from '../services/admissions-api.service';
 import { AcademicApiService } from '@features/academic/services/academic-api.service';
 import { AuthService } from '@core/services';
 import { TenantService } from '@core/services/tenant.service';
 import { AdmissionInquiry } from '../models';
+import { ConfirmDialogService } from '@shared/components/confirm-dialog/confirm-dialog.service';
 
 describe('Admissions inquiry to presential flow', () => {
-  let fixture: ComponentFixture<AdmissionsInquiriesPage>;
-  let page: AdmissionsInquiriesPage;
+  let fixture: ComponentFixture<AdmissionsInquiriesPageComponent>;
+  let page: AdmissionsInquiriesPageComponent;
   let api: jasmine.SpyObj<AdmissionsApiService>;
   const row: AdmissionInquiry = {
     publicUuid: 'inquiry-a',
@@ -49,7 +50,7 @@ describe('Admissions inquiry to presential flow', () => {
     );
     api.updateInquiry.and.returnValue(of({ success: true, data: row }));
     await TestBed.configureTestingModule({
-      imports: [AdmissionsInquiriesPage],
+      imports: [AdmissionsInquiriesPageComponent],
       providers: [
         provideRouter([]),
         { provide: AdmissionsApiService, useValue: api },
@@ -76,12 +77,16 @@ describe('Admissions inquiry to presential flow', () => {
         { provide: TenantService, useValue: { tenantSlug: () => 'school' } },
         { provide: AuthService, useValue: { hasPermission: () => true } },
         {
+          provide: ConfirmDialogService,
+          useValue: { open: () => Promise.resolve(false) },
+        },
+        {
           provide: ActivatedRoute,
           useValue: { snapshot: { data: {}, queryParamMap: convertToParamMap({}) } },
         },
       ],
     }).compileComponents();
-    fixture = TestBed.createComponent(AdmissionsInquiriesPage);
+    fixture = TestBed.createComponent(AdmissionsInquiriesPageComponent);
     page = fixture.componentInstance;
     fixture.detectChanges();
     await fixture.whenStable();
@@ -169,12 +174,13 @@ describe('Admissions inquiry to presential flow', () => {
       fixture.nativeElement.querySelector('#convert-title').parentElement.textContent,
     ).toContain('2027');
   });
-  it('does not silently discard a modified application', () => {
+  it('does not silently discard a modified application', async () => {
     page.openConvert(row);
     page.draft.studentFirstName = 'Nombre capturado';
-    const confirm = spyOn(window, 'confirm').and.returnValue(false);
+    const confirm = spyOn(TestBed.inject(ConfirmDialogService), 'open').and.resolveTo(false);
     page.closeConvert();
     expect(confirm).toHaveBeenCalled();
+    await fixture.whenStable();
     expect(page.convertInquiry()).not.toBeNull();
   });
   it('opens the created application immediately after conversion', () => {
@@ -194,7 +200,7 @@ describe('Admissions inquiry to presential flow', () => {
     expect(navigate).toHaveBeenCalledWith(['/admissions/applications', 'created'], {
       queryParams: { yearId: 'year-planning' },
     });
-    expect(page.canLeave()).toBeTrue();
+    expect(page.convertInquiry()).toBeNull();
   });
   it('filters pending follow-ups without treating closed or converted inquiries as pending', () => {
     page.inquiries.set([

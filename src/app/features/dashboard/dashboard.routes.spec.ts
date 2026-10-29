@@ -7,7 +7,7 @@ describe('DASHBOARD_ROUTES', () => {
   });
 
   it('carga DashboardHomeComponent', async () => {
-    const mod = await (DASHBOARD_ROUTES[0].loadComponent! as () => Promise<any>)();
-    expect(mod.DashboardHomeComponent).toBeDefined();
+    const component = await DASHBOARD_ROUTES[0].loadComponent!();
+    expect(component).toBeTruthy();
   });
 });

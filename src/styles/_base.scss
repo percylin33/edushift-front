@@ -31,17 +31,17 @@
     @apply font-display font-semibold tracking-tight text-content;
   }
 
-  a {
+  :where(a) {
     @apply text-primary-600 underline-offset-2 transition-colors;
   }
-  a:hover {
+  :where(a:hover) {
     @apply text-primary-700;
   }
-  .dark a {
-    @apply text-primary-400;
+  :where(.dark a) {
+    @apply text-content-muted;
   }
-  .dark a:hover {
-    @apply text-primary-300;
+  :where(.dark a:hover) {
+    @apply text-content;
   }
 
   hr {

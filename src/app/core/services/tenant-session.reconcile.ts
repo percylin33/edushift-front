@@ -1,4 +1,6 @@
 import { firstValueFrom } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { UserRole } from '@core/enums';
 import { timeout } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { LoggerService } from './logger.service';
@@ -39,11 +41,19 @@ export async function reconcileTenantWithSession(
     auth.setUser(user);
   } catch (err) {
     logger.warn(`reconcile(${source}): failed to rehydrate /auth/me`, err);
+    if (err instanceof HttpErrorResponse && (err.status === 401 || err.status === 403)) {
+      auth.clearSession();
+    }
+    return;
   }
 
-  // Platform surfaces (for example, Super Admin) can run on the bare local
-  // host. They need /auth/me, but must not infer a school from the session.
-  if (!hasTenantHost) return;
+  // School creation keeps its host-only cookie on the registration origin.
+  // Restore school context from the server after reload, never from cached slugs.
+  const path = window.location.pathname;
+  const platformSurface = /^\/(admin|auth)(\/|$)/.test(path);
+  const user = auth.user();
+  if (!hasTenantHost && (platformSurface || !user?.tenantId ||
+      user.roles?.includes(UserRole.SuperAdmin))) return;
 
   let sessionTenant;
   try {

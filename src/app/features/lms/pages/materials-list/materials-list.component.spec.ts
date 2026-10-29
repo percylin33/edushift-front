@@ -1,14 +1,25 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { signal, WritableSignal } from '@angular/core';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { MaterialsListComponent } from './materials-list.component';
 import { MaterialsStore } from '../../store';
-import { MaterialRow, MaterialType } from '../../models';
+import { CreateMaterialRequest, MaterialRow, MaterialType } from '../../models';
+import { ConfirmDialogService } from '@shared/components';
 
 describe('MaterialsListComponent', () => {
-  let component: any;
+  let component: MaterialsListComponent;
   let fixture: ComponentFixture<MaterialsListComponent>;
   let mockStore: jasmine.SpyObj<MaterialsStore>;
+  let confirmDialog: jasmine.SpyObj<ConfirmDialogService>;
+  const testApi = () =>
+    component as unknown as {
+      dialogOpen: WritableSignal<boolean>;
+      onOpenDialog(): void;
+      onCancelDialog(): void;
+      onUpload(request: CreateMaterialRequest): Promise<void>;
+      onDelete(row: MaterialRow): Promise<void>;
+      reload(): void;
+    };
 
   beforeEach(async () => {
     mockStore = jasmine.createSpyObj<MaterialsStore>(
@@ -22,10 +33,25 @@ describe('MaterialsListComponent', () => {
         uploadPercent: signal(0),
       },
     );
+    confirmDialog = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['open']);
+    confirmDialog.open.and.resolveTo(true);
 
     await TestBed.configureTestingModule({
       imports: [MaterialsListComponent],
-      providers: [provideRouter([]), { provide: MaterialsStore, useValue: mockStore }],
+      providers: [
+        provideRouter([]),
+        { provide: MaterialsStore, useValue: mockStore },
+        { provide: ConfirmDialogService, useValue: confirmDialog },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: { get: (key: string) => (key === 'sectionUuid' ? 's-1' : null) },
+              queryParamMap: { get: (key: string) => (key === 'assignment' ? 'a-1' : null) },
+            },
+          },
+        },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(MaterialsListComponent);
@@ -38,15 +64,15 @@ describe('MaterialsListComponent', () => {
   });
 
   it('onOpenDialog abre dialog', () => {
-    expect(component.dialogOpen()).toBeFalse();
-    component.onOpenDialog();
-    expect(component.dialogOpen()).toBeTrue();
+    expect(testApi().dialogOpen()).toBeFalse();
+    testApi().onOpenDialog();
+    expect(testApi().dialogOpen()).toBeTrue();
   });
 
   it('onCancelDialog cierra dialog', () => {
-    component.dialogOpen.set(true);
-    component.onCancelDialog();
-    expect(component.dialogOpen()).toBeFalse();
+    testApi().dialogOpen.set(true);
+    testApi().onCancelDialog();
+    expect(testApi().dialogOpen()).toBeFalse();
   });
 
   it('onUpload llama store.upload', async () => {
@@ -60,6 +86,7 @@ describe('MaterialsListComponent', () => {
         sizeBytes: 512,
         contentType: 'application/pdf',
         url: null,
+        filePublicUuid: 'file-1',
         uploadedByTeacherPublicUuid: 'tch-1',
         uploadedByTeacherName: 'Prof.',
         downloadUrl: null,
@@ -67,19 +94,19 @@ describe('MaterialsListComponent', () => {
         updatedAt: null,
       }),
     );
-    component['#sectionUuid'] = 's-1';
-    await component.onUpload({
+
+    await testApi().onUpload({
       title: 'Nuevo',
       type: MaterialType.Pdf,
       file: new File(['d'], 'nuevo.pdf', { type: 'application/pdf' }),
       url: null,
+      teacherAssignmentPublicUuid: 'a-1',
     });
     expect(mockStore.upload).toHaveBeenCalled();
-    expect(component.dialogOpen()).toBeFalse();
+    expect(testApi().dialogOpen()).toBeFalse();
   });
 
   it('onDelete pide confirmación y llama remove', async () => {
-    spyOn(window, 'confirm').and.returnValue(true);
     mockStore.remove.and.returnValue(Promise.resolve(true));
     const row: MaterialRow = {
       publicUuid: 'mat-1',
@@ -89,17 +116,19 @@ describe('MaterialsListComponent', () => {
       sizeBytes: 1024,
       contentType: 'application/pdf',
       url: null,
+      filePublicUuid: 'file-1',
       uploadedByTeacherName: 'Prof.',
       sizeBytesDisplay: '1 KB',
       createdAt: new Date(),
     };
-    await component.onDelete(row);
+    await testApi().onDelete(row);
+    expect(confirmDialog.open).toHaveBeenCalled();
     expect(mockStore.remove).toHaveBeenCalledWith('mat-1');
   });
 
   it('reload llama clearError y loadBySection', () => {
-    component['#sectionUuid'] = 's-1';
-    component.reload();
+
+    testApi().reload();
     expect(mockStore.clearError).toHaveBeenCalled();
   });
 });

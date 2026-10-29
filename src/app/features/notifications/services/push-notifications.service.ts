@@ -1,7 +1,5 @@
 import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { initializeApp, getApps } from 'firebase/app';
-import { deleteToken, getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging';
 import { environment } from '@env/environment';
 import { AuthService } from '@core/services/auth.service';
 import { NotificationDevicesApiService } from './notification-devices-api.service';
@@ -59,6 +57,8 @@ export class PushNotificationsService {
     if (!isSecureContext || !('serviceWorker' in navigator)) return 'unsupported';
 
     try {
+      const [{ initializeApp, getApps }, { getMessaging, getToken, isSupported }] =
+        await Promise.all([import('@firebase/app'), import('@firebase/messaging')]);
       if (!(await isSupported())) return 'unsupported';
 
       const permission = await Notification.requestPermission();
@@ -97,6 +97,10 @@ export class PushNotificationsService {
     if (!config || !vapidKey || vapidKey.startsWith('REPLACE_ME')) return 'failed';
 
     try {
+      const [
+        { initializeApp, getApps },
+        { deleteToken, getMessaging, getToken },
+      ] = await Promise.all([import('@firebase/app'), import('@firebase/messaging')]);
       const registration = await navigator.serviceWorker.getRegistration();
       if (!registration?.active) return 'failed';
       const firebaseApp =
@@ -135,6 +139,8 @@ export class PushNotificationsService {
     if (!config) return;
 
     try {
+      const [{ initializeApp, getApps }, { getMessaging, isSupported, onMessage }] =
+        await Promise.all([import('@firebase/app'), import('@firebase/messaging')]);
       if (!(await isSupported())) return;
       const firebaseApp =
         getApps().find((app) => app.options.projectId === config.projectId) ??

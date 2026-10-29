@@ -355,7 +355,7 @@ test.describe('Evaluations — API: RBAC matrix', () => {
       try {
         // /api/v1 is auto-prepended by the WebConfiguration — paths in
         // the RBAC matrix omit that prefix; add it here.
-        const url = `${process.env['API_URL'] ?? 'http://localhost:8081'}/api/v1${c.path}`;
+        const url = `${process.env['API_URL'] ?? 'http://localhost:8080'}/api/v1${c.path}`;
         const res = await ctx.api.fetch(url, {
           method: c.method,
           data: c.body,

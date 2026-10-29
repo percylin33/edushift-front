@@ -56,8 +56,6 @@ const CHAPTER_TABS: ReadonlyArray<ChapterTab> = [
   },
 ];
 
-const CHECKLIST_REGEX = /^- \[( |x|X)\] (.+)$/gm;
-
 /**
  * Help manual viewer with interactive checklist progress + feedback.
  *

@@ -2,18 +2,18 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { of, Subject, throwError } from 'rxjs';
-import { PublicAdmissionsPage } from './public-admissions-page';
+import { PublicAdmissionsPageComponent } from './admissions-public-form.page';
 import { AdmissionsApiService } from '../services/admissions-api.service';
 
 describe('Public admission inquiry phone form', () => {
-  let fixture: ComponentFixture<PublicAdmissionsPage>;
-  let component: PublicAdmissionsPage;
+  let fixture: ComponentFixture<PublicAdmissionsPageComponent>;
+  let component: PublicAdmissionsPageComponent;
   let submitInquiry: jasmine.Spy;
   const success = { success: true, data: { reference: 'receipt-qa', status: 'RECEIVED' } };
   beforeEach(async () => {
     submitInquiry = jasmine.createSpy().and.returnValue(of(success));
     await TestBed.configureTestingModule({
-      imports: [PublicAdmissionsPage],
+      imports: [PublicAdmissionsPageComponent],
       providers: [
         {
           provide: ActivatedRoute,
@@ -36,7 +36,7 @@ describe('Public admission inquiry phone form', () => {
         },
       ],
     }).compileComponents();
-    fixture = TestBed.createComponent(PublicAdmissionsPage);
+    fixture = TestBed.createComponent(PublicAdmissionsPageComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
     await fixture.whenStable();
@@ -59,7 +59,7 @@ describe('Public admission inquiry phone form', () => {
   it('old offer links explain the direct school flow without requesting a response', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [PublicAdmissionsPage],
+      imports: [PublicAdmissionsPageComponent],
       providers: [
         {
           provide: ActivatedRoute,
@@ -72,7 +72,7 @@ describe('Public admission inquiry phone form', () => {
         { provide: AdmissionsApiService, useValue: { publicOffer: jasmine.createSpy() } },
       ],
     });
-    const retired = TestBed.createComponent(PublicAdmissionsPage);
+    const retired = TestBed.createComponent(PublicAdmissionsPageComponent);
     retired.detectChanges();
     expect(retired.nativeElement.textContent).toContain('No necesitas confirmar');
     expect(retired.nativeElement.textContent).not.toContain('Aceptar vacante');

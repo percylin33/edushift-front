@@ -6,9 +6,11 @@ export class InitialsPipe implements PipeTransform {
     if (!value) return '';
     return value
       .split(/\s+/)
-      .filter(Boolean)
+      .filter((part) => Boolean(part) && !SPANISH_NAME_PARTICLES.has(part.toLocaleLowerCase()))
       .slice(0, max)
-      .map((p) => p.charAt(0).toUpperCase())
+      .map((p) => p.charAt(0).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase())
       .join('');
   }
 }
+
+const SPANISH_NAME_PARTICLES = new Set(['de', 'del', 'la', 'las', 'los', 'y']);

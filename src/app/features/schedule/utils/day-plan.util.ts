@@ -60,10 +60,6 @@ function fromMinutes(total: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
-  return aStart < bEnd && bStart < aEnd;
-}
-
 function durationMinutes(start: string, end: string): number {
   return Math.max(0, toMinutes(end) - toMinutes(start));
 }

@@ -7,6 +7,7 @@ import {
   AiPlatformSource,
   AiPlatformSourceReviewChecks,
 } from '../../services/admin-ai-platform-sources.service';
+import { readErrorMessage } from '@core/utils/error.utils';
 
 @Component({
   selector: 'app-admin-ai-global-sources',
@@ -294,8 +295,8 @@ export class AdminAiGlobalSourcesComponent implements OnInit, OnDestroy {
       this.reviewAfter = '';
       this.file.set(null);
       this.notice.set('Fuente cargada. La indexación se ejecutará en segundo plano.');
-    } catch (err: any) {
-      this.svc.error.set(err?.error?.message ?? 'No se pudo cargar la fuente.');
+    } catch (err: unknown) {
+      this.svc.error.set(readErrorMessage(err, 'No se pudo cargar la fuente.'));
     } finally {
       this.uploading.set(false);
     }
@@ -318,9 +319,9 @@ export class AdminAiGlobalSourcesComponent implements OnInit, OnDestroy {
       this.reviewObjectUrl.set(url);
       this.previewUrl.set(url);
       this.reviewError.set(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (requestVersion === this.reviewRequestVersion) {
-        this.reviewError.set(err?.error?.message ?? 'No se pudo cargar la vista de revisión.');
+        this.reviewError.set(readErrorMessage(err, 'No se pudo cargar la vista de revisión.'));
       }
     } finally {
       if (requestVersion === this.reviewRequestVersion) this.reviewLoading.set(false);
@@ -355,8 +356,8 @@ export class AdminAiGlobalSourcesComponent implements OnInit, OnDestroy {
       await this.svc.publish(source.publicUuid, this.reviewChecks());
       this.closeReview();
       this.notice.set('Fuente revisada y publicada para las audiencias seleccionadas.');
-    } catch (err: any) {
-      this.reviewError.set(err?.error?.message ?? 'No se pudo publicar la fuente.');
+    } catch (err: unknown) {
+      this.reviewError.set(readErrorMessage(err, 'No se pudo publicar la fuente.'));
     } finally {
       this.publishingReview.set(false);
     }
@@ -412,8 +413,8 @@ export class AdminAiGlobalSourcesComponent implements OnInit, OnDestroy {
     try {
       await action();
       this.notice.set(success);
-    } catch (err: any) {
-      this.svc.error.set(err?.error?.message ?? 'No se pudo actualizar la fuente.');
+    } catch (err: unknown) {
+      this.svc.error.set(readErrorMessage(err, 'No se pudo actualizar la fuente.'));
     }
   }
 }

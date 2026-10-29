@@ -3,7 +3,6 @@ import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { signal } from '@angular/core';
-import { of } from 'rxjs';
 
 import { AuthService, LoggerService, NotificationService } from '@core/services';
 import { ROUTES } from '@core/constants';
@@ -76,14 +75,14 @@ describe('errorInterceptor', () => {
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
-  it('403 redirige a /forbidden', () => {
+  it('403 no redirige globalmente para permitir degradación de módulos', () => {
     spyOn(router, 'navigate');
     httpClient.get('/api/admin').subscribe(noopObserver);
 
     const req = httpMock.expectOne('/api/admin');
     req.flush('Forbidden', { status: 403, statusText: 'Forbidden' });
 
-    expect(router.navigate).toHaveBeenCalledWith([ROUTES.ERRORS.FORBIDDEN]);
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it('status 0 muestra notificaci—n de conexi—n', () => {

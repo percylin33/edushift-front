@@ -6,6 +6,7 @@ import { TeachersStore } from '../../store';
 import { TeacherDetail } from '../../models';
 import { DocumentType, EmploymentStatus, Gender } from '@core/enums';
 import { ROUTES } from '@core/constants';
+import { ConfirmDialogService } from '@shared/components';
 
 @Component({ template: '', standalone: true })
 class DummyComponent {}
@@ -14,6 +15,7 @@ describe('TeacherDetailComponent', () => {
   let fixture: ComponentFixture<TeacherDetailComponent>;
   let component: TeacherDetailComponent;
   let router: Router;
+  let fakeConfirm: jasmine.SpyObj<ConfirmDialogService>;
   let fakeStore: jasmine.SpyObj<TeachersStore>;
 
   const teacher: TeacherDetail = {
@@ -52,11 +54,14 @@ describe('TeacherDetailComponent', () => {
   function configureModule(id: string | null = 't-1', tab: string | null = null): void {
     TestBed.resetTestingModule();
     fakeStore = createStoreSpies();
+    fakeConfirm = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['open']);
+    fakeConfirm.open.and.returnValue(Promise.resolve(false));
     TestBed.configureTestingModule({
       imports: [TeacherDetailComponent],
       providers: [
         provideRouter([{ path: '**', component: DummyComponent }]),
         { provide: TeachersStore, useValue: fakeStore },
+        { provide: ConfirmDialogService, useValue: fakeConfirm },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -106,7 +111,7 @@ describe('TeacherDetailComponent', () => {
     (fakeStore as any).selected.set(teacher);
     fixture.detectChanges();
     await component.ngOnInit();
-    expect((component as any).activeTab()).toBe('account');
+    expect(component['activeTab']()).toBe('account');
   });
 
   it('ngOnInit ignora queryParam tab inválido', async () => {
@@ -114,15 +119,15 @@ describe('TeacherDetailComponent', () => {
     (fakeStore as any).selected.set(teacher);
     fixture.detectChanges();
     await component.ngOnInit();
-    expect((component as any).activeTab()).toBe('info');
+    expect(component['activeTab']()).toBe('info');
   });
 
   it('setTab actualiza y navega con query param', () => {
     configureModule();
     fixture.detectChanges();
     spyOn(router, 'navigate');
-    (component as any).setTab('assignments');
-    expect((component as any).activeTab()).toBe('assignments');
+    component['setTab']('assignments');
+    expect(component['activeTab']()).toBe('assignments');
     expect(router.navigate).toHaveBeenCalledWith(
       [],
       jasmine.objectContaining({
@@ -133,35 +138,35 @@ describe('TeacherDetailComponent', () => {
 
   it('openInviteDialog setea showInviteDialog', () => {
     configureModule();
-    (component as any).openInviteDialog();
-    expect((component as any).showInviteDialog()).toBeTrue();
+    component['openInviteDialog']();
+    expect(component['showInviteDialog']()).toBeTrue();
   });
 
   it('closeInviteDialog cierra dialog', () => {
     configureModule();
-    (component as any)['showInviteDialog'].set(true);
-    (component as any).closeInviteDialog();
-    expect((component as any).showInviteDialog()).toBeFalse();
+    component['showInviteDialog'].set(true);
+    component['closeInviteDialog']();
+    expect(component['showInviteDialog']()).toBeFalse();
   });
 
   it('openLinkDialog setea showLinkDialog', () => {
     configureModule();
-    (component as any).openLinkDialog();
-    expect((component as any).showLinkDialog()).toBeTrue();
+    component['openLinkDialog']();
+    expect(component['showLinkDialog']()).toBeTrue();
   });
 
   it('closeLinkDialog cierra dialog', () => {
     configureModule();
-    (component as any)['showLinkDialog'].set(true);
-    (component as any).closeLinkDialog();
-    expect((component as any).showLinkDialog()).toBeFalse();
+    component['showLinkDialog'].set(true);
+    component['closeLinkDialog']();
+    expect(component['showLinkDialog']()).toBeFalse();
   });
 
   it('onLinked cierra link dialog', () => {
     configureModule();
-    (component as any)['showLinkDialog'].set(true);
-    (component as any).onLinked();
-    expect((component as any).showLinkDialog()).toBeFalse();
+    component['showLinkDialog'].set(true);
+    component['onLinked']();
+    expect(component['showLinkDialog']()).toBeFalse();
   });
 
   it('onDelete confirma y navega al listado si ok', async () => {
@@ -169,9 +174,9 @@ describe('TeacherDetailComponent', () => {
     (fakeStore as any).selected.set(teacher);
     fakeStore.delete.and.returnValue(Promise.resolve(true));
     spyOn(router, 'navigate');
-    spyOn(window, 'confirm').and.returnValue(true);
+    fakeConfirm.open.and.returnValue(Promise.resolve(true));
 
-    await (component as any).onDelete();
+    await component['onDelete']();
     expect(fakeStore.delete).toHaveBeenCalledWith('t-1');
     expect(router.navigate).toHaveBeenCalledWith([ROUTES.TEACHERS.LIST]);
   });
@@ -179,29 +184,29 @@ describe('TeacherDetailComponent', () => {
   it('onDelete no borra si confirm false', async () => {
     configureModule();
     (fakeStore as any).selected.set(teacher);
-    spyOn(window, 'confirm').and.returnValue(false);
-    await (component as any).onDelete();
+    fakeConfirm.open.and.returnValue(Promise.resolve(false));
+    await component['onDelete']();
     expect(fakeStore.delete).not.toHaveBeenCalled();
   });
 
   it('editRoute retorna ruta correcta', () => {
     configureModule();
-    expect((component as any).editRoute('t-1')).toBe('/teachers/t-1/edit');
+    expect(component['editRoute']('t-1')).toBe('/teachers/t-1/edit');
   });
 
   it('subtitle formatea documento + título', () => {
     configureModule();
-    expect((component as any).subtitle(teacher)).toContain('DNI');
+    expect(component['subtitle'](teacher)).toContain('DNI');
   });
 
   it('genderLabel mapea correctamente', () => {
     configureModule();
-    expect((component as any).genderLabel(Gender.Female)).toBe('Femenino');
-    expect((component as any).genderLabel(undefined)).toBe('—');
+    expect(component['genderLabel'](Gender.Female)).toBe('Femenino');
+    expect(component['genderLabel'](undefined)).toBe('—');
   });
 
   it('listRoute es /teachers', () => {
     configureModule();
-    expect((component as any).listRoute).toBe('/teachers');
+    expect(component['listRoute']).toBe('/teachers');
   });
 });

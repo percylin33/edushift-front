@@ -3,7 +3,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   HostListener,
-  inject,
   signal,
 } from '@angular/core';
 import { A11yModule } from '@angular/cdk/a11y';

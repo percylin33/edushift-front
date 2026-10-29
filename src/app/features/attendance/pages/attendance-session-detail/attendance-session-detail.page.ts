@@ -131,7 +131,8 @@ import { ReportFormat } from '@features/reports/models/report.model';
             <input
               type="checkbox"
               class="checkbox checkbox-sm"
-              [(ngModel)]="onlyPending"
+              [ngModel]="onlyPending()"
+              (ngModelChange)="onlyPending.set($event)"
               name="onlyPending"
             />
             Mostrar solo pendientes
@@ -230,7 +231,7 @@ export class AttendanceSessionDetailPageComponent implements OnInit {
   protected readonly scannerRoute = ROUTES.ATTENDANCE.SCANNER;
 
   protected readonly editing = signal<AttendanceRecord | null>(null);
-  protected onlyPending = false;
+  protected readonly onlyPending = signal(false);
 
   protected readonly title = computed(() => {
     const s = this.store.currentSession();
@@ -255,7 +256,7 @@ export class AttendanceSessionDetailPageComponent implements OnInit {
    */
   protected readonly filteredRecords = computed<AttendanceRecord[]>(() => {
     const records = this.store.records();
-    if (!this.onlyPending) return records;
+    if (!this.onlyPending()) return records;
     return records.filter((r) => r.status === 'ABSENT');
   });
 
@@ -273,7 +274,7 @@ export class AttendanceSessionDetailPageComponent implements OnInit {
   }
 
   /** The backend enforces session status, transitions, and the edit window. */
-  protected canEdit(record: AttendanceRecord): boolean {
+  protected canEdit(_record: AttendanceRecord): boolean {
     if (this.auth.hasRole(UserRole.TenantAdmin)) {
       return true;
     }
@@ -303,7 +304,6 @@ export class AttendanceSessionDetailPageComponent implements OnInit {
   }
 
   protected onPrint(): void {
-    const session = this.store.currentSession();
     const rows = recordsToPrintRows(this.filteredRecords());
     this.printService.print({
       mode: 'sectionDaily',

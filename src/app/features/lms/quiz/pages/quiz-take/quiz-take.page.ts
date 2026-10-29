@@ -9,7 +9,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import {
@@ -425,7 +424,7 @@ export class QuizTakePageComponent implements OnInit, OnDestroy {
       } else {
         this.startTimerIfNeededFromAttempt(this.attempts.current());
       }
-    } catch (err) {
+    } catch {
       this.attempts.clearError();
       this.attempts.clearCurrent();
       // No rethrow — the error signal already carries the message; the page

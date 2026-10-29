@@ -12,6 +12,8 @@ import { Permission } from '@core/enums';
 import { AuthService } from '@core/services';
 import { mapHttpError } from '@shared/utils';
 import { FilePreviewDialogComponent } from '@shared/components';
+import { FileUploadComponent, ModuleUploadResponse } from '@shared/components/file-upload/file-upload.component';
+import { FileMetadata } from '@core/services/file-upload.service';
 import { PaymentsApiService } from '../../services/payments-api.service';
 import {
   AdminInvoiceListItem,
@@ -28,7 +30,7 @@ import {
   selector: 'app-admin-invoices-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, DatePipe, FormsModule, FilePreviewDialogComponent],
+  imports: [CommonModule, DatePipe, FormsModule, FilePreviewDialogComponent, FileUploadComponent],
   template: `
     <section>
       @if (canReadPayments()) {
@@ -138,7 +140,7 @@ import {
                     </span>
                   </td>
                   <td class="px-4 py-3 text-right font-medium">
-                    {{ money(inv.totalCents, inv.currency) }}
+                    {{ money(amountForDisplay(inv), inv.currency) }}
                   </td>
                   <td class="px-4 py-3">
                     @if (inv.evidenceFilePublicUuid) {
@@ -173,6 +175,12 @@ import {
                         (click)="openCashModal(inv)"
                       >
                         Registrar efectivo
+                      </button>
+                    }
+                    @if (canReceive() && (inv.status === 'PENDING' || inv.status === 'OVERDUE' || inv.status === 'PENDING_REVIEW')) {
+                      <button type="button" class="rounded-md border border-indigo-200 px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:border-indigo-800 dark:text-indigo-300"
+                        [disabled]="busyUuid() === inv.publicUuid" (click)="openEvidenceModal(inv)">
+                        Adjuntar comprobante
                       </button>
                     }
                     @if (canReconcile() && inv.status === 'PENDING_REVIEW') {
@@ -236,7 +244,7 @@ import {
             <div class="flex justify-between gap-4">
               <dt class="text-slate-500">Monto recibido</dt>
               <dd class="text-right font-bold text-slate-900 dark:text-slate-100">
-                {{ money(inv.totalCents, inv.currency) }}
+                {{ money(amountForDisplay(inv), inv.currency) }}
               </dd>
             </div>
           </dl>
@@ -274,6 +282,28 @@ import {
       </div>
     }
 
+    @if (evidenceInvoice(); as inv) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="presentation" (click)="closeEvidenceModal()">
+        <section class="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900" role="dialog" aria-modal="true" aria-labelledby="front-desk-evidence-title" (click)="$event.stopPropagation()">
+          <div>
+            <h2 id="front-desk-evidence-title" class="text-lg font-bold text-slate-900 dark:text-slate-100">Adjuntar comprobante recibido en ventanilla</h2>
+            <p class="mt-1 text-sm text-slate-500">{{ inv.studentIdentity?.fullName || 'Estudiante' }} · {{ inv.periodLabel }} · saldo {{ money(amountForDisplay(inv), inv.currency) }}</p>
+          </div>
+          <label class="block text-sm">
+            <span class="font-medium text-slate-700 dark:text-slate-300">Referencia o nota (opcional)</span>
+            <input type="text" maxlength="500" [ngModel]="evidenceNote()" [ngModelOptions]="{ standalone: true }" (ngModelChange)="evidenceNote.set($event)"
+              class="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" />
+          </label>
+          <app-file-upload module="payments" accept="image/*,application/pdf" [maxSizeMb]="10"
+            (uploaded)="onStaffEvidenceUploaded($event)" (uploadError)="banner.set({ ok: false, message: $event })" />
+          <p class="text-xs text-slate-500">El cargo quedará en revisión. Un usuario autorizado debe aprobar o rechazar el comprobante antes de marcarlo pagado.</p>
+          <div class="flex justify-end">
+            <button type="button" (click)="closeEvidenceModal()" [disabled]="busyUuid() === inv.publicUuid" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">Cerrar</button>
+          </div>
+        </section>
+      </div>
+    }
+
     @if (previewingVoucher(); as voucher) {
       <app-file-preview-dialog
         [open]="true"
@@ -298,6 +328,8 @@ export class AdminInvoicesPageComponent implements OnInit {
   readonly cashInvoice = signal<AdminInvoiceListItem | null>(null);
   readonly cashNote = signal('');
   readonly previewingVoucher = signal<{ filePublicUuid: string; filename: string } | null>(null);
+  readonly evidenceInvoice = signal<AdminInvoiceListItem | null>(null);
+  readonly evidenceNote = signal('');
 
   canReceive(): boolean {
     return this.auth.hasPermission(Permission.PaymentsReceive, Permission.LmsPaymentAdmin);
@@ -362,6 +394,40 @@ export class AdminInvoicesPageComponent implements OnInit {
     this.previewingVoucher.set({
       filePublicUuid: invoice.evidenceFilePublicUuid,
       filename: `voucher-${invoice.publicUuid}`,
+    });
+  }
+
+  openEvidenceModal(invoice: AdminInvoiceListItem): void {
+    this.evidenceNote.set('');
+    this.evidenceInvoice.set(invoice);
+  }
+
+  closeEvidenceModal(): void {
+    const invoice = this.evidenceInvoice();
+    if (invoice && this.busyUuid() === invoice.publicUuid) return;
+    this.evidenceInvoice.set(null);
+    this.evidenceNote.set('');
+  }
+
+  onStaffEvidenceUploaded(file: FileMetadata | ModuleUploadResponse): void {
+    const invoice = this.evidenceInvoice();
+    if (!invoice || this.busyUuid() === invoice.publicUuid) return;
+    this.busyUuid.set(invoice.publicUuid);
+    this.api.submitEvidenceByStaff(invoice.publicUuid, {
+      filePublicUuid: file.publicUuid,
+      notes: this.evidenceNote().trim() || undefined,
+    }).subscribe({
+      next: () => {
+        this.busyUuid.set(null);
+        this.evidenceInvoice.set(null);
+        this.evidenceNote.set('');
+        this.banner.set({ ok: true, message: `Comprobante adjuntado para ${invoice.periodLabel}; queda pendiente de aprobación.` });
+        this.load();
+      },
+      error: (error) => {
+        this.busyUuid.set(null);
+        this.banner.set({ ok: false, message: error?.error?.message ?? 'No se pudo adjuntar el comprobante.' });
+      },
     });
   }
 
@@ -457,5 +523,10 @@ export class AdminInvoicesPageComponent implements OnInit {
   }
   money(cents: number, c: string) {
     return formatMoney(cents, c);
+  }
+  amountForDisplay(invoice: AdminInvoiceListItem): number {
+    return invoice.status === 'PAID'
+      ? invoice.totalCents
+      : ('balanceCents' in invoice ? (invoice.balanceCents ?? invoice.totalCents) : invoice.totalCents);
   }
 }

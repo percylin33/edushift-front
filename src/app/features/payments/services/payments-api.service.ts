@@ -161,6 +161,15 @@ export class PaymentsApiService {
     return this.api.post<null>(API.PAYMENTS.ADMIN.APPROVE_EVIDENCE(invoicePublicUuid), {});
   }
 
+  submitEvidenceByStaff(
+    invoicePublicUuid: string,
+    body: SubmitPaymentEvidenceRequest,
+  ): Observable<Invoice> {
+    return this.api
+      .post<ApiResponse<Invoice> | Invoice>(API.PAYMENTS.ADMIN.SUBMIT_EVIDENCE(invoicePublicUuid), body)
+      .pipe(map((response) => this.unwrap(response)));
+  }
+
   /** Tenant-wide payment listing. Returns a Spring data page envelope. */
   listAllPayments(
     query: AdminPaymentsQuery = {},

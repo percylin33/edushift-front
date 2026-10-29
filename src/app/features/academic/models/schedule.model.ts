@@ -248,13 +248,14 @@ export const SCHEDULE_WARNING_LABELS: Readonly<Record<string, string>> = {
   SCHEDULE_CONFLICT: 'Hay un cruce de horarios',
   RECESS_OVERLAP: 'El recreo se superpone con una clase',
   WORKLOAD_EXCEEDED: 'Un docente supera la carga horaria',
-  MISSING_HOMEROOM: 'Falta asignar aula de tutoría',
+  MISSING_HOMEROOM: 'Falta asignar docente tutor',
   EMPTY_PERIOD: 'Hay periodos sin curso asignado',
 };
 
 export const SCHEDULE_WARNING_SEVERITY_LABELS: Readonly<Record<string, string>> = {
   ERROR: 'Error',
   WARNING: 'Advertencia',
+  WARN: 'Advertencia',
   INFO: 'Información',
 };
 
@@ -339,6 +340,8 @@ export interface DayTemplate {
   dayStart?: string | null;
   dayEnd?: string | null;
   periodMinutes?: number | null;
+  reviewedAt?: string | null;
+  reviewedByUuid?: string | null;
   blocks: DayBlockItem[];
 }
 

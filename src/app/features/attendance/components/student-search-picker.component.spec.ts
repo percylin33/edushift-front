@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { StudentSearchPickerComponent } from './student-search-picker.component';
 import { AcademicApiService } from '@features/academic/services';
@@ -62,32 +61,32 @@ describe('StudentSearchPickerComponent', () => {
     configureModule();
     fakeAcademic.listLevels.and.returnValue(of(levels));
     await component.ngOnInit();
-    expect((component as any).levels()).toHaveSize(1);
-    expect((component as any).loadingCatalog()).toBeFalse();
+    expect(component['levels']()).toHaveSize(1);
+    expect(component['loadingCatalog']()).toBeFalse();
   });
 
   it('ngOnInit con error de niveles deja vacío', async () => {
     configureModule();
     fakeAcademic.listLevels.and.returnValue(throwError(() => new Error('boom')));
     await component.ngOnInit();
-    expect((component as any).levels()).toEqual([]);
+    expect(component['levels']()).toEqual([]);
   });
 
   it('onLevelChange limpia grado/sección y agenda search', () => {
     configureModule();
-    (component as any).levelUuid.set('lv-1');
-    (component as any).gradeUuid.set('g-1');
-    (component as any).sectionUuid.set('sec-1');
-    (component as any).onLevelChange(null);
-    expect((component as any).levelUuid()).toBeNull();
-    expect((component as any).gradeUuid()).toBeNull();
-    expect((component as any).sectionUuid()).toBeNull();
+    component['levelUuid'].set('lv-1');
+    component['gradeUuid'].set('g-1');
+    component['sectionUuid'].set('sec-1');
+    component['onLevelChange'](null);
+    expect(component['levelUuid']()).toBeNull();
+    expect(component['gradeUuid']()).toBeNull();
+    expect(component['sectionUuid']()).toBeNull();
   });
 
   it('onGradeChange carga secciones del grado', async () => {
     configureModule();
     fakeAcademic.listSections.and.returnValue(of(sections));
-    (component as any).onGradeChange('g-1');
+    component['onGradeChange']('g-1');
     await Promise.resolve();
     await Promise.resolve();
     expect(fakeAcademic.listSections).toHaveBeenCalled();
@@ -95,45 +94,45 @@ describe('StudentSearchPickerComponent', () => {
 
   it('onGradeChange null limpia sections', () => {
     configureModule();
-    (component as any).onGradeChange(null);
-    expect((component as any).sections()).toEqual([]);
+    component['onGradeChange'](null);
+    expect(component['sections']()).toEqual([]);
   });
 
   it('onQueryChange setea query', () => {
     configureModule();
-    (component as any).onQueryChange('juan');
-    expect((component as any).query()).toBe('juan');
+    component['onQueryChange']('juan');
+    expect(component['query']()).toBe('juan');
   });
 
   it('hasQueryOrFilter false sin filtros ni query', () => {
     configureModule();
-    expect((component as any).hasQueryOrFilter()).toBeFalse();
-    (component as any).query.set('x');
-    expect((component as any).hasQueryOrFilter()).toBeTrue();
+    expect(component['hasQueryOrFilter']()).toBeFalse();
+    component['query'].set('x');
+    expect(component['hasQueryOrFilter']()).toBeTrue();
   });
 
   it('select emite selected event', () => {
     configureModule();
     const selected = jasmine.createSpy('selected');
     component.selected.subscribe(selected);
-    (component as any).select(student);
+    component['select'](student);
     expect(selected).toHaveBeenCalledWith(student);
   });
 
   it('initials retorna primeras letras mayúsculas', () => {
     configureModule();
-    expect((component as any).initials({ ...student, firstName: 'Juan', lastName: 'Perez' })).toBe(
+    expect(component['initials']({ ...student, firstName: 'Juan', lastName: 'Perez' })).toBe(
       'JP',
     );
-    expect((component as any).initials({ ...student, firstName: '', lastName: '' })).toBe('?');
+    expect(component['initials']({ ...student, firstName: '', lastName: '' })).toBe('?');
   });
 
   it('availableGrades filtra por level seleccionado', () => {
     configureModule();
-    (component as any).levels.set(levels);
-    (component as any).levelUuid.set('lv-1');
-    expect((component as any).availableGrades()).toHaveSize(1);
-    (component as any).levelUuid.set('other');
-    expect((component as any).availableGrades()).toHaveSize(0);
+    component['levels'].set(levels);
+    component['levelUuid'].set('lv-1');
+    expect(component['availableGrades']()).toHaveSize(1);
+    component['levelUuid'].set('other');
+    expect(component['availableGrades']()).toHaveSize(0);
   });
 });

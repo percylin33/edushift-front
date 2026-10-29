@@ -134,11 +134,10 @@ export class TeachersApiService {
   }
 
   /**
-   * Vincula al docente con un User existente del mismo tenant que ya
-   * tenga el rol {@code TEACHER}. Errores conocidos:
+   * Vincula al docente con un User existente del mismo tenant y le
+   * asigna el rol {@code TEACHER} dentro de la misma operación. Errores conocidos:
    * <ul>
    *   <li>409 {@code TEACHER_ALREADY_HAS_USER}</li>
-   *   <li>409 {@code USER_NOT_TEACHER_ROLE}</li>
    *   <li>409 {@code USER_ALREADY_LINKED_TO_TEACHER}</li>
    *   <li>404 {@code RESOURCE_NOT_FOUND}</li>
    * </ul>

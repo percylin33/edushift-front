@@ -12,6 +12,7 @@ import { TenantStatus } from '@core/enums';
 
 import { LoginComponent } from './login.component';
 import { AuthApiService } from '../../services/auth-api.service';
+import { TenantApiService } from '@features/tenants/services/tenant-api.service';
 import { GoogleAuthService } from '../../services/google-auth.service';
 import { AuthStore } from '../../store/auth.store';
 import { LoginResult } from '../../models';
@@ -39,6 +40,7 @@ describe('LoginComponent', () => {
   let authApiSpy: jasmine.SpyObj<AuthApiService>;
   let store: AuthStore;
   let tenantService: TenantService;
+  let tenantApiSpy: jasmine.SpyObj<TenantApiService>;
 
   const fakeActivatedRoute = { snapshot: { queryParamMap: convertToParamMap({}) } };
 
@@ -51,6 +53,16 @@ describe('LoginComponent', () => {
     authApiSpy.login.and.returnValue(of({} as LoginResult));
     authApiSpy.loginWithGoogle.and.returnValue(of({} as AuthSession));
     authApiSpy.me.and.returnValue(of({} as User));
+    tenantApiSpy = jasmine.createSpyObj<TenantApiService>('TenantApiService', ['findCurrent']);
+    tenantApiSpy.findCurrent.and.returnValue(
+      of({
+        id: '019ec200-4a00-7000-8001-000000000001',
+        slug: 'acme',
+        name: 'Acme School',
+        status: TenantStatus.Active,
+        isActive: true,
+      }),
+    );
 
     const tenantThemeSpy = jasmine.createSpyObj('TenantThemeService', ['apply', 'reset']);
     const themeSpy = jasmine.createSpyObj('ThemeService', ['applyTenantDefault']);
@@ -62,6 +74,7 @@ describe('LoginComponent', () => {
         AuthStore,
         TenantService,
         { provide: AuthApiService, useValue: authApiSpy },
+        { provide: TenantApiService, useValue: tenantApiSpy },
         { provide: AuthService, useClass: FakeAuthService },
         { provide: TenantThemeService, useValue: tenantThemeSpy },
         { provide: ThemeService, useValue: themeSpy },

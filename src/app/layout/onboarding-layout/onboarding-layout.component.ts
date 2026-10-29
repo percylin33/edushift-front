@@ -58,7 +58,7 @@ import { ThemeToggleComponent } from '../components';
                 <span
                   class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition-colors"
                   [class.border-primary-600]="i === activeIndex() || step.completed"
-                  [class.bg-primary-600]="i === activeIndex() || step.completed"
+                  [class.btn-primary]="i === activeIndex() || step.completed"
                   [class.text-white]="i === activeIndex() || step.completed"
                   [class.border-border]="i !== activeIndex() && !step.completed"
                   [class.text-content-subtle]="i !== activeIndex() && !step.completed"
@@ -97,7 +97,7 @@ import { ThemeToggleComponent } from '../components';
       }
 
       <main class="flex flex-1 items-start justify-center px-4 py-10 sm:px-6">
-        <div class="w-full max-w-2xl">
+        <div class="min-w-0 w-full max-w-2xl">
           <div class="card animate-fade-in">
             <div class="card-body">
               <router-outlet />

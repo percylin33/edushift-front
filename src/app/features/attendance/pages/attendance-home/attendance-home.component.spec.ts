@@ -22,8 +22,8 @@ describe('AttendanceHomeComponent', () => {
   });
 
   it('expone scannerRoute y sessionsRoute', () => {
-    expect((component as any).scannerRoute).toBe(ROUTES.ATTENDANCE.SCANNER);
-    expect((component as any).sessionsRoute).toBe(ROUTES.ATTENDANCE.SESSIONS);
+    expect(component['scannerRoute']).toBe(ROUTES.ATTENDANCE.SCANNER);
+    expect(component['sessionsRoute']).toBe(ROUTES.ATTENDANCE.SESSIONS);
   });
 
   it('renderiza título y copy de puerta', () => {

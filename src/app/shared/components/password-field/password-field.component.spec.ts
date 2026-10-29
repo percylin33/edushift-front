@@ -7,6 +7,11 @@ describe('PasswordFieldComponent', () => {
   let component: PasswordFieldComponent;
   let control: FormControl<string>;
 
+  function render(): void {
+    fixture.changeDetectorRef.markForCheck();
+    fixture.detectChanges();
+  }
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [PasswordFieldComponent],
@@ -19,7 +24,7 @@ describe('PasswordFieldComponent', () => {
     component = fixture.componentInstance as any;
     component.fieldId = 'password';
     component.control = control;
-    fixture.detectChanges();
+    render();
   });
 
   it('se crea correctamente', () => {
@@ -33,12 +38,12 @@ describe('PasswordFieldComponent', () => {
 
   it('toggle cambia el tipo a text y viceversa', () => {
     component.toggle();
-    fixture.detectChanges();
+    render();
     expect(fixture.nativeElement.querySelector('input').getAttribute('type')).toBe('text');
     expect(component.visible()).toBeTrue();
 
     component.toggle();
-    fixture.detectChanges();
+    render();
     expect(fixture.nativeElement.querySelector('input').getAttribute('type')).toBe('password');
     expect(component.visible()).toBeFalse();
   });
@@ -48,42 +53,45 @@ describe('PasswordFieldComponent', () => {
     expect(btn.getAttribute('aria-label')).toBe('Mostrar contraseña');
 
     component.toggle();
-    fixture.detectChanges();
+    render();
     btn = fixture.nativeElement.querySelector('button');
     expect(btn.getAttribute('aria-label')).toBe('Ocultar contraseña');
   });
 
   it('renderiza el label cuando se provee', () => {
-    component.label = 'Contraseña';
-    fixture.detectChanges();
+    fixture.componentRef.setInput('label', 'Contraseña');
+    render();
     const label = fixture.nativeElement.querySelector('label');
     expect(label.textContent).toContain('Contraseña');
     expect(label.getAttribute('for')).toBe('password');
   });
 
   it('muestra error en lugar de hint cuando hay error', () => {
-    component.error = 'Requerido';
-    fixture.detectChanges();
+    fixture.componentRef.setInput('error', 'Requerido');
+    render();
     expect(fixture.nativeElement.querySelector('[id="password-error"]')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('[id="password-hint"]')).toBeFalsy();
   });
 
   it('muestra hint cuando no hay error', () => {
-    component.hint = 'Mínimo 8 caracteres';
-    fixture.detectChanges();
+    fixture.componentRef.setInput('hint', 'Mínimo 8 caracteres');
+    render();
     expect(fixture.nativeElement.querySelector('[id="password-hint"]')).toBeTruthy();
   });
 
   it('aria-invalid se aplica cuando hay error', () => {
-    component.error = 'mal';
-    fixture.detectChanges();
+    fixture.componentRef.setInput('error', 'mal');
+    render();
     const input = fixture.nativeElement.querySelector('input');
     expect(input.getAttribute('aria-invalid')).toBe('true');
   });
 
   it('theme=dark no rompe el render', () => {
-    component.theme = 'dark';
-    fixture.detectChanges();
+    fixture.componentRef.setInput('theme', 'dark');
+    fixture.componentRef.setInput('label', 'Contraseña');
+    render();
     expect(fixture.nativeElement.querySelector('input')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('label').classList.contains('text-slate-300')).toBeTrue();
+    expect(fixture.nativeElement.querySelector('input').getAttribute('placeholder')).toBeNull();
   });
 });

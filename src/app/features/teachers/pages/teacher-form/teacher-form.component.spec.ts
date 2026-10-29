@@ -5,7 +5,7 @@ import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TeacherFormComponent } from './teacher-form.component';
 import { TeachersStore } from '../../store';
-import { TeacherDetail, CreateTeacherRequest, UpdateTeacherRequest } from '../../models';
+import { TeacherDetail } from '../../models';
 import { DocumentType, EmploymentStatus, Gender } from '@core/enums';
 import { ROUTES } from '@core/constants';
 
@@ -78,19 +78,19 @@ describe('TeacherFormComponent', () => {
       configureModule();
       await component.ngOnInit();
       expect(fakeStore.clearError).toHaveBeenCalled();
-      expect((component as any).editing()).toBeFalse();
+      expect(component['editing']()).toBeFalse();
       expect(fakeStore.loadDetail).not.toHaveBeenCalled();
     });
 
     it('title/subtitle en create', () => {
       configureModule();
-      expect((component as any).title()).toBe('Nuevo docente');
-      expect((component as any).submitLabel()).toBe('Crear docente');
+      expect(component['title']()).toBe('Nuevo docente');
+      expect(component['submitLabel']()).toBe('Crear docente');
     });
 
     it('onSubmit inválido no llama create', async () => {
       configureModule();
-      await (component as any).onSubmit();
+      await component['onSubmit']();
       expect(fakeStore.create).not.toHaveBeenCalled();
     });
 
@@ -101,12 +101,12 @@ describe('TeacherFormComponent', () => {
       fakeStore.create.and.returnValue(Promise.resolve(created));
       spyOn(router, 'navigate');
 
-      (component as any).form.patchValue({
+      component['form'].patchValue({
         documentNumber: '12345678',
         firstName: 'Juan',
         lastName: 'Perez',
       });
-      await (component as any).onSubmit();
+      await component['onSubmit']();
 
       expect(fakeStore.create).toHaveBeenCalledOnceWith(
         jasmine.objectContaining({
@@ -124,12 +124,12 @@ describe('TeacherFormComponent', () => {
       fakeStore.create.and.returnValue(Promise.resolve(null));
       spyOn(router, 'navigate');
 
-      (component as any).form.patchValue({
+      component['form'].patchValue({
         documentNumber: '12345678',
         firstName: 'Juan',
         lastName: 'Perez',
       });
-      await (component as any).onSubmit();
+      await component['onSubmit']();
 
       expect(router.navigate).not.toHaveBeenCalled();
     });
@@ -141,10 +141,10 @@ describe('TeacherFormComponent', () => {
       fakeStore.loadDetail.and.returnValue(Promise.resolve(detail));
       await component.ngOnInit();
 
-      expect((component as any).editing()).toBeTrue();
-      expect((component as any).form.get('firstName')?.value).toBe('Maria');
-      expect((component as any).form.get('documentNumber')?.value).toBe('87654321');
-      expect((component as any).form.get('specializations')?.value).toEqual(['Matemáticas']);
+      expect(component['editing']()).toBeTrue();
+      expect(component['form'].get('firstName')?.value).toBe('Maria');
+      expect(component['form'].get('documentNumber')?.value).toBe('87654321');
+      expect(component['form'].get('specializations')?.value).toEqual(['Matemáticas']);
     });
 
     it('loadDetail nulo redirige al listado', async () => {
@@ -157,9 +157,9 @@ describe('TeacherFormComponent', () => {
 
     it('title/subtitle en edit', () => {
       configureModule();
-      (component as any).editing.set(true);
-      expect((component as any).title()).toBe('Editar docente');
-      expect((component as any).submitLabel()).toBe('Guardar cambios');
+      component['editing'].set(true);
+      expect(component['title']()).toBe('Editar docente');
+      expect(component['submitLabel']()).toBe('Guardar cambios');
     });
 
     it('onSubmit llama update y navega', async () => {
@@ -170,7 +170,7 @@ describe('TeacherFormComponent', () => {
       fakeStore.update.and.returnValue(Promise.resolve(detail));
       spyOn(router, 'navigate');
 
-      await (component as any).onSubmit();
+      await component['onSubmit']();
       expect(fakeStore.update).toHaveBeenCalledWith('t-1', jasmine.any(Object));
       expect(router.navigate).toHaveBeenCalledWith([ROUTES.TEACHERS.detail('t-1')]);
     });
@@ -179,22 +179,22 @@ describe('TeacherFormComponent', () => {
   describe('showError', () => {
     it('retorna null para control sin errores', () => {
       configureModule();
-      expect((component as any).showError('firstName')).toBeNull();
+      expect(component['showError']('firstName')).toBeNull();
     });
 
     it('retorna mensaje para required', () => {
       configureModule();
-      const ctrl = (component as any).form.get('documentNumber')!;
+      const ctrl = component['form'].get('documentNumber')!;
       ctrl.markAsTouched();
-      expect((component as any).showError('documentNumber')).toBe('Campo requerido.');
+      expect(component['showError']('documentNumber')).toBe('Campo requerido.');
     });
 
     it('retorna mensaje para pattern phone', () => {
       configureModule();
-      const ctrl = (component as any).form.get('phone')!;
+      const ctrl = component['form'].get('phone')!;
       ctrl.setValue('a');
       ctrl.markAsTouched();
-      expect((component as any).showError('phone')).toContain('Formato inválido');
+      expect(component['showError']('phone')).toContain('Formato inválido');
     });
   });
 
@@ -204,8 +204,8 @@ describe('TeacherFormComponent', () => {
       const err = new HttpErrorResponse({
         error: { errors: [{ code: 'TEACHER_DOCUMENT_TAKEN', message: 'ya existe' }] },
       });
-      (component as any)['applyServerErrors'](err);
-      expect((component as any)['fieldErrors']()['documentNumber']).toContain('documento');
+      component['applyServerErrors'](err);
+      expect(component['fieldErrors']()['documentNumber']).toContain('documento');
     });
 
     it('mapea TEACHER_EMAIL_TAKEN', () => {
@@ -213,23 +213,23 @@ describe('TeacherFormComponent', () => {
       const err = new HttpErrorResponse({
         error: { errors: [{ code: 'TEACHER_EMAIL_TAKEN', message: 'email en uso' }] },
       });
-      (component as any)['applyServerErrors'](err);
-      expect((component as any)['fieldErrors']()['email']).toContain('email');
+      component['applyServerErrors'](err);
+      expect(component['fieldErrors']()['email']).toContain('email');
     });
   });
 
   it('toDateInput formatea correcto', () => {
     configureModule();
-    expect((component as any).toDateInput(new Date('2025-01-01T00:00:00'))).toBe('2025-01-01');
+    expect(component['toDateInput'](new Date('2025-01-01T00:00:00'))).toBe('2025-01-01');
   });
 
   it('toDateInput null retorna null', () => {
     configureModule();
-    expect((component as any).toDateInput(undefined)).toBeNull();
+    expect(component['toDateInput'](undefined)).toBeNull();
   });
 
   it('listRoute es /teachers', () => {
     configureModule();
-    expect((component as any).listRoute).toBe('/teachers');
+    expect(component['listRoute']).toBe('/teachers');
   });
 });

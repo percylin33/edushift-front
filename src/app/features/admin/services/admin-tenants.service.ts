@@ -1,13 +1,16 @@
 import { HttpClient, HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, from, switchMap, tap } from 'rxjs';
+import { Observable, from, map, switchMap, tap } from 'rxjs';
 import { ApiService } from '@core/services';
 import { API } from '@core/constants';
 import {
+  AdminTenantAiSettings,
   AdminTenantDetail,
   AdminTenantSummary,
   TenantFilterParams,
+  TenantListResponse,
 } from '../models';
+import { ApiResponse } from '@core/models';
 
 export interface TenantOverview {
   activeTenants: number;
@@ -18,6 +21,15 @@ export interface TenantOverview {
   lastUpdated: string | null;
 }
 
+interface TenantOverviewRaw {
+  activeTenants?: number;
+  activeStudents?: number;
+  mrrCents?: number;
+  overdueCents?: number;
+  collectionRate?: number;
+  lastUpdated?: string | null;
+}
+
 export type PrepPackageVariant = 'PILOT' | 'PRODUCTION';
 
 @Injectable({ providedIn: 'root' })
@@ -25,6 +37,7 @@ export class AdminTenantsService {
   private readonly api = inject(ApiService);
   private readonly http = inject(HttpClient);
   private tenantRequestSequence = 0;
+  private aiSettingsRequestSequence = 0;
 
   private readonly _tenants = signal<AdminTenantSummary[]>([]);
   private readonly _totalElements = signal(0);
@@ -32,6 +45,9 @@ export class AdminTenantsService {
   private readonly _loading = signal(false);
   private readonly _error = signal<string | null>(null);
   private readonly _selectedTenant = signal<AdminTenantDetail | null>(null);
+  private readonly _tenantAiSettings = signal<AdminTenantAiSettings | null>(null);
+  private readonly _tenantAiSettingsLoading = signal(false);
+  private readonly _tenantAiSettingsError = signal<string | null>(null);
   private readonly _overview = signal<TenantOverview | null>(null);
   private readonly _overviewLoading = signal(false);
   private readonly _overviewError = signal<string | null>(null);
@@ -42,6 +58,9 @@ export class AdminTenantsService {
   readonly loading = this._loading.asReadonly();
   readonly error = this._error.asReadonly();
   readonly selectedTenant = this._selectedTenant.asReadonly();
+  readonly tenantAiSettings = this._tenantAiSettings.asReadonly();
+  readonly tenantAiSettingsLoading = this._tenantAiSettingsLoading.asReadonly();
+  readonly tenantAiSettingsError = this._tenantAiSettingsError.asReadonly();
   readonly overview = this._overview.asReadonly();
   readonly overviewLoading = this._overviewLoading.asReadonly();
   readonly overviewError = this._overviewError.asReadonly();
@@ -49,9 +68,9 @@ export class AdminTenantsService {
   loadOverview(): void {
     this._overviewLoading.set(true);
     this._overviewError.set(null);
-    this.api.get<any>(API.ADMIN.KPIS).subscribe({
+    this.api.get<ApiResponse<TenantOverviewRaw>>(API.ADMIN.KPIS).subscribe({
       next: (res) => {
-        const data = res.data ?? res;
+        const data = res.data;
         this._overview.set({
           activeTenants: Number(data.activeTenants ?? 0),
           activeStudents: Number(data.activeStudents ?? 0),
@@ -81,10 +100,10 @@ export class AdminTenantsService {
     query['page'] = params.page ?? 0;
     query['size'] = params.size ?? 10;
 
-    this.api.get<any>(API.ADMIN.TENANTS_ROOT, query).subscribe({
+    this.api.get<ApiResponse<TenantListResponse>>(API.ADMIN.TENANTS_ROOT, query).subscribe({
       next: (res) => {
         if (requestSequence !== this.tenantRequestSequence) return;
-        const data = res.data ?? res;
+        const data = res.data;
         this._tenants.set(data.content ?? data);
         this._totalElements.set(data.totalElements ?? 0);
         this._totalPages.set(data.totalPages ?? 0);
@@ -101,9 +120,9 @@ export class AdminTenantsService {
   loadTenantDetail(uuid: string): void {
     this._loading.set(true);
     this._error.set(null);
-    this.api.get<any>(API.ADMIN.TENANTS_BY_ID(uuid)).subscribe({
+    this.api.get<ApiResponse<AdminTenantDetail>>(API.ADMIN.TENANTS_BY_ID(uuid)).subscribe({
       next: (res) => {
-        this._selectedTenant.set(res.data ?? res);
+        this._selectedTenant.set(res.data);
         this._loading.set(false);
       },
       error: (err) => {
@@ -113,22 +132,56 @@ export class AdminTenantsService {
     });
   }
 
+  loadTenantAiSettings(uuid: string): void {
+    const requestSequence = ++this.aiSettingsRequestSequence;
+    this._tenantAiSettings.set(null);
+    this._tenantAiSettingsLoading.set(true);
+    this._tenantAiSettingsError.set(null);
+    this.api.get<ApiResponse<AdminTenantAiSettings>>(API.ADMIN.TENANT_AI_SETTINGS(uuid)).subscribe({
+      next: (response) => {
+        if (requestSequence !== this.aiSettingsRequestSequence) return;
+        this._tenantAiSettings.set(response.data);
+        this._tenantAiSettingsLoading.set(false);
+      },
+      error: (error: { error?: { message?: string }; statusText?: string }) => {
+        if (requestSequence !== this.aiSettingsRequestSequence) return;
+        this._tenantAiSettingsError.set(error.error?.message ?? 'No se pudo consultar el acceso a IA.');
+        this._tenantAiSettingsLoading.set(false);
+      },
+    });
+  }
+
+  updateTenantAiSettings(uuid: string, enabled: boolean): Observable<AdminTenantAiSettings> {
+    return this.api.put<ApiResponse<AdminTenantAiSettings>, { enabled: boolean }>(
+      API.ADMIN.TENANT_AI_SETTINGS(uuid),
+      { enabled },
+    ).pipe(
+      tap((response) => this._tenantAiSettings.set(response.data)),
+      map((response) => response.data),
+    );
+  }
+
   suspendTenant(uuid: string, reason: string): Observable<void> {
     return this.api.post<void>(API.ADMIN.TENANTS_SUSPEND(uuid), { reason }).pipe(
       tap(() => this.loadTenantDetail(uuid)),
+      tap(() => this.loadTenantAiSettings(uuid)),
     );
   }
 
   reactivateTenant(uuid: string): Observable<void> {
     return this.api.post<void>(API.ADMIN.TENANTS_REACTIVATE(uuid), {}).pipe(
       tap(() => this.loadTenantDetail(uuid)),
+      tap(() => this.loadTenantAiSettings(uuid)),
     );
   }
 
   assignPlan(tenantUuid: string, planUuid: string): Observable<void> {
     return this.api.post<void>(API.ADMIN.ASSIGN_SUBSCRIPTION(tenantUuid), {
       planId: planUuid,
-    }).pipe(tap(() => this.loadTenantDetail(tenantUuid)));
+    }).pipe(
+      tap(() => this.loadTenantDetail(tenantUuid)),
+      tap(() => this.loadTenantAiSettings(tenantUuid)),
+    );
   }
 
   inviteSchool(email: string) {

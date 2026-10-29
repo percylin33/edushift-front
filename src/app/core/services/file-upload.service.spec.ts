@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
 import { FileUploadService } from './file-upload.service';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 
 describe('FileUploadService', () => {
   let service: FileUploadService;

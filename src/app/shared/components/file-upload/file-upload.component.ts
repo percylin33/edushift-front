@@ -10,7 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpEventType, HttpResponse } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 
@@ -125,7 +125,7 @@ export interface ModuleUploadResponse {
             <p class="upload-zone__title">Arrastra un archivo o haz clic para seleccionar</p>
             <p class="upload-zone__subtitle">
               @if (accept()) {
-                Formatos: {{ accept() }}.
+                Formatos: {{ acceptedFormats() }}.
               }
               Tamaño máximo: {{ maxSizeMb() }} MB.
             </p>
@@ -144,12 +144,13 @@ export interface ModuleUploadResponse {
         display: flex;
         align-items: center;
         justify-content: center;
+        min-width: 0;
         min-height: 160px;
         padding: 1.5rem;
-        border: 2px dashed var(--color-border, #cbd5e1);
+        border: 2px dashed rgb(var(--color-border));
         border-radius: 0.75rem;
-        background: var(--color-surface-2, #f8fafc);
-        color: var(--color-fg-muted, #475569);
+        background: rgb(var(--color-surface-muted));
+        color: rgb(var(--color-content-muted));
         cursor: pointer;
         transition:
           border-color 120ms ease,
@@ -157,7 +158,7 @@ export interface ModuleUploadResponse {
       }
       .upload-zone:hover,
       .upload-zone:focus-visible {
-        border-color: var(--color-primary, #3b82f6);
+        border-color: rgb(var(--color-primary-500));
         outline: none;
       }
       .upload-zone--compact {
@@ -166,17 +167,17 @@ export interface ModuleUploadResponse {
         border-radius: 9999px;
       }
       .upload-zone--dragging {
-        border-color: var(--color-primary, #3b82f6);
-        background: var(--color-primary-soft, #dbeafe);
+        border-color: rgb(var(--color-primary-500));
+        background: rgb(var(--color-primary-500) / 0.12);
       }
       .upload-zone--uploading {
-        border-color: var(--color-primary, #3b82f6);
-        background: var(--color-surface-3, #eff6ff);
+        border-color: rgb(var(--color-primary-500));
+        background: rgb(var(--color-surface-muted));
         cursor: wait;
       }
       .upload-zone--error {
-        border-color: var(--color-danger, #dc2626);
-        background: var(--color-danger-soft, #fee2e2);
+        border-color: rgb(var(--color-danger));
+        background: rgb(var(--color-danger) / 0.12);
       }
       .upload-zone--disabled {
         opacity: 0.5;
@@ -190,6 +191,8 @@ export interface ModuleUploadResponse {
         pointer-events: none;
       }
       .upload-zone__content {
+        min-width: 0;
+        overflow-wrap: anywhere;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -199,10 +202,10 @@ export interface ModuleUploadResponse {
       .upload-zone__title {
         margin: 0;
         font-weight: 600;
-        color: var(--color-fg, #0f172a);
+        color: rgb(var(--color-content));
       }
       .upload-zone__title--error {
-        color: var(--color-danger, #dc2626);
+        color: rgb(var(--color-danger));
       }
       .upload-zone__subtitle {
         margin: 0;
@@ -244,6 +247,14 @@ export class FileUploadComponent {
       .map((s) => s.trim().toLowerCase())
       .filter((s) => s.length > 0),
   );
+
+  readonly acceptedFormats = computed(() => {
+    const labels: Record<string, string> = {
+      'image/png': 'PNG', 'image/jpeg': 'JPEG', 'image/webp': 'WebP',
+      'image/svg+xml': 'SVG', 'application/pdf': 'PDF', 'image/*': 'Imágenes',
+    };
+    return this.allowedMimes().map((mime) => labels[mime] ?? mime).join(', ');
+  });
 
   @ViewChild('picker', { static: true })
   private readonly picker!: ElementRef<HTMLInputElement>;

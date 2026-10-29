@@ -25,7 +25,7 @@ import {
   InvitePortalDialogComponent,
 } from '../../components';
 import { StudentsStore } from '../../store';
-import { portalStatus, StudentDetail } from '../../models';
+import { Guardian, portalStatus, StudentDetail } from '../../models';
 
 /**
  * `/students/:id` — read-only detail page.
@@ -75,6 +75,12 @@ import { portalStatus, StudentDetail } from '../../models';
               <app-icon name="pencil" [size]="16" />
               <span class="hidden sm:inline">Editar</span>
             </a>
+          }
+          @if (canProvisionAnyAccess() && shouldOfferWelcome(s)) {
+            <button type="button" class="btn btn-primary btn-sm" [disabled]="saving()" (click)="openWelcome(s)">
+              <app-icon name="mail" [size]="16" />
+              <span>Activar portal</span>
+            </button>
           }
           @if (canDelete()) {
             <button
@@ -165,22 +171,12 @@ import { portalStatus, StudentDetail } from '../../models';
                     }
                     @default {
                       <span class="badge">Sin cuenta</span>
-                      @if (canProvisionStudent()) {
-                        <button
-                          type="button"
-                          class="btn btn-outline btn-sm"
-                          [disabled]="!s.email"
-                          (click)="openStudentInvite(s)"
-                        >
-                          Activar portal
-                        </button>
-                      }
                     }
                   }
                 </div>
                 @if (!s.email && !s.userId) {
                   <p class="mt-1 text-xs text-content-muted">
-                    Agrega un email para que el alumno use el portal. En primaria el portal canónico es el del tutor.
+                    Al activar el portal se generará un correo ficticio para ingresar. En inicial puedes dar acceso al tutor.
                   </p>
                 }
               </div>
@@ -227,6 +223,10 @@ import { portalStatus, StudentDetail } from '../../models';
               [studentPublicUuid]="s.publicUuid"
               [guardianPublicUuid]="inv.guardianPublicUuid"
               [invitationPublicUuid]="inv.invitationPublicUuid"
+              [studentAndGuardian]="inv.studentAndGuardian ?? false"
+              [studentAlreadyActive]="inv.studentAlreadyActive ?? false"
+              [studentName]="s.fullName"
+              [additionalGuardian]="inv.guardian ?? null"
               (closed)="closePortalInvite()"
             />
           }
@@ -310,6 +310,15 @@ export class StudentDetailComponent implements OnInit {
     audience: 'estudiante' | 'tutor';
     guardianPublicUuid?: string;
     invitationPublicUuid?: string;
+    studentAndGuardian?: boolean;
+    studentAlreadyActive?: boolean;
+    guardian?: {
+      fullName: string;
+      email?: string;
+      guardianPublicUuid: string;
+      userId?: string;
+      pendingInvitationPublicUuid?: string;
+    };
   } | null>(null);
 
   protected readonly fullName = computed(() => this.student()?.fullName ?? '');
@@ -382,6 +391,49 @@ export class StudentDetailComponent implements OnInit {
 
   protected studentPortalStatus(s: StudentDetail) {
     return portalStatus(s.userId, s.pendingInvitationPublicUuid);
+  }
+
+  protected canProvisionAnyAccess(): boolean {
+    return this.canProvisionStudent() || this.canProvisionGuardian();
+  }
+
+  protected shouldOfferWelcome(s: StudentDetail): boolean {
+    const studentNeedsAccess = this.canProvisionStudent() && this.studentPortalStatus(s) !== 'active';
+    const primaryGuardian = this.primaryGuardian();
+    const guardianNeedsAccess = this.canProvisionGuardian() && !!primaryGuardian && !primaryGuardian.userId;
+    return studentNeedsAccess || guardianNeedsAccess;
+  }
+
+  protected async openWelcome(s: StudentDetail): Promise<void> {
+    this.store.clearError();
+    if (this.canProvisionGuardian()) await this.store.loadGuardians(s.publicUuid);
+    const primaryGuardian = this.canProvisionGuardian() ? this.primaryGuardian() : null;
+    this.portalInvite.set({
+      personName: s.fullName,
+      email: s.email,
+      audience: 'estudiante',
+      invitationPublicUuid: s.pendingInvitationPublicUuid,
+      studentAndGuardian: true,
+      studentAlreadyActive: !!s.userId || !this.canProvisionStudent(),
+      guardian: primaryGuardian && !primaryGuardian.userId
+        ? {
+            fullName: primaryGuardian.fullName,
+            email: primaryGuardian.email,
+            guardianPublicUuid: primaryGuardian.guardianPublicUuid,
+            userId: primaryGuardian.userId,
+            pendingInvitationPublicUuid: primaryGuardian.pendingInvitationPublicUuid,
+          }
+        : undefined,
+    });
+  }
+
+  private primaryGuardian(): Guardian | null {
+    const guardians = this.store.guardians();
+    return guardians.find((guardian) => guardian.isPrimaryContact) ?? guardians[0] ?? null;
+  }
+
+  protected canProvisionGuardian(): boolean {
+    return this.auth.hasPermission(Permission.UsersProvisionGuardian);
   }
 
   protected openStudentInvite(s: StudentDetail): void {

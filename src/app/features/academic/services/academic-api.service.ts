@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { API } from '@core/constants';
 import { ApiResponse } from '@core/models';
+import { AssignmentListItemRaw } from '@features/teachers/models/assignment.model';
 import { ApiService } from '@core/services';
 import {
   AcademicLevel,
@@ -838,7 +839,7 @@ export class AcademicApiService {
       periodId?: string;
       activeOnly?: boolean;
     } = {},
-  ): Observable<any[]> {
+  ): Observable<AssignmentListItemRaw[]> {
     const params: Record<string, string | undefined> = {
       teacherId: filters.teacherId,
       sectionId: filters.sectionId,
@@ -846,7 +847,7 @@ export class AcademicApiService {
       periodId: filters.periodId,
       active: filters.activeOnly === undefined ? undefined : String(filters.activeOnly),
     };
-    return this.api.get<any[]>(API.TEACHER_ASSIGNMENTS.ROOT, params);
+    return this.api.get<AssignmentListItemRaw[]>(API.TEACHER_ASSIGNMENTS.ROOT, params);
   }
 
   /**

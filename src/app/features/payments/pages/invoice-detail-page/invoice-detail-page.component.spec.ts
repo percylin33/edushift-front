@@ -4,6 +4,7 @@ import { of, throwError } from 'rxjs';
 import { InvoiceDetailPageComponent } from './invoice-detail-page.component';
 import { PaymentsApiService } from '../../services/payments-api.service';
 import { Invoice, Payment } from '../../models/invoice.model';
+import { FileUploadService } from '@core/services/file-upload.service';
 
 describe('InvoiceDetailPageComponent', () => {
   let fixture: ComponentFixture<InvoiceDetailPageComponent>;
@@ -26,6 +27,10 @@ describe('InvoiceDetailPageComponent', () => {
     dueAt: '2026-03-15',
     paidAt: null,
     notes: null,
+    evidenceFilePublicUuid: null,
+    evidenceSubmittedAt: null,
+    evidenceNotes: null,
+    evidenceRejectionReason: null,
     items: [
       {
         id: '1',
@@ -58,13 +63,18 @@ describe('InvoiceDetailPageComponent', () => {
     fakeApi = jasmine.createSpyObj<PaymentsApiService>('PaymentsApiService', [
       'getInvoice',
       'listPaymentsForInvoice',
+      'listPublicPaymentMethods',
       'checkout',
+      'submitEvidence',
+      'downloadReceipt',
     ]);
+    fakeApi.listPublicPaymentMethods.and.returnValue(of([]));
     TestBed.configureTestingModule({
       imports: [InvoiceDetailPageComponent],
       providers: [
         provideRouter([]),
         { provide: PaymentsApiService, useValue: fakeApi },
+        { provide: FileUploadService, useValue: { downloadAndSave: jasmine.createSpy().and.resolveTo(undefined) } },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: (_: string) => uuid } } },
@@ -83,7 +93,7 @@ describe('InvoiceDetailPageComponent', () => {
   it('ngOnInit sin uuid setea error', () => {
     configureModule(null);
     component.ngOnInit();
-    expect((component as any).errorMsg()).toBe('UUID inválido');
+    expect(component['errorMsg']()).toBe('UUID inválido');
   });
 
   it('ngOnInit carga invoice y payments', () => {
@@ -91,10 +101,10 @@ describe('InvoiceDetailPageComponent', () => {
     fakeApi.getInvoice.and.returnValue(of(invoice));
     fakeApi.listPaymentsForInvoice.and.returnValue(of([payment]));
     component.ngOnInit();
-    expect((component as any).invoice()?.publicUuid).toBe('inv-1');
-    expect((component as any).items()).toHaveSize(1);
-    expect((component as any).payments()).toHaveSize(1);
-    expect((component as any).loading()).toBeFalse();
+    expect(component['invoice']()?.publicUuid).toBe('inv-1');
+    expect(component['items']()).toHaveSize(1);
+    expect(component['payments']()).toHaveSize(1);
+    expect(component['loading']()).toBeFalse();
   });
 
   it('ngOnInit maneja error en getInvoice', () => {
@@ -102,8 +112,8 @@ describe('InvoiceDetailPageComponent', () => {
     fakeApi.getInvoice.and.returnValue(throwError(() => ({ error: { message: 'no encontrado' } })));
     fakeApi.listPaymentsForInvoice.and.returnValue(of([]));
     component.ngOnInit();
-    expect((component as any).errorMsg()).toBe('no encontrado');
-    expect((component as any).loading()).toBeFalse();
+    expect(component['errorMsg']()).toBe('no encontrado');
+    expect(component['loading']()).toBeFalse();
   });
 
   it('ngOnInit error de payments es no-bloqueante', () => {
@@ -111,54 +121,71 @@ describe('InvoiceDetailPageComponent', () => {
     fakeApi.getInvoice.and.returnValue(of(invoice));
     fakeApi.listPaymentsForInvoice.and.returnValue(throwError(() => new Error('x')));
     component.ngOnInit();
-    expect((component as any).invoice()?.publicUuid).toBe('inv-1');
+    expect(component['invoice']()?.publicUuid).toBe('inv-1');
   });
 
-  it('canPay true para PENDING y OVERDUE', () => {
+  it('permite subir voucher para cuotas pendientes y en revisión', () => {
     configureModule();
-    (component as any).invoice.set({ ...invoice, status: 'PENDING' });
-    expect((component as any).canPay()).toBeTrue();
-    (component as any).invoice.set({ ...invoice, status: 'OVERDUE' });
-    expect((component as any).canPay()).toBeTrue();
-    (component as any).invoice.set({ ...invoice, status: 'PAID' });
-    expect((component as any).canPay()).toBeFalse();
+    component['invoice'].set({ ...invoice, status: 'PENDING' });
+    expect(component.canUploadEvidence()).toBeTrue();
+    component['invoice'].set({ ...invoice, status: 'OVERDUE' });
+    expect(component.canUploadEvidence()).toBeTrue();
+    component['invoice'].set({ ...invoice, status: 'PENDING_REVIEW' });
+    expect(component.canUploadEvidence()).toBeTrue();
+    component['invoice'].set({ ...invoice, status: 'PAID' });
+    expect(component.canUploadEvidence()).toBeFalse();
   });
 
-  it('canPay false sin invoice', () => {
+  it('habilita descarga de recibo solo para cuotas pagadas', () => {
     configureModule();
-    expect((component as any).canPay()).toBeFalse();
+    expect(component.canDownloadReceipt()).toBeFalse();
+    component['invoice'].set({ ...invoice, status: 'PAID' });
+    expect(component.canDownloadReceipt()).toBeTrue();
   });
 
-  it('onPay llama checkout y abre initPoint', () => {
+  it('envía el voucher y la nota opcional', () => {
     configureModule();
-    (component as any).invoice.set(invoice);
-    fakeApi.checkout.and.returnValue(
-      of({ paymentPublicUuid: 'p-1', initPoint: 'https://mp.com', sandboxInitPoint: '' }),
-    );
-    spyOn(window, 'open');
-    (component as any).onPay();
-    expect(fakeApi.checkout).toHaveBeenCalledWith('inv-1');
-    expect(window.open).toHaveBeenCalledWith('https://mp.com', '_blank', jasmine.any(String));
+    component['invoice'].set(invoice);
+    fakeApi.submitEvidence.and.returnValue(of({ ...invoice, status: 'PENDING_REVIEW' }));
+    component.evidenceNotes = '  operación 123  ';
+    component.onEvidenceUploaded({
+      publicUuid: 'file-1',
+      originalName: 'voucher.png',
+      contentType: 'image/png',
+      sizeBytes: 1024,
+      checksumSha256: 'abc123',
+      url: '/files/file-1',
+      createdAt: '2026-10-29T12:00:00.000Z',
+    });
+    expect(fakeApi.submitEvidence).toHaveBeenCalledWith('inv-1', {
+      filePublicUuid: 'file-1',
+      notes: 'operación 123',
+    });
+    expect(component['invoice']()!.status).toBe('PENDING_REVIEW');
+    expect(component['submittingEvidence']()).toBeFalse();
   });
 
-  it('onPay sin invoice no llama checkout', () => {
+  it('muestra error si falla el envío del voucher', () => {
     configureModule();
-    (component as any).onPay();
-    expect(fakeApi.checkout).not.toHaveBeenCalled();
-  });
-
-  it('onPay maneja error', () => {
-    configureModule();
-    (component as any).invoice.set(invoice);
-    fakeApi.checkout.and.returnValue(throwError(() => ({ error: { message: 'pago falló' } })));
-    (component as any).onPay();
-    expect((component as any).errorMsg()).toBe('pago falló');
+    component['invoice'].set(invoice);
+    fakeApi.submitEvidence.and.returnValue(throwError(() => ({ error: { message: 'falló' } })));
+    component.onEvidenceUploaded({
+      publicUuid: 'file-1',
+      originalName: 'voucher.png',
+      contentType: 'image/png',
+      sizeBytes: 1024,
+      checksumSha256: 'abc123',
+      url: '/files/file-1',
+      createdAt: '2026-10-29T12:00:00.000Z',
+    });
+    expect(component['errorMsg']()).toBe('falló');
+    expect(component['submittingEvidence']()).toBeFalse();
   });
 
   it('helpers de formato delegan a las constantes del modelo', () => {
     configureModule();
-    expect((component as any).statusLabel('PENDING')).toBe('Pendiente');
-    expect((component as any).badgeClass('PENDING')).toContain('amber');
-    expect((component as any).money(10000, 'PEN')).toBe('S/ 100.00');
+    expect(component['statusLabel']('PENDING')).toBe('Pendiente');
+    expect(component['badgeClass']('PENDING')).toContain('amber');
+    expect(component['money'](10000, 'PEN')).toBe('S/ 100.00');
   });
 });

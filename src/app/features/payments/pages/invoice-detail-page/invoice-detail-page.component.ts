@@ -70,7 +70,7 @@ import {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-              @for (it of i.items ?? []; track it.id) {
+              @for (it of i.items; track it.id) {
                 <tr>
                   <td class="py-2 text-slate-800 dark:text-slate-200">{{ it.description }}</td>
                   <td class="py-2 text-right text-slate-600 dark:text-slate-300">
@@ -100,6 +100,16 @@ import {
                   {{ money(i.totalCents, i.currency) }}
                 </td>
               </tr>
+              @if ((i.advanceAppliedCents ?? 0) > 0) {
+                <tr>
+                  <td colspan="3" class="pt-2 text-right text-slate-500 dark:text-slate-400">Anticipo aplicado al separar vacante</td>
+                  <td class="pt-2 text-right font-semibold text-emerald-700 dark:text-emerald-300">− {{ money(i.advanceAppliedCents ?? 0, i.currency) }}</td>
+                </tr>
+                <tr>
+                  <td colspan="3" class="pt-2 text-right font-semibold text-slate-700 dark:text-slate-200">Saldo pendiente</td>
+                  <td class="pt-2 text-right text-xl font-bold text-slate-900 dark:text-slate-100">{{ money(i.balanceCents ?? i.totalCents, i.currency) }}</td>
+                </tr>
+              }
             </tfoot>
           </table>
 

@@ -2,6 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { PaymentsApiService } from './payments-api.service';
 import { ApiService } from '@core/services';
+import { provideHttpClient } from '@angular/common/http';
+import { TenantService } from '@core/services/tenant.service';
 
 describe('PaymentsApiService', () => {
   let service: PaymentsApiService;
@@ -26,7 +28,12 @@ describe('PaymentsApiService', () => {
   beforeEach(() => {
     apiSpy = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'post', 'patch', 'delete']);
     TestBed.configureTestingModule({
-      providers: [PaymentsApiService, { provide: ApiService, useValue: apiSpy }],
+      providers: [
+        provideHttpClient(),
+        PaymentsApiService,
+        { provide: ApiService, useValue: apiSpy },
+        { provide: TenantService, useValue: { tenantSlug: () => 'school' } },
+      ],
     });
     service = TestBed.inject(PaymentsApiService);
   });
@@ -76,7 +83,7 @@ describe('PaymentsApiService', () => {
       userPublicUuid: 'user-1',
       studentPublicUuid: 'student-1',
       displayName: 'Ana Ruiz',
-      relationship: 'Apoderado',
+      relationship: 'Apoderado' as const,
     };
     apiSpy.get.and.returnValue(of({ success: true, data: [candidate] }));
 

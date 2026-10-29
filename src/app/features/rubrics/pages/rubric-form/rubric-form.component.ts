@@ -263,7 +263,6 @@ export class RubricFormComponent implements OnInit, OnDestroy {
 
   /** Builds the SSE request body from the current form state. */
   protected readonly aiRubricRequestBody = computed(() => {
-    const meta = this.metaForm.getRawValue();
     const criteriaNames = this.value.criteria
       .map((c) => c.name?.trim())
       .filter((n): n is string => !!n && n.length > 0);

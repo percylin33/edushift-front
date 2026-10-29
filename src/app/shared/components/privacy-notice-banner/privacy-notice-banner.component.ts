@@ -6,24 +6,21 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { API } from '@core/constants';
 
 @Component({
   selector: 'app-privacy-notice-banner',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div
-      *ngIf="showNotice()"
-      class="fixed top-0 left-0 right-0 z-50 bg-slate-950/95 border-b border-slate-700/50 text-slate-100 animate-in fade-in-up sm:animate-in fade-in-up-lg"
-      role="alert"
-      aria-live="polite"
-    >
+    @if (showNotice()) {
+      <div
+        class="fixed top-0 left-0 right-0 z-50 bg-slate-950/95 border-b border-slate-700/50 text-slate-100 animate-in fade-in-up sm:animate-in fade-in-up-lg"
+        role="alert"
+        aria-live="polite"
+      >
       <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8">
         <div class="flex items-start justify-between gap-4 max-w-xl">
           <div class="flex items-start gap-3">
@@ -75,7 +72,8 @@ import { API } from '@core/constants';
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    }
   `,
 })
 export class PrivacyNoticeBannerComponent {

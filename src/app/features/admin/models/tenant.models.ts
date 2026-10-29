@@ -74,6 +74,16 @@ export interface SubscriptionSummary {
   cancellationReason?: string;
 }
 
+export interface AdminTenantAiSettings {
+  configured: boolean;
+  enabled: boolean;
+  planAvailable: boolean;
+  planCode: string | null;
+  dailyRequestLimit: number;
+  monthlyTokenLimit: number;
+  blockedReason: 'AI_DISABLED' | 'AI_PLAN_UNAVAILABLE' | null;
+}
+
 export interface TenantListResponse {
   content: AdminTenantSummary[];
   totalElements: number;

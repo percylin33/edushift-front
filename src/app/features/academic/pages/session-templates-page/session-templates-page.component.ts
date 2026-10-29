@@ -558,7 +558,7 @@ const MOCK_SESSION_TITLE = 'Los seres vivos del entorno';
                             (ngModelChange)="
                               patchPhase(phase.id, {
                                 durationMin:
-                                  $event === '' || $event == null ? null : +$event
+                                  $event === '' || $event === null ? null : +$event
                               })
                             "
                             placeholder="15"

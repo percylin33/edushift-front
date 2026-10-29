@@ -12,7 +12,7 @@ import {
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, forkJoin } from 'rxjs';
 import { AdmissionsNavigationComponent } from '../components/admissions-navigation.component';
 import { AdmissionsWorkspaceService } from '../services/admissions-workspace.service';
 import { admissionError } from '../models/admission-errors';
@@ -21,7 +21,7 @@ import { AcademicYearRow, Grade } from '@features/academic/models';
 import { StudentsApiService } from '@features/students/services';
 import { EnrollmentRow } from '@features/students/models';
 import { AuthService } from '@core/services';
-import { Permission } from '@core/enums';
+import { Permission, UserRole } from '@core/enums';
 import { AdmissionDetailPanelComponent } from './admission-detail-panel.component';
 import { AdmissionsApiService } from '../services/admissions-api.service';
 import {
@@ -31,6 +31,10 @@ import {
   AdmissionStatus,
   GradeVacancy,
   AdmissionSectionVacancy,
+  AdmissionReservation,
+  AdmissionReservationAdvance,
+  AdmissionReservationAdvanceEvent,
+  AdmissionEnrollmentCompletion,
 } from '../models';
 
 @Component({
@@ -48,7 +52,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admissions-page.html',
 })
-export class AdmissionsPage {
+export class AdmissionsPageComponent {
   private linkedDetailOpened = false;
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -83,6 +87,12 @@ export class AdmissionsPage {
     () =>
       this.applications().filter((a) => a.status === 'ADMITTED' && !a.enrollmentPublicUuid).length,
   );
+  readonly completedEnrollment = computed(
+    () => this.applications().filter((application) => application.status === 'ENROLLED').length,
+  );
+  readonly activeReservations = computed(
+    () => this.reservations().filter((reservation) => reservation.status === 'TEMPORARY').length,
+  );
   readonly capacityIssues = computed(
     () => this.vacancies().filter((v) => !v.capacityConfigured || v.availableSeats === 0).length,
   );
@@ -108,6 +118,7 @@ export class AdmissionsPage {
   readonly yearUuid = signal('');
   readonly applications = signal<AdmissionApplication[]>([]);
   readonly vacancies = signal<GradeVacancy[]>([]);
+  readonly reservations = signal<AdmissionReservation[]>([]);
   readonly grades = signal<Grade[]>([]);
   readonly loading = signal(false);
   readonly saving = signal(false);
@@ -118,6 +129,14 @@ export class AdmissionsPage {
     status: AdmissionStatus;
   } | null>(null);
   readonly enrollmentTarget = signal<AdmissionApplication | null>(null);
+  readonly reservationTarget = signal<AdmissionApplication | null>(null);
+  readonly reservationToRelease = signal<AdmissionReservation | null>(null);
+  readonly advanceTarget = signal<AdmissionReservation | null>(null);
+  readonly advanceHistoryTarget = signal<AdmissionReservation | null>(null);
+  readonly refundTarget = signal<AdmissionReservationAdvance | null>(null);
+  readonly reservationAdvances = signal<AdmissionReservationAdvance[]>([]);
+  readonly reservationAdvanceEvents = signal<AdmissionReservationAdvanceEvent[]>([]);
+  readonly advanceHistoryLoading = signal(false);
   readonly completionSections = signal<AdmissionSectionVacancy[]>([]);
   readonly applicationUuidFilter = signal(
     this.route.snapshot.queryParamMap.get('applicationId') ?? '',
@@ -167,6 +186,15 @@ export class AdmissionsPage {
   transitionNote = '';
   draftSectionUuid = '';
   draftEnrollmentDate = '';
+  draftReservationExpiry = '';
+  draftReservationReason = '';
+  releaseReservationReason = '';
+  draftAdvanceAmount = '';
+  draftAdvanceMethod: AdmissionReservationAdvance['method'] = 'CASH';
+  draftAdvanceReference = '';
+  draftAdvanceNotes = '';
+  draftRefundReference = '';
+  draftRefundNotes = '';
 
   constructor() {
     this.academic
@@ -265,10 +293,225 @@ export class AdmissionsPage {
       if (request === this.sectionRequest) this.sectionsLoading.set(false);
     }
   }
+
+  reservationFor(application: AdmissionApplication): AdmissionReservation | null {
+    return this.reservations().find((item) => item.applicationPublicUuid === application.publicUuid) ?? null;
+  }
+
+  reservationStatusLabel(status: AdmissionReservation['status']): string {
+    return {
+      TEMPORARY: 'Separación temporal',
+      COMMITTED: 'Vacante comprometida',
+      CONSUMED: 'Vacante consumida',
+      EXPIRED: 'Separación vencida',
+      RELEASED: 'Vacante liberada',
+    }[status];
+  }
+
+  openReservation(application: AdmissionApplication): void {
+    this.error.set(null);
+    this.draftReservationExpiry = '';
+    this.draftReservationReason = '';
+    this.reservationTarget.set(application);
+  }
+
+  closeReservation(): void {
+    if (!this.saving()) this.reservationTarget.set(null);
+  }
+
+  submitReservation(): void {
+    const target = this.reservationTarget();
+    if (!target || this.saving() || !this.draftReservationExpiry) return;
+    this.saving.set(true);
+    this.api.reserve(
+      target.publicUuid,
+      new Date(this.draftReservationExpiry).toISOString(),
+      this.draftReservationReason.trim() || undefined,
+    ).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.reservationTarget.set(null);
+        this.notice.set(`Vacante separada para ${target.studentFullName}.`);
+        this.refresh();
+      },
+      error: (error) => {
+        this.saving.set(false);
+        this.error.set(admissionError(error, 'No se pudo separar la vacante. Verifica el aforo y la fecha límite.'));
+      },
+    });
+  }
+
+  openReleaseReservation(reservation: AdmissionReservation): void {
+    this.error.set(null);
+    this.releaseReservationReason = '';
+    this.reservationToRelease.set(reservation);
+  }
+
+  openReleaseForApplication(application: AdmissionApplication): void {
+    const reservation = this.reservationFor(application);
+    if (reservation) this.openReleaseReservation(reservation);
+  }
+
+  closeReleaseReservation(): void {
+    if (!this.saving()) this.reservationToRelease.set(null);
+  }
+
+  submitReleaseReservation(): void {
+    const target = this.reservationToRelease();
+    if (!target || this.saving()) return;
+    this.saving.set(true);
+    this.api.releaseReservation(target.publicUuid, this.releaseReservationReason.trim() || undefined).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.reservationToRelease.set(null);
+        this.notice.set('La vacante quedó liberada y disponible.');
+        this.refresh();
+      },
+      error: (error) => {
+        this.saving.set(false);
+        this.error.set(admissionError(error, 'No se pudo liberar la vacante.'));
+      },
+    });
+  }
+
+  openAdvance(reservation: AdmissionReservation): void {
+    this.error.set(null);
+    this.draftAdvanceAmount = '';
+    this.draftAdvanceMethod = 'CASH';
+    this.draftAdvanceReference = '';
+    this.draftAdvanceNotes = '';
+    this.advanceTarget.set(reservation);
+  }
+
+  closeAdvance(): void {
+    if (!this.saving()) this.advanceTarget.set(null);
+  }
+
+  submitAdvance(): void {
+    const reservation = this.advanceTarget();
+    const amount = Number(this.draftAdvanceAmount);
+    if (!reservation || this.saving() || !Number.isFinite(amount) || amount <= 0) return;
+    const amountCents = Math.round(amount * 100);
+    this.saving.set(true);
+    this.api.recordReservationAdvance(reservation.publicUuid, {
+      amountCents,
+      method: this.draftAdvanceMethod,
+      reference: this.draftAdvanceReference.trim() || undefined,
+      notes: this.draftAdvanceNotes.trim() || undefined,
+    }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.advanceTarget.set(null);
+        this.notice.set(`Anticipo de S/ ${(amountCents / 100).toFixed(2)} registrado. Se aplicará al cargo de matrícula.`);
+        this.refresh();
+      },
+      error: (error) => {
+        this.saving.set(false);
+        this.error.set(admissionError(error, 'No se pudo registrar el anticipo.'));
+      },
+    });
+  }
+
+  openAdvanceHistory(reservation: AdmissionReservation): void {
+    this.error.set(null);
+    this.advanceHistoryTarget.set(reservation);
+    this.reservationAdvances.set([]);
+    this.reservationAdvanceEvents.set([]);
+    this.advanceHistoryLoading.set(true);
+    forkJoin({
+      advances: this.api.reservationAdvances(reservation.publicUuid),
+      events: this.api.reservationAdvanceEvents(reservation.publicUuid),
+    }).subscribe({
+      next: ({ advances, events }) => {
+        this.reservationAdvances.set(advances);
+        this.reservationAdvanceEvents.set(events);
+        this.advanceHistoryLoading.set(false);
+      },
+      error: (error) => {
+        this.advanceHistoryLoading.set(false);
+        this.error.set(admissionError(error, 'No se pudo cargar el historial de anticipos.'));
+      },
+    });
+  }
+
+  closeAdvanceHistory(): void {
+    this.advanceHistoryTarget.set(null);
+  }
+
+  openAdvanceRefund(advance: AdmissionReservationAdvance): void {
+    const reservation = this.advanceHistoryTarget();
+    if (!reservation || !this.canReceivePayments() || advance.status !== 'AVAILABLE'
+      || !['RELEASED', 'EXPIRED'].includes(reservation.status)) return;
+    this.error.set(null);
+    this.draftRefundReference = '';
+    this.draftRefundNotes = '';
+    this.refundTarget.set(advance);
+  }
+
+  closeAdvanceRefund(): void {
+    if (!this.saving()) this.refundTarget.set(null);
+  }
+
+  submitAdvanceRefund(): void {
+    const reservation = this.advanceHistoryTarget();
+    const advance = this.refundTarget();
+    const reference = this.draftRefundReference.trim();
+    if (!reservation || !advance || !reference || this.saving()) return;
+    this.saving.set(true);
+    this.api.refundReservationAdvance(reservation.publicUuid, advance.publicUuid, {
+      reference,
+      notes: this.draftRefundNotes.trim() || undefined,
+    }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.refundTarget.set(null);
+        this.notice.set(`Devolución de S/ ${(advance.availableCents / 100).toFixed(2)} registrada en el historial.`);
+        this.openAdvanceHistory(reservation);
+        this.refresh();
+      },
+      error: (error) => {
+        this.saving.set(false);
+        this.error.set(admissionError(error, 'No se pudo registrar la devolución.'));
+      },
+    });
+  }
+
+  advanceMethodLabel(method: AdmissionReservationAdvance['method']): string {
+    return { CASH: 'Efectivo', TRANSFER: 'Transferencia', POS: 'POS', OTHER: 'Otro' }[method];
+  }
+
+  advanceStatusLabel(status: AdmissionReservationAdvance['status']): string {
+    return {
+      AVAILABLE: 'Disponible para aplicar',
+      PARTIALLY_APPLIED: 'Aplicado parcialmente',
+      APPLIED: 'Aplicado al cargo',
+      REFUNDED: 'Devuelto',
+    }[status];
+  }
+
+  advanceEventLabel(action: AdmissionReservationAdvanceEvent['action']): string {
+    return { RECEIVED: 'Anticipo recibido', APPLIED: 'Aplicado al cargo', REFUNDED: 'Devolución registrada' }[action];
+  }
+
   canManageApplications(): boolean {
     return (
       this.auth.hasPermission(Permission.LmsAdmissionManage) ||
       this.auth.hasPermission(Permission.AdmissionsApplicationsManage)
+    );
+  }
+
+  canManageInquiries(): boolean {
+    return (
+      this.auth.hasPermission(Permission.LmsAdmissionManage) ||
+      this.auth.hasPermission(Permission.AdmissionsInquiriesManage)
+    );
+  }
+
+  canReceivePayments(): boolean {
+    return (
+      this.auth.hasRole(UserRole.TenantAdmin) ||
+      this.auth.hasPermission(Permission.LmsPaymentAdmin) ||
+      this.auth.hasPermission(Permission.PaymentsReceive)
     );
   }
 
@@ -311,20 +554,25 @@ export class AdmissionsPage {
     this.error.set(null);
     this.applications.set([]);
     this.vacancies.set([]);
+    this.reservations.set([]);
     this.detailReloadSignal.update((value) => value + 1);
     Promise.all([
       this.canReadApplications() && this.view !== 'detail' && this.view !== 'vacancies'
         ? firstValueFrom(this.api.list(year))
         : Promise.resolve([]),
       this.canReadApplications() ? firstValueFrom(this.api.vacancies(year)) : Promise.resolve([]),
+      this.canReadApplications() && this.view !== 'detail' && this.view !== 'vacancies'
+        ? firstValueFrom(this.api.reservations(year))
+        : Promise.resolve([]),
       this.view === 'overview' && this.canReadInquiries()
         ? firstValueFrom(this.api.listInquiries(year))
         : Promise.resolve([]),
     ])
-      .then(([applications, vacancies, inquiries]) => {
+      .then(([applications, vacancies, reservations, inquiries]) => {
         if (version !== this.refreshVersion) return;
         this.applications.set(applications);
         this.vacancies.set(vacancies);
+        this.reservations.set(reservations);
         this.pendingInquiries.set(inquiries.filter((i) => i.status === 'RECEIVED').length);
         const today = new Date().toLocaleDateString('en-CA');
         this.overdueInquiries.set(
@@ -502,10 +750,10 @@ export class AdmissionsPage {
         enrolledAt: this.draftEnrollmentDate,
       })
       .subscribe({
-        next: () => {
+        next: (response) => {
           this.saving.set(false);
           this.enrollmentTarget.set(null);
-          this.notice.set('Estudiante, apoderado y matrícula creados correctamente.');
+          this.notice.set(this.enrollmentCompletionMessage(response.data));
           this.refresh();
         },
         error: (error) => {
@@ -518,6 +766,47 @@ export class AdmissionsPage {
           );
         },
       });
+  }
+
+  private enrollmentCompletionMessage(result: AdmissionEnrollmentCompletion): string {
+    const parts = ['Matrícula académica activa.'];
+    if (result.billingStatus === 'PENDING' && result.enrollmentInvoice) {
+      const formatSoles = (cents: number) => new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(cents / 100);
+      const applied = result.enrollmentInvoice.advanceAppliedCents ?? 0;
+      const balance = result.enrollmentInvoice.balanceCents ?? result.enrollmentInvoice.totalCents;
+      const advanceText = applied > 0 ? ` Se aplicó el anticipo de ${formatSoles(applied)}.` : '';
+      parts.push(`Cargo de matrícula emitido por ${formatSoles(result.enrollmentInvoice.totalCents)}.${advanceText} Saldo pendiente: ${formatSoles(balance)}.`);
+    } else if (result.billingStatus === 'PAID') {
+      const applied = result.enrollmentInvoice?.advanceAppliedCents ?? 0;
+      parts.push(applied > 0
+        ? `El cargo de matrícula figura pagado con el anticipo de ${new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(applied / 100)}.`
+        : 'El cargo de matrícula ya figura pagado.');
+    } else if (result.billingStatus === 'NOT_CONFIGURED') {
+      parts.push('El colegio no tiene configurado un concepto de matrícula cobrable.');
+    } else {
+      parts.push('La matrícula quedó activa; falta emitir el cargo desde Pagos.');
+    }
+    if (result.portalAccessStatus === 'LINKED') parts.push('La cuenta del apoderado quedó vinculada.');
+    else if (result.portalAccessStatus === 'INVITATION_SENT') parts.push('Se envió la invitación para activar el portal del apoderado.');
+    else if (result.portalAccessStatus === 'REVIEW_REQUIRED') parts.push('La cuenta del apoderado requiere revisión para vincularse.');
+    else parts.push('El acceso del apoderado queda pendiente; esto no afecta la matrícula ni el cobro.');
+    return parts.join(' ');
+  }
+
+  retryEnrollmentSetup(application: AdmissionApplication): void {
+    if (this.saving()) return;
+    this.saving.set(true);
+    this.api.retryEnrollmentSetup(application.publicUuid).subscribe({
+      next: (response) => {
+        this.saving.set(false);
+        this.notice.set(this.enrollmentCompletionMessage(response.data));
+        this.refresh();
+      },
+      error: (error) => {
+        this.saving.set(false);
+        this.error.set(admissionError(error, 'No se pudieron reintentar el cargo y el acceso del apoderado.'));
+      },
+    });
   }
 
   requiresNote(status: AdmissionStatus): boolean {

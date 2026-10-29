@@ -91,7 +91,7 @@ export function tenantScopedTest() {
  * Helper for sanity-checking that the BE is up before running a suite.
  * Use in {@code globalSetup} if you want to gate CI on BE availability.
  */
-export async function expectBeUp(baseUrl: string = process.env['API_URL'] ?? 'http://localhost:8081'): Promise<void> {
+export async function expectBeUp(baseUrl: string = process.env['API_URL'] ?? 'http://localhost:8080'): Promise<void> {
   const { request } = await import('@playwright/test');
   const ctx = await request.newContext({ baseURL: baseUrl });
   try {

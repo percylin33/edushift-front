@@ -3,6 +3,7 @@ import { signal } from '@angular/core';
 import { AdminPaymentsPageComponent } from './admin-payments-page.component';
 import { AdminPaymentsStore } from '../../store/admin-payments.store';
 import { Payment } from '../../models/invoice.model';
+import { AuthService } from '@core/services';
 
 describe('AdminPaymentsPageComponent', () => {
   let fixture: ComponentFixture<AdminPaymentsPageComponent>;
@@ -40,6 +41,8 @@ describe('AdminPaymentsPageComponent', () => {
   };
 
   function configureModule(): void {
+    const auth = jasmine.createSpyObj<AuthService>('AuthService', ['hasPermission']);
+    auth.hasPermission.and.returnValue(true);
     fakeStore = {
       items: signal<Payment[]>([]),
       totalElements: signal(0),
@@ -57,7 +60,10 @@ describe('AdminPaymentsPageComponent', () => {
     };
     TestBed.configureTestingModule({
       imports: [AdminPaymentsPageComponent],
-      providers: [{ provide: AdminPaymentsStore, useValue: fakeStore }],
+      providers: [
+        { provide: AdminPaymentsStore, useValue: fakeStore },
+        { provide: AuthService, useValue: auth },
+      ],
     });
     fixture = TestBed.createComponent(AdminPaymentsPageComponent);
     component = fixture.componentInstance;

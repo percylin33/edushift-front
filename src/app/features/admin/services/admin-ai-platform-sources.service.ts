@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '@core/services/api.service';
 import { API } from '@core/constants';
+import { ApiResponse } from '@core/models';
+import { readErrorMessage } from '@core/utils/error.utils';
 
 export interface AiPlatformSource {
   publicUuid: string;
@@ -44,10 +46,12 @@ export class AdminAiPlatformSourcesService {
     this.busy.set(true);
     this.error.set(null);
     try {
-      const response = await firstValueFrom(this.api.get<any>(API.ADMIN.AI_GLOBAL_SOURCES));
-      this.sources.set(response?.data ?? response ?? []);
-    } catch (err: any) {
-      this.error.set(err?.error?.message ?? 'No se pudieron cargar las fuentes globales.');
+      const response = await firstValueFrom(
+        this.api.get<ApiResponse<AiPlatformSource[]>>(API.ADMIN.AI_GLOBAL_SOURCES),
+      );
+      this.sources.set(response.data ?? []);
+    } catch (err: unknown) {
+      this.error.set(readErrorMessage(err, 'No se pudieron cargar las fuentes globales.'));
     } finally {
       this.busy.set(false);
     }

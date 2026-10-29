@@ -1,5 +1,4 @@
-import { DOCUMENT } from '@angular/common';
-import { DestroyRef, ElementRef, Injectable, afterRender, inject } from '@angular/core';
+import { DOCUMENT, DestroyRef, ElementRef, Injectable, afterEveryRender, inject } from '@angular/core';
 import { CanDeactivateFn, Router } from '@angular/router';
 import { ConfirmDialogService } from '../components/confirm-dialog/confirm-dialog.service';
 
@@ -11,15 +10,24 @@ export interface ProtectedForm {
 
 /** Stable snapshots include disabled fields and file identity, without persisting personal data. */
 export function formSnapshot(value: unknown): string {
-  return JSON.stringify(value, (_key: string, item: unknown) => {
-    if (typeof File !== 'undefined' && item instanceof File) {
-      return { name: item.name, size: item.size, type: item.type, lastModified: item.lastModified };
-    }
-    if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
-      return Object.fromEntries(Object.entries(item).sort(([left], [right]) => left.localeCompare(right)));
-    }
-    return item;
-  }) ?? 'null';
+  return (
+    JSON.stringify(value, (_key: string, item: unknown) => {
+      if (typeof File !== 'undefined' && item instanceof File) {
+        return {
+          name: item.name,
+          size: item.size,
+          type: item.type,
+          lastModified: item.lastModified,
+        };
+      }
+      if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
+        return Object.fromEntries(
+          Object.entries(item).sort(([left], [right]) => left.localeCompare(right)),
+        );
+      }
+      return item;
+    }) ?? 'null'
+  );
 }
 
 export class FormProtectionState {
@@ -30,15 +38,26 @@ export class FormProtectionState {
     this.baseline = formSnapshot(options.snapshot());
   }
 
-  get active(): boolean { return this.options.active?.() ?? true; }
-  get saving(): boolean { return this.active && !this.completed && (this.options.saving?.() ?? false); }
+  get active(): boolean {
+    return this.options.active?.() ?? true;
+  }
+  get saving(): boolean {
+    return this.active && !this.completed && (this.options.saving?.() ?? false);
+  }
   get changed(): boolean {
     return this.active && this.baseline !== formSnapshot(this.options.snapshot());
   }
 
-  captureBaseline(): void { this.baseline = formSnapshot(this.options.snapshot()); }
-  beginInteraction(): void { this.completed = false; }
-  markSaved(): void { this.captureBaseline(); this.completed = true; }
+  captureBaseline(): void {
+    this.baseline = formSnapshot(this.options.snapshot());
+  }
+  beginInteraction(): void {
+    this.completed = false;
+  }
+  markSaved(): void {
+    this.captureBaseline();
+    this.completed = true;
+  }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -48,7 +67,9 @@ export class FormProtectionService {
   private pending: Promise<boolean> | null = null;
   private approvedNavigation: number | undefined;
 
-  get confirming(): boolean { return this.pending !== null; }
+  get confirming(): boolean {
+    return this.pending !== null;
+  }
 
   register(form: FormProtectionState): () => void {
     this.forms.add(form);
@@ -61,7 +82,10 @@ export class FormProtectionService {
 
   requestClose(form: FormProtectionState, close: () => void): void {
     if (form.saving || this.confirming) return;
-    if (!form.changed) { close(); return; }
+    if (!form.changed) {
+      close();
+      return;
+    }
     void this.confirmDiscard().then((discard) => {
       if (discard && form.active && !form.saving && this.forms.has(form)) close();
     });
@@ -69,7 +93,10 @@ export class FormProtectionService {
 
   requestChange(form: FormProtectionState, change: () => void): void {
     if (form.saving || this.confirming || !form.active || !this.forms.has(form)) return;
-    if (!form.changed) { change(); return; }
+    if (!form.changed) {
+      change();
+      return;
+    }
     void this.confirmDiscard().then((discard) => {
       if (discard && form.active && !form.saving && this.forms.has(form)) change();
     });
@@ -87,14 +114,18 @@ export class FormProtectionService {
 
   private confirmDiscard(): Promise<boolean> {
     if (this.pending) return this.pending;
-    this.pending = this.confirm.open({
-      title: '¿Descartar los cambios?',
-      message: 'Tienes cambios sin guardar. Si sales, se perderán.',
-      confirmLabel: 'Descartar cambios',
-      cancelLabel: 'Seguir editando',
-      variant: 'danger',
-      preferCancel: true,
-    }).finally(() => { this.pending = null; });
+    this.pending = this.confirm
+      .open({
+        title: '¿Descartar los cambios?',
+        message: 'Tienes cambios sin guardar. Si sales, se perderán.',
+        confirmLabel: 'Descartar cambios',
+        cancelLabel: 'Seguir editando',
+        variant: 'danger',
+        preferCancel: true,
+      })
+      .finally(() => {
+        this.pending = null;
+      });
     return this.pending;
   }
 }
@@ -124,8 +155,11 @@ export function createFormProtection(options: ProtectedForm): {
     return state;
   };
   // Initial API loads and default selections remain the baseline until the user interacts.
-  const render = afterRender(() => {
-    if (!active()) { engaged = false; return; }
+  const render = afterEveryRender(() => {
+    if (!active()) {
+      engaged = false;
+      return;
+    }
     if (!engaged) initialize().captureBaseline();
   });
   const engage = (): void => {
@@ -153,13 +187,17 @@ export function createFormProtection(options: ProtectedForm): {
   return {
     requestClose: (close) => {
       if (!active() || service.confirming) return;
-      const dialogs = [...document.querySelectorAll<HTMLElement>('[aria-modal="true"]')]
-        .filter((dialog) => dialog.getClientRects().length > 0);
+      const dialogs = [...document.querySelectorAll<HTMLElement>('[aria-modal="true"]')].filter(
+        (dialog) => dialog.getClientRects().length > 0,
+      );
       const top = dialogs.at(-1);
       if (top && !host.contains(top)) return;
       service.requestClose(initialize(), close);
     },
     requestChange: (change) => service.requestChange(initialize(), change),
-    markSaved: () => { initialize().markSaved(); engaged = false; },
+    markSaved: () => {
+      initialize().markSaved();
+      engaged = false;
+    },
   };
 }

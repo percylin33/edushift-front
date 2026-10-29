@@ -128,34 +128,34 @@ import { GradeBookStore } from '../../store';
       </app-page-header>
 
       @if (gradebook(); as gb) {
-        <section class="acta-header mb-3" aria-label="Datos del registro">
-          <div class="acta-context">
+        <section class="acta-header mb-3 flex flex-col gap-2 rounded-lg border border-[rgb(var(--color-border-subtle,241_245_249)/1)] bg-[var(--gb-subtle)] px-4 py-2.5" aria-label="Datos del registro">
+          <div class="acta-context flex flex-wrap items-center gap-x-2 gap-y-[0.35rem] text-[0.8125rem] font-semibold text-[color:var(--gb-text)]">
             <span class="acta-context-item">
-              <span class="acta-context-label">Salón</span>
+              <span class="acta-context-label text-[0.65rem] uppercase tracking-[0.04em] text-[color:var(--gb-hint)]">Salón</span>
               {{ salonLabel() }}
             </span>
-            <span class="acta-sep" aria-hidden="true">·</span>
+            <span class="acta-sep font-normal text-[color:rgb(var(--color-content-muted,156_163_175))]" aria-hidden="true">·</span>
             <span class="acta-context-item">
-              <span class="acta-context-label">Curso</span>
+              <span class="acta-context-label text-[0.65rem] uppercase tracking-[0.04em] text-[color:var(--gb-hint)]">Curso</span>
               {{ gb.courseName }}
             </span>
-            <span class="acta-sep" aria-hidden="true">·</span>
+            <span class="acta-sep font-normal text-[color:rgb(var(--color-content-muted,156_163_175))]" aria-hidden="true">·</span>
             <span class="acta-context-item">
-              <span class="acta-context-label">Periodo</span>
+              <span class="acta-context-label text-[0.65rem] uppercase tracking-[0.04em] text-[color:var(--gb-hint)]">Periodo</span>
               {{ periodLabel() }}
             </span>
-            <span class="acta-sep" aria-hidden="true">·</span>
+            <span class="acta-sep font-normal text-[color:rgb(var(--color-content-muted,156_163_175))]" aria-hidden="true">·</span>
             <span class="acta-context-item">
-              <span class="acta-context-label">Profesor</span>
+              <span class="acta-context-label text-[0.65rem] uppercase tracking-[0.04em] text-[color:var(--gb-hint)]">Profesor</span>
               {{ gb.teacherFullName || '—' }}
             </span>
             @if (gb.templateName) {
-              <span class="acta-template-badge" [title]="gb.templateName">{{
+              <span class="acta-template-badge ml-1 max-w-56 overflow-hidden text-ellipsis whitespace-nowrap rounded-full border border-[var(--gb-border)] bg-[var(--gb-muted)] px-2 py-0.5 text-[0.6875rem] font-medium text-[color:rgb(var(--color-content-muted,75_85_99))]" [title]="gb.templateName">{{
                 gb.templateName
               }}</span>
             }
           </div>
-          <div class="acta-toolbar">
+          <div class="acta-toolbar flex flex-wrap items-center gap-x-4 gap-y-3 text-[color:var(--gb-hint)]">
             <div
               class="fill-dir-toggle"
               role="group"
@@ -224,10 +224,10 @@ import { GradeBookStore } from '../../store';
               />
               <span>Mostrar Trasl.</span>
             </label>
-            <span class="acta-stat">{{ gb.students.length }} est.</span>
-            <span class="acta-stat">{{ gb.evaluations.length }} reg.</span>
+            <span class="acta-stat rounded border border-[var(--gb-border)] bg-[var(--gb-muted)] px-[0.4rem] py-0.5 text-xs tabular-nums text-[color:var(--gb-text)]">{{ gb.students.length }} est.</span>
+            <span class="acta-stat rounded border border-[var(--gb-border)] bg-[var(--gb-muted)] px-[0.4rem] py-0.5 text-xs tabular-nums text-[color:var(--gb-text)]">{{ gb.evaluations.length }} reg.</span>
             <span
-              class="acta-stat"
+              class="acta-stat rounded border border-[var(--gb-border)] bg-[var(--gb-muted)] px-[0.4rem] py-0.5 text-xs tabular-nums text-[color:var(--gb-text)]"
               [class.acta-stat-ok]="totalWeight() === 100"
               [class.acta-stat-warn]="totalWeight() !== 100 && totalWeight() > 0"
             >
@@ -896,7 +896,7 @@ import { GradeBookStore } from '../../store';
         [courseUuid]="gb.coursePublicUuid"
         [students]="gb.students"
         [evaluations]="gb.evaluations"
-        (close)="competencyResultsOpen.set(false)"
+        (closed)="competencyResultsOpen.set(false)"
       />
     }
   `,
@@ -904,66 +904,38 @@ import { GradeBookStore } from '../../store';
     `
       :host {
         display: block;
+        --gb-band-text: inherit;
+        --gb-slate: rgba(241, 245, 249, 0.85);
+        --gb-exam: rgba(254, 243, 199, 0.55);
+        --gb-quiz: rgba(219, 234, 254, 0.55);
+        --gb-task: rgba(220, 252, 231, 0.45);
+        --gb-rubric: rgba(237, 233, 254, 0.5);
+        --gb-competency: rgba(255, 237, 213, 0.5);
+        --gb-muted: rgb(var(--color-surface-muted, 241 245 249) / 1);
+        --gb-text: rgb(var(--color-content, 15 23 42));
+        --gb-border: rgb(var(--color-border, 226 232 240) / 1);
+        --gb-hint: rgb(var(--color-content-muted, 107 114 128));
+        --gb-subtle: rgb(var(--color-surface-subtle, 248 250 252) / 1);
+      }
+      :host-context(.dark) {
+        --gb-band-text: rgb(var(--color-content, 241 245 249));
+        --gb-slate: rgba(51, 65, 85, 0.78);
+        --gb-exam: rgba(146, 64, 14, 0.38);
+        --gb-quiz: rgba(30, 64, 175, 0.36);
+        --gb-task: rgba(20, 83, 45, 0.4);
+        --gb-rubric: rgba(91, 33, 182, 0.34);
+        --gb-competency: rgba(154, 52, 18, 0.36);
       }
 
+
       /* ---- Acta chrome ---- */
-      .acta-header {
-        border: 1px solid var(--color-border-subtle, #e5e7eb);
-        border-radius: 0.5rem;
-        padding: 0.625rem 1rem;
-        background: var(--color-surface-subtle, #f9fafb);
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-      .acta-context {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0.35rem 0.5rem;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        color: var(--color-content, #111827);
-      }
-      .acta-context-label {
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--color-content-muted, #6b7280);
-      }
-      .acta-sep {
-        color: var(--color-content-muted, #9ca3af);
-        font-weight: 400;
-      }
-      .acta-template-badge {
-        margin-left: 0.25rem;
-        max-width: 14rem;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-size: 0.6875rem;
-        font-weight: 500;
-        padding: 0.125rem 0.5rem;
-        border-radius: 9999px;
-        background: white;
-        border: 1px solid var(--color-border-subtle, #e5e7eb);
-        color: var(--color-content-muted, #4b5563);
-      }
-      .acta-toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0.75rem 1rem;
-        color: var(--color-content-muted, #6b7280);
-      }
-      .acta-stat {
-        font-size: 0.75rem;
-        font-variant-numeric: tabular-nums;
-        padding: 0.125rem 0.4rem;
-        border-radius: 0.25rem;
-        background: white;
-        border: 1px solid var(--color-border-subtle, #e5e7eb);
-      }
+
+
+
+
+
+
+
       .acta-stat-ok {
         background: rgba(34, 197, 94, 0.1);
         border-color: transparent;
@@ -972,7 +944,13 @@ import { GradeBookStore } from '../../store';
       .acta-stat-warn {
         background: rgba(251, 191, 36, 0.12);
         border-color: transparent;
-        color: var(--color-warning-700, #b45309);
+        color: #b45309;
+      }
+      :host-context(.dark) .acta-stat-ok {
+        color: rgb(var(--color-success, 34 197 94));
+      }
+      :host-context(.dark) .acta-stat-warn {
+        color: rgb(var(--color-warning, 251 191 36));
       }
 
       .empty-cats-hint {
@@ -981,7 +959,7 @@ import { GradeBookStore } from '../../store';
         gap: 0.5rem;
         padding: 0.4rem 0.75rem;
         font-size: 0.8125rem;
-        color: var(--color-content-muted, #4b5563);
+        color: rgb(var(--color-content-muted, 75 85 99));
         background: rgba(59, 130, 246, 0.06);
         border: 1px solid rgba(59, 130, 246, 0.18);
         border-radius: 0.375rem;
@@ -993,7 +971,7 @@ import { GradeBookStore } from '../../store';
         background: none;
         border: 0;
         padding: 0;
-        color: var(--color-primary-600, #2563eb);
+        color: rgb(var(--color-primary-600, 37 99 235));
         font-weight: 600;
         cursor: pointer;
         text-decoration: underline;
@@ -1028,8 +1006,8 @@ import { GradeBookStore } from '../../store';
       }
       .gradebook-table th,
       .gradebook-table td {
-        border-bottom: 1px solid var(--color-border-subtle, #e5e7eb);
-        border-right: 1px solid var(--color-border-subtle, #e5e7eb);
+        border-bottom: 1px solid rgb(var(--color-border-subtle, 241 245 249) / 1);
+        border-right: 1px solid rgb(var(--color-border-subtle, 241 245 249) / 1);
         padding: 0.35rem 0.25rem;
         background-clip: padding-box;
       }
@@ -1078,20 +1056,20 @@ import { GradeBookStore } from '../../store';
       }
       thead .student-col {
         z-index: 40;
-        background-color: rgb(var(--color-surface-subtle, 248 250 252) / 1) !important;
+        background-color: var(--gb-subtle) !important;
       }
       .avg-col {
         left: 220px;
         min-width: 72px;
         max-width: 72px;
         text-align: center;
-        background-color: rgb(var(--color-surface-muted, 241 245 249) / 1) !important;
+        background-color: var(--gb-muted) !important;
         z-index: 29;
         box-shadow: 6px 0 10px -4px rgba(0, 0, 0, 0.18);
       }
       thead .avg-col {
         z-index: 39;
-        background-color: rgb(var(--color-surface-muted, 241 245 249) / 1) !important;
+        background-color: var(--gb-muted) !important;
       }
       .avg-value {
         font-family: ui-monospace, monospace;
@@ -1111,7 +1089,7 @@ import { GradeBookStore } from '../../store';
         font-family: ui-monospace, monospace;
         font-size: 0.7rem;
         font-weight: 500;
-        color: var(--color-content-muted, #6b7280);
+        color: var(--gb-hint);
       }
 
       .eval-col {
@@ -1125,7 +1103,7 @@ import { GradeBookStore } from '../../store';
         max-width: 64px !important;
       }
       thead .eval-col {
-        background-color: rgb(var(--color-surface-subtle, 248 250 252) / 1);
+        background-color: var(--gb-subtle);
       }
 
       .eval-header {
@@ -1176,7 +1154,7 @@ import { GradeBookStore } from '../../store';
       }
       .empty-cat-cta {
         min-height: 2.25rem;
-        color: var(--color-primary-600, #2563eb);
+        color: rgb(var(--color-primary-600, 37 99 235));
       }
 
       .cell {
@@ -1192,7 +1170,7 @@ import { GradeBookStore } from '../../store';
         padding: 0.15rem;
       }
       .cell-empty {
-        color: var(--color-content-muted, #6b7280);
+        color: var(--gb-hint);
       }
       .cell-warning {
         box-shadow: inset 0 0 0 9999px rgba(251, 191, 36, 0.08);
@@ -1210,10 +1188,12 @@ import { GradeBookStore } from '../../store';
         text-align: center;
         font-family: ui-monospace, monospace;
         font-size: 0.8125rem;
-        border: 1px solid var(--color-border-subtle, #e5e7eb);
+        border: 1px solid var(--gb-border);
         border-radius: 0.3rem;
         padding: 0.2rem 0.15rem;
-        background: white;
+        background: rgb(var(--color-surface-raised, 255 255 255) / 1);
+        color: var(--gb-text);
+        caret-color: var(--gb-text);
         -moz-appearance: textfield;
         appearance: textfield;
       }
@@ -1223,8 +1203,14 @@ import { GradeBookStore } from '../../store';
         margin: 0;
       }
       .score-input:focus {
-        outline: 2px solid var(--color-primary-400, #60a5fa);
+        outline: 2px solid rgb(var(--color-primary-400, 96 165 250));
         outline-offset: 1px;
+      }
+      .score-input:disabled {
+        opacity: 1;
+        color: rgb(var(--color-content-muted, 100 116 139));
+        background: var(--gb-muted);
+        cursor: not-allowed;
       }
       .score-input-mobile {
         max-width: 5rem;
@@ -1232,9 +1218,9 @@ import { GradeBookStore } from '../../store';
       .fill-dir-toggle {
         display: inline-flex;
         align-items: stretch;
-        border: 1px solid var(--color-border-subtle, #e5e7eb);
+        border: 1px solid var(--gb-border);
         border-radius: 0.375rem;
-        background: white;
+        background: rgb(var(--color-surface-raised, 255 255 255) / 1);
         overflow: hidden;
       }
       .fill-dir-option {
@@ -1246,25 +1232,36 @@ import { GradeBookStore } from '../../store';
         padding: 0;
         border: 0;
         background: transparent;
-        color: var(--color-content-muted, #6b7280);
+        color: rgb(var(--color-content-muted, 71 85 105));
         cursor: pointer;
         transition:
           background 0.12s ease,
           color 0.12s ease;
       }
       .fill-dir-option + .fill-dir-option {
-        border-left: 1px solid var(--color-border-subtle, #e5e7eb);
+        border-left: 1px solid var(--gb-border);
       }
       .fill-dir-option:hover:not(.fill-dir-active) {
-        background: #f1f5f9;
-        color: var(--color-content, #111827);
+        background: var(--gb-muted);
+        color: var(--gb-text);
       }
       .fill-dir-option.fill-dir-active {
-        background: rgba(37, 99, 235, 0.1);
-        color: var(--color-primary-700, #1d4ed8);
+        background: var(--gb-muted);
+        color: var(--gb-text);
+        box-shadow: inset 0 -2px 0 rgb(var(--color-primary-600, 37 99 235));
+      }
+      :host-context(.dark) .fill-dir-option.fill-dir-active {
+        background: #334155;
+        color: #f8fafc;
+        box-shadow: inset 0 -2px 0 #22d3ee;
+      }
+      .fill-dir-option:disabled {
+        color: rgb(var(--color-content-muted, 100 116 139));
+        background: var(--gb-muted);
+        cursor: not-allowed;
       }
       .fill-dir-option:focus-visible {
-        outline: 2px solid var(--color-primary-400, #60a5fa);
+        outline: 2px solid rgb(var(--color-primary-400, 96 165 250));
         outline-offset: -1px;
         z-index: 1;
       }
@@ -1283,51 +1280,53 @@ import { GradeBookStore } from '../../store';
         font-weight: 600;
         letter-spacing: 0.02em;
         text-transform: lowercase;
-        color: var(--color-content-muted, #6b7280);
+        color: var(--gb-hint);
         opacity: 0.9;
         white-space: nowrap;
       }
-      .kind-band-exam {
-        background: rgba(254, 243, 199, 0.55) !important;
+      .kind-band-exam, .cat-band-amber {
+        background: var(--gb-exam) !important;
+        color: var(--gb-band-text);
       }
-      .kind-band-quiz {
-        background: rgba(219, 234, 254, 0.55) !important;
+      .kind-band-quiz, .cat-band-blue {
+        background: var(--gb-quiz) !important;
+        color: var(--gb-band-text);
       }
-      .kind-band-task {
-        background: rgba(220, 252, 231, 0.45) !important;
+      .kind-band-task, .cat-band-green {
+        background: var(--gb-task) !important;
+        color: var(--gb-band-text);
       }
-      .kind-band-rubric {
-        background: rgba(237, 233, 254, 0.5) !important;
+      .kind-band-rubric, .cat-band-violet {
+        background: var(--gb-rubric) !important;
+        color: var(--gb-band-text);
       }
       .kind-band-competency {
-        background: rgba(255, 237, 213, 0.5) !important;
+        background: var(--gb-competency) !important;
+        color: var(--gb-band-text);
       }
-      .cat-band-amber {
-        background: rgba(254, 243, 199, 0.55) !important;
-      }
-      .cat-band-green {
-        background: rgba(220, 252, 231, 0.45) !important;
-      }
-      .cat-band-blue {
-        background: rgba(219, 234, 254, 0.55) !important;
-      }
+
+
+
+
+
+
+
+
+
       .cat-band-slate {
-        background: rgba(241, 245, 249, 0.85) !important;
+        background: var(--gb-slate) !important;
+        color: var(--gb-band-text);
       }
-      .cat-band-violet {
-        background: rgba(237, 233, 254, 0.5) !important;
-      }
+
       /* Sticky student/avg must stay opaque even under category bands */
-      .gradebook-table .student-col.cat-band-amber,
-      .gradebook-table .student-col.cat-band-green,
-      .gradebook-table .student-col.cat-band-blue,
-      .gradebook-table .student-col.cat-band-slate,
-      .gradebook-table .student-col.cat-band-violet,
-      .gradebook-table .avg-col.cat-band-amber,
-      .gradebook-table .avg-col.cat-band-green,
-      .gradebook-table .avg-col.cat-band-blue,
-      .gradebook-table .avg-col.cat-band-slate,
-      .gradebook-table .avg-col.cat-band-violet {
+      .gradebook-table
+        :is(.student-col, .avg-col):is(
+          .cat-band-amber,
+          .cat-band-green,
+          .cat-band-blue,
+          .cat-band-slate,
+          .cat-band-violet
+        ) {
         background-color: rgb(var(--color-surface, 255 255 255) / 1) !important;
       }
       .badge {
@@ -1339,8 +1338,8 @@ import { GradeBookStore } from '../../store';
         line-height: 1.25rem;
       }
       .badge-neutral {
-        background: var(--color-surface-subtle, #f3f4f6);
-        color: var(--color-content, #111827);
+        background: var(--gb-subtle);
+        color: var(--gb-text);
       }
     `,
   ],

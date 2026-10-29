@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { AiHomeComponent } from './ai-home.component';
 
 describe('AiHomeComponent', () => {
@@ -8,6 +9,7 @@ describe('AiHomeComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AiHomeComponent],
+      providers: [provideHttpClient()],
     }).compileComponents();
     fixture = TestBed.createComponent(AiHomeComponent);
     component = fixture.componentInstance;
@@ -18,8 +20,8 @@ describe('AiHomeComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('tiene enlace a chat', () => {
-    expect(component.chatLink).toBeDefined();
-    expect(typeof component.chatLink).toBe('string');
+  it('tiene rutas de asistentes', () => {
+    expect(component.routes.TUTOR).toBe('/ai/tutor');
+    expect(component.routes.TEACHER).toBe('/ai/teacher');
   });
 });

@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { catchError, of, tap } from 'rxjs';
 import { ApiResponse } from '@core/models';
 import { ApiService } from '@core/services';
@@ -125,8 +125,10 @@ export class NotificationsStore {
             (n) => !n.readAt && n.status !== 'READ'
           ).length;
           if (localUnread > serverCount) {
+            // Preserve the most recent unread notifications and mark the
+            // oldest cached ones read until the server count is matched.
             const sorted = [...cached].sort((a, b) =>
-              a.sentAt.localeCompare(b.sentAt)
+              b.sentAt.localeCompare(a.sentAt)
             );
             let remaining = serverCount;
             this._items.set(
