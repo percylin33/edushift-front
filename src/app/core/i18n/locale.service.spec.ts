@@ -5,6 +5,7 @@ describe('LocaleService', () => {
   let service: LocaleService;
 
   beforeEach(() => {
+    spyOnProperty(window.navigator, 'language', 'get').and.returnValue('es-PE');
     localStorage.clear();
     TestBed.configureTestingModule({});
     service = TestBed.inject(LocaleService);
