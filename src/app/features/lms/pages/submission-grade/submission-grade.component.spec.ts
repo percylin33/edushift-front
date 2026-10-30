@@ -1,6 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
 import { SubmissionGradeComponent } from './submission-grade.component';
 import { TasksStore } from '../../store';
 import { SubmissionsStore } from '../../store';
