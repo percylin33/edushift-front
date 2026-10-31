@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -46,14 +48,14 @@ import { StudentsStore } from '../store';
   selector: 'app-enroll-student-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, FormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="enroll-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card flex max-h-[90vh] w-full max-w-lg flex-col shadow-xl"
@@ -201,6 +203,12 @@ import { StudentsStore } from '../store';
   `,
 })
 export class EnrollStudentModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => [this.sectionUuid(), this.enrolledAt(), this.notes()],
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly academicApi = inject(AcademicApiService);
   private readonly store = inject(StudentsStore);
 
@@ -258,12 +266,23 @@ export class EnrollStudentModalComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.store.clearError();
-    /* Default razonable de la fecha = hoy si está dentro del rango,
-     * sino el inicio del año. Lo seteamos después de cargar el año. */
+    /* Prioriza la fecha institucional del estudiante en su primera sección;
+     * para cambios de sección usa hoy. Ambas deben caer dentro del año activo. */
     await this.fetchCatalogs();
     const today = this.toIsoDate(new Date());
+    const studentDate = this.student().enrollmentDate
+      ? this.toIsoDate(this.student().enrollmentDate!)
+      : '';
+    const preferredDate =
+      !this.isTransfer() &&
+      studentDate >= this.yearMinDate() &&
+      studentDate <= this.yearMaxDate()
+        ? studentDate
+        : today;
     this.enrolledAt.set(
-      today >= this.yearMinDate() && today <= this.yearMaxDate() ? today : this.yearMinDate(),
+      preferredDate >= this.yearMinDate() && preferredDate <= this.yearMaxDate()
+        ? preferredDate
+        : this.yearMinDate(),
     );
   }
 
@@ -277,8 +296,10 @@ export class EnrollStudentModalComponent implements OnInit {
   }
 
   protected close(): void {
-    this.store.clearError();
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.store.clearError();
+      this.closed.emit();
+    });
   }
 
   protected async onSubmit(): Promise<void> {

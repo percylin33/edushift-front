@@ -1,20 +1,23 @@
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { UserMenuComponent } from './user-menu.component';
 import { provideRouter } from '@angular/router';
 import { AuthService } from '@core/services';
 import { AuthApiService } from '@features/auth/services/auth-api.service';
-import { of } from 'rxjs';
+import { provideHttpClient } from '@angular/common/http';
 
 describe('UserMenuComponent', () => {
   let component: UserMenuComponent;
   let fixture: ComponentFixture<UserMenuComponent>;
   let authSpy: jasmine.SpyObj<AuthService>;
   let authApiSpy: jasmine.SpyObj<AuthApiService>;
+  let userSignal: ReturnType<typeof signal>;
 
   beforeEach(async () => {
+    userSignal = signal({ fullName: 'Juan Pérez', email: 'juan@test.com' });
     authSpy = jasmine.createSpyObj('AuthService', ['clearSession', 'hasRole', 'hasPermission'], {
       isAuthenticated: () => true,
-      user: () => ({ fullName: 'Juan Pérez', email: 'juan@test.com' }),
+      user: userSignal,
       refreshToken: () => null,
     });
     authApiSpy = jasmine.createSpyObj('AuthApiService', ['logout']);
@@ -22,6 +25,7 @@ describe('UserMenuComponent', () => {
     await TestBed.configureTestingModule({
       imports: [UserMenuComponent],
       providers: [
+        provideHttpClient(),
         provideRouter([]),
         { provide: AuthService, useValue: authSpy },
         { provide: AuthApiService, useValue: authApiSpy },
@@ -42,7 +46,7 @@ describe('UserMenuComponent', () => {
   });
 
   it('fullName devuelve Invitado cuando no hay usuario', () => {
-    (authSpy.user as unknown as jasmine.Spy).and.returnValue(null);
+    userSignal.set(null);
     expect(component.fullName()).toBe('Invitado');
   });
 

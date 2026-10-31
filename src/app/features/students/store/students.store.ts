@@ -4,6 +4,8 @@ import { StudentsApiService } from '../services';
 import {
   AddGuardianRequest,
   BulkImportJob,
+  BulkImportPreview,
+  BulkImportUploadOptions,
   CreateEnrollmentRequest,
   CreateStudentRequest,
   EnrollmentDetail,
@@ -278,17 +280,33 @@ export class StudentsStore {
   }
 
   /**
+   * Preview headers + suggested mapping for the column-mapping wizard.
+   */
+  async previewBulkImport(file: File): Promise<BulkImportPreview | null> {
+    this._error.set(null);
+    try {
+      return await firstValueFrom(this.api.previewBulkImport(file));
+    } catch (err) {
+      this._error.set(this.toErrorMessage(err));
+      return null;
+    }
+  }
+
+  /**
    * Upload an {@code .xlsx} workbook and start polling. The job
    * publishes its progress through {@link #bulkJob}; the poller exits
    * automatically when the status hits {@code COMPLETED} / {@code FAILED}.
    */
-  async startBulkImport(file: File): Promise<BulkImportJob | null> {
+  async startBulkImport(
+    file: File,
+    options?: BulkImportUploadOptions,
+  ): Promise<BulkImportJob | null> {
     this.cancelBulkPolling();
     this._bulkUploading.set(true);
     this._error.set(null);
 
     try {
-      const job = await firstValueFrom(this.api.uploadBulkImport(file));
+      const job = await firstValueFrom(this.api.uploadBulkImport(file, options));
       this._bulkJob.set(job);
       if (!isTerminalBulkImportStatus(job.status)) {
         this.scheduleBulkPoll(job.publicUuid);

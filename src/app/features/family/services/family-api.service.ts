@@ -5,6 +5,11 @@ import { ApiResponse, SpringPage } from '@core/models/api-response.model';
 import { FamilyActivityItem, FamilyPaymentItem } from '../models/family-activity.model';
 import { FamilyAttendanceRecord, FamilyAttendanceRecordRaw, toFamilyAttendanceRecord } from '../models/family-attendance.model';
 import { FamilyChildSummary } from '../models/family-child.model';
+import {
+  FamilyCompetencyResult,
+  FamilyCompetencyResultRaw,
+  toFamilyCompetencyResult,
+} from '../models/family-competency-result.model';
 import { FamilyGradeItem, FamilyGradeItemRaw, toFamilyGradeItem } from '../models/family-grade.model';
 import { ScheduleWeekView, ScheduleWeekViewRaw, toScheduleWeekView } from '@features/academic/models';
 import { map } from 'rxjs/operators';
@@ -21,11 +26,13 @@ export class FamilyApiService {
 
   getChildAttendance(
     studentPublicUuid: string,
-    params: { page?: number; size?: number } = {},
+    params: { page?: number; size?: number; from?: string; to?: string } = {},
   ): Observable<SpringPage<FamilyAttendanceRecordRaw>> {
     const query = new URLSearchParams();
     if (params.page !== undefined) query.set('page', String(params.page));
     if (params.size !== undefined) query.set('size', String(params.size));
+    if (params.from) query.set('from', params.from);
+    if (params.to) query.set('to', params.to);
     const suffix = query.size > 0 ? `?${query.toString()}` : '';
     return this.http.get<SpringPage<FamilyAttendanceRecordRaw>>(
       `/api/v1/family/children/${studentPublicUuid}/attendance${suffix}`,
@@ -35,6 +42,14 @@ export class FamilyApiService {
   getChildGrades(studentPublicUuid: string): Observable<ApiResponse<FamilyGradeItemRaw[]>> {
     return this.http.get<ApiResponse<FamilyGradeItemRaw[]>>(
       `/api/v1/family/children/${studentPublicUuid}/grades`,
+    );
+  }
+
+  getChildCompetencyResults(
+    studentPublicUuid: string,
+  ): Observable<ApiResponse<FamilyCompetencyResultRaw[]>> {
+    return this.http.get<ApiResponse<FamilyCompetencyResultRaw[]>>(
+      `/api/v1/family/children/${studentPublicUuid}/competency-results`,
     );
   }
 
@@ -83,5 +98,9 @@ export class FamilyApiService {
 
   adaptGrades(items: FamilyGradeItemRaw[]): FamilyGradeItem[] {
     return items.map(toFamilyGradeItem);
+  }
+
+  adaptCompetencyResults(items: FamilyCompetencyResultRaw[]): FamilyCompetencyResult[] {
+    return items.map(toFamilyCompetencyResult);
   }
 }

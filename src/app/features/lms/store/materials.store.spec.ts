@@ -17,6 +17,7 @@ describe('MaterialsStore', () => {
       sizeBytes: 1024,
       contentType: 'application/pdf',
       url: null,
+      filePublicUuid: 'file-1',
       uploadedByTeacherName: 'Prof.',
       sizeBytesDisplay: '1 KB',
       createdAt: new Date('2026-01-01T00:00:00Z'),
@@ -34,6 +35,7 @@ describe('MaterialsStore', () => {
       sizeBytes: 1024,
       contentType: 'application/pdf',
       url: null,
+      filePublicUuid: 'file-1',
       uploadedByTeacherPublicUuid: 'tch-1',
       uploadedByTeacherName: 'Prof.',
       downloadUrl: null,
@@ -96,6 +98,7 @@ describe('MaterialsStore', () => {
     await store.loadBySection('s-1');
     const result = await store.upload('s-1', {
       title: 'Nuevo',
+      teacherAssignmentPublicUuid: 'assignment-1',
       type: MaterialType.Pdf,
       file: new File(['d'], 'nuevo.pdf', { type: 'application/pdf' }),
       url: null,

@@ -14,28 +14,6 @@ import {
 import { QuestionRow, QuestionType } from '../../models/quiz.model';
 import { Permission } from '../../../../../core/enums/permission.enum';
 
-function makeSummary(
-  publicUuid: string,
-  status: AttemptStatus = AttemptStatus.AutoGraded,
-): AttemptSummaryRow {
-  return {
-    publicUuid,
-    quizPublicUuid: 'qz-1',
-    studentUserId: 'stu-1',
-    attemptNumber: 1,
-    status,
-    autoScore: 4,
-    manualScore: 0,
-    score: 4,
-    maxScore: 5,
-    pendingAnswerCount: 0,
-    startedAt: new Date('2026-06-01T10:00:00Z'),
-    submittedAt: new Date('2026-06-01T10:15:00Z'),
-    gradedAt: new Date('2026-06-01T10:20:00Z'),
-    createdAt: new Date('2026-06-01T10:00:00Z'),
-  };
-}
-
 function makeQuestion(publicUuid: string, prompt: string, options: string[]): QuestionRow {
   return {
     publicUuid,

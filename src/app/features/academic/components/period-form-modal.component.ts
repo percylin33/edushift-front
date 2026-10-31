@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -60,7 +62,7 @@ import { PeriodTimelineComponent, TimelinePreviewItem } from './period-timeline.
   selector: 'app-period-form-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [SafeBackdropDirective,
     CommonModule,
     ReactiveFormsModule,
     IconComponent,
@@ -73,7 +75,7 @@ import { PeriodTimelineComponent, TimelinePreviewItem } from './period-timeline.
       role="dialog"
       aria-modal="true"
       aria-labelledby="period-form-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card max-h-[90vh] w-full max-w-2xl overflow-y-auto shadow-xl"
@@ -246,6 +248,12 @@ import { PeriodTimelineComponent, TimelinePreviewItem } from './period-timeline.
   `,
 })
 export class PeriodFormModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(AcademicStore);
 
@@ -478,8 +486,10 @@ export class PeriodFormModalComponent implements OnInit {
   }
 
   protected cancel(): void {
-    this.store.clearError();
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.store.clearError();
+      this.closed.emit();
+    });
   }
 
   protected async onSubmit(): Promise<void> {

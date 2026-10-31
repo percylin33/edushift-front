@@ -37,7 +37,7 @@ import {
  * for write paths, all-read for GETs, etc. Tests assert
  * against the actual expected status for each cell.</p>
  */
-const BASE = process.env['API_URL'] ?? 'http://localhost:8081';
+const BASE = process.env['API_URL'] ?? 'http://localhost:8080';
 
 type Role = 'TENANT_ADMIN' | 'TEACHER' | 'STAFF' | 'PARENT' | 'STUDENT';
 type Expected = 200 | 201 | 204 | 400 | 401 | 403 | 404 | 409 | 422 | 500 | 503;

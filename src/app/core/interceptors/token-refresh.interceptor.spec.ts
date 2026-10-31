@@ -47,4 +47,21 @@ describe('tokenRefreshInterceptor', () => {
       });
     });
   });
+
+  it('no intenta refrescar ante un 401 esperado durante el enrolamiento MFA de admin', (done) => {
+    const req = new HttpRequest('POST', `${environment.apiUrl}/admin/mfa/enrol`, {});
+    const unauthorized = new HttpErrorResponse({ status: HttpStatusCode.Unauthorized });
+    const next = jasmine.createSpy('next').and.returnValue(throwError(() => unauthorized));
+    refreshSpy.refresh.and.returnValue(throwError(() => new Error('refresh must not run')));
+
+    TestBed.runInInjectionContext(() => {
+      tokenRefreshInterceptor(req, next).subscribe({
+        error: (error) => {
+          expect(error).toBe(unauthorized);
+          expect(refreshSpy.refresh).not.toHaveBeenCalled();
+          done();
+        },
+      });
+    });
+  });
 });

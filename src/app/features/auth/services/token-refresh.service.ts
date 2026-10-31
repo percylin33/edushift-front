@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, finalize, map, shareReplay, tap, throwError } from 'rxjs';
+import { Observable, finalize, map, shareReplay, tap } from 'rxjs';
 import { AuthService } from '@core/services';
 import { AuthApiService } from './auth-api.service';
 
@@ -65,12 +65,8 @@ export class TokenRefreshService {
   refresh(): Observable<string> {
     if (this.inflight$) return this.inflight$;
 
-    const refreshToken = this.auth.refreshToken();
-    if (!refreshToken) {
-      return throwError(() => new Error('NO_REFRESH_TOKEN'));
-    }
-
-    this.inflight$ = this.authApi.refresh(refreshToken).pipe(
+    // SECURITY FIX: Refresh token is in httpOnly cookie, browser sends it automatically
+    this.inflight$ = this.authApi.refresh().pipe(
       /* Use `rotateTokens` (not `setSession`) so the cached rich
        * `User` (with roles/permissions from `/auth/me`) is preserved
        * across silent refreshes. `/auth/refresh` only returns the

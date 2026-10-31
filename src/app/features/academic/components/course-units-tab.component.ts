@@ -10,11 +10,24 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { firstValueFrom } from 'rxjs';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import {
+  ConfirmDialogService,
+  EmptyStateComponent,
+  IconComponent,
+  SpinnerComponent,
+} from '@shared/components';
+import { TenantApiService } from '@features/tenants';
 import { UnitsStore } from '../store';
-import { UnitDetail, UnitRow } from '../models';
+import {
+  DEFAULT_UNIT_COUNT,
+  MAX_UNIT_COUNT,
+  MIN_UNIT_COUNT,
+  UnitDetail,
+  UnitRow,
+} from '../models';
 import { AcademicApiService } from '../services';
 import { UnitFormModalComponent } from './unit-form-modal.component';
 
@@ -36,8 +49,8 @@ import { UnitFormModalComponent } from './unit-form-modal.component';
  *       {@code AcademicApiService.getUnit} para hidratar
  *       {@code description} (no presente en el list item) — espeja
  *       lo que hace {@code courses-list} con {@code CourseDetail}.</li>
- *   <li>El delete usa {@code window.confirm} (DEBT-UX-1, mismo
- *       patrón que levels-board y courses-list).</li>
+ *   <li>"Crear unidades estándar" siembra {@code Unidad 1}…N vía
+ *       {@code POST .../units/seed-defaults} (TENANT_ADMIN).</li>
  * </ul>
  */
 @Component({
@@ -46,6 +59,7 @@ import { UnitFormModalComponent } from './unit-form-modal.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
+    FormsModule,
     CdkDropList,
     CdkDrag,
     EmptyStateComponent,
@@ -54,7 +68,7 @@ import { UnitFormModalComponent } from './unit-form-modal.component';
     UnitFormModalComponent,
   ],
   template: `
-    <header class="mb-3 flex items-end justify-between gap-3">
+    <header class="mb-3 flex flex-wrap items-end justify-between gap-3">
       <div>
         <h3 class="text-base font-semibold text-content">Unidades</h3>
         <p class="text-sm text-content-muted">
@@ -62,16 +76,28 @@ import { UnitFormModalComponent } from './unit-form-modal.component';
           fecha contra el periodo del assignment, no contra el rango de la unidad.
         </p>
       </div>
-      <button
-        type="button"
-        class="btn btn-primary btn-sm"
-        [disabled]="saving() || !courseUuid()"
-        (click)="openCreate()"
-        aria-label="Nueva unidad"
-      >
-        <app-icon name="plus" [size]="14" />
-        <span class="hidden sm:inline" aria-hidden="true">Nueva unidad</span>
-      </button>
+      <div class="flex gap-2">
+        <button
+          type="button"
+          class="btn btn-outline btn-sm"
+          [disabled]="saving() || !courseUuid()"
+          (click)="openSeedModal()"
+          aria-label="Crear unidades estándar"
+        >
+          <app-icon name="sparkles" [size]="14" />
+          <span class="hidden sm:inline" aria-hidden="true">Crear unidades estándar</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          [disabled]="saving() || !courseUuid()"
+          (click)="openCreate()"
+          aria-label="Nueva unidad"
+        >
+          <app-icon name="plus" [size]="14" />
+          <span class="hidden sm:inline" aria-hidden="true">Nueva unidad</span>
+        </button>
+      </div>
     </header>
 
     <section class="card overflow-hidden">
@@ -92,11 +118,16 @@ import { UnitFormModalComponent } from './unit-form-modal.component';
         <app-empty-state
           icon="book-open"
           title="Aún no hay unidades en este curso"
-          description="Crea la primera para empezar a planificar sesiones."
+          description="Crea la primera a mano o siembra las unidades estándar del colegio."
         >
-          <button type="button" class="btn btn-primary btn-sm" (click)="openCreate()">
-            Nueva unidad
-          </button>
+          <div class="flex flex-wrap justify-center gap-2">
+            <button type="button" class="btn btn-outline btn-sm" (click)="openSeedModal()">
+              Crear unidades estándar
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" (click)="openCreate()">
+              Nueva unidad
+            </button>
+          </div>
         </app-empty-state>
       } @else {
         <ul
@@ -176,6 +207,83 @@ import { UnitFormModalComponent } from './unit-form-modal.component';
         (saved)="onSaved()"
       />
     }
+
+    @if (seedModalOpen()) {
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="seed-units-title"
+        (click)="closeSeedModal()"
+      >
+        <div class="card w-full max-w-md shadow-xl" (click)="$event.stopPropagation()">
+          <header class="card-header flex items-start justify-between gap-3">
+            <div>
+              <h2 id="seed-units-title" class="card-title">Crear unidades estándar</h2>
+              <p class="card-description">
+                Genera «Unidad 1» … «Unidad N». Si el curso ya tiene unidades, no se modifica nada.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm"
+              aria-label="Cerrar"
+              (click)="closeSeedModal()"
+            >
+              <app-icon name="x" [size]="18" />
+            </button>
+          </header>
+
+          <div class="card-body grid gap-4">
+            <div class="field">
+              <label class="label" for="seed-unit-count">Cantidad de unidades</label>
+              <input
+                id="seed-unit-count"
+                type="number"
+                class="input"
+                [min]="minUnitCount"
+                [max]="maxUnitCount"
+                [(ngModel)]="seedCount"
+                [disabled]="saving()"
+              />
+              <p class="field-hint">Entre {{ minUnitCount }} y {{ maxUnitCount }}. Predeterminado del colegio: {{ tenantDefaultCount() }}.</p>
+            </div>
+
+            <label class="flex items-start gap-2 text-sm text-content">
+              <input
+                type="checkbox"
+                class="mt-0.5"
+                [(ngModel)]="saveAsTenantDefault"
+                [disabled]="saving()"
+              />
+              <span>Guardar como predeterminado del colegio</span>
+            </label>
+          </div>
+
+          <footer class="card-footer flex justify-end gap-2">
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm"
+              [disabled]="saving()"
+              (click)="closeSeedModal()"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              [disabled]="saving() || !seedCountValid()"
+              (click)="confirmSeed()"
+            >
+              @if (saving()) {
+                <app-spinner [size]="14" />
+              }
+              Crear unidades
+            </button>
+          </footer>
+        </div>
+      </div>
+    }
   `,
   styles: [
     `
@@ -188,6 +296,8 @@ import { UnitFormModalComponent } from './unit-form-modal.component';
 export class CourseUnitsTabComponent implements OnChanges {
   private readonly store = inject(UnitsStore);
   private readonly api = inject(AcademicApiService);
+  private readonly tenantApi = inject(TenantApiService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   /**
    * UUID del curso al que pertenece el slice. Se setea desde el
@@ -206,6 +316,14 @@ export class CourseUnitsTabComponent implements OnChanges {
 
   protected readonly modalOpen = signal(false);
   protected readonly unitBeingEdited = signal<UnitDetail | null>(null);
+
+  protected readonly seedModalOpen = signal(false);
+  protected readonly tenantDefaultCount = signal(DEFAULT_UNIT_COUNT);
+  protected seedCount = DEFAULT_UNIT_COUNT;
+  protected saveAsTenantDefault = false;
+
+  protected readonly minUnitCount = MIN_UNIT_COUNT;
+  protected readonly maxUnitCount = MAX_UNIT_COUNT;
 
   /** Cantidad de unidades activas — handy para badges del tab padre. */
   readonly activeCount = computed(() => this.units().filter((u) => u.isActive).length);
@@ -270,13 +388,65 @@ export class CourseUnitsTabComponent implements OnChanges {
       unit.sessionCount > 0
         ? `\n\nLa unidad tiene ${unit.sessionCount} sesión(es) viva(s); el backend devolverá UNIT_HAS_SESSIONS.`
         : '';
-    const ok = confirm(
-      `¿Eliminar la unidad "${unit.name}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar unidad',
+      message:
+        `¿Eliminar la unidad "${unit.name}"?\n\n` +
         'Esta operación es reversible solo desde el backend.' +
         sessionWarn,
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.deleteUnit(unit.publicUuid);
+  }
+
+  // ===========================================================================
+  // Seed estándar
+  // ===========================================================================
+
+  protected async openSeedModal(): Promise<void> {
+    this.saveAsTenantDefault = false;
+    try {
+      const tenant = await firstValueFrom(this.tenantApi.findCurrent());
+      const academic = tenant.settings?.['academic'];
+      const raw =
+        academic && typeof academic === 'object' && academic !== null
+          ? (academic as Record<string, unknown>)['defaultUnitCount']
+          : undefined;
+      const parsed = typeof raw === 'number' ? raw : Number(raw);
+      const resolved =
+        Number.isFinite(parsed) && parsed >= MIN_UNIT_COUNT && parsed <= MAX_UNIT_COUNT
+          ? Math.trunc(parsed)
+          : DEFAULT_UNIT_COUNT;
+      this.tenantDefaultCount.set(resolved);
+      this.seedCount = resolved;
+    } catch {
+      this.tenantDefaultCount.set(DEFAULT_UNIT_COUNT);
+      this.seedCount = DEFAULT_UNIT_COUNT;
+    }
+    this.seedModalOpen.set(true);
+  }
+
+  protected closeSeedModal(): void {
+    this.seedModalOpen.set(false);
+  }
+
+  protected seedCountValid(): boolean {
+    const n = Number(this.seedCount);
+    return Number.isInteger(n) && n >= MIN_UNIT_COUNT && n <= MAX_UNIT_COUNT;
+  }
+
+  protected async confirmSeed(): Promise<void> {
+    if (!this.seedCountValid()) return;
+    const ok = await this.store.seedUnits({
+      count: Number(this.seedCount),
+      saveAsTenantDefault: this.saveAsTenantDefault,
+    });
+    if (ok) {
+      this.closeSeedModal();
+    }
   }
 
   // ===========================================================================

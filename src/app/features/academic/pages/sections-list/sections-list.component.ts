@@ -10,8 +10,13 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
-import { AcademicYearStatusBadgeComponent, SectionFormModalComponent } from '../../components';
+import {
+  ConfirmDialogService,
+  EmptyStateComponent,
+  IconComponent,
+  SpinnerComponent,
+} from '@shared/components';
+import { AcademicYearStatusBadgeComponent, SectionBulkSetupComponent, SectionFormModalComponent } from '../../components';
 import { AcademicStore } from '../../store';
 import {
   AcademicYearStatus,
@@ -40,6 +45,8 @@ import {
  *
  * <h3>Acciones</h3>
  * <ul>
+ *   <li><b>Configurar secciones</b> — panel de matriz nivel×grado×A/B/C
+ *       con creación masiva.</li>
  *   <li><b>Nueva sección</b> — abre {@link SectionFormModalComponent}
  *       con los filtros actuales como defaults.</li>
  *   <li><b>Click en fila</b> → navega a la vista detail (FE-4.3 stub
@@ -60,6 +67,7 @@ import {
     IconComponent,
     SpinnerComponent,
     AcademicYearStatusBadgeComponent,
+    SectionBulkSetupComponent,
     SectionFormModalComponent,
   ],
   template: `
@@ -68,7 +76,7 @@ import {
         <h2 class="text-lg font-semibold text-content">Secciones</h2>
         <p class="text-sm text-content-muted">
           Subdivisiones de un grado dentro de un año académico (ej.
-          <span class="font-medium">1ro Primaria — A</span>).
+          <span class="font-medium">3 años — A</span>).
         </p>
       </div>
       <button
@@ -83,6 +91,12 @@ import {
         <span class="hidden sm:inline" aria-hidden="true">Nueva sección</span>
       </button>
     </header>
+
+    <app-section-bulk-setup
+      [defaultYearUuid]="bulkDefaultYearUuid()"
+      (yearChange)="onBulkYearChange($event)"
+      (completed)="onBulkCompleted()"
+    />
 
     <!-- Toolbar -->
     <section class="card mb-4">
@@ -271,6 +285,7 @@ export class SectionsListComponent implements OnInit {
   private readonly store = inject(AcademicStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly years = this.store.years;
   protected readonly levels = this.store.levels;
@@ -332,6 +347,11 @@ export class SectionsListComponent implements OnInit {
     return y ? isSectionMutable(y.status) : false;
   });
 
+  /** Año por defecto del panel de setup masivo. */
+  protected readonly bulkDefaultYearUuid = computed(
+    () => this.yearFilter() ?? this.currentActive()?.publicUuid ?? null,
+  );
+
   // ===========================================================================
   // Lifecycle
   // ===========================================================================
@@ -364,6 +384,21 @@ export class SectionsListComponent implements OnInit {
   protected onYearChange(value: string | null): void {
     this.yearFilter.set(value);
     void this.syncAndReload();
+  }
+
+  /**
+   * El panel bulk alinea el filtro de año y limpia level/grade para
+   * cargar todas las secciones del año (presencia A/B/C correcta).
+   */
+  protected onBulkYearChange(yearId: string): void {
+    this.yearFilter.set(yearId);
+    this.levelFilter.set(null);
+    this.gradeFilter.set(null);
+    void this.syncAndReload();
+  }
+
+  protected async onBulkCompleted(): Promise<void> {
+    await this.applyServerFilters();
   }
 
   protected onLevelChange(value: string | null): void {
@@ -435,10 +470,15 @@ export class SectionsListComponent implements OnInit {
   }
 
   protected async confirmDelete(row: SectionRow): Promise<void> {
-    const ok = confirm(
-      `¿Eliminar la sección "${row.gradeName} ${row.name}" del año "${row.academicYearName}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar sección',
+      message:
+        `¿Eliminar la sección "${row.gradeName} ${row.name}" del año "${row.academicYearName}"?\n\n` +
         'Esta operación es reversible solo desde el backend.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.deleteSection(row.publicUuid);
   }

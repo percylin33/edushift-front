@@ -5,3 +5,4 @@ export * from './link-user-dialog.component';
 export * from './create-assignment-modal.component';
 export * from './teacher-assignments-tab.component';
 export * from './teacher-schedule-tab.component';
+export * from './teacher-bulk-import-modal.component';

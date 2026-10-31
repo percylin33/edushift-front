@@ -32,7 +32,7 @@ describe('PALETTE_SHADES', () => {
 
 describe('ALL_TENANT_VARS', () => {
   it('incluye todas las variables de tenant', () => {
-    const expected = THEME_TOKENS.primaryPalette.length + THEME_TOKENS.accentPalette.length + 2;
+    const expected = THEME_TOKENS.primaryPalette.length + THEME_TOKENS.accentPalette.length + 4;
     expect(ALL_TENANT_VARS.length).toBe(expected);
   });
 });

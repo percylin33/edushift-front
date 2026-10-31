@@ -38,8 +38,8 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
       <p>
         Esta cuenta funcionará como el espacio central de
         <strong class="text-content">{{ tenantName() }}</strong
-        >. En el siguiente paso configuraremos el branding (logo, color principal y nombre que verán
-        los usuarios) y luego activaremos tu institución.
+        >. En el siguiente paso configuraremos la identidad visual (logo, color principal y nombre
+        que verán los usuarios) y luego activaremos tu institución.
       </p>
       <p>El proceso toma menos de 3 minutos.</p>
     </div>

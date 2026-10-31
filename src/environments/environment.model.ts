@@ -73,6 +73,8 @@ export interface AppEnvironment {
     refreshTokenStorageKey: string;
     tokenHeaderName: string;
     tokenScheme: string;
+    /** SECURITY FIX: Send cookies with every request (httpOnly token storage) */
+    withCredentials: boolean;
   };
   /**
    * Google OAuth client wired by `angularx-social-login`. Only consulted
@@ -124,6 +126,8 @@ export interface AppEnvironment {
     announcements: boolean;
     schedule: boolean;
     family: boolean;
+    disclosures: boolean;
+    admissions: boolean;
     me: boolean;
     /**
      * Sprint 11 / PR-2 — "send email as the user via Gmail" toggle. Off
@@ -138,11 +142,11 @@ export interface AppEnvironment {
   };
   attendance: AttendanceScannerConfig;
   /**
-   * Firebase web SDK config. Used only by the Storage adapter for
-   * LMS files / reports / media. Note: these values are PUBLIC by
-   * Firebase's design — the security boundary is the Storage Security
-   * Rules + the BE-signed upload token, NOT hiding the config.
-   * Leave undefined to disable the Firebase adapter entirely.
+   * Optional Firebase web SDK config for browser push notifications.
+   * File uploads use backend-signed URLs and do not depend on this value.
+   * These client identifiers are public by design; the security boundary is
+   * Firebase rules and backend authorization, not hiding this configuration.
+   * Leave undefined until the matching environment's Firebase project exists.
    */
   firebase?: FirebaseConfig;
 }
@@ -154,4 +158,6 @@ export interface FirebaseConfig {
   storageBucket: string;
   messagingSenderId: string;
   appId: string;
+  /** Public Web Push certificate key from Firebase Cloud Messaging. */
+  messagingVapidKey?: string;
 }

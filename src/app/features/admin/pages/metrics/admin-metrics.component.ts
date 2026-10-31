@@ -12,6 +12,7 @@ import { AdminMetricsService } from '../../services';
         <h1 class="text-2xl font-bold text-white">Métricas</h1>
         <p class="mt-1 text-sm text-slate-400">Métricas detalladas por institución.</p>
       </div>
+      @if (svc.error(); as err) { <p class="mt-4 rounded-lg border border-amber-800 bg-amber-950/40 p-3 text-sm text-amber-200">{{ err }}</p> }
 
       <!-- Estudiantes -->
       <section class="mt-6">

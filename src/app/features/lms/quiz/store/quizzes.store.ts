@@ -53,6 +53,7 @@ export class QuizzesStore {
   // ---------------------------------------------------------------------------
   private readonly _saving = signal<boolean>(false);
   private readonly _error = signal<string | null>(null);
+  private _listRequestId = 0;
 
   // ---------------------------------------------------------------------------
   // Public read-only API
@@ -79,23 +80,35 @@ export class QuizzesStore {
    * filtros coinciden, no vuelve a fetchear. Si difieren, reemplaza
    * en sitio.
    */
-  async loadBySection(sectionUuid: string, filters: { status?: QuizStatus } = {}): Promise<void> {
+  async loadBySection(
+    sectionUuid: string,
+    filters: { status?: QuizStatus; assignmentPublicUuid?: string } = {},
+  ): Promise<void> {
     const sameSection = this._currentSectionUuid() === sectionUuid;
     const sameFilter = this._filters().status === (filters.status ?? undefined);
-    if (sameSection && sameFilter && this._rows().length > 0) return;
+    const sameAssignment =
+      (this._filters() as { assignmentPublicUuid?: string }).assignmentPublicUuid ===
+      (filters.assignmentPublicUuid ?? undefined);
+    if (sameSection && sameFilter && sameAssignment && this._rows().length > 0) return;
 
+    const requestId = ++this._listRequestId;
     this._currentSectionUuid.set(sectionUuid);
     this._filters.set(filters);
     this._loading.set(true);
     this._error.set(null);
     try {
       const rows = await firstValueFrom(this.api.listBySection(sectionUuid, filters));
+      if (requestId !== this._listRequestId) return;
       this._rows.set(rows);
+      this._error.set(null);
     } catch {
+      if (requestId !== this._listRequestId) return;
       this._rows.set([]);
-      this._error.set('No pudimos cargar los quizzes de la sección.');
+      this._error.set('No pudimos cargar las prácticas de la sección.');
     } finally {
-      this._loading.set(false);
+      if (requestId === this._listRequestId) {
+        this._loading.set(false);
+      }
     }
   }
 
@@ -118,7 +131,7 @@ export class QuizzesStore {
       return detail;
     } catch {
       this._selected.set(null);
-      this._error.set('No pudimos cargar el quiz. Es posible que haya sido eliminado.');
+      this._error.set('No pudimos cargar la práctica. Es posible que haya sido eliminada.');
       return null;
     } finally {
       this._loadingDetail.set(false);
@@ -145,7 +158,7 @@ export class QuizzesStore {
       this.refreshRowFromDetail(created);
       return created;
     } catch {
-      this._error.set('No pudimos crear el quiz. Revisa los datos e inténtalo de nuevo.');
+      this._error.set('No pudimos crear la práctica. Revisa los datos e inténtalo de nuevo.');
       return null;
     } finally {
       this._saving.set(false);
@@ -177,7 +190,7 @@ export class QuizzesStore {
       this.refreshRowFromDetail(published);
       return published;
     } catch {
-      this._error.set('No pudimos publicar el quiz. Verifica que tenga al menos una pregunta.');
+      this._error.set('No pudimos publicar la práctica. Verifica que tenga al menos una pregunta.');
       return null;
     } finally {
       this._saving.set(false);
@@ -193,7 +206,7 @@ export class QuizzesStore {
       this.refreshRowFromDetail(closed);
       return closed;
     } catch {
-      this._error.set('No pudimos cerrar el quiz.');
+      this._error.set('No pudimos cerrar la práctica.');
       return null;
     } finally {
       this._saving.set(false);
@@ -211,7 +224,7 @@ export class QuizzesStore {
       }
       return true;
     } catch {
-      this._error.set('No pudimos eliminar el quiz.');
+      this._error.set('No pudimos eliminar la práctica.');
       return false;
     } finally {
       this._saving.set(false);

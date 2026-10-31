@@ -5,7 +5,12 @@ import { CreateAssignmentModalComponent } from './create-assignment-modal.compon
 import { TeacherAssignmentsStore } from '../store';
 import { AcademicApiService } from '@features/academic/services';
 import { TeacherDetail } from '../models';
+import { AcademicPeriodRow, CourseRow, PeriodType, SectionRow } from '@features/academic/models';
 import { DocumentType, EmploymentStatus } from '@core/enums';
+
+function testFixture<T>(value: Partial<T>): T {
+  return value as T;
+}
 
 describe('CreateAssignmentModalComponent', () => {
   let fixture: ComponentFixture<CreateAssignmentModalComponent>;
@@ -15,10 +20,11 @@ describe('CreateAssignmentModalComponent', () => {
     error: ReturnType<typeof signal<string | null>>;
     clearError: jasmine.Spy;
     create: jasmine.Spy;
+    createCombinations: jasmine.Spy;
   };
   let fakeAcademic: jasmine.SpyObj<AcademicApiService>;
 
-  const teacher: TeacherDetail = {
+  const teacher: TeacherDetail = testFixture<TeacherDetail>({
     publicUuid: 't-1',
     documentType: DocumentType.Dni,
     documentNumber: '1',
@@ -28,7 +34,7 @@ describe('CreateAssignmentModalComponent', () => {
     specializations: [],
     employmentStatus: EmploymentStatus.Active,
     hasUserAccount: false,
-  } as any;
+  });
 
   function configureModule(): void {
     fakeStore = {
@@ -36,6 +42,9 @@ describe('CreateAssignmentModalComponent', () => {
       error: signal<string | null>(null),
       clearError: jasmine.createSpy('clearError'),
       create: jasmine.createSpy('create').and.returnValue(Promise.resolve(null)),
+      createCombinations: jasmine
+        .createSpy('createCombinations')
+        .and.returnValue(Promise.resolve(null)),
     };
     fakeAcademic = jasmine.createSpyObj<AcademicApiService>('AcademicApiService', [
       'listYears',
@@ -73,90 +82,137 @@ describe('CreateAssignmentModalComponent', () => {
     fakeAcademic.listYears.and.returnValue(of([]));
     fakeAcademic.listYears.and.throwError('boom');
     await component.ngOnInit();
-    expect((component as any).activeYear()).toBeNull();
-    expect((component as any).sections()).toEqual([]);
+    expect(component['activeYear']()).toBeNull();
+    expect(component['sections']()).toEqual([]);
   });
 
   it('isCourseApplicable false si level del curso no coincide con la sección', () => {
     configureModule();
-    fakeAcademic.listYears.and.returnValue(of([]));
-    (component as any).sections.set([
-      { publicUuid: 'sec-1', levelPublicUuid: 'lv-1', levelCode: 'PRI' } as any,
+    component['sections'].set([
+      testFixture<SectionRow>({ publicUuid: 'sec-1', levelPublicUuid: 'lv-1', levelCode: 'PRI' }),
     ]);
-    (component as any).sectionUuid.set('sec-1');
-    const course = {
+    component['sectionUuid'].set('sec-1');
+    const course = testFixture<CourseRow>({
       publicUuid: 'c-1',
       code: 'M',
       name: 'M',
-      levels: [{ publicUuid: 'lv-2' }],
-    } as any;
-    expect((component as any).isCourseApplicable(course)).toBeFalse();
+      isActive: true,
+      levels: [{ publicUuid: 'lv-2', code: 'M', name: 'M', ordinal: 2 }],
+    });
+    expect(component['isCourseApplicable'](course)).toBeFalse();
   });
 
-  it('isCourseApplicable true si levels vacío (sin restricción)', () => {
+  it('isCourseApplicable false si levels vacío (no aplica a ningún nivel)', () => {
     configureModule();
-    (component as any).sections.set([{ publicUuid: 'sec-1', levelPublicUuid: 'lv-1' } as any]);
-    (component as any).sectionUuid.set('sec-1');
-    const course = { publicUuid: 'c-1', levels: [] } as any;
-    expect((component as any).isCourseApplicable(course)).toBeTrue();
+    component['sections'].set([testFixture<SectionRow>({ publicUuid: 'sec-1', levelPublicUuid: 'lv-1' })]);
+    component['sectionUuid'].set('sec-1');
+    const course = testFixture<CourseRow>({ publicUuid: 'c-1', code: 'M', name: 'M', isActive: true, levels: [] });
+    expect(component['isCourseApplicable'](course)).toBeFalse();
   });
 
   it('isCourseApplicable true sin sección seleccionada', () => {
     configureModule();
-    const course = { publicUuid: 'c-1', levels: [{ publicUuid: 'lv-1' }] } as any;
-    expect((component as any).isCourseApplicable(course)).toBeTrue();
+    const course = testFixture<CourseRow>({ publicUuid: 'c-1', code: 'M', name: 'M', isActive: true, levels: [{ publicUuid: 'lv-1', code: 'M', name: 'M', ordinal: 1 }] });
+    expect(component['isCourseApplicable'](course)).toBeTrue();
   });
 
   it('canSubmit false si faltan section/course/period', () => {
     configureModule();
-    expect((component as any).canSubmit()).toBeFalse();
+    expect(component['canSubmit']()).toBeFalse();
   });
 
   it('canSubmit true con selección válida', () => {
     configureModule();
-    (component as any).sectionUuid.set('sec-1');
-    (component as any).courseUuid.set('c-1');
-    (component as any).periodUuid.set('p-1');
-    (component as any).courses.set([{ publicUuid: 'c-1', levels: [] } as any]);
-    expect((component as any).canSubmit()).toBeTrue();
+    component['sectionUuid'].set('sec-1');
+    component['selectedCourseUuids'].set(['c-1']);
+    component['periodUuid'].set('p-1');
+    expect(component['canSubmit']()).toBeTrue();
   });
 
-  it('onSectionChange limpia course si deja de aplicar', () => {
+  it('canSubmit true en modo todo el año', () => {
     configureModule();
-    (component as any).sections.set([{ publicUuid: 'sec-1', levelPublicUuid: 'lv-1' } as any]);
-    (component as any).courses.set([
-      { publicUuid: 'c-1', levels: [{ publicUuid: 'lv-99' }] } as any,
+    component['sectionUuid'].set('sec-1');
+    component['selectedCourseUuids'].set(['c-1']);
+    component['periods'].set([
+      testFixture<AcademicPeriodRow>({ publicUuid: 'p-1', academicYearPublicUuid: 'y-1', periodType: PeriodType.Bimestre, ordinal: 1, name: 'I Bimestre', startDate: new Date(2026, 2, 1), endDate: new Date(2026, 4, 30) }),
+      testFixture<AcademicPeriodRow>({ publicUuid: 'p-2', academicYearPublicUuid: 'y-1', periodType: PeriodType.Bimestre, ordinal: 2, name: 'II Bimestre', startDate: new Date(2026, 5, 1), endDate: new Date(2026, 7, 30) }),
     ]);
-    (component as any).courseUuid.set('c-1');
-    (component as any).sectionUuid.set('sec-1');
-    (component as any).onSectionChange('sec-1');
-    expect((component as any).courseUuid()).toBe('');
+    component['periodUuid'].set(component['ALL_YEAR_VALUE']);
+    expect(component['canSubmit']()).toBeTrue();
+    expect(component['plannedCount']()).toBe(2);
   });
 
-  it('onSubmit llama store con payload', async () => {
+  it('bulkPeriods prioriza bimestres sobre anual', () => {
     configureModule();
-    (component as any).sectionUuid.set('sec-1');
-    (component as any).courseUuid.set('c-1');
-    (component as any).periodUuid.set('p-1');
-    (component as any).courses.set([{ publicUuid: 'c-1', levels: [] } as any]);
-    fakeStore.create.and.returnValue(Promise.resolve({ publicUuid: 'a-1' }));
+    component['periods'].set([
+      testFixture<AcademicPeriodRow>({ publicUuid: 'a-1', academicYearPublicUuid: 'y-1', periodType: PeriodType.Anual, ordinal: 1, name: 'Año', startDate: new Date(2026, 2, 1), endDate: new Date(2026, 11, 31) }),
+      testFixture<AcademicPeriodRow>({ publicUuid: 'b-2', academicYearPublicUuid: 'y-1', periodType: PeriodType.Bimestre, ordinal: 2, name: 'II Bimestre', startDate: new Date(2026, 5, 1), endDate: new Date(2026, 7, 30) }),
+      testFixture<AcademicPeriodRow>({ publicUuid: 'b-1', academicYearPublicUuid: 'y-1', periodType: PeriodType.Bimestre, ordinal: 1, name: 'I Bimestre', startDate: new Date(2026, 2, 1), endDate: new Date(2026, 4, 30) }),
+    ]);
+    expect(component['bulkPeriods']().map((p) => p.publicUuid)).toEqual([
+      'b-1',
+      'b-2',
+    ]);
+  });
+
+  it('selectAllApplicableCourses marca todos los del nivel', () => {
+    configureModule();
+    component['sections'].set([testFixture<SectionRow>({ publicUuid: 'sec-1', levelPublicUuid: 'lv-1' })]);
+    component['sectionUuid'].set('sec-1');
+    component['courses'].set([
+      testFixture<CourseRow>({ publicUuid: 'c-1', code: 'M', name: 'M', isActive: true, levels: [{ publicUuid: 'lv-1', code: 'M', name: 'M', ordinal: 1 }] }),
+      testFixture<CourseRow>({ publicUuid: 'c-2', code: 'C', name: 'C', isActive: true, levels: [{ publicUuid: 'lv-1', code: 'C', name: 'C', ordinal: 1 }] }),
+      testFixture<CourseRow>({ publicUuid: 'c-3', code: 'L', name: 'L', isActive: true, levels: [{ publicUuid: 'lv-9', code: 'L', name: 'L', ordinal: 9 }] }),
+    ]);
+    component['selectAllApplicableCourses']();
+    expect(component['selectedCourseUuids']()).toEqual(['c-1', 'c-2']);
+  });
+
+  it('onSectionChange limpia cursos que dejan de aplicar', () => {
+    configureModule();
+    component['sections'].set([testFixture<SectionRow>({ publicUuid: 'sec-1', levelPublicUuid: 'lv-1' })]);
+    component['courses'].set([
+      testFixture<CourseRow>({ publicUuid: 'c-1', code: 'M', name: 'M', isActive: true, levels: [{ publicUuid: 'lv-99', code: 'M', name: 'M', ordinal: 99 }] }),
+    ]);
+    component['selectedCourseUuids'].set(['c-1']);
+    component['onSectionChange']('sec-1');
+    expect(component['selectedCourseUuids']()).toEqual([]);
+  });
+
+  it('onSubmit llama createCombinations con cursos × periodos', async () => {
+    configureModule();
+    fakeStore.createCombinations.and.returnValue(
+      Promise.resolve({ created: 4, skipped: 0 }),
+    );
+    component['sectionUuid'].set('sec-1');
+    component['selectedCourseUuids'].set(['c-1', 'c-2']);
+    component['periods'].set([
+      testFixture<AcademicPeriodRow>({ publicUuid: 'p-1', academicYearPublicUuid: 'y-1', periodType: PeriodType.Bimestre, ordinal: 1, name: 'I Bimestre', startDate: new Date(2026, 2, 1), endDate: new Date(2026, 4, 30) }),
+      testFixture<AcademicPeriodRow>({ publicUuid: 'p-2', academicYearPublicUuid: 'y-1', periodType: PeriodType.Bimestre, ordinal: 2, name: 'II Bimestre', startDate: new Date(2026, 5, 1), endDate: new Date(2026, 7, 30) }),
+    ]);
+    component['periodUuid'].set(component['ALL_YEAR_VALUE']);
     const created = jasmine.createSpy('created');
     component.created.subscribe(created);
-    await (component as any).onSubmit();
-    expect(fakeStore.create).toHaveBeenCalled();
+    await component['onSubmit']();
+    expect(fakeStore.createCombinations).toHaveBeenCalledWith(
+      't-1',
+      'sec-1',
+      ['c-1', 'c-2'],
+      ['p-1', 'p-2'],
+      undefined,
+    );
     expect(created).toHaveBeenCalled();
   });
 
   it('onSubmit no dispara si store devuelve null', async () => {
     configureModule();
-    (component as any).sectionUuid.set('sec-1');
-    (component as any).courseUuid.set('c-1');
-    (component as any).periodUuid.set('p-1');
-    (component as any).courses.set([{ publicUuid: 'c-1', levels: [] } as any]);
-    fakeStore.create.and.returnValue(Promise.resolve(null));
+    component['sectionUuid'].set('sec-1');
+    component['selectedCourseUuids'].set(['c-1']);
+    component['periodUuid'].set('p-1');
+    fakeStore.createCombinations.and.returnValue(Promise.resolve(null));
     const created = jasmine.createSpy('created');
     component.created.subscribe(created);
-    await (component as any).onSubmit();
+    await component['onSubmit']();
     expect(created).not.toHaveBeenCalled();
   });
 
@@ -164,13 +220,13 @@ describe('CreateAssignmentModalComponent', () => {
     configureModule();
     const closed = jasmine.createSpy('closed');
     component.closed.subscribe(closed);
-    (component as any).close();
+    component['close']();
     expect(fakeStore.clearError).toHaveBeenCalled();
     expect(closed).toHaveBeenCalled();
   });
 
   it('periodTypeLabel retorna etiqueta', () => {
     configureModule();
-    expect((component as any).periodTypeLabel('QUARTER')).toBeDefined();
+    expect(component['periodTypeLabel'](PeriodType.Bimestre)).toBe('Bimestre');
   });
 });

@@ -9,8 +9,11 @@ import {
   AddGuardianRequest,
   BulkImportJob,
   BulkImportJobResponseRaw,
+  BulkImportPreview,
+  BulkImportPreviewRaw,
   BulkImportRowError,
   BulkImportRowErrorRaw,
+  BulkImportUploadOptions,
   CreateEnrollmentRequest,
   CreateStudentRequest,
   EnrollmentDetail,
@@ -25,12 +28,14 @@ import {
   PortalInvitationResult,
   SectionStudentRosterItem,
   SectionStudentRosterItemRaw,
+  StudentPaymentRecipient,
   StudentDetail,
   StudentListFilters,
   StudentListItemRaw,
   StudentListPagination,
   StudentResponseRaw,
   StudentRow,
+  UpdateEnrollmentRequest,
   UpdateGuardianLinkRequest,
   UpdateStudentRequest,
   WithdrawEnrollmentRequest,
@@ -59,7 +64,7 @@ import {
  *   <li>{@link #getBulkImportJob} → {@code GET  /v1/students/bulk-import/{publicUuid}}</li>
  * </ul>
  *
- * <p>Adapters at the bottom narrow ISO timestamps to {@link Date} and
+ * <p>Adapters at the bottom narrow ISO dates and timestamps to {@link Date} and
  * surface backend nulls as {@code undefined} so consumers don't have
  * to keep ternarying their way through optional fields.
  */
@@ -95,6 +100,24 @@ export class StudentsApiService {
     return this.api
       .get<SpringPage<StudentListItemRaw>>(API.STUDENTS.ROOT, params)
       .pipe(map((page) => this.toStudentPage(page)));
+  }
+
+  /** Search only the identity fields needed to select an invoice recipient. */
+  listPaymentRecipients(
+    search: string,
+    pagination: StudentListPagination = {},
+  ): Observable<SpringPage<StudentPaymentRecipient>> {
+    const params: Record<string, string | number | undefined> = {
+      search: search.trim() || undefined,
+      page: pagination.page,
+      size: pagination.size,
+      sort: pagination.sort,
+    };
+
+    return this.api.get<SpringPage<StudentPaymentRecipient>>(
+      API.STUDENTS.PAYMENT_RECIPIENTS,
+      params,
+    );
   }
 
   get(publicUuid: string): Observable<StudentDetail> {
@@ -144,14 +167,48 @@ export class StudentsApiService {
   }
 
   /**
+   * Preview spreadsheet headers and suggested column mapping without
+   * creating a job.
+   */
+  previewBulkImport(file: File): Observable<BulkImportPreview> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http
+      .post<ApiResponse<BulkImportPreviewRaw>>(API.STUDENTS.BULK_IMPORT.PREVIEW, form)
+      .pipe(
+        map((envelope) => {
+          const raw = envelope.data;
+          return {
+            headers: raw.headers ?? [],
+            sampleRows: raw.sampleRows ?? [],
+            suggestedMapping: raw.suggestedMapping ?? {},
+            unmappedRequired: raw.unmappedRequired ?? [],
+          };
+        }),
+      );
+  }
+
+  /**
    * Enqueue a bulk-import job from an {@code .xlsx} workbook. Backend
    * responds {@code 202 Accepted} with the freshly-created job
    * (status {@code PENDING}, counters at zero); callers poll
    * {@link #getBulkImportJob} for progress.
    */
-  uploadBulkImport(file: File): Observable<BulkImportJob> {
+  uploadBulkImport(file: File, options?: BulkImportUploadOptions): Observable<BulkImportJob> {
     const form = new FormData();
     form.append('file', file, file.name);
+    if (options?.columnMapping) {
+      form.append('columnMapping', JSON.stringify(options.columnMapping));
+    }
+    if (options?.sectionPublicUuid) {
+      form.append('sectionPublicUuid', options.sectionPublicUuid);
+    }
+    if (options?.academicYearPublicUuid) {
+      form.append('academicYearPublicUuid', options.academicYearPublicUuid);
+    }
+    if (options?.enrolledAt) {
+      form.append('enrolledAt', options.enrolledAt);
+    }
     return this.http
       .post<ApiResponse<BulkImportJobResponseRaw>>(API.STUDENTS.BULK_IMPORT.ROOT, form)
       .pipe(map((envelope) => this.toBulkImportJob(envelope.data)));
@@ -307,6 +364,23 @@ export class StudentsApiService {
   }
 
   /**
+   * Actualiza {@code enrolledAt} de una matrícula ACTIVE.
+   * Errores: 409 {@code ENROLLMENT_DATE_OUT_OF_YEAR},
+   * 409 {@code ENROLLMENT_NOT_ACTIVE}, 404.
+   */
+  updateEnrollment(
+    enrollmentPublicUuid: string,
+    request: UpdateEnrollmentRequest,
+  ): Observable<EnrollmentDetail> {
+    return this.api
+      .patch<ApiResponse<EnrollmentResponseRaw>, UpdateEnrollmentRequest>(
+        API.ENROLLMENTS.BY_ID(enrollmentPublicUuid),
+        request,
+      )
+      .pipe(map((envelope) => this.toEnrollmentDetail(envelope.data)));
+  }
+
+  /**
    * Soft-end de matrícula. {@code status} debe ser terminal
    * ({@code WITHDRAWN | TRANSFERRED | GRADUATED}); ACTIVE lo
    * rechaza con 400 {@code INVALID_WITHDRAW_STATUS}.
@@ -359,7 +433,7 @@ export class StudentsApiService {
       fullName: raw.fullName,
       email: raw.email ?? undefined,
       enrollmentStatus: raw.enrollmentStatus,
-      enrollmentDate: this.parseDate(raw.enrollmentDate),
+      enrollmentDate: this.parseCalendarDate(raw.enrollmentDate),
     };
   }
 
@@ -372,13 +446,13 @@ export class StudentsApiService {
       lastName: raw.lastName,
       secondLastName: raw.secondLastName ?? undefined,
       fullName: raw.fullName,
-      birthDate: this.parseDate(raw.birthDate),
+      birthDate: this.parseCalendarDate(raw.birthDate),
       gender: raw.gender ?? undefined,
       email: raw.email ?? undefined,
       phone: raw.phone ?? undefined,
       address: raw.address ?? undefined,
       enrollmentStatus: raw.enrollmentStatus,
-      enrollmentDate: this.parseDate(raw.enrollmentDate),
+      enrollmentDate: this.parseCalendarDate(raw.enrollmentDate),
       userId: raw.userId ?? undefined,
       pendingInvitationPublicUuid: raw.pendingInvitationPublicUuid ?? undefined,
       metadata: raw.metadata ?? undefined,
@@ -467,7 +541,13 @@ export class StudentsApiService {
 
   private toRowErrors(raw: BulkImportRowErrorRaw[] | null | undefined): BulkImportRowError[] {
     if (!raw || raw.length === 0) return [];
-    return raw.map((e) => ({ row: e.row, code: e.code, message: e.message }));
+    return raw.map((e) => ({
+      row: e.row,
+      code: e.code,
+      message: e.message,
+      label: e.label ?? undefined,
+      fields: e.fields ?? undefined,
+    }));
   }
 
   private toEnrollmentRow(raw: EnrollmentListItemRaw): EnrollmentRow {
@@ -477,10 +557,11 @@ export class StudentsApiService {
       studentFullName: raw.studentFullName,
       sectionPublicUuid: raw.sectionPublicUuid,
       sectionName: raw.sectionName,
+      gradeName: raw.gradeName ?? null,
       academicYearPublicUuid: raw.academicYearPublicUuid,
       academicYearName: raw.academicYearName,
-      enrolledAt: this.parseDate(raw.enrolledAt),
-      withdrawnAt: this.parseDate(raw.withdrawnAt),
+      enrolledAt: this.parseCalendarDate(raw.enrolledAt),
+      withdrawnAt: this.parseCalendarDate(raw.withdrawnAt),
       status: raw.status,
       active: raw.active,
     };
@@ -494,10 +575,11 @@ export class StudentsApiService {
       studentDocumentNumber: raw.studentDocumentNumber,
       sectionPublicUuid: raw.sectionPublicUuid,
       sectionName: raw.sectionName,
+      gradeName: raw.gradeName ?? null,
       academicYearPublicUuid: raw.academicYearPublicUuid,
       academicYearName: raw.academicYearName,
-      enrolledAt: this.parseDate(raw.enrolledAt),
-      withdrawnAt: this.parseDate(raw.withdrawnAt),
+      enrolledAt: this.parseCalendarDate(raw.enrolledAt),
+      withdrawnAt: this.parseCalendarDate(raw.withdrawnAt),
       status: raw.status,
       active: raw.active,
       notes: raw.notes ?? undefined,
@@ -514,7 +596,7 @@ export class StudentsApiService {
       studentDocumentNumber: raw.studentDocumentNumber,
       studentDocumentType: raw.studentDocumentType,
       studentEmail: raw.studentEmail ?? undefined,
-      enrolledAt: this.parseDate(raw.enrolledAt),
+      enrolledAt: this.parseCalendarDate(raw.enrolledAt),
     };
   }
 
@@ -522,5 +604,31 @@ export class StudentsApiService {
     if (!value) return undefined;
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? undefined : d;
+  }
+
+  /**
+   * Calendar dates (birth/enrollment dates) are not instants. Some API
+   * responses serialize a LocalDate as YYYY-MM-DD and others as midnight
+   * UTC. Parse the calendar portion into local noon so displaying it in a
+   * timezone west of UTC cannot shift the day backwards. Keep true audit
+   * timestamps on parseDate so their exact instant is preserved.
+   */
+  private parseCalendarDate(value: string | null | undefined): Date | undefined {
+    if (!value) return undefined;
+    const match = /^(\d{4})-(\d{2})-(\d{2})(?:$|T)/.exec(value);
+    if (!match) return this.parseDate(value);
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(year, month - 1, day, 12);
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      return undefined;
+    }
+    return date;
   }
 }

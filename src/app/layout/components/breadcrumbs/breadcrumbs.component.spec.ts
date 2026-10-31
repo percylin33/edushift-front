@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BreadcrumbsComponent } from './breadcrumbs.component';
 import { BreadcrumbService } from '../../services';
@@ -5,14 +6,16 @@ import { BreadcrumbService } from '../../services';
 describe('BreadcrumbsComponent', () => {
   let component: BreadcrumbsComponent;
   let fixture: ComponentFixture<BreadcrumbsComponent>;
+  let breadcrumbsSignal: ReturnType<typeof signal>;
 
   beforeEach(async () => {
+    breadcrumbsSignal = signal([]);
     await TestBed.configureTestingModule({
       imports: [BreadcrumbsComponent],
       providers: [
         {
           provide: BreadcrumbService,
-          useValue: jasmine.createSpyObj('BreadcrumbService', [], { breadcrumbs: () => [] }),
+          useValue: { breadcrumbs: breadcrumbsSignal },
         },
       ],
     }).compileComponents();
@@ -31,9 +34,8 @@ describe('BreadcrumbsComponent', () => {
   });
 
   it('crumbs refleja las migas del servicio', () => {
-    const service = TestBed.inject(BreadcrumbService);
     const mockCrumbs = [{ label: 'Inicio', url: '/' }];
-    (service.breadcrumbs as unknown as jasmine.Spy).and.returnValue(mockCrumbs);
+    breadcrumbsSignal.set(mockCrumbs);
     expect(component.crumbs()).toEqual(mockCrumbs);
   });
 });

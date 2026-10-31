@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthService } from '@core/services';
-import { ROUTES } from '@core/constants';
 import { UserRole } from '@core/enums';
 import { IconComponent } from '@shared/components';
 

@@ -1,18 +1,18 @@
 import { Params } from '@angular/router';
 import { TenantService } from '@core/services/tenant.service';
+import { isLocalhostOrigin, tenantOriginForSlug } from './tenant-host';
 
 /**
  * Keep the school identity on the login URL after logout / 401.
  *
- * Local/dev uses {@code ?tenant={slug}}. Prod subdomain already identifies
- * the school; the query param is still harmless and lets a refresh of
- * {@code /auth/login} hydrate branding without relying on cache.
+ * On local hosts the hostname identifies the school; non-local legacy
+ * deployments keep their existing query-based link behavior.
  */
 export function pinSchoolForLogin(tenant: TenantService): string | null {
   const snapshot = tenant.tenant();
   const slug = snapshot?.slug?.trim().toLowerCase() || null;
   if (!slug) return null;
-  tenant.setTenant(snapshot, 'path');
+  tenant.setTenant(snapshot, 'subdomain');
   return slug;
 }
 
@@ -22,7 +22,7 @@ export function schoolLoginQueryParams(
 ): Params {
   const slug = pinSchoolForLogin(tenant);
   const params: Params = {};
-  if (slug) params['tenant'] = slug;
+  if (slug && !isLocalhostOrigin(window.location.origin)) params['tenant'] = slug;
   if (extra?.returnUrl) params['returnUrl'] = extra.returnUrl;
   return params;
 }
@@ -36,5 +36,9 @@ export function schoolInvitationAcceptUrl(
   const base = `${origin.replace(/\/$/, '')}/invitation/${encodeURIComponent(token)}`;
   const slug = tenantSlug?.trim().toLowerCase();
   if (!slug) return base;
+  if (isLocalhostOrigin(origin)) {
+    const path = `/invitation/${encodeURIComponent(token)}`;
+    return new URL(path, tenantOriginForSlug(origin, slug)).toString();
+  }
   return `${base}?tenant=${encodeURIComponent(slug)}`;
 }

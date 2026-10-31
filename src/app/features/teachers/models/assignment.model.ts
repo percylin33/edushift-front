@@ -18,9 +18,15 @@ export interface AssignmentListItemRaw {
   teacherFullName: string;
   sectionPublicUuid: string;
   sectionName: string;
+  /** Grade label denormalised from section (e.g. {@code "1ro Primaria"}). */
+  gradeName: string | null;
   coursePublicUuid: string;
   courseCode: string;
   courseName: string;
+  /** Optional hex `#RRGGBB` from Course; null → FE resolves by code. */
+  courseColor: string | null;
+  /** Optional Lucide icon key from Course; null → FE resolves by code. */
+  courseIcon: string | null;
   academicPeriodPublicUuid: string;
   periodType: PeriodType;
   periodOrdinal: number;
@@ -43,9 +49,12 @@ export interface AssignmentResponseRaw {
   teacherFullName: string;
   sectionPublicUuid: string;
   sectionName: string;
+  gradeName: string | null;
   coursePublicUuid: string;
   courseCode: string;
   courseName: string;
+  courseColor: string | null;
+  courseIcon: string | null;
   academicPeriodPublicUuid: string;
   periodType: PeriodType;
   periodOrdinal: number;
@@ -90,9 +99,12 @@ export interface AssignmentRow {
   teacherFullName: string;
   sectionPublicUuid: string;
   sectionName: string;
+  gradeName: string | null;
   coursePublicUuid: string;
   courseCode: string;
   courseName: string;
+  courseColor?: string | null;
+  courseIcon?: string | null;
   academicPeriodPublicUuid: string;
   periodType: PeriodType;
   periodOrdinal: number;
@@ -163,6 +175,19 @@ export interface AssignmentListFilters {
    * Cuando {@code true} (default del back), excluye las soft-ended.
    * Cuando {@code false}, incluye historial completo.
    */
+  active?: boolean;
+}
+
+/**
+ * Filtros del listado tenant-wide
+ * {@code GET /v1/teacher-assignments?teacherId&sectionId&courseId&periodId&active}.
+ */
+export interface TenantAssignmentListFilters {
+  teacherId?: string;
+  sectionId?: string;
+  courseId?: string;
+  periodId?: string;
+  /** Default true en el back. */
   active?: boolean;
 }
 

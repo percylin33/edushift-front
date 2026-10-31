@@ -6,6 +6,7 @@ import { AuthService, TenantService } from '@core/services';
 import { ROUTES } from '@core/constants';
 import { schoolLoginQueryParams } from '@core/navigation/school-login.navigation';
 import { AuthApiService } from '@features/auth/services/auth-api.service';
+import { PushNotificationsService } from '@features/notifications/services/push-notifications.service';
 
 /**
  * User dropdown anchored to the navbar. Click-outside is handled by a full
@@ -75,7 +76,7 @@ import { AuthApiService } from '@features/auth/services/auth-api.service';
             (click)="close()"
           >
             <app-icon name="help-circle" [size]="16" class="text-content-subtle" />
-            Manuales de usuario
+            Centro de pruebas
           </a>
           <a
             [routerLink]="['/settings']"
@@ -119,6 +120,7 @@ import { AuthApiService } from '@features/auth/services/auth-api.service';
 export class UserMenuComponent {
   private readonly auth = inject(AuthService);
   private readonly authApi = inject(AuthApiService);
+  private readonly pushNotifications = inject(PushNotificationsService);
   private readonly router = inject(Router);
   private readonly tenant = inject(TenantService);
 
@@ -135,7 +137,7 @@ export class UserMenuComponent {
     return user.fullName?.trim() || user.email;
   });
   readonly subtitle = computed(() => this.auth.user()?.roles?.[0] ?? null);
-  /** Help manuals index — public route, accessible from the user menu. */
+  /** Family UAT guide hub — same entry as sidebar “Centro de pruebas”. */
   protected readonly helpRoute = ROUTES.HELP.ROOT;
   readonly email = computed(() => this.auth.user()?.email ?? null);
 
@@ -154,21 +156,12 @@ export class UserMenuComponent {
 
   /**
    * Logout flow:
-   * <ol>
-   *   <li>Best-effort revoke the refresh token server-side so it can no
-   *       longer rotate (the backend treats this as idempotent — see
-   *       {@code docs/modules/auth.md} §2.3).</li>
-   *   <li>Wipe the local session unconditionally — even if the HTTP call
-   *       failed (network down, server restarting). Logout is a user
-   *       intent we never want to fail them out of.</li>
-   *   <li>Bounce to the login screen.</li>
-   * </ol>
-   * The HTTP call doesn't block the UI: we navigate as soon as the local
-   * session is cleared. The fire-and-forget subscribe is acceptable here
-   * because the response is 204 with no payload either way.
+   * Removes the browser's push token while the authenticated session is
+   * available, then best-effort revokes the refresh token. A short timeout
+   * keeps logout available if push cleanup stalls. The local session is
+   * always cleared even when either request fails.
    */
   signOut(): void {
-    const refresh = this.auth.refreshToken();
     const finishLocally = () => {
       this.auth.clearSession();
       this.close();
@@ -177,14 +170,20 @@ export class UserMenuComponent {
       });
     };
 
-    if (!refresh) {
-      finishLocally();
-      return;
-    }
+    const revokeSession = () => {
+      // The refresh token is an httpOnly cookie. The browser attaches it;
+      // the client never reads it.
+      this.authApi.logout().subscribe({
+        complete: () => finishLocally(),
+        error: () => finishLocally(),
+      });
+    };
 
-    this.authApi.logout(refresh).subscribe({
-      complete: () => finishLocally(),
-      error: () => finishLocally(),
-    });
+    // Remove this browser's FCM token while the authenticated session is
+    // still available. Logout must still finish if push cleanup fails/hangs.
+    void Promise.race([
+      this.pushNotifications.deactivateForCurrentDevice(),
+      new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+    ]).finally(revokeSession);
   }
 }

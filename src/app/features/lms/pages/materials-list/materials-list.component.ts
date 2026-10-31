@@ -1,10 +1,19 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
+import { filter, startWith } from 'rxjs/operators';
 import { ROUTES } from '@core/constants';
 import { Permission } from '@core/enums';
-import { AuthService } from '@core/services';
-import { EmptyStateComponent, IconComponent } from '@shared/components';
+import { AuthService, NotificationService } from '@core/services';
+import { ConfirmDialogService, EmptyStateComponent, IconComponent } from '@shared/components';
 import { HasPermissionDirective } from '@shared/directives';
 import { MaterialsStore } from '../../store';
 import { MaterialRow } from '../../models';
@@ -43,7 +52,13 @@ import { MaterialUploadDialogComponent } from '../../components';
     <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div class="min-w-0">
         <p class="text-xs uppercase tracking-wide text-content-muted">
-          <a [routerLink]="listRoute()" class="hover:underline">Aula virtual</a>
+          <a
+            [routerLink]="listRoute()"
+            [queryParams]="listQueryParams()"
+            class="hover:underline"
+          >
+            Aula virtual
+          </a>
         </p>
         <h1 class="text-2xl font-semibold text-content">Materiales</h1>
         <p class="text-sm text-content-muted">Recursos compartidos con la sección.</p>
@@ -110,6 +125,7 @@ import { MaterialUploadDialogComponent } from '../../components';
 
     <app-material-upload-dialog
       [open]="dialogOpen()"
+      [teacherAssignmentPublicUuid]="assignmentUuid()"
       [uploading]="uploading()"
       [uploadPercent]="uploadPercent()"
       (submitted)="onUpload($event)"
@@ -122,6 +138,9 @@ export class MaterialsListComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly notifications = inject(NotificationService);
 
   protected readonly rows = this.store.rows;
   protected readonly loading = this.store.loading;
@@ -130,17 +149,33 @@ export class MaterialsListComponent implements OnInit {
   protected readonly uploadPercent = this.store.uploadPercent;
   protected readonly permission = Permission;
   protected readonly dialogOpen = signal(false);
+  protected readonly assignmentUuid = signal<string | null>(null);
 
   #sectionUuid: string | null = null;
 
   ngOnInit(): void {
-    const sectionUuid = this.route.snapshot.paramMap.get('sectionUuid');
-    if (!sectionUuid) {
-      void this.router.navigate([ROUTES.LMS.ROOT]);
-      return;
-    }
-    this.#sectionUuid = sectionUuid;
-    void this.store.loadBySection(sectionUuid);
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        startWith(null),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => {
+        const sectionUuid = this.route.snapshot.paramMap.get('sectionUuid');
+        if (!sectionUuid) {
+          void this.router.navigate([ROUTES.LMS.ROOT]);
+          return;
+        }
+        const assignment = this.route.snapshot.queryParamMap.get('assignment');
+        const sectionChanged = sectionUuid !== this.#sectionUuid;
+        const assignmentChanged = assignment !== this.assignmentUuid();
+        if (!sectionChanged && !assignmentChanged && this.#sectionUuid) return;
+        this.#sectionUuid = sectionUuid;
+        this.assignmentUuid.set(assignment);
+        void this.store.loadBySection(sectionUuid, {
+          assignmentPublicUuid: assignment ?? undefined,
+        });
+      });
   }
 
   protected listRoute(): string {
@@ -148,13 +183,26 @@ export class MaterialsListComponent implements OnInit {
     return ROUTES.LMS.sectionAssignments(this.#sectionUuid);
   }
 
+  protected listQueryParams(): { assignment: string } | null {
+    const assignment = this.assignmentUuid();
+    return assignment ? { assignment } : null;
+  }
+
   protected reload(): void {
     if (!this.#sectionUuid) return;
     this.store.clearError();
-    void this.store.loadBySection(this.#sectionUuid);
+    void this.store.loadBySection(this.#sectionUuid, {
+      assignmentPublicUuid: this.assignmentUuid() ?? undefined,
+    });
   }
 
   protected onOpenDialog(): void {
+    if (!this.assignmentUuid()) {
+      this.notifications.info(
+        'Selecciona una materia en el selector del aula antes de subir material.',
+      );
+      return;
+    }
     this.dialogOpen.set(true);
   }
 
@@ -169,9 +217,13 @@ export class MaterialsListComponent implements OnInit {
   }
 
   protected async onDelete(row: MaterialRow): Promise<void> {
-    const ok = window.confirm(
-      `¿Eliminar el material "${row.title}"? Esta acción no se puede deshacer.`,
-    );
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar material',
+      message: `¿Eliminar el material "${row.title}"? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.remove(row.publicUuid);
   }

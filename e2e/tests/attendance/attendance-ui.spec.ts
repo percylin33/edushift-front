@@ -144,7 +144,7 @@ test.describe('Attendance — UI', () => {
       const token = (await loginRes.json()).accessToken;
 
       const ctx = await playwrightRequest.newContext({
-        baseURL: 'http://localhost:8081',
+        baseURL: 'http://localhost:8080',
         extraHTTPHeaders: {
           Authorization: `Bearer ${token}`,
           'X-Tenant-Slug': 'tecnosur',

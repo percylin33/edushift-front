@@ -73,6 +73,7 @@ export class AuthApiService {
       .post<AuthResponseRaw & { mfaToken?: string | null; expiresInSec?: number }>(
         API.AUTH.LOGIN,
         payload,
+        { withCredentials: true },
       )
       .pipe(
         map((raw) => {
@@ -111,21 +112,23 @@ export class AuthApiService {
 
   /**
    * Revoke the refresh token server-side. Idempotent on the backend (a
-   * malformed / unknown / already-revoked token still returns 204), but
-   * it requires the token in the body — Sprint 1 does not enforce bearer
-   * auth on this endpoint precisely so a client whose access token has
-   * expired can still log out.
+   * malformed / unknown / already-revoked token still returns 204).
+   * The token lives in the httpOnly cookie, which the browser sends
+   * automatically. An explicit body is only for callers that still hold
+   * the token in memory.
    */
-  logout(refreshToken: string): Observable<void> {
-    const body: RefreshTokenRequest = { refreshToken };
+  logout(refreshToken?: string): Observable<void> {
+    const body: RefreshTokenRequest | undefined = refreshToken
+      ? { refreshToken }
+      : undefined;
     return this.api.post<void, RefreshTokenRequest>(API.AUTH.LOGOUT, body);
   }
 
-  /** Rotate the refresh token. Replaying an already-rotated token poisons the chain (theft detection). */
-  refresh(refreshToken: string): Observable<AuthSession> {
-    const body: RefreshTokenRequest = { refreshToken };
+  /** Rotate the refresh token. Replaying an already-rotated token poisons the chain (theft detection).
+   *  SECURITY FIX: Refresh token is now in httpOnly cookie, browser sends it automatically. */
+  refresh(): Observable<AuthSession> {
     return this.api
-      .post<AuthResponseRaw, RefreshTokenRequest>(API.AUTH.REFRESH, body)
+      .post<AuthResponseRaw>(API.AUTH.REFRESH)
       .pipe(map(toAuthSession));
   }
 
@@ -137,6 +140,46 @@ export class AuthApiService {
   me(): Observable<User> {
     return this.api
       .get<ApiResponse<UserResponseRaw>>(API.AUTH.ME)
+      .pipe(map((envelope) => toUser(envelope.data)));
+  }
+
+  /** CRED-7 — change password; clears mustChangePassword. */
+  changePassword(currentPassword: string, newPassword: string): Observable<User> {
+    return this.api
+      .patch<ApiResponse<UserResponseRaw>, { currentPassword: string; newPassword: string }>(
+        API.AUTH.ME_PASSWORD,
+        { currentPassword, newPassword },
+      )
+      .pipe(map((envelope) => toUser(envelope.data)));
+  }
+
+  /** CRED-7 — first-login onboarding status (role-aware required fields). */
+  getOnboarding(): Observable<OnboardingMe> {
+    return this.api
+      .get<ApiResponse<OnboardingMe>>(API.AUTH.ME_ONBOARDING)
+      .pipe(map((envelope) => envelope.data));
+  }
+
+  /** CRED-7 — complete first-login (password + light profile + padrón write-back). */
+  completeOnboarding(payload: CompleteOnboardingPayload): Observable<User> {
+    return this.api
+      .patch<ApiResponse<UserResponseRaw>, CompleteOnboardingPayload>(
+        API.AUTH.ME_ONBOARDING,
+        payload,
+      )
+      .pipe(map((envelope) => toUser(envelope.data)));
+  }
+
+  /** CRED-7 — self-service profile / email update. */
+  updateMe(payload: {
+    firstName?: string | null;
+    lastName?: string | null;
+    secondLastName?: string | null;
+    phone?: string | null;
+    email?: string | null;
+  }): Observable<User> {
+    return this.api
+      .patch<ApiResponse<UserResponseRaw>, typeof payload>(API.AUTH.ME, payload)
       .pipe(map((envelope) => toUser(envelope.data)));
   }
 
@@ -220,4 +263,30 @@ export class AuthApiService {
       payload,
     );
   }
+}
+
+/** Wire shape of GET /auth/me/onboarding (CRED-7). */
+export interface OnboardingMe {
+  role: string;
+  mustChangePassword: boolean;
+  emailSource: string | null;
+  emailIsSynthetic: boolean;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  email: string | null;
+  birthDate: string | null;
+  address: string | null;
+  requiredFields: string[];
+  optionalFields: string[];
+}
+
+export interface CompleteOnboardingPayload {
+  newPassword: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  birthDate?: string | null;
+  address?: string | null;
 }

@@ -8,13 +8,13 @@ import {
   AfterViewChecked,
   inject,
   signal,
-  computed,
 } from '@angular/core';
 import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ChatService, ChatSession, ChatMessage, ChatChunk } from '../../services/chat.service';
 import { EmptyStateComponent, IconComponent } from '@shared/components';
 import { firstValueFrom } from 'rxjs';
+import { readErrorMessage } from '@core/utils/error.utils';
 
 /**
  * AI chat page (FE-8.3).
@@ -206,8 +206,8 @@ export class ChatPageComponent implements OnInit, AfterViewChecked {
       const s = await firstValueFrom(this.chat.createSession());
       this.sessions.update((arr) => [s, ...arr]);
       await this.selectSession(s);
-    } catch (e: any) {
-      this.error.set(e?.message ?? 'No se pudo crear la conversacion.');
+    } catch (e: unknown) {
+      this.error.set(readErrorMessage(e, 'No se pudo crear la conversacion.'));
     } finally {
       this.busy.set(false);
     }
@@ -221,8 +221,8 @@ export class ChatPageComponent implements OnInit, AfterViewChecked {
       const msgs = await firstValueFrom(this.chat.listMessages(s.publicUuid));
       this.messages.set(msgs);
       this.shouldScroll = true;
-    } catch (e: any) {
-      this.error.set(e?.message ?? 'No se pudieron cargar los mensajes.');
+    } catch (e: unknown) {
+      this.error.set(readErrorMessage(e, 'No se pudieron cargar los mensajes.'));
     }
   }
 

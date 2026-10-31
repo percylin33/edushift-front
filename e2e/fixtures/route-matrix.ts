@@ -501,7 +501,7 @@ export const ROUTE_SMOKE_MATRIX: RouteSmokeEntry[] = [
   {
     path: '/attendance',
     id: 'attendance',
-    note: 'roleGuard TEACHER | TENANT_ADMIN',
+    note: 'redirect → /attendance/scanner; roleGuard TEACHER | TENANT_ADMIN',
     expectations: {
       ...PRIV,
       'tenant-admin': 'ok',

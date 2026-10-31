@@ -1,3 +1,4 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -137,7 +138,7 @@ interface CriteriaLevels {
                 @if (showError('name'); as msg) {
                   <p class="field-error">{{ msg }}</p>
                 } @else {
-                  <p class="field-hint">Único en el tenant (case-insensitive).</p>
+                  <p class="field-hint">Único en la institución. No distingue mayúsculas y minúsculas.</p>
                 }
               </div>
               <div class="field">
@@ -201,6 +202,12 @@ interface CriteriaLevels {
   `,
 })
 export class RubricFormComponent implements OnInit, OnDestroy {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => [this.metaForm.getRawValue(), this.value],
+    saving: () => this.saving(),
+    active: () => !this.isReadonly() && !this.loading(),
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -256,7 +263,6 @@ export class RubricFormComponent implements OnInit, OnDestroy {
 
   /** Builds the SSE request body from the current form state. */
   protected readonly aiRubricRequestBody = computed(() => {
-    const meta = this.metaForm.getRawValue();
     const criteriaNames = this.value.criteria
       .map((c) => c.name?.trim())
       .filter((n): n is string => !!n && n.length > 0);
@@ -410,6 +416,7 @@ export class RubricFormComponent implements OnInit, OnDestroy {
         };
         const updated = await this.store.update(e.publicUuid, patch);
         if (updated) {
+          this.formProtection.markSaved();
           await this.router.navigate([ROUTES.RUBRICS.detail(updated.publicUuid)]);
         }
       } else {
@@ -421,6 +428,7 @@ export class RubricFormComponent implements OnInit, OnDestroy {
         };
         const created = await this.store.create(payload);
         if (created) {
+          this.formProtection.markSaved();
           await this.router.navigate([ROUTES.RUBRICS.detail(created.publicUuid)]);
         }
       }

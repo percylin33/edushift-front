@@ -22,6 +22,7 @@ import {
 import { AuthApiService } from '@features/auth/services/auth-api.service';
 import { UsersApiService } from '../../services';
 import { InvitationPreflight } from '../../models';
+import { extractApiError, mapHttpError, passwordPolicyMessage, passwordPolicyValidator } from '@shared/utils';
 
 /**
  * Public landing for redeeming an invitation token.
@@ -66,7 +67,7 @@ import { InvitationPreflight } from '../../models';
             ¡Bienvenido{{ p.firstName ? ', ' + p.firstName : '' }}!
           </h1>
           <p class="text-sm text-content-muted">
-            Estás a un paso de unirte al workspace. Crea una contraseña para activar tu cuenta.
+            Estás a un paso de unirte a tu institución. Crea una contraseña para activar tu cuenta.
           </p>
         </header>
 
@@ -93,8 +94,9 @@ import { InvitationPreflight } from '../../models';
             label="Contraseña"
             autocomplete="new-password"
             placeholder="Mínimo 8 caracteres"
-            [maxlength]="128"
-            hint="Al menos 8 caracteres. Recomendamos una frase larga."
+            [maxlength]="72"
+            [error]="passwordError()"
+            hint="8–72 caracteres, con mayúscula, minúscula y número."
           />
 
           <app-password-field
@@ -114,7 +116,7 @@ import { InvitationPreflight } from '../../models';
         </form>
 
         <p class="text-center text-xs text-content-muted">
-          Al activar aceptas los términos del workspace
+          Al activar aceptas los términos de uso de
           <span class="font-medium text-content">{{ p.tenantName }}</span
           >.
         </p>
@@ -164,7 +166,7 @@ export class InvitationAcceptComponent implements OnInit {
 
   protected readonly form: FormGroup = this.fb.nonNullable.group(
     {
-      password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
+      password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(72), passwordPolicyValidator]],
       passwordConfirm: ['', [Validators.required]],
     },
     { validators: [this.passwordsMatch] },
@@ -187,12 +189,22 @@ export class InvitationAcceptComponent implements OnInit {
     return !!this.form.errors?.['passwordsMismatch'];
   }
 
+  protected passwordError(): string | null {
+    const control = this.passwordCtrl;
+    if (!control.touched || !control.errors) return null;
+    if (control.errors['required']) return 'Crea una contraseña para activar tu cuenta.';
+    if (control.errors['minlength'] || control.errors['maxlength'] || control.errors['passwordPolicy']) {
+      return passwordPolicyMessage(control.value);
+    }
+    return null;
+  }
+
   protected canSubmit(): boolean {
-    return !!this.preflight() && this.passwordCtrl.value.length >= 8 && !this.passwordsMismatch();
+    return !!this.preflight() && this.form.valid;
   }
 
   private token: string | null = null;
-  /** Claimed school from `?tenant=` (UAT-CD-11). */
+  /** Optional legacy claim; local invitation links identify the school by host. */
   private claimedTenantSlug: string | null = null;
 
   async ngOnInit(): Promise<void> {
@@ -215,7 +227,7 @@ export class InvitationAcceptComponent implements OnInit {
       ) {
         this.blockerTitle.set('Invitación de otro colegio');
         this.blockerMessage.set(
-          'Este enlace no pertenece al colegio indicado en la URL. Usa el enlace original sin modificar el parámetro tenant.',
+          'Este enlace corresponde a otro colegio. Usa el enlace original que recibiste.',
         );
         this.preflight.set(null);
         return;
@@ -271,8 +283,7 @@ export class InvitationAcceptComponent implements OnInit {
 
   private applyPreflightError(err: unknown): void {
     if (err instanceof HttpErrorResponse) {
-      const apiErr = (err.error as { error?: { code?: string } } | null | undefined)?.error;
-      const code = apiErr?.code ?? '';
+      const code = extractApiError(err)?.code ?? '';
 
       if (err.status === 404) {
         this.blockerTitle.set('Enlace no encontrado');
@@ -284,7 +295,7 @@ export class InvitationAcceptComponent implements OnInit {
       if (err.status === 403) {
         this.blockerTitle.set('Invitación de otro colegio');
         this.blockerMessage.set(
-          'Este enlace no pertenece al colegio indicado en la URL. Usa el enlace original sin modificar el parámetro tenant.',
+          'Este enlace corresponde a otro colegio. Usa el enlace original que recibiste.',
         );
         return;
       }
@@ -309,6 +320,8 @@ export class InvitationAcceptComponent implements OnInit {
         return 'El administrador canceló esta invitación. Pídele uno nuevo.';
       case 'INVITATION_EXPIRED':
         return 'El enlace expiró antes de ser activado. Solicita una nueva invitación.';
+      case 'INVITATION_TENANT_MISMATCH':
+        return 'Este enlace pertenece a otra institución. Abre el enlace original que recibiste.';
       default:
         return 'El enlace ya no se puede usar. Pídele al administrador uno nuevo.';
     }
@@ -316,13 +329,9 @@ export class InvitationAcceptComponent implements OnInit {
 
   private toErrorMessage(err: unknown): string {
     if (err instanceof HttpErrorResponse) {
-      const apiErr = (err.error as { error?: { message?: string } } | null | undefined)?.error;
-      if (apiErr?.message) return apiErr.message;
-      if (err.status === 0) return 'No pudimos contactar al servidor. Revisa tu conexión.';
-    }
-    if (err && typeof err === 'object') {
-      const msg = (err as { message?: unknown }).message;
-      if (typeof msg === 'string') return msg;
+      const code = extractApiError(err)?.code;
+      if (code === 'WEAK_PASSWORD') return passwordPolicyMessage(this.passwordCtrl.value);
+      return mapHttpError(err, { fallback: 'No pudimos activar tu cuenta. Inténtalo de nuevo.' });
     }
     return 'No pudimos activar tu cuenta. Inténtalo de nuevo.';
   }

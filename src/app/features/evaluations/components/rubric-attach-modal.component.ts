@@ -1,3 +1,4 @@
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -29,14 +30,14 @@ import { firstValueFrom } from 'rxjs';
   selector: 'app-rubric-attach-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, IconComponent, SpinnerComponent, RubricSystemBadgeComponent],
+  imports: [SafeBackdropDirective, CommonModule, IconComponent, SpinnerComponent, RubricSystemBadgeComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="rubric-attach-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card flex max-h-[90vh] w-full max-w-2xl flex-col shadow-xl"

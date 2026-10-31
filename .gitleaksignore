@@ -1,0 +1,20 @@
+# Exact historical Firebase client configuration findings.
+# Firebase browser API key is restricted to educhief.pe and its subdomains.
+# The VAPID key is public by design. New findings remain subject to Gitleaks.
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:.angular/disclosures-build-check/browser/chunk-Z4FZ7PLV.js:gcp-api-key:1
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:.angular/disclosures-build-check/browser/chunk-Z4FZ7PLV.js:generic-api-key:1
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:dist-phase1-final-checked/browser/chunk-K6EPV3R4.js:gcp-api-key:1
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:dist-phase1-final-checked/browser/chunk-K6EPV3R4.js:generic-api-key:1
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:dist-phase1-final-clean/browser/chunk-3BX7EXWA.js:gcp-api-key:1
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:dist-phase1-final-clean/browser/chunk-3BX7EXWA.js:generic-api-key:1
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:dist-phase1-final/browser/chunk-3BX7EXWA.js:gcp-api-key:1
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:dist-phase1-final/browser/chunk-3BX7EXWA.js:generic-api-key:1
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:dist-phase1-final/browser/ngsw.json:generic-api-key:423
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:dist-phase1-final/browser/ngsw.json:generic-api-key:485
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:dist-phase1-history/browser/chunk-K6EPV3R4.js:generic-api-key:1
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:dist-phase1-history/browser/chunk-K6EPV3R4.js:gcp-api-key:1
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:dist-phase2/browser/chunk-Z4FZ7PLV.js:gcp-api-key:1
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:dist-phase2/browser/chunk-Z4FZ7PLV.js:generic-api-key:1
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:src/environments/environment.production.ts:gcp-api-key:83
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:src/environments/environment.development.ts:generic-api-key:99
+8c8df5c6fc2202e53c6579c3cb6ddf858eff8506:src/environments/environment.development.ts:gcp-api-key:93

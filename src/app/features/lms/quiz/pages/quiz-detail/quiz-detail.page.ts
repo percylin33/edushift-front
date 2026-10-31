@@ -100,7 +100,7 @@ import { isQuizCloseable, isQuizEditable, isQuizPublishable } from '../../models
             @if (q.status === 'PUBLISHED') {
               <a [routerLink]="takeRoute(q.publicUuid)" class="btn btn-primary btn-sm">
                 <app-icon name="play" [size]="14" />
-                Tomar quiz
+                Tomar práctica
               </a>
             }
           </ng-container>
@@ -169,7 +169,7 @@ import { isQuizCloseable, isQuizEditable, isQuizPublishable } from '../../models
 
           @if (q.questions.length === 0) {
             <p class="text-sm text-content-muted">
-              Este quiz aún no tiene preguntas.
+              Esta práctica aún no tiene preguntas.
               @if (canEdit()) {
                 <a [routerLink]="editRoute(q.publicUuid)" class="link link-primary">
                   Añade la primera pregunta
@@ -251,7 +251,7 @@ import { isQuizCloseable, isQuizEditable, isQuizPublishable } from '../../models
       <div class="alert alert-danger" role="alert">
         <app-icon name="alert-circle" [size]="18" />
         <div class="flex-1">
-          <p class="font-medium">No pudimos cargar el quiz.</p>
+          <p class="font-medium">No pudimos cargar la práctica.</p>
           <p class="text-xs opacity-80">{{ errorBanner() }}</p>
         </div>
         <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">

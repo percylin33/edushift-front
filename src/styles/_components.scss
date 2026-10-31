@@ -20,7 +20,15 @@
   }
 
   .btn-primary {
-    @apply bg-primary-600 text-white hocus:bg-primary-700;
+    @apply text-white;
+    background-color: rgb(var(--color-action-primary));
+    &:hover, &:focus-visible {
+      background-color: rgb(var(--color-action-primary-hover));
+    }
+    &:focus-visible {
+      outline: 2px solid rgb(var(--color-content));
+      outline-offset: 2px;
+    }
   }
   .btn-secondary {
     @apply bg-surface-muted text-content hocus:bg-border;
@@ -69,11 +77,20 @@
 
   /* ---------- Forms (use with `class` strategy of @tailwindcss/forms) ---------- */
   .input,
-  .select,
   .textarea {
     @apply form-input w-full rounded-md
            border border-border bg-surface text-content
            placeholder:text-content-subtle
+           focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30
+           disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  /* form-select (not form-input): restores the dropdown chevron after
+   * appearance:none. Using form-input on <select> hid the caret and made
+   * fields look like plain text inputs. */
+  .select {
+    @apply form-select w-full rounded-md
+           border border-border bg-surface text-content
            focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30
            disabled:cursor-not-allowed disabled:opacity-60;
   }

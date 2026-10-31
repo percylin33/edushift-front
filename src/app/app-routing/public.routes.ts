@@ -1,26 +1,47 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
-import { AuthLayoutComponent, OnboardingLayoutComponent } from '@layout/index';
-import { featureFlagGuard, guestGuard } from '@core/guards';
+import { authChildGuard, featureFlagGuard, tenantHostGuard } from '@core/guards';
 import { FeatureKey } from '@core/enums';
 
 /**
- * Routes that don't require an authenticated session.
+ * Routes that don't require an authenticated session (plus auth shell
+ * pages that do, e.g. MFA enroll / CRED-7 first-login).
  *
  * Two distinct shells:
- *   - `AuthLayoutComponent`       → login / forgot / reset (two-pane branding)
+ *   - `AuthLayoutComponent`       → login / forgot / reset / first-login
  *   - `OnboardingLayoutComponent` → multi-step wizard (header + stepper + card)
  *
- * Both apply `guestGuard` so already-signed-in users are redirected away,
- * keeping the public area noise-free for authenticated sessions.
+ * Per-route {@code guestGuard} keeps login/register free of signed-in noise;
+ * authenticated-only auth pages declare {@code authChildGuard} themselves.
  */
 export const PUBLIC_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
+    path: 'public/admissions/:tenantSlug',
+    data: { title: 'Consulta de admisión' },
+    loadComponent: () =>
+      import('@features/admissions/pages/admissions-public-form.page').then(
+        (m) => m.PublicAdmissionsPageComponent,
+      ),
+  },
+  {
+    canDeactivate: [pendingChangesGuard],
+    path: 'public/admissions/:tenantSlug/offer/:token',
+    data: { title: 'Confirmar oferta de vacante' },
+    loadComponent: () =>
+      import('@features/admissions/pages/admissions-public-form.page').then(
+        (m) => m.PublicAdmissionsPageComponent,
+      ),
+  },
+  {
+    canDeactivate: [pendingChangesGuard],
     path: '',
-    component: AuthLayoutComponent,
+    loadComponent: () =>
+      import('@layout/auth-layout/auth-layout.component').then((m) => m.AuthLayoutComponent),
     children: [
       {
         path: 'auth',
-        canActivate: [guestGuard, featureFlagGuard],
+        canActivate: [featureFlagGuard],
         data: { feature: FeatureKey.Auth, title: 'Acceso' },
         loadChildren: () => import('@features/auth/auth.routes').then((m) => m.AUTH_ROUTES),
       },
@@ -36,7 +57,9 @@ export const PUBLIC_ROUTES: Routes = [
        * just create dead links that don't even render the error copy.
        */
       {
+        canDeactivate: [pendingChangesGuard],
         path: 'invitation/:token',
+        canActivate: [tenantHostGuard],
         data: { title: 'Activar cuenta' },
         loadComponent: () =>
           import('@features/users/pages/invitation-accept/invitation-accept.component').then(
@@ -46,8 +69,13 @@ export const PUBLIC_ROUTES: Routes = [
     ],
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'onboarding',
-    component: OnboardingLayoutComponent,
+    canActivateChild: [authChildGuard],
+    loadComponent: () =>
+      import('@layout/onboarding-layout/onboarding-layout.component').then(
+        (m) => m.OnboardingLayoutComponent,
+      ),
     data: { title: 'Onboarding' },
     loadChildren: () =>
       import('@features/onboarding/onboarding.routes').then((m) => m.ONBOARDING_ROUTES),

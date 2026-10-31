@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -18,6 +20,7 @@ import {
   COMMENTS_MAX_LENGTH,
   CreateGradeRecordRequest,
   GradeRecordRow,
+  GradeStudentOption,
   SCORE_MAX,
   SCORE_MIN,
   validateGradeShape,
@@ -30,10 +33,11 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
  *
  * <h3>Modos</h3>
  * <ul>
- *   <li>{@link #row} {@code null} ⇒ create / upsert por UUID de estudiante.</li>
- *   <li>{@link #row} presente ⇒ edit del existente; el campo de UUID
- *       queda read-only (el (eval, student) tuple es inmutable —
- *       BE-5B.3).</li>
+ *   <li>{@link #row} {@code null} ⇒ create / upsert; el estudiante se
+ *       elige con {@code <select>} desde {@link #students} (roster de
+ *       la sección vía gradebook).</li>
+ *   <li>{@link #row} presente ⇒ edit del existente; el estudiante no
+ *       se cambia (el tuple (eval, student) es inmutable — BE-5B.3).</li>
  * </ul>
  *
  * <p>El campo "valor" se renderiza como input numérico para
@@ -44,14 +48,14 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
   selector: 'app-grade-record-form-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="grade-form-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div class="card w-full max-w-md shadow-xl" (click)="$event.stopPropagation()">
         <header class="card-header flex items-start justify-between gap-3">
@@ -72,25 +76,28 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
             </div>
           }
 
-          <div class="field">
-            <label class="label" for="grade-uuid">Estudiante (UUID) *</label>
-            <input
-              id="grade-uuid"
-              type="text"
-              class="input font-mono text-xs"
-              formControlName="studentPublicUuid"
-              [readonly]="editing()"
-              placeholder="ej: a3f7e2c8-1234-4abc-9999-aaaaaaaaaaaa"
-              autocomplete="off"
-            />
-            @if (showError('studentPublicUuid'); as msg) {
-              <p class="field-error">{{ msg }}</p>
-            } @else if (!editing()) {
-              <p class="field-hint">
-                Pega el publicUuid del estudiante. (Roster por sección llegará en sprint posterior.)
-              </p>
-            }
-          </div>
+          @if (!editing()) {
+            <div class="field">
+              <label class="label" for="grade-student">Estudiante *</label>
+              <select
+                id="grade-student"
+                class="select"
+                formControlName="studentPublicUuid"
+              >
+                <option value="">— Selecciona un estudiante —</option>
+                @for (s of students(); track s.publicUuid) {
+                  <option [value]="s.publicUuid">{{ s.fullName }}</option>
+                }
+              </select>
+              @if (showError('studentPublicUuid'); as msg) {
+                <p class="field-error">{{ msg }}</p>
+              } @else if (students().length === 0) {
+                <p class="field-hint">
+                  No hay estudiantes en la lista de esta sección. Revisa las matrículas activas.
+                </p>
+              }
+            </div>
+          }
 
           @if (scale() === scaleScore) {
             <div class="field">
@@ -114,7 +121,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
           } @else {
             <div class="field">
               <label class="label" for="grade-literal">Literal *</label>
-              <select id="grade-literal" class="input" formControlName="literal">
+              <select id="grade-literal" class="select" formControlName="literal">
                 <option value="">— Selecciona —</option>
                 @for (l of allowedLiterals(); track l) {
                   <option [value]="l">{{ l }}</option>
@@ -167,10 +174,18 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
   `,
 })
 export class GradeRecordFormModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly fb = inject(FormBuilder);
 
   readonly scale = input.required<EvaluationScale>();
   readonly row = input<GradeRecordRow | null>(null);
+  /** Roster activo de la sección (create mode). Vacío ⇒ select deshabilitado. */
+  readonly students = input<GradeStudentOption[]>([]);
   readonly saving = input<boolean>(false);
   readonly errorBanner = input<string | null>(null);
 
@@ -232,7 +247,9 @@ export class GradeRecordFormModalComponent implements OnInit {
   }
 
   protected cancel(): void {
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.closed.emit();
+    });
   }
 
   protected showError(field: string): string | null {

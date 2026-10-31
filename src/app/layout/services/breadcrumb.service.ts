@@ -35,9 +35,19 @@ export class BreadcrumbService {
       if (route.url.length > 0) {
         segments.push(...route.url.map((seg) => seg.path));
       }
+      const multi = route.data?.['breadcrumbs'] as Breadcrumb[] | undefined;
       const label = route.data?.['breadcrumb'] as string | undefined;
-      if (label) {
-        trail.push({ label, url: '/' + segments.join('/') });
+      const pathUrl = '/' + segments.join('/');
+
+      if (multi && multi.length > 0) {
+        for (const crumb of multi) {
+          trail.push({
+            label: crumb.label,
+            url: crumb.url === null ? pathUrl : (crumb.url ?? pathUrl),
+          });
+        }
+      } else if (label) {
+        trail.push({ label, url: pathUrl });
       }
       route = route.firstChild;
     }

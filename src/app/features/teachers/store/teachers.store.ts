@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { BulkImportStatus, isTerminalBulkImportStatus } from '@core/enums';
 import { TeachersApiService } from '../services';
 import {
   CreateTeacherRequest,
@@ -12,6 +13,7 @@ import {
   UpdateTeacherRequest,
   computeTeacherFullName,
 } from '../models';
+import { BulkImportJob, BulkImportPreview } from '../../students/models';
 
 interface PaginationState {
   /** Zero-based page index (Spring contract). */
@@ -35,6 +37,7 @@ interface PaginationState {
  *   <li><b>Invitation</b> — guarda la última {@code TeacherInvitationResult}
  *       creada para que el modal "Invitación enviada" muestre el
  *       link copiable. {@link #clearLastInvitation} la blanquea.</li>
+ *   <li><b>Bulk import</b> — job + poller para carga masiva .xlsx.</li>
  * </ol>
  *
  * <p>Las páginas no llaman al API service directo: pasar todo por
@@ -65,6 +68,11 @@ export class TeachersStore {
   private readonly _lastInvitation = signal<TeacherInvitationResult | null>(null);
   private readonly _inviting = signal(false);
 
+  // -------- bulk import slice --------
+  private readonly _bulkJob = signal<BulkImportJob | null>(null);
+  private readonly _bulkUploading = signal(false);
+  private bulkPollHandle: ReturnType<typeof setTimeout> | null = null;
+
   // -------- shared --------
   private readonly _error = signal<string | null>(null);
 
@@ -79,6 +87,9 @@ export class TeachersStore {
 
   readonly lastInvitation = this._lastInvitation.asReadonly();
   readonly inviting = this._inviting.asReadonly();
+
+  readonly bulkJob = this._bulkJob.asReadonly();
+  readonly bulkUploading = this._bulkUploading.asReadonly();
 
   readonly error = this._error.asReadonly();
 
@@ -278,11 +289,102 @@ export class TeachersStore {
     this._lastInvitation.set(null);
     this._inviting.set(false);
     this._error.set(null);
+    this.resetBulkImport();
+  }
+
+  // ===========================================================================
+  // Bulk import
+  // ===========================================================================
+
+  async downloadBulkTemplate(): Promise<Blob | null> {
+    this._error.set(null);
+    try {
+      return await firstValueFrom(this.api.downloadBulkTemplate());
+    } catch (err) {
+      this._error.set(this.toErrorMessage(err));
+      return null;
+    }
+  }
+
+  async previewBulkImport(file: File): Promise<BulkImportPreview | null> {
+    this._error.set(null);
+    try {
+      return await firstValueFrom(this.api.previewBulkImport(file));
+    } catch (err) {
+      this._error.set(this.toErrorMessage(err));
+      return null;
+    }
+  }
+
+  async startBulkImport(
+    file: File,
+    columnMapping?: Record<string, string>,
+  ): Promise<BulkImportJob | null> {
+    this.cancelBulkPolling();
+    this._bulkUploading.set(true);
+    this._error.set(null);
+
+    try {
+      const job = await firstValueFrom(this.api.uploadBulkImport(file, columnMapping));
+      this._bulkJob.set(job);
+      if (!isTerminalBulkImportStatus(job.status)) {
+        this.scheduleBulkPoll(job.publicUuid);
+      } else if (job.status === BulkImportStatus.Completed && job.processedRows > 0) {
+        void this.loadList();
+      }
+      return job;
+    } catch (err) {
+      this._error.set(this.toErrorMessage(err));
+      return null;
+    } finally {
+      this._bulkUploading.set(false);
+    }
+  }
+
+  resetBulkImport(): void {
+    this.cancelBulkPolling();
+    this._bulkJob.set(null);
+    this._bulkUploading.set(false);
   }
 
   // ---------------------------------------------------------------------------
   // Internals
   // ---------------------------------------------------------------------------
+
+  private scheduleBulkPoll(publicUuid: string): void {
+    this.bulkPollHandle = setTimeout(() => {
+      void this.pollBulkJobOnce(publicUuid).then(() => {
+        const next = this._bulkJob();
+        if (next && !isTerminalBulkImportStatus(next.status)) {
+          this.scheduleBulkPoll(publicUuid);
+        }
+      });
+    }, 1500);
+  }
+
+  private async pollBulkJobOnce(publicUuid: string): Promise<void> {
+    try {
+      const job = await firstValueFrom(this.api.getBulkImportJob(publicUuid));
+      this._bulkJob.set(job);
+      if (
+        isTerminalBulkImportStatus(job.status) &&
+        job.status === BulkImportStatus.Completed &&
+        job.processedRows > 0
+      ) {
+        void this.loadList();
+      }
+    } catch (err) {
+      this._error.set(this.toErrorMessage(err));
+      this.cancelBulkPolling();
+    }
+  }
+
+  private cancelBulkPolling(): void {
+    if (this.bulkPollHandle !== null) {
+      clearTimeout(this.bulkPollHandle);
+      this.bulkPollHandle = null;
+    }
+  }
 
   private upsertRow(detail: TeacherDetail): void {
     this._items.update((rows) => {

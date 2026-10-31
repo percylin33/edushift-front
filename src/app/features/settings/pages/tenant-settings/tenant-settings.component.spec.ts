@@ -3,7 +3,6 @@ import { provideRouter } from '@angular/router';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { ChangeDetectionStrategy } from '@angular/core';
 
-import { environment } from '@env/environment';
 import { AuthService } from '@core/services';
 import { UserRole, UserStatus, TenantStatus } from '@core/enums';
 import { User } from '@core/models';

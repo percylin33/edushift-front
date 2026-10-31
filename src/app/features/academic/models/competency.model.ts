@@ -2,6 +2,13 @@
 // Raw wire shapes — espejo 1:1 del backend (BE-5A.2)
 // =============================================================================
 
+export type CompetencyOrigin = 'MINEDU' | 'INSTITUTIONAL' | 'TEACHER';
+export type CurriculumSourceContentStatus =
+  | 'MINEDU_SUMMARY'
+  | 'MINEDU_TRANSCRIPTION'
+  | 'INSTITUTIONAL_ADAPTATION'
+  | 'LEGACY_UNVERIFIED';
+
 export interface CompetencyListItemRaw {
   publicUuid: string;
   code: string;
@@ -9,6 +16,13 @@ export interface CompetencyListItemRaw {
   displayOrder: number;
   isActive: boolean;
   capacityCount: number;
+  origin?: CompetencyOrigin;
+  createdBy?: string | null;
+  sourceCatalogVersion?: string | null;
+  sourceCatalogCode?: string | null;
+  sourceLevelCode?: string | null;
+  sourceCycleCodes?: string | null;
+  sourceContentStatus?: CurriculumSourceContentStatus | null;
 }
 
 export interface CompetencyCourseRefRaw {
@@ -23,6 +37,9 @@ export interface CompetencyCapacityRefRaw {
   name: string;
   displayOrder: number;
   isActive: boolean;
+  sourceCatalogVersion?: string | null;
+  sourceCatalogCode?: string | null;
+  sourceContentStatus?: CurriculumSourceContentStatus | null;
 }
 
 export interface CompetencyResponseRaw {
@@ -36,6 +53,13 @@ export interface CompetencyResponseRaw {
   capacities: CompetencyCapacityRefRaw[];
   createdAt: string | null;
   updatedAt: string | null;
+  origin?: CompetencyOrigin;
+  createdBy?: string | null;
+  sourceCatalogVersion?: string | null;
+  sourceCatalogCode?: string | null;
+  sourceLevelCode?: string | null;
+  sourceCycleCodes?: string | null;
+  sourceContentStatus?: CurriculumSourceContentStatus | null;
 }
 
 export interface CapacityCompetencyRefRaw {
@@ -55,6 +79,9 @@ export interface CapacityResponseRaw {
   isActive: boolean;
   createdAt: string | null;
   updatedAt: string | null;
+  sourceCatalogVersion?: string | null;
+  sourceCatalogCode?: string | null;
+  sourceContentStatus?: CurriculumSourceContentStatus | null;
 }
 
 export interface SeedCompetenciesResponse {
@@ -77,6 +104,13 @@ export interface CompetencyRow {
   isActive: boolean;
   capacityCount: number;
   capacities: CapacityRow[];
+  origin: CompetencyOrigin;
+  createdBy?: string | null;
+  sourceCatalogVersion?: string | null;
+  sourceCatalogCode?: string | null;
+  sourceLevelCode?: string | null;
+  sourceCycleCodes?: string | null;
+  sourceContentStatus?: CurriculumSourceContentStatus | null;
 }
 
 export interface CompetencyDetail extends CompetencyRow {
@@ -85,6 +119,9 @@ export interface CompetencyDetail extends CompetencyRow {
   capacities: CapacityRow[];
   createdAt?: Date;
   updatedAt?: Date;
+  sourceCatalogVersion?: string | null;
+  sourceCatalogCode?: string | null;
+  sourceContentStatus?: CurriculumSourceContentStatus | null;
 }
 
 export interface CapacityRow {
@@ -94,6 +131,9 @@ export interface CapacityRow {
   displayOrder: number;
   isActive: boolean;
   description?: string;
+  sourceCatalogVersion?: string | null;
+  sourceCatalogCode?: string | null;
+  sourceContentStatus?: CurriculumSourceContentStatus | null;
   competency: {
     publicUuid: string;
     code: string;
@@ -110,12 +150,18 @@ export type CapacityDetail = CapacityRow;
 // Request shapes
 // =============================================================================
 
+export interface CreateCompetencyCapacityRequest {
+  code?: string;
+  name: string;
+}
+
 export interface CreateCompetencyRequest {
-  code: string;
+  code?: string;
   name: string;
   description?: string;
   displayOrder?: number;
   isActive?: boolean;
+  capacities?: CreateCompetencyCapacityRequest[];
 }
 
 export interface UpdateCompetencyRequest {

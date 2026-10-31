@@ -126,6 +126,7 @@ export interface CreateQuizRequest {
   maxAttempts: number;
   maxScore: number;
   questions?: CreateQuestionRequest[];
+  teacherAssignmentPublicUuid: string;
 }
 
 /**

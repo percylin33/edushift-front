@@ -18,9 +18,24 @@ describe('provideCore', () => {
         // @abacritt/angularx-social-login — that SDK ships via a
         // separate dynamic chunk populated by bootstrap glue only when
         // environment.google.enabled is true.
-        const joined = JSON.stringify(providers);
-        expect(joined.toLowerCase()).not.toContain('socialauth');
-        expect(joined.toLowerCase()).not.toContain('googleloginprovider');
-        expect(joined.toLowerCase()).not.toContain('socialloginmodule');
+        const visited = new WeakSet<object>();
+        const values: string[] = [];
+        const collectStrings = (value: unknown): void => {
+            if (typeof value === 'string') {
+                values.push(value);
+                return;
+            }
+            if (typeof value !== 'object' || value === null || visited.has(value)) return;
+            visited.add(value);
+            for (const key of Object.keys(value)) {
+                values.push(key);
+                collectStrings((value as Record<string, unknown>)[key]);
+            }
+        };
+        collectStrings(providers);
+        const joined = values.join(' ').toLowerCase();
+        expect(joined).not.toContain('socialauth');
+        expect(joined).not.toContain('googleloginprovider');
+        expect(joined).not.toContain('socialloginmodule');
     });
 });

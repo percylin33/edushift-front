@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -46,14 +48,14 @@ const STATUS_DESCRIPTIONS: Readonly<Record<StudentEnrollmentStatus, string>> = {
   selector: 'app-withdraw-enrollment-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, FormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="withdraw-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card flex max-h-[90vh] w-full max-w-lg flex-col shadow-xl"
@@ -153,6 +155,12 @@ const STATUS_DESCRIPTIONS: Readonly<Record<StudentEnrollmentStatus, string>> = {
   `,
 })
 export class WithdrawEnrollmentModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => [this.status(), this.withdrawnAt()],
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly store = inject(StudentsStore);
 
   readonly enrollment = input.required<EnrollmentRow>();
@@ -200,8 +208,10 @@ export class WithdrawEnrollmentModalComponent implements OnInit {
   }
 
   protected close(): void {
-    this.store.clearError();
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.store.clearError();
+      this.closed.emit();
+    });
   }
 
   protected statusLabel(s: StudentEnrollmentStatus): string {
@@ -218,8 +228,12 @@ export class WithdrawEnrollmentModalComponent implements OnInit {
   }
 
   private toIsoDate(value: Date | string): string {
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
     const d = value instanceof Date ? value : new Date(value);
     if (Number.isNaN(d.getTime())) return '';
+    if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0) {
+      return d.toISOString().slice(0, 10);
+    }
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');

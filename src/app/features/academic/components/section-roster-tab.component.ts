@@ -1,11 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
+import { Permission, UserRole } from '@core/enums';
+import { AuthService } from '@core/services';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { StudentsApiService } from '@features/students/services';
 import { SectionStudentRosterItem } from '@features/students/models';
+import { ProvisionAccountsModalComponent } from '@features/students/components/provision-accounts-modal.component';
 
 /**
  * Sub-componente del tab "Roster" en {@code section-detail}
@@ -20,27 +23,40 @@ import { SectionStudentRosterItem } from '@features/students/models';
   selector: 'app-section-roster-tab',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterLink, IconComponent, SpinnerComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    IconComponent,
+    SpinnerComponent,
+    ProvisionAccountsModalComponent,
+  ],
   template: `
     <section class="card">
       <header class="card-header">
         <div>
-          <h3 class="card-title">Roster activo</h3>
+          <h3 class="card-title">Lista activa</h3>
           <p class="card-description">
             Estudiantes con matrícula <strong>activa</strong> en esta sección. Para matricular o
             cambiar de sección, ve al detalle del estudiante.
           </p>
         </div>
-        <span class="badge badge-secondary">
-          {{ rows().length }}
-          {{ rows().length === 1 ? 'estudiante' : 'estudiantes' }}
-        </span>
+        <div class="flex items-center gap-2">
+          @if (canProvision()) {
+            <button type="button" class="btn btn-secondary btn-sm" (click)="showProvision.set(true)">
+              Generar cuentas del aula
+            </button>
+          }
+          <span class="badge badge-secondary">
+            {{ rows().length }}
+            {{ rows().length === 1 ? 'estudiante' : 'estudiantes' }}
+          </span>
+        </div>
       </header>
 
       <div class="card-body">
         @if (loading()) {
           <div class="flex items-center justify-center py-10">
-            <app-spinner [size]="24" label="Cargando roster…" />
+            <app-spinner [size]="24" label="Cargando lista…" />
           </div>
         } @else if (errorMessage()) {
           <div class="alert alert-danger">
@@ -104,16 +120,31 @@ import { SectionStudentRosterItem } from '@features/students/models';
         }
       </div>
     </section>
+
+    @if (showProvision()) {
+      <app-provision-accounts-modal
+        [sectionPublicUuid]="sectionPublicUuid()"
+        (closed)="showProvision.set(false)"
+      />
+    }
   `,
 })
 export class SectionRosterTabComponent implements OnInit {
   private readonly studentsApi = inject(StudentsApiService);
+  private readonly auth = inject(AuthService);
 
   readonly sectionPublicUuid = input.required<string>();
 
   protected readonly rows = signal<SectionStudentRosterItem[]>([]);
   protected readonly loading = signal<boolean>(false);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly showProvision = signal(false);
+
+  protected readonly canProvision = computed(
+    () =>
+      this.auth.hasRole(UserRole.TenantAdmin) ||
+      this.auth.hasPermission(Permission.UsersProvisionSection),
+  );
 
   async ngOnInit(): Promise<void> {
     await this.fetchRoster();
@@ -134,7 +165,13 @@ export class SectionRosterTabComponent implements OnInit {
       const list = await firstValueFrom(
         this.studentsApi.listSectionRoster(this.sectionPublicUuid()),
       );
-      this.rows.set(list);
+      this.rows.set(
+        [...list].sort((a, b) =>
+          (a.studentFullName ?? '').localeCompare(b.studentFullName ?? '', 'es', {
+            sensitivity: 'base',
+          }),
+        ),
+      );
     } catch (err: unknown) {
       this.errorMessage.set(this.extractMessage(err));
       this.rows.set([]);
@@ -153,6 +190,6 @@ export class SectionRosterTabComponent implements OnInit {
       if (typeof anyErr.error?.message === 'string') return anyErr.error.message;
       if (typeof anyErr.message === 'string') return anyErr.message;
     }
-    return 'No pudimos cargar el roster.';
+    return 'No pudimos cargar la lista.';
   }
 }

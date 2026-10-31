@@ -1,5 +1,4 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
 import { TasksStore } from './tasks.store';
 import { TaskApiService } from '../services';
 import { TaskLifecycle, TaskRow } from '../models';
@@ -29,8 +28,12 @@ describe('TasksStore', () => {
       maxScore: 20,
       lifecycle: TaskLifecycle.Draft,
       submissionsCount: 0,
+      gradedSubmissionsCount: 0,
       sectionLabel: 'Sección A',
       courseLabel: 'Matemáticas',
+      courseName: 'Matemáticas',
+      periodLabel: null,
+      teacherAssignmentPublicUuid: null,
       createdAt: new Date('2026-01-01T00:00:00Z'),
       ...overrides,
     };
@@ -50,6 +53,7 @@ describe('TasksStore', () => {
       periodPublicUuid: 'p-1',
       title: 'Tarea 1',
       description: null,
+      attachmentPublicUuid: null,
       dueAt: new Date('2030-01-01T00:00:00Z'),
       maxScore: 20,
       allowResubmissions: true,
@@ -59,6 +63,10 @@ describe('TasksStore', () => {
       createdAt: new Date('2026-01-01T00:00:00Z'),
       updatedAt: null,
       submissionsCount: 0,
+      gradedSubmissionsCount: 0,
+      teacherAssignmentPublicUuid: null,
+      courseName: null,
+      periodLabel: null,
       ...overrides,
     };
   }

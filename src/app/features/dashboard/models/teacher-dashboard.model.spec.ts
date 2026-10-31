@@ -16,6 +16,7 @@ describe('toTeacherDashboardSnapshot (Sprint 9B / FE-9B.1)', () => {
 					sessionPublicUuid: null,
 					sectionPublicUuid: 's-1',
 					sectionName: '5to A',
+					gradeName: '5to',
 					occurredOn: '2026-07-23',
 					slot: 'MORNING',
 					status: 'PENDING',
@@ -31,7 +32,7 @@ describe('toTeacherDashboardSnapshot (Sprint 9B / FE-9B.1)', () => {
 		expect(snap.attendanceRateToday).toBe(85);
 		expect(snap.mySectionsToday.length).toBe(1);
 		expect(snap.mySectionsToday[0].occurredOn).toBeInstanceOf(Date);
-		expect(snap.mySectionsToday[0].status).toBe('PENDING');
+		expect(snap.mySectionsToday[0].gradeName).toBe('5to');
 		expect(snap.noActiveAssignments).toBeFalse();
 	});
 
@@ -66,6 +67,7 @@ describe('toTeacherDashboardSnapshot (Sprint 9B / FE-9B.1)', () => {
 					sessionPublicUuid: 'ses-1',
 					sectionPublicUuid: 's-2',
 					sectionName: '4to B',
+					gradeName: '4to',
 					occurredOn: '2026-07-23',
 					slot: 'AFTERNOON',
 					status: 'ACTIVE',

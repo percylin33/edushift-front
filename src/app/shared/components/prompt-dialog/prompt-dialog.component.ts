@@ -1,3 +1,4 @@
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -15,14 +16,14 @@ import { PromptDialogConfig } from './prompt-dialog.model';
   selector: 'app-prompt-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, IconComponent],
+  imports: [SafeBackdropDirective, FormsModule, IconComponent],
   template: `
     <div
       class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="prompt-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card flex max-h-[90vh] w-full max-w-sm flex-col shadow-xl"

@@ -5,6 +5,7 @@ describe('LocaleService', () => {
   let service: LocaleService;
 
   beforeEach(() => {
+    spyOnProperty(window.navigator, 'language', 'get').and.returnValue('es-PE');
     localStorage.clear();
     TestBed.configureTestingModule({});
     service = TestBed.inject(LocaleService);
@@ -47,7 +48,7 @@ describe('LocaleService', () => {
     };
     spyOnProperty(window, 'localStorage', 'get').and.returnValue(failingStorage as Storage);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    service = new LocaleService();
+    service = TestBed.runInInjectionContext(() => new LocaleService());
     expect(() => service.set('en-US')).not.toThrow();
     expect(service.current()).toBe('en-US');
   });

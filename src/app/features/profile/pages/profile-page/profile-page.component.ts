@@ -1,3 +1,4 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -181,6 +182,16 @@ const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 MB — matches the `file_validato
                 class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </div>
+            <div class="space-y-1.5">
+              <label for="secondLastName" class="block text-sm font-medium text-content">Apellido materno</label>
+              <input
+                id="secondLastName"
+                type="text"
+                autocomplete="additional-name"
+                formControlName="secondLastName"
+                class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-not-allowed disabled:opacity-70"
+              />
+            </div>
           </div>
           <div class="space-y-1.5">
             <label for="phone" class="block text-sm font-medium text-content">Teléfono</label>
@@ -294,6 +305,12 @@ const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 MB — matches the `file_validato
   `,
 })
 export class ProfilePageComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.savingProfile(),
+    active: () => true,
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly profileService = inject(ProfileService);
@@ -322,6 +339,7 @@ export class ProfilePageComponent implements OnInit {
   protected readonly form: FormGroup = this.fb.nonNullable.group({
     firstName: ['', [Validators.maxLength(100)]],
     lastName: ['', [Validators.maxLength(100)]],
+    secondLastName: ['', [Validators.maxLength(100)]],
     phone: ['', [Validators.maxLength(32)]],
   });
 
@@ -334,12 +352,14 @@ export class ProfilePageComponent implements OnInit {
       {
         firstName: u.firstName ?? '',
         lastName: u.lastName ?? '',
+        secondLastName: u.secondLastName ?? '',
         phone: u.phone ?? '',
       },
       { emitEvent: false },
     );
     // Reset dirty so the save button doesn't trigger on initial load.
     this.form.markAsPristine();
+          this.formProtection.markSaved();
   });
 
   // ---------------------------------------------------------------------
@@ -538,11 +558,12 @@ export class ProfilePageComponent implements OnInit {
     this.profileMessage.set(null);
     this.savingProfile.set(true);
 
-    const { firstName, lastName, phone } = this.form.getRawValue();
+    const { firstName, lastName, secondLastName, phone } = this.form.getRawValue();
     this.profileService
       .updateProfile(me.publicUuid, {
         firstName: firstName?.trim() || undefined,
         lastName: lastName?.trim() || undefined,
+        secondLastName: secondLastName?.trim() ?? '',
         phone: phone?.trim() || undefined,
       })
       .pipe(finalize(() => this.savingProfile.set(false)))
@@ -555,11 +576,18 @@ export class ProfilePageComponent implements OnInit {
             ...me,
             firstName: firstName?.trim() || me.firstName,
             lastName: lastName?.trim() || me.lastName,
+            secondLastName: secondLastName?.trim() || undefined,
+            fullName: [
+              firstName?.trim() || me.firstName,
+              lastName?.trim() || me.lastName,
+              secondLastName?.trim(),
+            ].filter(Boolean).join(' '),
             phone: phone?.trim() || me.phone,
           };
           this.auth.setUser(updated);
           this.profileMessage.set('Cambios guardados.');
           this.form.markAsPristine();
+          this.formProtection.markSaved();
         },
         error: (err: HttpErrorResponse) => {
           this.profileError.set(this.toProfileMessage(err));

@@ -18,7 +18,7 @@ import {
   PageHeaderComponent,
   SpinnerComponent,
 } from '@shared/components';
-import { EmploymentStatusBadgeComponent } from '../../components';
+import { EmploymentStatusBadgeComponent, TeacherBulkImportModalComponent } from '../../components';
 import { TeachersStore } from '../../store';
 import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
 
@@ -27,8 +27,7 @@ import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
  *
  * <h3>Layout</h3>
  * <ol>
- *   <li><b>Header</b> — título + acciones primarias (Importar
- *       placeholder + Nuevo docente).</li>
+ *   <li><b>Header</b> — título + acciones primarias (Importar Excel + Nuevo docente).</li>
  *   <li><b>Filtros</b> — search debounced, employmentStatus y
  *       hasUserAccount (tres-estados: Todos / Con cuenta / Sin cuenta).</li>
  *   <li><b>Tabla</b> — name + document + status badge + cuenta icon
@@ -40,12 +39,9 @@ import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
  * ({@code ?search&employmentStatus&hasUserAccount}) para que F5
  * preserve la elección y los compartibles funcionen.
  *
- * <h3>Importar (placeholder)</h3>
- * El spec lista un botón "Importar Excel". El bulk-import propio de
- * teachers no está implementado en BE-4.6 — el botón aparece como
- * placeholder con tooltip "Disponible en Sprint 5". Mantener visible
- * para que la UI conserve la jerarquía de acciones cuando el feature
- * aterrice.
+ * <h3>Importar</h3>
+ * Abre {@link TeacherBulkImportModalComponent}: plantilla .xlsx,
+ * upload a {@code POST /v1/teachers/bulk-import} y poll del job.
  */
 @Component({
   selector: 'app-teachers-list',
@@ -61,19 +57,15 @@ import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
     IconComponent,
     SpinnerComponent,
     EmploymentStatusBadgeComponent,
+    TeacherBulkImportModalComponent,
   ],
   template: `
     <app-page-container size="wide">
       <app-page-header
         title="Docentes"
-        subtitle="Padrón de docentes del workspace, con filtros y vinculación a cuentas de usuario."
+        subtitle="Padrón de docentes de la institución, con filtros y vinculación a cuentas de usuario."
       >
-        <button
-          type="button"
-          class="btn btn-outline btn-sm"
-          [disabled]="true"
-          title="Importación masiva disponible en Sprint 5"
-        >
+        <button type="button" class="btn btn-outline btn-sm" (click)="openBulkModal()">
           <app-icon name="upload" [size]="16" />
           <span class="hidden sm:inline">Importar</span>
         </button>
@@ -155,8 +147,11 @@ import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
           <app-empty-state
             icon="users"
             title="Aún no hay docentes"
-            description="Crea el primer docente o vincula uno a una cuenta existente."
+            description="Crea el primero o cárgalos en lote desde un .xlsx."
           >
+            <button type="button" class="btn btn-outline btn-sm" (click)="openBulkModal()">
+              Importar
+            </button>
             <a [routerLink]="newRoute" class="btn btn-primary btn-sm"> Nuevo docente </a>
           </app-empty-state>
         } @else {
@@ -285,6 +280,10 @@ import { EMPLOYMENT_STATUS_LABELS, TeacherListFilters } from '../../models';
           </footer>
         }
       </section>
+
+      @if (bulkOpen()) {
+        <app-teacher-bulk-import-modal (closed)="closeBulkModal()" />
+      }
     </app-page-container>
   `,
 })
@@ -299,6 +298,7 @@ export class TeachersListComponent implements OnInit {
   protected readonly search = signal<string>('');
   protected readonly employmentStatus = signal<EmploymentStatus | null>(null);
   protected readonly hasUserAccount = signal<boolean | null>(null);
+  protected readonly bulkOpen = signal(false);
 
   protected readonly items = this.store.items;
   protected readonly hasItems = this.store.hasItems;
@@ -423,5 +423,13 @@ export class TeachersListComponent implements OnInit {
     if (value === 'true') return true;
     if (value === 'false') return false;
     return null;
+  }
+
+  protected openBulkModal(): void {
+    this.bulkOpen.set(true);
+  }
+
+  protected closeBulkModal(): void {
+    this.bulkOpen.set(false);
   }
 }

@@ -5,7 +5,7 @@
  * {@code Notification.Category} enums. The matrix is rendered as
  * rows = categories, columns = channels.</p>
  */
-export const NOTIFICATION_CHANNELS = ['IN_APP', 'EMAIL'] as const;
+export const NOTIFICATION_CHANNELS = ['IN_APP', 'EMAIL', 'PUSH'] as const;
 export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 
 export const NOTIFICATION_CATEGORIES = [
@@ -19,6 +19,14 @@ export const NOTIFICATION_CATEGORIES = [
   'SYSTEM',
 ] as const;
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
+
+export const PUSH_NOTIFICATION_CATEGORIES = [
+  'ABSENCE',
+  'GRADE',
+  'QUIZ',
+  'TASK',
+  'ANNOUNCEMENT',
+] as const satisfies readonly NotificationCategory[];
 
 export interface NotificationPreferenceRow {
   category: NotificationCategory;

@@ -1,10 +1,11 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { catchError, finalize, of } from 'rxjs';
 
 import { AuthService, TenantService } from '@core/services';
-import { TenantStatus, UserRole } from '@core/enums';
+import { TenantPlan, TenantStatus, UserRole } from '@core/enums';
 import { ApiError, Tenant } from '@core/models';
 import { environment } from '@env/environment';
 import {
@@ -34,7 +35,7 @@ import { TenantApiService as TenantsApiService } from '@features/tenants/service
       <header>
         <h1 class="text-2xl font-semibold tracking-tight text-content">Institución</h1>
         <p class="mt-1 text-sm text-content-muted">
-          Branding y configuración del tenant. Visible para todos los usuarios.
+          Identidad visual y datos del colegio. Lo que configures aquí lo verán todos los usuarios.
         </p>
       </header>
 
@@ -68,8 +69,11 @@ import { TenantApiService as TenantsApiService } from '@features/tenants/service
             </div>
             <dl class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
               <div>
-                <dt class="text-xs uppercase tracking-wide text-content-subtle">Slug</dt>
+                <dt class="text-xs uppercase tracking-wide text-content-subtle">Código web</dt>
                 <dd class="mt-1 font-mono text-sm text-content">{{ tenant()?.slug ?? '—' }}</dd>
+                <p class="mt-0.5 text-xs text-content-subtle">
+                  Identificador en la URL del colegio. No se puede cambiar aquí.
+                </p>
               </div>
               <div>
                 <dt class="text-xs uppercase tracking-wide text-content-subtle">Plan</dt>
@@ -83,7 +87,7 @@ import { TenantApiService as TenantsApiService } from '@features/tenants/service
           </section>
 
           <section class="space-y-3 border-t border-border pt-4">
-            <h2 class="text-base font-semibold text-content">Texto del login</h2>
+            <h2 class="text-base font-semibold text-content">Texto del inicio de sesión</h2>
             <p class="text-xs text-content-subtle">
               Título y descripción del panel de bienvenida. Si los dejas vacíos se usa el texto
               por defecto.
@@ -117,11 +121,11 @@ import { TenantApiService as TenantsApiService } from '@features/tenants/service
           </section>
 
           <section class="space-y-3 border-t border-border pt-4">
-            <h2 class="text-base font-semibold text-content">Branding</h2>
+            <h2 class="text-base font-semibold text-content">Identidad visual</h2>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div class="space-y-1.5">
                 <label for="primaryColor" class="block text-sm font-medium text-content"
-                  >Color primario</label
+                  >Color principal</label
                 >
                 <div class="flex items-center gap-2">
                   <input
@@ -140,7 +144,7 @@ import { TenantApiService as TenantsApiService } from '@features/tenants/service
               </div>
               <div class="space-y-1.5">
                 <label for="accentColor" class="block text-sm font-medium text-content"
-                  >Color de acento</label
+                  >Color secundario</label
                 >
                 <div class="flex items-center gap-2">
                   <input
@@ -205,12 +209,12 @@ import { TenantApiService as TenantsApiService } from '@features/tenants/service
             </div>
 
             <div class="space-y-2 pt-2">
-              <label class="block text-sm font-medium text-content">Fondo de login</label>
+              <label class="block text-sm font-medium text-content">Fondo del inicio de sesión</label>
               <div
                 class="h-28 overflow-hidden rounded-md border border-border bg-surface-muted bg-cover bg-center"
                 [style.background-image]="'url(' + (loginBgPreview() ?? defaultLoginBgUrl) + ')'"
                 role="img"
-                aria-label="Vista previa del fondo de login"
+                aria-label="Vista previa del fondo del inicio de sesión"
               ></div>
               <app-file-upload
                 module="branding"
@@ -221,14 +225,14 @@ import { TenantApiService as TenantsApiService } from '@features/tenants/service
                 (uploadError)="onUploadError($event)"
               />
               <p class="text-xs text-content-subtle">
-                Imagen full-bleed del login institucional. PNG/JPEG/WebP, máx. 8 MB. Si no subes
-                una, se usa el fondo genérico de campus.
+                Imagen de fondo a pantalla completa en el inicio de sesión. PNG, JPEG o WebP,
+                máx. 8 MB. Si no subes una, se usa el fondo genérico del campus.
               </p>
               @if (!loginBgPreview()) {
                 <p class="text-xs text-content-muted">Mostrando el fondo predeterminado.</p>
               }
               @if (loginBgBusy()) {
-                <p class="text-xs text-content-muted">Guardando fondo de login…</p>
+                <p class="text-xs text-content-muted">Guardando fondo del inicio de sesión…</p>
               }
               @if (loginBgPreview()) {
                 <button
@@ -244,10 +248,82 @@ import { TenantApiService as TenantsApiService } from '@features/tenants/service
           </section>
 
           <section class="space-y-3 border-t border-border pt-4">
-            <h2 class="text-base font-semibold text-content">Feature flags (read-only)</h2>
+            <h2 class="text-base font-semibold text-content">Hoja de acceso familiar</h2>
             <p class="text-xs text-content-subtle">
-              El backend controla el rollout de cada feature. Esta lista se recalcula en cada GET
-              /v1/tenants/me.
+              Textos del PDF que secretaría entrega a las familias al crear cuentas del aula. Si los
+              dejas vacíos se usan valores por defecto.
+            </p>
+            <div class="space-y-1.5">
+              <label for="handoutWelcomeTitle" class="block text-sm font-medium text-content"
+                >Título</label
+              >
+              <input
+                id="handoutWelcomeTitle"
+                type="text"
+                formControlName="handoutWelcomeTitle"
+                maxlength="200"
+                placeholder="Acceso a la plataforma del colegio"
+                class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-subtle"
+              />
+            </div>
+            <div class="space-y-1.5">
+              <label for="handoutWelcomeBody" class="block text-sm font-medium text-content"
+                >Texto de bienvenida</label
+              >
+              <textarea
+                id="handoutWelcomeBody"
+                formControlName="handoutWelcomeBody"
+                rows="3"
+                maxlength="1000"
+                class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-subtle"
+              ></textarea>
+            </div>
+            <div class="space-y-1.5">
+              <label for="handoutLoginUrl" class="block text-sm font-medium text-content"
+                >Enlace de ingreso (opcional)</label
+              >
+              <input
+                id="handoutLoginUrl"
+                type="url"
+                formControlName="handoutLoginUrl"
+                maxlength="500"
+                placeholder="Vacío = enlace automático del colegio"
+                class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content placeholder:text-content-subtle"
+              />
+            </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div class="space-y-1.5">
+                <label for="handoutSupportPhone" class="block text-sm font-medium text-content"
+                  >Teléfono de secretaría</label
+                >
+                <input
+                  id="handoutSupportPhone"
+                  type="text"
+                  formControlName="handoutSupportPhone"
+                  maxlength="40"
+                  class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content"
+                />
+              </div>
+              <div class="space-y-1.5 sm:col-span-2">
+                <label for="handoutSupportNote" class="block text-sm font-medium text-content"
+                  >Nota de rescate</label
+                >
+                <textarea
+                  id="handoutSupportNote"
+                  formControlName="handoutSupportNote"
+                  rows="2"
+                  maxlength="500"
+                  class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-content"
+                ></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="space-y-3 border-t border-border pt-4">
+            <h2 class="text-base font-semibold text-content">Funciones incluidas</h2>
+            <p class="text-xs text-content-subtle">
+              Módulos activos según el plan de tu colegio. Solo lectura: no se pueden cambiar desde
+              aquí.
             </p>
             <pre
               class="overflow-x-auto rounded-md border border-border-subtle bg-surface-muted p-3 text-xs text-content"
@@ -292,6 +368,12 @@ import { TenantApiService as TenantsApiService } from '@features/tenants/service
   `,
 })
 export class TenantSettingsComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly tenantService = inject(TenantService);
@@ -321,6 +403,11 @@ export class TenantSettingsComponent implements OnInit {
     primaryColorHex: ['', []],
     accentColor: ['#22c55e', [Validators.pattern(/^#[0-9a-fA-F]{6}$/)]],
     accentColorHex: ['', []],
+    handoutWelcomeTitle: ['', [Validators.maxLength(200)]],
+    handoutWelcomeBody: ['', [Validators.maxLength(1000)]],
+    handoutLoginUrl: ['', [Validators.maxLength(500)]],
+    handoutSupportPhone: ['', [Validators.maxLength(40)]],
+    handoutSupportNote: ['', [Validators.maxLength(500)]],
   });
 
   private readonly _syncColors = effect(() => {
@@ -363,7 +450,7 @@ export class TenantSettingsComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.errorMessage.set('No se pudo cargar la configuración del tenant.');
+        this.errorMessage.set('No se pudo cargar la configuración del colegio.');
         this.loading.set(false);
       },
     });
@@ -372,6 +459,7 @@ export class TenantSettingsComponent implements OnInit {
   private applyTenant(t: Tenant): void {
     this.tenant.set(t);
     this.tenantService.setTenant(t);
+    const handout = (t.settings?.['credentialHandout'] ?? {}) as Record<string, unknown>;
     this.form.patchValue(
       {
         name: t.name ?? '',
@@ -381,6 +469,13 @@ export class TenantSettingsComponent implements OnInit {
         primaryColorHex: t.branding?.primaryColor ?? '#0066ff',
         accentColor: t.branding?.accentColor ?? '#22c55e',
         accentColorHex: t.branding?.accentColor ?? '#22c55e',
+        handoutWelcomeTitle: typeof handout['welcomeTitle'] === 'string' ? handout['welcomeTitle'] : '',
+        handoutWelcomeBody: typeof handout['welcomeBody'] === 'string' ? handout['welcomeBody'] : '',
+        handoutLoginUrl:
+          typeof handout['loginUrlOverride'] === 'string' ? handout['loginUrlOverride'] : '',
+        handoutSupportPhone:
+          typeof handout['supportPhone'] === 'string' ? handout['supportPhone'] : '',
+        handoutSupportNote: typeof handout['supportNote'] === 'string' ? handout['supportNote'] : '',
       },
       { emitEvent: false },
     );
@@ -389,10 +484,24 @@ export class TenantSettingsComponent implements OnInit {
     this.logoPublicUuid = this.extractPublicUuid(t.branding?.logo?.light ?? null);
     this.loginBgPublicUuid = this.extractPublicUuid(t.branding?.loginBgUrl ?? null);
     this.form.markAsPristine();
+    this.formProtection.markSaved();
   }
 
   protected planLabel(): string {
-    return this.tenant()?.plan ?? '—';
+    const plan = this.tenant()?.plan;
+    if (!plan) return '—';
+    switch (plan) {
+      case TenantPlan.Trial:
+        return 'Prueba';
+      case TenantPlan.Basic:
+        return 'Básico';
+      case TenantPlan.Pro:
+        return 'Profesional';
+      case TenantPlan.Enterprise:
+        return 'Empresarial';
+      default:
+        return plan;
+    }
   }
 
   protected statusLabel(): string {
@@ -415,9 +524,14 @@ export class TenantSettingsComponent implements OnInit {
   protected featureFlagsText(): string {
     const t = this.tenant();
     const flags = t?.featureFlags;
-    if (!flags || Object.keys(flags).length === 0) return '(ninguno)';
+    if (!flags || Object.keys(flags).length === 0) return '(ninguna función adicional)';
     return Object.entries(flags)
-      .map(([k, v]) => `• ${k}${v === true ? '' : ` = ${JSON.stringify(v)}`}`)
+      .map(([k, v]) => {
+        const label = FEATURE_FLAG_LABELS[k] ?? k;
+        if (v === true) return `• ${label}: activa`;
+        if (v === false) return `• ${label}: inactiva`;
+        return `• ${label}: ${JSON.stringify(v)}`;
+      })
       .join('\n');
   }
 
@@ -461,7 +575,7 @@ export class TenantSettingsComponent implements OnInit {
         next: (t) => {
           this.applyTenant(t);
           this.successMessage.set(
-            kind === 'logo' ? 'Logo actualizado.' : 'Fondo de login actualizado.',
+            kind === 'logo' ? 'Logo actualizado.' : 'Fondo del inicio de sesión actualizado.',
           );
         },
         error: (err: HttpErrorResponse) => {
@@ -509,7 +623,7 @@ export class TenantSettingsComponent implements OnInit {
       .subscribe((t) => {
         if (!t) return;
         this.applyTenant(t);
-        this.successMessage.set('Fondo de login eliminado.');
+        this.successMessage.set('Fondo del inicio de sesión eliminado.');
         this.deleteFileBestEffort(uuid);
       });
   }
@@ -523,6 +637,15 @@ export class TenantSettingsComponent implements OnInit {
     this.successMessage.set(null);
     this.errorMessage.set(null);
 
+    const existingSettings = { ...(this.tenant()?.settings ?? {}) };
+    existingSettings['credentialHandout'] = {
+      welcomeTitle: v.handoutWelcomeTitle?.trim() || null,
+      welcomeBody: v.handoutWelcomeBody?.trim() || null,
+      loginUrlOverride: v.handoutLoginUrl?.trim() || null,
+      supportPhone: v.handoutSupportPhone?.trim() || null,
+      supportNote: v.handoutSupportNote?.trim() || null,
+    };
+
     this.tenantsApi
       .updateCurrent({
         name: v.name?.trim(),
@@ -531,6 +654,7 @@ export class TenantSettingsComponent implements OnInit {
           loginTitle: v.loginTitle?.trim() ?? '',
           loginDescription: v.loginDescription?.trim() ?? '',
         },
+        settings: existingSettings,
       })
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
@@ -578,9 +702,34 @@ export class TenantSettingsComponent implements OnInit {
     if (err.status === 403) return 'No tienes permiso para editar la institución.';
     if (err.status === 400) {
       const body = err.error as ApiError | null | undefined;
-      return body?.message ?? 'Los datos de branding no son válidos.';
+      return body?.message ?? 'Los datos de identidad visual no son válidos.';
     }
     if (err.status >= 500) return 'Ocurrió un error inesperado. Intenta nuevamente.';
     return 'No se pudo guardar la configuración.';
   }
 }
+
+/** Etiquetas en español para claves conocidas de feature flags del tenant. */
+const FEATURE_FLAG_LABELS: Record<string, string> = {
+  aiEnabled: 'Asistente de IA',
+  'ai.copilot': 'Copiloto de IA',
+  ai: 'Inteligencia artificial',
+  lms: 'Aula virtual',
+  payments: 'Pagos',
+  attendance: 'Asistencia',
+  announcements: 'Anuncios',
+  notifications: 'Notificaciones',
+  evaluations: 'Evaluaciones',
+  rubrics: 'Rúbricas',
+  sessions: 'Sesiones de aprendizaje',
+  schedule: 'Horarios',
+  reports: 'Reportes',
+  family: 'Familia',
+  me: 'Espacio del estudiante',
+  academic: 'Académico',
+  students: 'Estudiantes',
+  teachers: 'Docentes',
+  users: 'Usuarios',
+  settings: 'Configuración',
+  dashboard: 'Panel principal',
+};

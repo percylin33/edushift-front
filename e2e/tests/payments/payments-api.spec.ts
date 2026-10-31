@@ -50,7 +50,7 @@ test.describe('Payments — API: lifecycle', () => {
     const api = await apiContextFor({ user: TENANT_ADMIN });
     const student = await makeStudent(api, { firstName: 'PaySpec' });
     try {
-      const url = `${process.env['API_URL'] ?? 'http://localhost:8081'}/api/v1/api/v1/payments/invoices`;
+      const url = `${process.env['API_URL'] ?? 'http://localhost:8080'}/api/v1/api/v1/payments/invoices`;
       const res = await api.get(url);
       expect(res.status()).toBeLessThan(500);
       expect([200, 404]).toContain(res.status());
@@ -67,7 +67,7 @@ test.describe('Payments — API: lifecycle', () => {
       return;
     }
     try {
-      const url = `${process.env['API_URL'] ?? 'http://localhost:8081'}/api/v1/api/v1/payments/invoices`;
+      const url = `${process.env['API_URL'] ?? 'http://localhost:8080'}/api/v1/api/v1/payments/invoices`;
       const res = await ctx.api.get(url);
       expect(res.status()).toBe(200);
     } finally {
@@ -90,7 +90,7 @@ test.describe('Payments — API: webhook (HMAC + rate limit)', () => {
   test('webhook without signature → rejected with 4xx', async () => {
     const api = await apiContextFor({ user: TENANT_ADMIN });
     try {
-      const url = `${process.env['API_URL'] ?? 'http://localhost:8081'}/api/v1/api/v1/webhooks/mercadopago`;
+      const url = `${process.env['API_URL'] ?? 'http://localhost:8080'}/api/v1/api/v1/webhooks/mercadopago`;
       const res = await api.post(url, {
         data: { action: 'payment.created', data: { id: 'fake' } },
       });
@@ -105,7 +105,7 @@ test.describe('Payments — API: webhook (HMAC + rate limit)', () => {
   test('webhook with malformed JSON → rejected with 4xx', async () => {
     const api = await apiContextFor({ user: TENANT_ADMIN });
     try {
-      const url = `${process.env['API_URL'] ?? 'http://localhost:8081'}/api/v1/api/v1/webhooks/mercadopago`;
+      const url = `${process.env['API_URL'] ?? 'http://localhost:8080'}/api/v1/api/v1/webhooks/mercadopago`;
       const res = await api.post(url, {
         data: 'not-json',
         headers: { 'Content-Type': 'application/json' },
@@ -123,7 +123,7 @@ test.describe('Payments — API: webhook (HMAC + rate limit)', () => {
     // we only assert that the endpoint is up.
     const api = await apiContextFor({ user: TENANT_ADMIN });
     try {
-      const url = `${process.env['API_URL'] ?? 'http://localhost:8081'}/api/v1/api/v1/webhooks/mercadopago`;
+      const url = `${process.env['API_URL'] ?? 'http://localhost:8080'}/api/v1/api/v1/webhooks/mercadopago`;
       const res = await api.post(url, { data: {} });
       // 401 (no signature) or 400 (malformed) — both prove the route
       // is wired up.
@@ -170,7 +170,7 @@ test.describe('Payments — API: RBAC matrix', () => {
       }
       try {
         // Effective URL on the dev BE (see comment above the matrix).
-        const url = `${process.env['API_URL'] ?? 'http://localhost:8081'}/api/v1/api/v1/payments/invoices`;
+        const url = `${process.env['API_URL'] ?? 'http://localhost:8080'}/api/v1/api/v1/payments/invoices`;
         const res = await ctx.api.fetch(url, { method: c.method });
         expect(c.expected, `${c.role} ${c.method} invoices`).toContain(res.status());
       } finally {

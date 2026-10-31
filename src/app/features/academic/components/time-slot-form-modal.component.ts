@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
@@ -12,7 +14,7 @@ import {
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
-import { IconComponent, SpinnerComponent } from '@shared/components';
+import { ConfirmDialogService, IconComponent, SpinnerComponent } from '@shared/components';
 import { AcademicApiService } from '../services';
 import {
   CreateTimeSlotRequest,
@@ -20,6 +22,12 @@ import {
   ScheduleSlotItem,
   UpdateTimeSlotRequest,
 } from '../models';
+import {
+  TimeSlotAssignmentOption,
+  findSiblingYearSlots,
+} from '../utils/schedule-assignment.util';
+
+export type { TimeSlotAssignmentOption };
 
 /** Wire shape of {@code ApiError} items inside error envelopes. */
 interface WireApiError {
@@ -27,29 +35,24 @@ interface WireApiError {
   message?: string;
 }
 
-/** Option shown in the assignment dropdown when creating a slot. */
-export interface TimeSlotAssignmentOption {
-  publicUuid: string;
-  label: string;
-}
-
 /**
  * Modal create / edit for a weekly {@code TimeSlot}.
- * Surfaces API conflict messages (e.g. recess overlap / SCHEDULE_CONFLICT)
- * in a banner so UAT-SCH-05 can be validated from the UI.
+ * When the selected option groups several period-scoped assignments
+ * (bimestres), create/update/delete replicates across all of them so the
+ * calendar behaves as a year template.
  */
 @Component({
   selector: 'app-time-slot-form-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="time-slot-form-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card max-h-[90vh] w-full max-w-lg overflow-y-auto shadow-xl"
@@ -61,8 +64,8 @@ export interface TimeSlotAssignmentOption {
               {{ isEdit() ? 'Editar bloque de clase' : 'Nuevo bloque de clase' }}
             </h2>
             <p class="card-description">
-              Patrón semanal de la asignación. No puede solapar recreo, lonchera u otro slot
-              conflictivo.
+              Se repite cada semana durante los periodos de la asignación. El horario se valida
+              para evitar cruces con recreos y otras clases.
             </p>
           </div>
           <button type="button" class="btn btn-ghost btn-sm" aria-label="Cerrar" (click)="cancel()">
@@ -75,28 +78,35 @@ export interface TimeSlotAssignmentOption {
             <div class="alert alert-danger" role="alert">
               <app-icon name="alert-circle" [size]="18" />
               <div class="flex-1">
-                @if (errorCode(); as code) {
-                  <p class="text-xs font-semibold uppercase tracking-wide opacity-80">{{ code }}</p>
-                }
                 <p class="text-sm">{{ err }}</p>
               </div>
             </div>
           }
 
-          @if (!isEdit()) {
+          @if (assignments().length > 0) {
             <div class="field">
-              <label class="label" for="ts-assignment">Asignación *</label>
+              <label class="label" for="ts-assignment">Curso y docente *</label>
               <select id="ts-assignment" class="select" formControlName="assignmentPublicUuid">
                 <option [ngValue]="null" disabled>Selecciona asignación…</option>
                 @for (a of assignments(); track a.publicUuid) {
                   <option [ngValue]="a.publicUuid">{{ a.label }}</option>
                 }
               </select>
-              @if (assignments().length === 0) {
+              @if (isEdit()) {
                 <p class="mt-1 text-xs text-content-muted">
-                  No hay asignaciones activas. Creá una desde Docentes → Asignaciones.
+                  Si cambiás la asignación, se recrea el bloque en el nuevo curso/docente.
                 </p>
               }
+            </div>
+          } @else if (!isEdit()) {
+            <div class="field">
+              <label class="label" for="ts-assignment">Curso y docente *</label>
+              <select id="ts-assignment" class="select" formControlName="assignmentPublicUuid" [disabled]="true">
+                <option [ngValue]="null">Sin asignaciones activas</option>
+              </select>
+              <p class="mt-1 text-xs text-content-muted">
+                No hay asignaciones activas. Creá una desde Docentes → Asignaciones.
+              </p>
             </div>
           }
 
@@ -166,11 +176,20 @@ export interface TimeSlotAssignmentOption {
   `,
 })
 export class TimeSlotFormModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly api = inject(AcademicApiService);
   private readonly fb = inject(FormBuilder);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
-  /** Active assignments available when creating. */
+  /** Active assignments available when creating (year-collapsed options). */
   readonly assignments = input<TimeSlotAssignmentOption[]>([]);
+  /** Full week slots (all periods) — used to find sibling blocks on edit/delete. */
+  readonly yearSlots = input<readonly ScheduleSlotItem[]>([]);
   /** Prefill day when opening from a grid column. */
   readonly initialDayOfWeek = input<number | null>(null);
   /** Prefill start/end when opening from a suggested period. */
@@ -205,18 +224,15 @@ export class TimeSlotFormModalComponent implements OnInit {
 
   ngOnInit(): void {
     const existing = this.slot();
-    // #region agent log
-    fetch('http://127.0.0.1:7639/ingest/f4773d1b-17bd-44c3-8d39-badf894fd980',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5d2603'},body:JSON.stringify({sessionId:'5d2603',runId:'pre-fix',hypothesisId:'A',location:'time-slot-form-modal.component.ts:ngOnInit',message:'modal init',data:{isEdit:!!existing?.slotPublicUuid,slotPublicUuid:existing?.slotPublicUuid??null,assignmentPublicUuid:existing?.assignmentPublicUuid??null,assignmentOptions:this.assignments().length,day:existing?.dayOfWeek??this.initialDayOfWeek()},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (existing) {
+      const option = this.findOptionForAssignment(existing.assignmentPublicUuid);
       this.form.patchValue({
-        assignmentPublicUuid: existing.assignmentPublicUuid,
+        assignmentPublicUuid: option?.publicUuid ?? existing.assignmentPublicUuid,
         dayOfWeek: existing.dayOfWeek,
         startTime: this.toInputTime(existing.startTime),
         endTime: this.toInputTime(existing.endTime),
         classroom: existing.classroom ?? '',
       });
-      this.form.controls.assignmentPublicUuid.disable();
       return;
     }
 
@@ -235,7 +251,10 @@ export class TimeSlotFormModalComponent implements OnInit {
     const assignmentUuid = this.initialAssignmentUuid();
     const options = this.assignments();
     if (assignmentUuid) {
-      this.form.controls.assignmentPublicUuid.setValue(assignmentUuid);
+      const option = this.findOptionForAssignment(assignmentUuid);
+      this.form.controls.assignmentPublicUuid.setValue(
+        option?.publicUuid ?? assignmentUuid,
+      );
     } else if (options.length === 1) {
       this.form.controls.assignmentPublicUuid.setValue(options[0].publicUuid);
     }
@@ -251,7 +270,9 @@ export class TimeSlotFormModalComponent implements OnInit {
   }
 
   protected cancel(): void {
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.closed.emit();
+    });
   }
 
   protected async onSubmit(): Promise<void> {
@@ -261,24 +282,55 @@ export class TimeSlotFormModalComponent implements OnInit {
     this.errorCode.set(null);
     try {
       const raw = this.form.getRawValue();
+      const selectedOption = this.findOptionByPublicUuid(raw.assignmentPublicUuid);
+      const targetAssignments = this.relatedAssignmentUuids(selectedOption, raw.assignmentPublicUuid);
+      const body: CreateTimeSlotRequest = {
+        dayOfWeek: raw.dayOfWeek,
+        startTime: this.toApiTime(raw.startTime),
+        endTime: this.toApiTime(raw.endTime),
+        classroom: raw.classroom.trim() || undefined,
+      };
+      const patch: UpdateTimeSlotRequest = {
+        dayOfWeek: raw.dayOfWeek,
+        startTime: this.toApiTime(raw.startTime),
+        endTime: this.toApiTime(raw.endTime),
+        classroom: raw.classroom.trim() || null,
+      };
+
       if (this.isEdit()) {
-        const patch: UpdateTimeSlotRequest = {
-          dayOfWeek: raw.dayOfWeek,
-          startTime: this.toApiTime(raw.startTime),
-          endTime: this.toApiTime(raw.endTime),
-          classroom: raw.classroom.trim() || null,
-        };
-        await firstValueFrom(this.api.updateTimeSlot(this.slot()!.slotPublicUuid, patch));
+        const existing = this.slot()!;
+        const siblings = findSiblingYearSlots(this.yearSlots(), existing);
+        const optionChanged =
+          !!selectedOption &&
+          !selectedOption.relatedAssignmentPublicUuids.includes(existing.assignmentPublicUuid) &&
+          selectedOption.publicUuid !== existing.assignmentPublicUuid;
+
+        if (optionChanged) {
+          for (const sib of siblings) {
+            await firstValueFrom(this.api.deleteTimeSlot(sib.slotPublicUuid));
+          }
+          for (const assignmentUuid of targetAssignments) {
+            await firstValueFrom(this.api.createTimeSlot(assignmentUuid, body));
+          }
+        } else {
+          const coveredAssignments = new Set(siblings.map((s) => s.assignmentPublicUuid));
+          for (const sib of siblings) {
+            await firstValueFrom(this.api.updateTimeSlot(sib.slotPublicUuid, patch));
+          }
+          for (const assignmentUuid of targetAssignments) {
+            if (!coveredAssignments.has(assignmentUuid)) {
+              await firstValueFrom(this.api.createTimeSlot(assignmentUuid, body));
+            }
+          }
+          if (siblings.length === 0) {
+            await firstValueFrom(this.api.updateTimeSlot(existing.slotPublicUuid, patch));
+          }
+        }
       } else {
-        const assignmentUuid = raw.assignmentPublicUuid;
-        if (!assignmentUuid) return;
-        const body: CreateTimeSlotRequest = {
-          dayOfWeek: raw.dayOfWeek,
-          startTime: this.toApiTime(raw.startTime),
-          endTime: this.toApiTime(raw.endTime),
-          classroom: raw.classroom.trim() || undefined,
-        };
-        await firstValueFrom(this.api.createTimeSlot(assignmentUuid, body));
+        if (targetAssignments.length === 0) return;
+        for (const assignmentUuid of targetAssignments) {
+          await firstValueFrom(this.api.createTimeSlot(assignmentUuid, body));
+        }
       }
       this.saved.emit();
     } catch (err) {
@@ -290,32 +342,56 @@ export class TimeSlotFormModalComponent implements OnInit {
 
   protected async onDelete(): Promise<void> {
     const existing = this.slot();
-    // #region agent log
-    fetch('http://127.0.0.1:7639/ingest/f4773d1b-17bd-44c3-8d39-badf894fd980',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5d2603'},body:JSON.stringify({sessionId:'5d2603',runId:'pre-fix',hypothesisId:'A',location:'time-slot-form-modal.component.ts:onDelete:entry',message:'delete clicked',data:{hasSlot:!!existing,slotPublicUuid:existing?.slotPublicUuid??null,deleting:this.deleting()},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (!existing || this.deleting()) return;
-    const confirmed = confirm('¿Eliminar este bloque del horario semanal?');
-    // #region agent log
-    fetch('http://127.0.0.1:7639/ingest/f4773d1b-17bd-44c3-8d39-badf894fd980',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5d2603'},body:JSON.stringify({sessionId:'5d2603',runId:'pre-fix',hypothesisId:'C',location:'time-slot-form-modal.component.ts:onDelete:confirm',message:'confirm result',data:{confirmed,slotPublicUuid:existing.slotPublicUuid},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
+    const confirmed = await this.confirmDialog.open({
+      title: 'Eliminar bloque',
+      message:
+        '¿Eliminar este bloque del horario semanal? Se quitará en todos los bimestres del año.',
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!confirmed) return;
     this.deleting.set(true);
     this.errorBanner.set(null);
     try {
-      await firstValueFrom(this.api.deleteTimeSlot(existing.slotPublicUuid));
-      // #region agent log
-      fetch('http://127.0.0.1:7639/ingest/f4773d1b-17bd-44c3-8d39-badf894fd980',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5d2603'},body:JSON.stringify({sessionId:'5d2603',runId:'pre-fix',hypothesisId:'B',location:'time-slot-form-modal.component.ts:onDelete:success',message:'delete API ok',data:{slotPublicUuid:existing.slotPublicUuid},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
+      const siblings = findSiblingYearSlots(this.yearSlots(), existing);
+      const toDelete =
+        siblings.length > 0 ? siblings : [existing];
+      for (const sib of toDelete) {
+        await firstValueFrom(this.api.deleteTimeSlot(sib.slotPublicUuid));
+      }
       this.deleted.emit();
     } catch (err) {
-      // #region agent log
-      const he = err instanceof HttpErrorResponse ? err : null;
-      fetch('http://127.0.0.1:7639/ingest/f4773d1b-17bd-44c3-8d39-badf894fd980',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5d2603'},body:JSON.stringify({sessionId:'5d2603',runId:'pre-fix',hypothesisId:'B',location:'time-slot-form-modal.component.ts:onDelete:error',message:'delete API failed',data:{status:he?.status??null,statusText:he?.statusText??null,errorName:err instanceof Error?err.name:typeof err,errorMessage:err instanceof Error?err.message:String(err),bodySnippet:typeof he?.error==='string'?he.error.slice(0,200):(he?.error?JSON.stringify(he.error).slice(0,200):null)},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       this.applyError(err);
     } finally {
       this.deleting.set(false);
     }
+  }
+
+  private findOptionForAssignment(assignmentUuid: string): TimeSlotAssignmentOption | undefined {
+    return this.assignments().find(
+      (o) =>
+        o.publicUuid === assignmentUuid ||
+        o.relatedAssignmentPublicUuids.includes(assignmentUuid),
+    );
+  }
+
+  private findOptionByPublicUuid(
+    publicUuid: string | null,
+  ): TimeSlotAssignmentOption | undefined {
+    if (!publicUuid) return undefined;
+    return this.assignments().find((o) => o.publicUuid === publicUuid);
+  }
+
+  private relatedAssignmentUuids(
+    option: TimeSlotAssignmentOption | undefined,
+    fallback: string | null,
+  ): string[] {
+    if (option?.relatedAssignmentPublicUuids?.length) {
+      return [...option.relatedAssignmentPublicUuids];
+    }
+    return fallback ? [fallback] : [];
   }
 
   private applyError(err: unknown): void {

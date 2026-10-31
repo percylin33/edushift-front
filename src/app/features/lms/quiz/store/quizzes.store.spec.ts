@@ -112,7 +112,7 @@ describe('QuizzesStore', () => {
     const result = await store.loadDetail('q-1');
     expect(result).toBeNull();
     expect(store.selected()).toBeNull();
-    expect(store.error()).toContain('No pudimos cargar el quiz');
+    expect(store.error()).toContain('No pudimos cargar la práctica');
   });
 
   it('publishQuiz muta selected y refleja cambio en rows', async () => {
@@ -173,7 +173,7 @@ describe('QuizzesStore', () => {
     apiSpy.listBySection.and.returnValue(of([rowOf()]));
     await store.loadBySection('s-1');
     apiSpy.createQuiz.and.returnValue(of(detailOf({ publicUuid: 'q-2' })));
-    const created = await store.createQuiz('s-1', { title: 'Nuevo', maxAttempts: 1, maxScore: 50 });
+    const created = await store.createQuiz('s-1', { title: 'Nuevo', maxAttempts: 1, maxScore: 50, teacherAssignmentPublicUuid: 'assignment-1' });
     expect(created?.publicUuid).toBe('q-2');
     expect(store.selected()?.publicUuid).toBe('q-2');
   });
@@ -205,7 +205,7 @@ describe('QuizzesStore', () => {
     apiSpy.publishQuiz.and.returnValue(throwError(() => new Error('boom')));
     const result = await store.publishQuiz('q-1');
     expect(result).toBeNull();
-    expect(store.error()).toContain('No pudimos publicar el quiz');
+    expect(store.error()).toContain('No pudimos publicar la práctica');
     expect(store.rows()[0].status).toBe(QuizStatus.Draft);
   });
 

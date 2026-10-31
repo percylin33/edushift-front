@@ -37,10 +37,17 @@ describe('AuthApiService', () => {
     apiSpy.post.and.returnValue(of(mockAuthResponseRaw));
 
     const payload: LoginRequest = { email: 'test@test.com', password: 'secret' };
-    service.login(payload).subscribe((session: any) => {
-      expect(session.accessToken).toBe('access-123');
-      expect(session.user.email).toBe('test@test.com');
-      expect(apiSpy.post).toHaveBeenCalledWith(jasmine.stringMatching(/\/auth\/login$/), payload);
+    service.login(payload).subscribe((result) => {
+      expect(result.kind).toBe('session');
+      if (result.kind === 'session') {
+        expect(result.session.accessToken).toBe('access-123');
+        expect(result.session.user.email).toBe('test@test.com');
+      }
+      expect(apiSpy.post).toHaveBeenCalledWith(
+        jasmine.stringMatching(/\/auth\/login$/),
+        payload,
+        { withCredentials: true },
+      );
       done();
     });
   });
@@ -70,11 +77,9 @@ describe('AuthApiService', () => {
   it('refresh POSTea a /auth/refresh y adapta la respuesta', (done) => {
     apiSpy.post.and.returnValue(of(mockAuthResponseRaw));
 
-    service.refresh('refresh-456').subscribe((session) => {
+    service.refresh().subscribe((session) => {
       expect(session.accessToken).toBe('access-123');
-      expect(apiSpy.post).toHaveBeenCalledWith(jasmine.stringMatching(/\/auth\/refresh$/), {
-        refreshToken: 'refresh-456',
-      });
+      expect(apiSpy.post).toHaveBeenCalledWith(jasmine.stringMatching(/\/auth\/refresh$/));
       done();
     });
   });

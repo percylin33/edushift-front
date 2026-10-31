@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -52,7 +54,7 @@ import {
 @Component({
   selector: 'app-material-upload-dialog',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, IconComponent],
+  imports: [SafeBackdropDirective, CommonModule, ReactiveFormsModule, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (open) {
@@ -61,7 +63,7 @@ import {
         role="dialog"
         aria-modal="true"
         aria-labelledby="material-upload-title"
-        (click)="onBackdrop($event)"
+        appSafeBackdrop (click)="onBackdrop($event)"
       >
         <div #dialog class="card w-full max-w-md" (click)="$event.stopPropagation()">
           <header class="card-header">
@@ -184,7 +186,15 @@ import {
   `,
 })
 export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestroy {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => [this.form.getRawValue(), this.selectedFile()],
+    saving: () => this.uploading,
+    active: () => this.open,
+  });
+
   @Input() open = false;
+  /** Required to create material under a TeacherAssignment (V105). */
+  @Input() teacherAssignmentPublicUuid: string | null = null;
   @Input() uploading = false;
   @Input() uploadPercent = 0;
   @Input() errorMessage: string | null = null;
@@ -312,7 +322,9 @@ export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestr
   }
 
   protected onCancel(): void {
-    this.dialogClosed.emit();
+    this.formProtection.requestClose(() => {
+      this.dialogClosed.emit();
+    });
   }
 
   protected onSubmit(): void {
@@ -323,6 +335,10 @@ export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestr
     if (this.fileError()) {
       return;
     }
+    if (!this.teacherAssignmentPublicUuid) {
+      this.fileError.set('Selecciona una materia en el selector del aula antes de subir.');
+      return;
+    }
     const v = this.form.getRawValue();
     const type = v.type as MaterialType;
     const request: CreateMaterialRequest = {
@@ -330,6 +346,7 @@ export class MaterialUploadDialogComponent implements OnChanges, OnInit, OnDestr
       type,
       file: isFileMaterial(type) ? this.selectedFile() : null,
       url: type === MaterialType.Link ? (v.url ?? '').toString().trim() : null,
+      teacherAssignmentPublicUuid: this.teacherAssignmentPublicUuid,
     };
     this.submitted.emit(request);
   }

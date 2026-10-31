@@ -11,5 +11,12 @@ describe('ANNOUNCEMENTS_ROUTES', () => {
     const composer = ANNOUNCEMENTS_ROUTES.find(r => r.path === 'new');
     expect(composer).toBeDefined();
     expect(composer?.loadComponent).toBeDefined();
+    expect(composer?.canActivate?.length).toBeGreaterThan(0);
+  });
+
+  it('guards the edit path so students cannot open the composer by URL', () => {
+    const edit = ANNOUNCEMENTS_ROUTES.find(r => r.path === ':publicUuid/edit');
+    expect(edit).toBeDefined();
+    expect(edit?.canActivate?.length).toBeGreaterThan(0);
   });
 });

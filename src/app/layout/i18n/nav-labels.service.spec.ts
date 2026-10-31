@@ -10,9 +10,9 @@ describe('NavLabels', () => {
   });
 
   it('translates group ids', () => {
-    expect(labels.labelFor('workspace')).toBe('Espacio de trabajo');
+    expect(labels.labelFor('workspace')).toBe('Institución');
     expect(labels.labelFor('academic')).toBe('Académico');
-    expect(labels.labelFor('lms')).toBe('Mis cursos');
+    expect(labels.labelFor('lms')).toBe('Aula virtual');
     expect(labels.labelFor('attendance')).toBe('Asistencia');
     expect(labels.labelFor('payments')).toBe('Pagos');
     expect(labels.labelFor('system')).toBe('Sistema');
@@ -20,6 +20,8 @@ describe('NavLabels', () => {
 
   it('translates nav item ids', () => {
     expect(labels.labelFor('dashboard')).toBe('Panel');
+    expect(labels.labelFor('admissions')).toBe('Admisiones');
+    expect(labels.labelFor('disclosures')).toBe('Información anual');
     expect(labels.labelFor('students')).toBe('Estudiantes');
     expect(labels.labelFor('teachers')).toBe('Docentes');
     expect(labels.labelFor('courses')).toBe('Cursos');
@@ -30,7 +32,7 @@ describe('NavLabels', () => {
     expect(labels.labelFor('schedule')).toBe('Horarios');
     expect(labels.labelFor('schedule-jornada')).toBe('Jornada y recreos');
     expect(labels.labelFor('schedule-workload')).toBe('Carga docente');
-    expect(labels.labelFor('evaluations')).toBe('Evaluaciones');
+    expect(labels.labelFor('evaluations')).toBe('Registros');
     expect(labels.labelFor('family')).toBe('Mis hijos');
     expect(labels.labelFor('me')).toBe('Mi espacio');
     expect(labels.labelFor('me-schedule')).toBe('Mi horario');
@@ -44,8 +46,15 @@ describe('NavLabels', () => {
     expect(labels.labelFor('periods')).toBe('Periodos');
     expect(labels.labelFor('academic-periods')).toBe('Periodos');
     expect(labels.labelFor('academic-years')).toBe('Años académicos');
+    expect(labels.labelFor('academic-grade-register')).toBe('Registro de notas');
+    expect(labels.labelFor('grade-register')).toBe('Registro de notas');
     expect(labels.labelFor('reconciliation')).toBe('Conciliación');
     expect(labels.labelFor('payments-admin')).toBe('Conciliación');
+    expect(labels.labelFor('payments-emit')).toBe('Emitir cuotas');
+    expect(labels.labelFor('payments-concepts')).toBe('Conceptos');
+    expect(labels.labelFor('payments-plans')).toBe('Planes automáticos');
+    expect(labels.labelFor('payments-policy')).toBe('Política de cobro');
+    expect(labels.labelFor('payments-methods')).toBe('Métodos de pago');
   });
 
   it('returns the id itself for unknown keys', () => {

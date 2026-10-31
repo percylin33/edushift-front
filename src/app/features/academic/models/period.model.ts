@@ -296,6 +296,46 @@ function startOfDay(d: Date): Date {
   return out;
 }
 
+/**
+ * Resuelve el periodo académico "vigente" para {@code today}:
+ * el que contiene la fecha en {@code [startDate, endDate]}.
+ *
+ * <p>Si no hay coincidencia (vacaciones, año sin configurar), cae al
+ * próximo periodo futuro; si tampoco hay, al último periodo pasado.</p>
+ */
+export function resolveCurrentAcademicPeriod(
+  periods: AcademicPeriodRow[],
+  today: Date = new Date(),
+): AcademicPeriodRow | null {
+  if (periods.length === 0) return null;
+
+  const day = startOfDay(today).getTime();
+  const containing = periods.filter((p) => {
+    const start = startOfDay(p.startDate).getTime();
+    const end = startOfDay(p.endDate).getTime();
+    return day >= start && day <= end;
+  });
+
+  if (containing.length > 0) {
+    return [...containing].sort((a, b) => a.ordinal - b.ordinal)[0];
+  }
+
+  const upcoming = periods
+    .filter((p) => startOfDay(p.startDate).getTime() > day)
+    .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+  if (upcoming.length > 0) return upcoming[0];
+
+  const past = periods
+    .filter((p) => startOfDay(p.endDate).getTime() < day)
+    .sort((a, b) => b.endDate.getTime() - a.endDate.getTime());
+  return past[0] ?? null;
+}
+
+/** Etiqueta legible para un periodo (prefiere {@code name} del BE). */
+export function formatPeriodLabel(period: AcademicPeriodRow): string {
+  return period.name?.trim() || defaultPeriodName(period.ordinal, period.periodType);
+}
+
 // =============================================================================
 // Serialización LocalDate <-> Date
 // =============================================================================

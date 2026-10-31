@@ -10,7 +10,6 @@ import { UserSettingsComponent } from './user-settings.component';
 
 describe('UserSettingsComponent', () => {
   let fixture: ComponentFixture<UserSettingsComponent>;
-  let component: UserSettingsComponent;
   let auth: AuthService;
 
   const seedUser = (overrides: Partial<User> = {}): User =>
@@ -49,7 +48,6 @@ describe('UserSettingsComponent', () => {
 
   const render = (): void => {
     fixture = TestBed.createComponent(UserSettingsComponent);
-    component = fixture.componentInstance;
     fixture.detectChanges();
   };
 

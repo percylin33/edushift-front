@@ -74,7 +74,7 @@ type UsersTab = 'users' | 'invitations';
     <app-page-container size="wide">
       <app-page-header
         title="Usuarios"
-        subtitle="Gestiona las cuentas activas del workspace, sus roles y estado de acceso."
+        subtitle="Gestiona las cuentas activas de la institución, sus roles y estado de acceso."
       >
         <button type="button" class="btn btn-primary btn-sm" (click)="openInviteModal()">
           <app-icon name="mail" [size]="16" />

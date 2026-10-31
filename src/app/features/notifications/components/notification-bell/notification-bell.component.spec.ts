@@ -3,6 +3,7 @@ import { NotificationBellComponent } from './notification-bell.component';
 import { NotificationsApiService } from '../../services/notifications-api.service';
 import { RealtimeService } from '@core/realtime/realtime.service';
 import { AuthService } from '@core/services/auth.service';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 describe('NotificationBellComponent', () => {
@@ -19,7 +20,7 @@ describe('NotificationBellComponent', () => {
       'markRead',
       'markAllRead',
     ]);
-    apiSpy.listUnreadCount.and.returnValue(of({ unreadCount: 3 } as any));
+    apiSpy.listUnreadCount.and.returnValue(of({ success: true, data: { unreadCount: 3 } }));
     apiSpy.list.and.returnValue(of({ data: [] } as any));
     realtimeSpy = jasmine.createSpyObj('RealtimeService', ['connect', 'subscribe'], {
       connected: () => true,
@@ -33,6 +34,7 @@ describe('NotificationBellComponent', () => {
         { provide: NotificationsApiService, useValue: apiSpy },
         { provide: RealtimeService, useValue: realtimeSpy },
         { provide: AuthService, useValue: authSpy },
+        provideRouter([]),
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(NotificationBellComponent);
@@ -83,7 +85,14 @@ describe('NotificationBellComponent', () => {
   describe('onItemClick', () => {
     it('marca como leída', () => {
       apiSpy.markRead.and.returnValue(of({} as any));
-      (component as any).onItemClick({ publicUuid: 'n1' } as any);
+      component.onItemClick({
+        id: 'n1',
+        title: 'Aviso',
+        body: 'Contenido',
+        createdAt: '2026-10-29T12:00:00.000Z',
+        readAt: null,
+        category: 'GENERAL',
+      });
       expect(apiSpy.markRead).toHaveBeenCalledWith('n1');
     });
   });

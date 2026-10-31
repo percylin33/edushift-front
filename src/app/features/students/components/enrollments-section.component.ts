@@ -10,7 +10,9 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import { StudentEnrollmentStatus } from '@core/enums';
+import { Permission, StudentEnrollmentStatus, UserRole } from '@core/enums';
+import { AuthService } from '@core/services';
+import { formatSectionDisplayLabel } from '@features/academic/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { EnrollmentRow, StudentDetail } from '../models';
 import { StudentsStore } from '../store';
@@ -65,7 +67,7 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
     WithdrawEnrollmentModalComponent,
   ],
   template: `
-    <section class="card lg:col-span-3">
+    <section class="card">
       <header class="card-header">
         <div>
           <h2 class="card-title">Matrícula y sección</h2>
@@ -74,8 +76,9 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
             académicos.
           </p>
         </div>
-        <div class="flex items-center gap-2">
-          @if (active(); as a) {
+        @if (canManage()) {
+          <div class="flex items-center gap-2">
+            @if (active(); as a) {
             <button
               type="button"
               class="btn btn-outline btn-sm"
@@ -104,8 +107,9 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
               <app-icon name="plus" [size]="14" />
               <span>Matricular en sección</span>
             </button>
-          }
-        </div>
+            }
+          </div>
+        }
       </header>
 
       <div class="card-body flex flex-col gap-4">
@@ -128,13 +132,17 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
             >
               <div>
                 <p class="text-2xs uppercase tracking-wider text-content-subtle">Sección actual</p>
-                <a
-                  [routerLink]="sectionRoute(a.sectionPublicUuid)"
-                  class="mt-1 inline-flex items-center gap-1 text-sm font-medium text-content hover:underline"
-                >
-                  {{ a.sectionName }}
-                  <app-icon name="arrow-right" [size]="12" />
-                </a>
+                @if (canOpenSectionDetails()) {
+                  <a
+                    [routerLink]="sectionRoute(a.sectionPublicUuid)"
+                    class="mt-1 inline-flex items-center gap-1 text-sm font-medium text-content hover:underline"
+                  >
+                    {{ sectionLabel(a) }}
+                    <app-icon name="arrow-right" [size]="12" />
+                  </a>
+                } @else {
+                  <p class="mt-1 text-sm font-medium text-content">{{ sectionLabel(a) }}</p>
+                }
               </div>
               <div>
                 <p class="text-2xs uppercase tracking-wider text-content-subtle">Año académico</p>
@@ -154,7 +162,7 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
               <app-icon name="info" [size]="20" class="mx-auto mb-2 text-content-subtle" />
               <p class="text-sm font-medium text-content">Sin matrícula activa</p>
               <p class="mt-1 text-xs text-content-muted">
-                Asigna una sección para que aparezca en el roster del año activo.
+                Asigna una sección para que aparezca en la lista del año activo.
               </p>
             </div>
           }
@@ -177,12 +185,16 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
                     @for (e of rows(); track e.publicUuid) {
                       <tr>
                         <td>
-                          <a
-                            [routerLink]="sectionRoute(e.sectionPublicUuid)"
-                            class="font-medium hover:underline"
-                          >
-                            {{ e.sectionName }}
-                          </a>
+                          @if (canOpenSectionDetails()) {
+                            <a
+                              [routerLink]="sectionRoute(e.sectionPublicUuid)"
+                              class="font-medium hover:underline"
+                            >
+                              {{ sectionLabel(e) }}
+                            </a>
+                          } @else {
+                            <span class="font-medium">{{ sectionLabel(e) }}</span>
+                          }
                         </td>
                         <td>
                           <span class="text-xs text-content-muted">
@@ -242,6 +254,7 @@ const STATUS_BADGE_CLASS: Readonly<Record<StudentEnrollmentStatus, string>> = {
 })
 export class EnrollmentsSectionComponent implements OnInit {
   private readonly store = inject(StudentsStore);
+  private readonly auth = inject(AuthService);
 
   readonly student = input.required<StudentDetail>();
 
@@ -250,6 +263,14 @@ export class EnrollmentsSectionComponent implements OnInit {
   protected readonly loading = this.store.loadingEnrollments;
   protected readonly saving = this.store.savingEnrollment;
   protected readonly errorMessage = this.store.error;
+
+  protected canManage(): boolean {
+    return this.auth.hasPermission(Permission.EnrollmentsManage);
+  }
+
+  protected canOpenSectionDetails(): boolean {
+    return this.auth.hasRole(UserRole.TenantAdmin, UserRole.Teacher);
+  }
 
   protected readonly showEnroll = signal<boolean>(false);
   protected readonly showTransfer = signal<boolean>(false);
@@ -264,6 +285,10 @@ export class EnrollmentsSectionComponent implements OnInit {
 
   protected sectionRoute(sectionUuid: string): string {
     return ROUTES.ACADEMIC.SECTIONS.detail(sectionUuid);
+  }
+
+  protected sectionLabel(row: EnrollmentRow): string {
+    return formatSectionDisplayLabel(row.sectionName, row.gradeName);
   }
 
   protected statusLabel(s: StudentEnrollmentStatus): string {

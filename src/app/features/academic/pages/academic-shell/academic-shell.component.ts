@@ -1,13 +1,12 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import { IconComponent, PageContainerComponent, PageHeaderComponent } from '@shared/components';
+import { IconComponent, PageContainerComponent } from '@shared/components';
 import type { IconName } from '@shared/components/icon';
 
 /**
- * Shell del módulo {@code academic}. Renderiza un header global y una
- * barra de tabs persistente; el {@code <router-outlet>} pinta el
- * sub-módulo activo.
+ * Shell del módulo {@code academic}. Renderiza una barra de tabs
+ * persistente; el {@code <router-outlet>} pinta el sub-módulo activo.
  *
  * <h3>Tabs (Sprint 4)</h3>
  * <ul>
@@ -33,16 +32,10 @@ import type { IconName } from '@shared/components/icon';
     RouterLink,
     RouterLinkActive,
     PageContainerComponent,
-    PageHeaderComponent,
     IconComponent,
   ],
   template: `
     <app-page-container size="wide">
-      <app-page-header
-        title="Académico"
-        subtitle="Configura el calendario lectivo, los niveles, secciones, cursos y periodos del workspace."
-      />
-
       <nav class="card mb-4 overflow-hidden" aria-label="Sub-módulos académicos">
         <ul class="flex flex-wrap items-center gap-1 border-b border-border-subtle px-2 py-2">
           @for (tab of tabs; track tab.id) {
@@ -114,6 +107,18 @@ export class AcademicShellComponent {
       label: 'Periodos',
       icon: 'clock',
       route: ROUTES.ACADEMIC.PERIODS.LIST,
+    },
+    {
+      id: 'grade-register',
+      label: 'Registro',
+      icon: 'layout-grid',
+      route: ROUTES.ACADEMIC.GRADE_REGISTER.LIST,
+    },
+    {
+      id: 'session-templates',
+      label: 'Plantillas',
+      icon: 'file-text',
+      route: ROUTES.ACADEMIC.SESSION_TEMPLATES.LIST,
     },
   ];
 }

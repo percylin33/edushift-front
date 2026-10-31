@@ -5,6 +5,8 @@ import { AuthService, TenantService } from '@core/services';
 import { UserRole } from '@core/enums';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
+import { provideHttpClient } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
 
 describe('DashboardHomeComponent', () => {
   let component: any;
@@ -58,7 +60,10 @@ describe('DashboardHomeComponent', () => {
       lastLoadedAt: signal(null),
       isEmpty: signal(false),
     });
-    authSpy = jasmine.createSpyObj('AuthService', ['hasRole'], { user$: of({}) });
+    authSpy = jasmine.createSpyObj('AuthService', ['hasRole'], {
+      user: signal({ firstName: 'Juan' }),
+      user$: of({}),
+    });
     authSpy.hasRole.and.callFake((role: string) => role === UserRole.TenantAdmin);
     tenantSpy = jasmine.createSpyObj('TenantService', [], {
       tenant: signal({ name: 'Colegio Test' }),
@@ -67,6 +72,8 @@ describe('DashboardHomeComponent', () => {
     await TestBed.configureTestingModule({
       imports: [DashboardHomeComponent],
       providers: [
+        provideHttpClient(),
+        provideRouter([]),
         { provide: DashboardStore, useValue: storeSpy },
         { provide: AuthService, useValue: authSpy },
         { provide: TenantService, useValue: tenantSpy },
@@ -106,12 +113,7 @@ describe('DashboardHomeComponent', () => {
 
   describe('greeting', () => {
     it('genera saludo con nombre', () => {
-      authSpy = jasmine.createSpyObj('AuthService', ['hasRole'], {
-        user: () => ({ firstName: 'Juan' }),
-        user$: of({}),
-      });
-      TestBed.overrideProvider(AuthService, { useValue: authSpy });
-      // Rebuild needed
+      expect(component.greeting()).toContain('Juan');
     });
   });
 

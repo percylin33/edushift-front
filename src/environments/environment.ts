@@ -17,7 +17,7 @@ export const environment: AppEnvironment = runtimeOverrides({
   uatMode: true,
   appName: 'EduShift',
   appVersion: '0.0.0',
-  apiUrl: 'http://localhost:8081/api',
+  apiUrl: 'http://localhost:8080/api',
   apiVersion: 'v1',
   defaultLocale: 'es',
   supportedLocales: ['es', 'en'],
@@ -33,13 +33,17 @@ export const environment: AppEnvironment = runtimeOverrides({
     refreshTokenStorageKey: 'edushift.auth.refreshToken',
     tokenHeaderName: 'Authorization',
     tokenScheme: 'Bearer',
+    // SECURITY FIX: Send cookies with every request (httpOnly token storage)
+    withCredentials: true,
   },
   google: {
     enabled: false,
     clientId: '',
     scopes: ['openid', 'profile', 'email'],
   },
-  devMfaBypassCode: 'dev-bypass',
+  // MFA enrollment stays interactive by default; enable only for deliberate
+  // testing of the dev-only bypass endpoint.
+  devMfaBypassCode: undefined,
   features: {
     dashboard: true,
     auth: true,
@@ -63,8 +67,10 @@ export const environment: AppEnvironment = runtimeOverrides({
     announcements: true,
     schedule: true,
     family: true,
+    disclosures: true,
+    admissions: true,
     me: true,
-    gmailSend: false,
+    gmailSend: true,
   },
   logging: {
     level: 'debug',

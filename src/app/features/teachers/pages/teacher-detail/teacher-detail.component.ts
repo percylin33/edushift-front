@@ -3,7 +3,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
-  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -11,6 +10,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { Gender } from '@core/enums';
 import {
+  ConfirmDialogService,
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
@@ -24,7 +24,6 @@ import {
   TeacherScheduleTabComponent,
 } from '../../components';
 import { TeachersStore } from '../../store';
-import { EMPLOYMENT_STATUS_LABELS } from '../../models';
 
 type TabId = 'info' | 'account' | 'assignments' | 'specializations' | 'schedule';
 
@@ -311,6 +310,7 @@ export class TeacherDetailComponent implements OnInit {
   private readonly store = inject(TeachersStore);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly listRoute = ROUTES.TEACHERS.LIST;
 
@@ -398,12 +398,17 @@ export class TeacherDetailComponent implements OnInit {
   protected async onDelete(): Promise<void> {
     const t = this.teacher();
     if (!t) return;
-    const ok = confirm(
-      `¿Eliminar al docente "${t.fullName}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar docente',
+      message:
+        `¿Eliminar al docente "${t.fullName}"?\n\n` +
         'Si tiene asignaciones activas, el backend rechazará la eliminación.\n' +
         'En ese caso, finaliza las asignaciones primero desde la pestaña\n' +
         '"Asignaciones" antes de reintentar.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     const success = await this.store.delete(t.publicUuid);
     if (success) await this.router.navigate([ROUTES.TEACHERS.LIST]);

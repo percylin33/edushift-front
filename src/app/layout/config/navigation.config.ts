@@ -6,8 +6,8 @@ import { NavigationGroup } from '../models';
  * Source of truth for the sidebar navigation.
  *
  * Every item declares its own visibility constraints (`feature` / `roles` /
- * `permissions`). `NavigationService` filters the tree at render time and
- * prunes empty groups.
+ * `permissions` / `visibleIfAny`). `NavigationService` filters the tree at
+ * render time and prunes empty groups.
  *
  * Adding a new module is a one-liner here — no template changes required.
  *
@@ -18,7 +18,7 @@ import { NavigationGroup } from '../models';
 export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
   {
     id: 'workspace',
-    label: 'Espacio de trabajo',
+    label: 'Institución',
     items: [
       {
         id: 'dashboard',
@@ -29,18 +29,13 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         feature: FeatureKey.Dashboard,
       },
       {
-        /*
-         * Sprint 3 keeps the students module role-gated (TENANT_ADMIN
-         * only) — same trade-off as the users entry, see
-         * docs/product/sprints/sprint-03-users-students.md. Fine-grained
-         * `students:*` permissions land with the security sprint.
-         */
         id: 'students',
         label: 'Estudiantes',
         icon: 'graduation-cap',
         route: ROUTES.STUDENTS.ROOT,
         feature: FeatureKey.Students,
-        roles: [UserRole.TenantAdmin],
+        roles: [UserRole.TenantAdmin, UserRole.Staff],
+        permissions: [Permission.StudentsReadGranular],
       },
       {
         /*
@@ -105,6 +100,40 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
             route: ROUTES.ACADEMIC.PERIODS.LIST,
             roles: [UserRole.TenantAdmin],
           },
+          {
+            id: 'academic-grade-register',
+            label: 'Registro de notas',
+            route: ROUTES.ACADEMIC.GRADE_REGISTER.LIST,
+            roles: [UserRole.TenantAdmin],
+          },
+          {
+            id: 'academic-session-templates',
+            label: 'Plantillas de sesión',
+            route: ROUTES.ACADEMIC.SESSION_TEMPLATES.LIST,
+            roles: [UserRole.TenantAdmin],
+          },
+        ],
+      },
+      {
+        id: 'disclosures',
+        label: 'Información anual',
+        icon: 'file-text',
+        route: '/disclosures',
+        feature: FeatureKey.Disclosures,
+        roles: [UserRole.TenantAdmin, UserRole.Staff],
+        permissions: [Permission.LmsDisclosureRead],
+      },
+      {
+        id: 'admissions',
+        label: 'Admisiones',
+        icon: 'users',
+        route: '/admissions',
+        feature: FeatureKey.Admissions,
+        roles: [UserRole.TenantAdmin, UserRole.Staff],
+        permissions: [
+          Permission.LmsAdmissionManage,
+          Permission.AdmissionsInquiriesRead,
+          Permission.AdmissionsApplicationsRead,
         ],
       },
       {
@@ -119,13 +148,14 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         icon: 'layers',
         route: ROUTES.RUBRICS.ROOT,
         feature: FeatureKey.Rubrics,
-        roles: [UserRole.TenantAdmin, UserRole.Teacher],
+        roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Student, UserRole.Parent],
       },
       {
         /*
-         * Schedule module (F8 + jornada/workload). TENANT_ADMIN gets the
-         * hub + jornada/carga; TEACHER gets the weekly landing (`/schedule`
-         * / `/schedule/me`). Feature flag `schedule` must be on.
+         * Schedule module (F8 + jornada/workload). Single entry → `/schedule`
+         * hub; jornada/carga se navegan desde esa página (no submenu).
+         * TEACHER: landing semanal (`/schedule` / `/schedule/me`).
+         * Feature flag `schedule` must be on.
          */
         id: 'schedule',
         label: 'Horarios',
@@ -133,35 +163,19 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         route: ROUTES.SCHEDULE.ROOT,
         feature: FeatureKey.Schedule,
         roles: [UserRole.TenantAdmin, UserRole.Teacher],
-        children: [
-          {
-            id: 'schedule-jornada',
-            label: 'Jornada y recreos',
-            route: ROUTES.SCHEDULE.JORNADA,
-            roles: [UserRole.TenantAdmin],
-          },
-          {
-            id: 'schedule-workload',
-            label: 'Carga docente',
-            route: ROUTES.SCHEDULE.WORKLOAD,
-            roles: [UserRole.TenantAdmin],
-          },
-        ],
       },
       {
         /*
-         * Sprint 5 (FE-5.x) — sesiones de aprendizaje. Solo TENANT_ADMIN
-         * hasta que se implemente el endpoint `/me/sessions` para TEACHER
-         * (BUG-2026-07-31-03: el backend restringe este recurso a admin y
-         * abrirlo a teacher sin filtro por teacherAssignment es un agujero
-         * de aislamiento entre tenants/docentes).
+         * Sprint 5 (FE-5.x) — sesiones de aprendizaje. TEACHER ve solo las
+         * suyas (filtro server-side por teacherAssignment); TENANT_ADMIN ve
+         * todas las del colegio.
          */
         id: 'learning-sessions',
         label: 'Sesiones de clase',
         icon: 'calendar',
         route: ROUTES.SESSIONS.ROOT,
         feature: FeatureKey.Sessions,
-        roles: [UserRole.TenantAdmin],
+        roles: [UserRole.TenantAdmin, UserRole.Teacher],
       },
       {
         /*
@@ -171,7 +185,7 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
          * trade-off de role-gating que el resto del árbol.
          */
         id: 'evaluations',
-        label: 'Evaluaciones',
+        label: 'Registros',
         icon: 'clipboard-check',
         route: ROUTES.EVALUATIONS.ROOT,
         feature: FeatureKey.Evaluations,
@@ -186,7 +200,7 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
          * soporte).
          */
         id: 'lms',
-        label: 'Mis cursos',
+        label: 'Aula virtual',
         icon: 'book-open',
         route: ROUTES.LMS.ROOT,
         feature: FeatureKey.Lms,
@@ -196,31 +210,32 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         /*
          * Sprint 6 — el sidebar usa role-gating (mismo trade-off que
          * students/teachers/academic) porque el backend aún no popula
-         * `User.permissions`. Las sub-rutas reales son
-         * `/attendance/sessions` y `/attendance/scanner`; los paths
-         * `/attendance/daily|history|reports` declarados en
-         * ROUTES.ATTENDANCE no tienen entrada en attendance.routes.ts
-         * todavía, así que no se exponen como children hasta que las
-         * pantallas existan (FE-6.4 dashboard / reportes).
+         * `User.permissions`. Flujo primario = escáner en puerta
+         * (`/attendance/scanner`); Sesiones queda como revisión / aula.
+         * Paths `/attendance/daily|history|reports` aún no tienen
+         * pantallas (FE-6.4).
          */
         id: 'attendance',
         label: 'Asistencia',
         icon: 'calendar-check',
-        route: ROUTES.ATTENDANCE.SESSIONS,
+        route: ROUTES.ATTENDANCE.SCANNER,
         feature: FeatureKey.Attendance,
-        roles: [UserRole.TenantAdmin, UserRole.Teacher],
+        roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Staff],
+        permissions: [Permission.AttendanceReadGranular],
         children: [
+          {
+            id: 'attendance-scanner',
+            label: 'Entrada / Escáner',
+            route: ROUTES.ATTENDANCE.SCANNER,
+            roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Staff],
+            permissions: [Permission.AttendanceRegister],
+          },
           {
             id: 'attendance-sessions',
             label: 'Sesiones',
             route: ROUTES.ATTENDANCE.SESSIONS,
-            roles: [UserRole.TenantAdmin, UserRole.Teacher],
-          },
-          {
-            id: 'attendance-scanner',
-            label: 'Escáner QR',
-            route: ROUTES.ATTENDANCE.SCANNER,
-            roles: [UserRole.TenantAdmin, UserRole.Teacher],
+            roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Staff],
+            permissions: [Permission.AttendanceReadGranular],
           },
         ],
       },
@@ -295,22 +310,63 @@ export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
         icon: 'credit-card',
         route: ROUTES.PAYMENTS.ROOT,
         feature: FeatureKey.Payments,
-        roles: [UserRole.TenantAdmin, UserRole.Staff, UserRole.Student, UserRole.Parent],
+        visibleIfAny: {
+          roles: [UserRole.TenantAdmin, UserRole.Student, UserRole.Parent],
+          permissions: [
+            Permission.LmsPaymentAdmin,
+            Permission.PaymentsReadGranular,
+            Permission.PaymentsReconcile,
+            Permission.PaymentsIssue,
+            Permission.PaymentConceptsManage,
+          ],
+        },
         children: [
           {
-            /*
-             * Sprint 11 / FE-11.3 — admin power tools (reconcile /
-             * refund / mark-paid-cash). Gated by `LMS_PAYMENT_ADMIN`
-             * (TENANT_ADMIN + STAFF per `LmsRoleAuthorityMapper`).
-             * The authority string is passed verbatim to match the
-             * `LMS_*` convention used by every other LMS guard — the
-             * `permissions` array in `permission.enum.ts` is the
-             * authoritative listing.
-             */
-            id: 'payments-admin',
-            label: 'Conciliación',
+            /* PAYMENTS:RECONCILE grants the restricted voucher review queue;
+             * PAYMENTS:READ grants the full invoice list. */
+            id: 'payments-collections',
+            label: 'Cobros',
             icon: 'shield-check',
-            route: ROUTES.PAYMENTS.ADMIN.ROOT,
+            route: ROUTES.PAYMENTS.ADMIN.INVOICES,
+            permissions: [
+              Permission.LmsPaymentAdmin,
+              Permission.PaymentsReadGranular,
+              Permission.PaymentsReconcile,
+            ],
+          },
+          {
+            id: 'payments-emit',
+            label: 'Emitir cuotas',
+            icon: 'file-text',
+            route: ROUTES.PAYMENTS.ADMIN.EMIT,
+            permissions: [Permission.LmsPaymentAdmin, Permission.PaymentsIssue],
+          },
+          {
+            id: 'payments-concepts',
+            label: 'Conceptos',
+            icon: 'layers',
+            route: ROUTES.PAYMENTS.ADMIN.CONCEPTS,
+            permissions: [Permission.PaymentConceptsManage, Permission.LmsPaymentAdmin],
+          },
+          {
+            id: 'payments-plans',
+            label: 'Planes',
+            icon: 'refresh',
+            route: ROUTES.PAYMENTS.ADMIN.PLANS,
+            permissions: [Permission.LmsPaymentAdmin],
+          },
+          {
+            id: 'payments-policy',
+            label: 'Política',
+            icon: 'settings',
+            route: ROUTES.PAYMENTS.ADMIN.POLICY,
+            permissions: [Permission.LmsPaymentAdmin],
+          },
+          {
+            id: 'payments-methods',
+            label: 'Métodos de pago',
+            icon: 'landmark',
+            route: '/payments/admin/methods',
             permissions: [Permission.LmsPaymentAdmin],
           },
         ],

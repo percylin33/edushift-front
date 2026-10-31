@@ -6,7 +6,7 @@ export const environment: AppEnvironment = runtimeOverrides({
   uatMode: false,
   appName: 'EduShift',
   appVersion: '0.0.0',
-  apiUrl: 'https://edushift-back.onrender.com/api',
+  apiUrl: 'https://app.edushift.pe/api',
   apiVersion: 'v1',
   defaultLocale: 'es',
   supportedLocales: ['es', 'en'],
@@ -20,7 +20,8 @@ export const environment: AppEnvironment = runtimeOverrides({
     tokenStorageKey: 'edushift.auth.token',
     refreshTokenStorageKey: 'edushift.auth.refreshToken',
     tokenHeaderName: 'Authorization',
-    tokenScheme: 'Bearer'
+    tokenScheme: 'Bearer',
+    withCredentials: true
   },
   google: {
     // Disable by default in production until the operator supplies a
@@ -50,18 +51,18 @@ export const environment: AppEnvironment = runtimeOverrides({
     reports: true,
     notifications: true,
     settings: true,
-    // LMS (Sprint 7a). Kept off in production until the pilot signs off
-    // on the back-end (BE-7a.0..5). The flag is consulted by
-    // `featureFlagGuard` to short-circuit the whole `/lms/*` tree.
-    lms: false,
+    // Feature routes enabled for this deployment.
+    lms: true,
     // FIX BUG-2026-07-30-09 / -10 / -18 / -19: type parity with the
     // shared AppEnvironment shape. Toggle per deployment as needed;
     // announcements/schedule/family/me ship behind featureFlagGuard.
-    announcements: false,
-    schedule: false,
-    family: false,
-    me: false,
-    gmailSend: false
+    announcements: true,
+    schedule: true,
+    family: true,
+    disclosures: true,
+    admissions: true,
+    me: true,
+    gmailSend: true
   },
   logging: {
     level: 'warn',
@@ -75,8 +76,7 @@ export const environment: AppEnvironment = runtimeOverrides({
     pwaDisplay: 'standalone',
     pwaStartUrl: '/attendance/scanner'
   },
-  // Production Firebase config intentionally left undefined until the
-  // operator provisions a dedicated EduShift project and uploads the
-  // real config via the deploy pipeline (see docs/infra/firebase.md).
-  firebase: undefined
+  // Intentionally unset until production Firebase/FCM is configured.
+  // Never ship the development project's identifiers in a production bundle.
+  firebase: undefined,
 });

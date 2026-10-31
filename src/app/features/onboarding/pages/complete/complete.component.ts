@@ -63,7 +63,7 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
         <h1 class="text-2xl font-semibold tracking-tight">Casi listo</h1>
         <p class="mt-2 text-sm text-content-muted">
           Activaremos <strong class="text-content">{{ tenantName() }}</strong> y te llevaremos al
-          dashboard.
+          panel principal.
         </p>
       }
     </div>

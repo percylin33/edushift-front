@@ -1,6 +1,6 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { ERROR_ROUTES, PRIVATE_ROUTES, PUBLIC_ROUTES } from './app-routing';
-import { PAYMENTS_ROUTES } from './features/payments/payments.routes';
 
 /**
  * Top-level route composition. Three logical areas, each in its own file:
@@ -27,18 +27,64 @@ import { PAYMENTS_ROUTES } from './features/payments/payments.routes';
  */
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+  {
+    canDeactivate: [pendingChangesGuard],
+    path: 'install',
+    data: { title: 'Instala EduShift' },
+    loadComponent: () =>
+      import('./features/pwa/pages/pwa-install.page').then((m) => m.InstallPageComponent),
+  },
+  {
+    canDeactivate: [pendingChangesGuard],
+    path: 'politica-privacidad',
+    data: { title: 'Política de Privacidad — Ley N° 29733' },
+    loadComponent: () =>
+      import('./features/privacy-policy/privacy-policy.component').then(
+        (m) => m.PrivacyPolicyComponent,
+      ),
+  },
+  {
+    path: 'privacy-policy',
+    redirectTo: 'politica-privacidad',
+    pathMatch: 'full',
+  },
+  {
+    canDeactivate: [pendingChangesGuard],
+    path: 'terminos-y-condiciones',
+    data: { title: 'Términos y Condiciones del Servicio' },
+    loadComponent: () =>
+      import('./features/terms-and-conditions/terms-and-conditions.component').then(
+        (m) => m.TermsAndConditionsComponent,
+      ),
+  },
+  {
+    path: 'terms',
+    redirectTo: 'terminos-y-condiciones',
+    pathMatch: 'full',
+  },
+  {
+    canDeactivate: [pendingChangesGuard],
+    path: 'libro-de-reclamaciones',
+    data: { title: 'Libro de Reclamaciones Virtual — Ley N° 32495' },
+    loadComponent: () =>
+      import('./features/claims-book/claims-book.component').then((m) => m.ClaimsBookComponent),
+  },
   ...PUBLIC_ROUTES,
   ...PRIVATE_ROUTES,
   {
     path: 'payments',
-    children: PAYMENTS_ROUTES,
+    loadChildren: () =>
+      import('./features/payments/payments.routes').then((m) => m.PAYMENTS_ROUTES),
   },
   // Sprint 15 — admin console (top-level, no tenant context).
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'admin/login',
     data: { title: 'Admin - Ingreso' },
     loadComponent: () =>
-      import('./features/admin/pages/login/admin-login.component').then((m) => m.AdminLoginComponent),
+      import('./features/admin/pages/login/admin-login.component').then(
+        (m) => m.AdminLoginComponent,
+      ),
   },
   {
     path: 'admin',

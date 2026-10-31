@@ -1,0 +1,12 @@
+.git/
+node_modules/
+dist/
+dist-*/
+.angular/
+.temp-browser-check/
+coverage/
+.env
+.env.*
+*.log
+playwright-report/
+test-results/

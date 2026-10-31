@@ -1,3 +1,4 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { roleGuard } from '@core/guards';
 import { UserRole } from '@core/enums';
@@ -20,6 +21,7 @@ import { UserRole } from '@core/enums';
  */
 export const USERS_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     canActivate: [roleGuard],
     data: { roles: [UserRole.TenantAdmin], title: 'Usuarios' },
@@ -27,6 +29,7 @@ export const USERS_ROUTES: Routes = [
       import('./pages/users-list/users-list.component').then((m) => m.UsersListComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: ':id',
     canActivate: [roleGuard],
     data: {

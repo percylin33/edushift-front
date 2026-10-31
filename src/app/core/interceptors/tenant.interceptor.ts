@@ -35,7 +35,7 @@ export const tenantInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.url !== API.AUTH.LOGIN) return next(req);
 
   const tenantService = inject(TenantService);
-  const tenantSlug = tenantService.tenantSlug() ?? environment.multiTenant.defaultTenant;
+  const tenantSlug = tenantService.tenantSlug();
   if (!tenantSlug) return next(req);
 
   return next(req.clone({ setHeaders: { [environment.multiTenant.headerName]: tenantSlug } }));

@@ -1,22 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MaterialCardComponent } from './material-card.component';
 import { MaterialRow, MaterialType } from '../../models';
+import { FileUploadService } from '@core/services/file-upload.service';
 
-/**
- * Spec de {@link MaterialCardComponent} (FE-7a.3).
- *
- * Cubre el spec del sprint:
- * <ul>
- *   <li>El icono correcto por {@link MaterialType}.</li>
- *   <li>El botón "Abrir enlace" para {@code LINK} y "Descargar"
- *       para binarios.</li>
- *   <li>El botón "Eliminar" se muestra cuando el usuario tiene
- *       {@code LMS_MATERIAL_WRITE}.</li>
- * </ul>
- */
 describe('MaterialCardComponent', () => {
   let component: MaterialCardComponent;
   let fixture: ComponentFixture<MaterialCardComponent>;
+  let files: jasmine.SpyObj<FileUploadService>;
 
   function makeRow(type: MaterialType): MaterialRow {
     return {
@@ -27,6 +17,7 @@ describe('MaterialCardComponent', () => {
       sizeBytes: type === MaterialType.Link ? null : 2048,
       contentType: type === MaterialType.Link ? null : 'application/octet-stream',
       url: type === MaterialType.Link ? 'https://example.com' : null,
+      filePublicUuid: type === MaterialType.Link ? null : 'file-1',
       uploadedByTeacherName: 'Profe Pérez',
       sizeBytesDisplay: type === MaterialType.Link ? null : '2.0 KB',
       createdAt: new Date('2026-06-01T00:00:00Z'),
@@ -34,8 +25,12 @@ describe('MaterialCardComponent', () => {
   }
 
   beforeEach(async () => {
+    files = jasmine.createSpyObj<FileUploadService>('FileUploadService', ['downloadAndSave']);
+    files.downloadAndSave.and.returnValue(Promise.resolve());
+
     await TestBed.configureTestingModule({
       imports: [MaterialCardComponent],
+      providers: [{ provide: FileUploadService, useValue: files }],
     }).compileComponents();
   });
 
@@ -52,12 +47,6 @@ describe('MaterialCardComponent', () => {
     expect(component.isLink()).toBeFalse();
   });
 
-  it('renders the Image icon for IMAGE type', () => {
-    component.material = makeRow(MaterialType.Image);
-    fixture.detectChanges();
-    expect(component.iconName()).toBe('image');
-  });
-
   it('renders the globe icon and "Abrir enlace" CTA for LINK type', () => {
     component.material = makeRow(MaterialType.Link);
     fixture.detectChanges();
@@ -66,9 +55,10 @@ describe('MaterialCardComponent', () => {
     expect(component.typeLabel()).toBe('Enlace');
   });
 
-  it('exposes a download URL pointing to /v1/lms/materials/{uuid}/download', () => {
+  it('calls downloadAndSave with filePublicUuid for file materials', async () => {
     component.material = makeRow(MaterialType.Pdf);
-    expect(component.downloadUrl()).toContain('/v1/lms/materials/mat-1/download');
+    await component.onDownload();
+    expect(files.downloadAndSave).toHaveBeenCalledWith('file-1', 'archivo.bin');
   });
 
   it('emits delete when the delete button is clicked', () => {

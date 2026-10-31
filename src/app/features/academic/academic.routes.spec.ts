@@ -21,7 +21,7 @@ describe('ACADEMIC_ROUTES', () => {
     expect(children.find(r => r.path === 'years/:id/edit')).toBeDefined();
   });
 
-  it('exposes levels, sections, courses, periods, classrooms', () => {
+  it('exposes levels, sections, courses, periods, classrooms, grade-register, session-templates', () => {
     expect(children.find(r => r.path === 'levels')).toBeDefined();
     expect(children.find(r => r.path === 'sections')).toBeDefined();
     expect(children.find(r => r.path === 'sections/:id')).toBeDefined();
@@ -29,6 +29,11 @@ describe('ACADEMIC_ROUTES', () => {
     expect(children.find(r => r.path === 'courses/:id')).toBeDefined();
     expect(children.find(r => r.path === 'periods')).toBeDefined();
     expect(children.find(r => r.path === 'classrooms')).toBeDefined();
+    expect(children.find(r => r.path === 'grade-register')).toBeDefined();
+    expect(children.find(r => r.path === 'grade-register/settings')?.data?.['view']).toBe(
+      'settings',
+    );
+    expect(children.find(r => r.path === 'session-templates')).toBeDefined();
   });
 
   it('every child route is TENANT_ADMIN-only', () => {

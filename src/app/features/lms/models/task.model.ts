@@ -1,33 +1,14 @@
 /**
- * LMS task lifecycle (BE-7a.2).
+ * LMS task lifecycle (BE-7a.2 + V105).
  *
- * <p>Mirrors the backend {@code TaskLifecycle} enum verbatim. The state
- * machine enforced server-side is:
- * <pre>
- *   DRAFT  ──publish──▶  PUBLISHED  ──close──▶  CLOSED
- *    │                       │
- *    └─ edit allowed ─┐       └─ new submissions accepted
- *                     │           (while {@code dueAt > now})
- *    edit forbidden once PUBLISHED unless {@code dueAt} is in the future.
- * </pre>
+ * Backend uses DRAFT / PUBLISHED / ARCHIVED. FE displays ARCHIVED as Closed.
  */
 export enum TaskLifecycle {
   Draft = 'DRAFT',
   Published = 'PUBLISHED',
-  Closed = 'CLOSED',
+  Closed = 'ARCHIVED',
 }
 
-/**
- * Per-student submission lifecycle, surfaced to STUDENT/PARENT in
- * "Mis tareas" (FE-7a.1 Scenario 4) and consumed by the badge in
- * the task detail (FE-7a.2 — Sprint 7a deliverable #2).
- *
- * <p>The backend derives {@code LATE} server-side: any submission
- * persisted after {@code dueAt} lands in this state regardless of the
- * submitter's intent. {@code RETURNED} is set by a TEACHER
- * {@code PATCH /submissions/{uuid}/return} and re-enables
- * {@code PATCH /submissions/{uuid}} on the student side.
- */
 export enum SubmissionStatus {
   Pending = 'PENDING',
   Submitted = 'SUBMITTED',
@@ -36,80 +17,75 @@ export enum SubmissionStatus {
   Returned = 'RETURNED',
 }
 
-/**
- * Numeric grade bands for the per-student tabs.
- *
- * <p>Mirrors the {@code SubmissionStatus} group used by the listing
- * filter in "Mis tareas" (Todas / Pendientes / Entregadas / Calificadas /
- * Atrasadas). {@code Pending} means "no submission yet, dueAt in the
- * future"; {@code Late} covers "no submission and dueAt already passed"
- * AND "submission after dueAt".
- */
 export type StudentAssignmentBucket = 'PENDING' | 'SUBMITTED' | 'GRADED' | 'LATE';
 
-/* --------------------------------------------------------------------------
- * Wire shapes — these mirror the JSON returned by the backend. Keep them
- * verbatim; the adapter in this file is the only layer that may massage
- * the data before it lands in the domain model.
- * ------------------------------------------------------------------------ */
-
-/** {@code AssignmentResponseRaw} — full task (BE-7a.2). */
+/** Wire shape from {@code TaskResponse} (BE). */
 export interface TaskResponseRaw {
   publicUuid: string;
   sectionPublicUuid: string;
-  coursePublicUuid: string;
-  periodPublicUuid: string;
   title: string;
   description: string | null;
-  /** ISO-8601 timestamp. {@code null} until PUBLISHED for some flows. */
   dueAt: string | null;
-  /** Decimal score; > 0 per business rule. */
-  maxScore: number;
-  /** {@code true} ⇒ PATCH /submissions/{uuid} allowed after GRADED. */
-  allowResubmissions: boolean;
-  /** True if a file attachment is expected (just a hint, not enforced). */
-  requiresAttachment: boolean;
-  lifecycle: TaskLifecycle;
-  /** Public UUID of the section's primary teacher at creation time. */
-  createdByTeacherPublicUuid: string;
+  attachmentPublicUuid?: string | null;
+  ownerPublicUuid: string;
+  allowResubmission?: boolean;
+  allowResubmissions?: boolean;
+  status: string;
+  publishedAt?: string | null;
+  archivedAt?: string | null;
   createdAt: string;
   updatedAt: string | null;
-  /** Submission counter — only present on listing endpoints. */
+  teacherAssignmentPublicUuid?: string | null;
+  coursePublicUuid?: string | null;
+  courseName?: string | null;
+  periodLabel?: string | null;
+  // legacy / optional FE fields
+  maxScore?: number;
+  lifecycle?: TaskLifecycle;
+  createdByTeacherPublicUuid?: string;
   submissionsCount?: number;
+  gradedSubmissionsCount?: number;
+  periodPublicUuid?: string;
+  requiresAttachment?: boolean;
 }
 
-/** {@code AssignmentSummaryRaw} — listing projection (BE-7a.2). */
+/** Wire shape from {@code TaskSummary} (BE). */
 export interface TaskSummaryRaw {
   publicUuid: string;
   title: string;
   dueAt: string | null;
-  maxScore: number;
-  lifecycle: TaskLifecycle;
-  submissionsCount: number;
-  /** Denormalized label for the section (server-side join). */
-  sectionLabel: string | null;
-  /** Denormalized label for the course. */
-  courseLabel: string | null;
+  hasAttachment?: boolean;
+  ownerPublicUuid?: string;
+  status?: string;
+  lifecycle?: TaskLifecycle;
   createdAt: string;
+  teacherAssignmentPublicUuid?: string | null;
+  coursePublicUuid?: string | null;
+  courseName?: string | null;
+  periodLabel?: string | null;
+  maxScore?: number;
+  submissionsCount?: number;
+  gradedSubmissionsCount?: number;
+  sectionLabel?: string | null;
+  courseLabel?: string | null;
 }
 
-/**
- * {@code CreateAssignmentRequest} body for
- * {@code POST /v1/lms/assignments}.
- */
+/** Body for {@code POST /sections/{uuid}/tasks}. */
 export interface CreateTaskRequest {
   sectionPublicUuid: string;
-  coursePublicUuid: string;
-  periodPublicUuid: string;
   title: string;
   description?: string | null;
   dueAt: string;
-  maxScore: number;
-  allowResubmissions: boolean;
-  requiresAttachment: boolean;
+  attachmentPublicUuid?: string | null;
+  teacherAssignmentPublicUuid: string;
+  // kept optional for transitional callers
+  coursePublicUuid?: string;
+  periodPublicUuid?: string;
+  maxScore?: number;
+  allowResubmissions?: boolean;
+  requiresAttachment?: boolean;
 }
 
-/** Body for {@code PATCH /v1/lms/assignments/{uuid}}. All optional. */
 export interface UpdateTaskRequest {
   title?: string;
   description?: string | null;
@@ -117,13 +93,9 @@ export interface UpdateTaskRequest {
   maxScore?: number;
   allowResubmissions?: boolean;
   requiresAttachment?: boolean;
+  attachmentPublicUuid?: string | null;
 }
 
-/* --------------------------------------------------------------------------
- * Domain models — what the components consume.
- * ------------------------------------------------------------------------ */
-
-/** Compact task used in listing views (TEACHER). */
 export interface TaskRow {
   publicUuid: string;
   title: string;
@@ -131,16 +103,15 @@ export interface TaskRow {
   maxScore: number;
   lifecycle: TaskLifecycle;
   submissionsCount: number;
+  gradedSubmissionsCount: number;
   sectionLabel: string | null;
   courseLabel: string | null;
+  courseName: string | null;
+  periodLabel: string | null;
+  teacherAssignmentPublicUuid: string | null;
   createdAt: Date;
 }
 
-/**
- * Full task payload (TEACHER/STUDENT detail). Mirrors
- * {@link TaskResponseRaw} with date strings → Date for ergonomic access
- * in the template.
- */
 export interface TaskDetail {
   publicUuid: string;
   sectionPublicUuid: string;
@@ -148,6 +119,7 @@ export interface TaskDetail {
   periodPublicUuid: string;
   title: string;
   description: string | null;
+  attachmentPublicUuid: string | null;
   dueAt: Date | null;
   maxScore: number;
   allowResubmissions: boolean;
@@ -157,27 +129,34 @@ export interface TaskDetail {
   createdAt: Date;
   updatedAt: Date | null;
   submissionsCount: number;
+  gradedSubmissionsCount: number;
+  teacherAssignmentPublicUuid: string | null;
+  courseName: string | null;
+  periodLabel: string | null;
 }
 
-/* --------------------------------------------------------------------------
- * Adapters
- * ------------------------------------------------------------------------ */
+function mapLifecycle(status: string | TaskLifecycle | undefined): TaskLifecycle {
+  if (status === 'DRAFT' || status === TaskLifecycle.Draft) return TaskLifecycle.Draft;
+  if (status === 'PUBLISHED' || status === TaskLifecycle.Published) return TaskLifecycle.Published;
+  return TaskLifecycle.Closed;
+}
 
-/**
- * Convert the listing wire-shape into the domain row. Normalizes Jackson's
- * {@code null} (empty-optional convention) to {@code undefined} where the
- * component expects it.
- */
 export function toTaskRow(raw: TaskSummaryRaw): TaskRow {
+  const submissionsCount = raw.submissionsCount ?? 0;
+  const gradedSubmissionsCount = raw.gradedSubmissionsCount ?? 0;
   return {
     publicUuid: raw.publicUuid,
     title: raw.title,
     dueAt: raw.dueAt ? new Date(raw.dueAt) : null,
-    maxScore: raw.maxScore,
-    lifecycle: raw.lifecycle,
-    submissionsCount: raw.submissionsCount,
+    maxScore: raw.maxScore ?? 0,
+    lifecycle: mapLifecycle(raw.status ?? raw.lifecycle),
+    submissionsCount,
+    gradedSubmissionsCount,
     sectionLabel: raw.sectionLabel ?? null,
-    courseLabel: raw.courseLabel ?? null,
+    courseLabel: raw.courseLabel ?? raw.courseName ?? null,
+    courseName: raw.courseName ?? raw.courseLabel ?? null,
+    periodLabel: raw.periodLabel ?? null,
+    teacherAssignmentPublicUuid: raw.teacherAssignmentPublicUuid ?? null,
     createdAt: new Date(raw.createdAt),
   };
 }
@@ -186,40 +165,35 @@ export function toTaskDetail(raw: TaskResponseRaw): TaskDetail {
   return {
     publicUuid: raw.publicUuid,
     sectionPublicUuid: raw.sectionPublicUuid,
-    coursePublicUuid: raw.coursePublicUuid,
-    periodPublicUuid: raw.periodPublicUuid,
+    coursePublicUuid: raw.coursePublicUuid ?? '',
+    periodPublicUuid: raw.periodPublicUuid ?? '',
     title: raw.title,
     description: raw.description ?? null,
+    attachmentPublicUuid: raw.attachmentPublicUuid ?? null,
     dueAt: raw.dueAt ? new Date(raw.dueAt) : null,
-    maxScore: raw.maxScore,
-    allowResubmissions: raw.allowResubmissions,
-    requiresAttachment: raw.requiresAttachment,
-    lifecycle: raw.lifecycle,
-    createdByTeacherPublicUuid: raw.createdByTeacherPublicUuid,
+    maxScore: raw.maxScore ?? 0,
+    allowResubmissions: raw.allowResubmissions ?? raw.allowResubmission ?? true,
+    requiresAttachment: raw.requiresAttachment ?? !!raw.attachmentPublicUuid,
+    lifecycle: mapLifecycle(raw.status ?? raw.lifecycle),
+    createdByTeacherPublicUuid: raw.createdByTeacherPublicUuid ?? raw.ownerPublicUuid,
     createdAt: new Date(raw.createdAt),
     updatedAt: raw.updatedAt ? new Date(raw.updatedAt) : null,
     submissionsCount: raw.submissionsCount ?? 0,
+    gradedSubmissionsCount: raw.gradedSubmissionsCount ?? 0,
+    teacherAssignmentPublicUuid: raw.teacherAssignmentPublicUuid ?? null,
+    courseName: raw.courseName ?? null,
+    periodLabel: raw.periodLabel ?? null,
   };
 }
 
-/* --------------------------------------------------------------------------
- * Pure helpers — kept here so the spec and the UI agree on rules.
- * ------------------------------------------------------------------------ */
-
-/** Is the task still mutable from a TEACHER's perspective? */
 export function isTaskEditable(detail: Pick<TaskDetail, 'lifecycle' | 'dueAt'>): boolean {
-  if (detail.lifecycle === TaskLifecycle.Draft) return true;
-  if (detail.lifecycle === TaskLifecycle.Closed) return false;
-  // PUBLISHED but dueAt in the future → edits allowed (BE-7a.2 spec).
-  return detail.dueAt instanceof Date && detail.dueAt.getTime() > Date.now();
+  return detail.lifecycle === TaskLifecycle.Draft;
 }
 
-/** Is the lifecycle terminal? */
 export function isTaskTerminal(lifecycle: TaskLifecycle): boolean {
   return lifecycle === TaskLifecycle.Closed;
 }
 
-/** All lifecycles for the filter dropdown (in display order). */
 export const ALL_TASK_LIFECYCLES: readonly TaskLifecycle[] = [
   TaskLifecycle.Draft,
   TaskLifecycle.Published,

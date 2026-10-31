@@ -9,10 +9,14 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import {
+  ConfirmDialogService,
+  EmptyStateComponent,
+  IconComponent,
+  SpinnerComponent,
+} from '@shared/components';
 import { AttemptStatusBadgeComponent } from '../../components/attempt-status-badge/attempt-status-badge.component';
 import { QuestionTypeBadgeComponent } from '../../components/question-type-badge/question-type-badge.component';
 import { AttemptsStore } from '../../store/attempts.store';
@@ -48,8 +52,8 @@ const TICK_INTERVAL_MS = 1000;
  *   <li>Timer (si el quiz tiene {@code timeLimitMinutes}): cuenta atrás
  *       en segundos. Cuando llega a 0 la page dispara un submit forzado
  *       (sin pedir confirmación) que cierra el attempt.</li>
- *   <li>Submit: botón al final pide {@code confirm()}. Si confirma,
- *       flush de pending + POST /submit + redirect a results.</li>
+ *   <li>Submit: botón al final pide confirmación vía {@link ConfirmDialogService}.
+ *       Si confirma, flush de pending + POST /submit + redirect a results.</li>
  *   <li>Resumen post-submit: si el attempt ya no es IN_PROGRESS (p.ej.
  *       vino pre-cargado del store, o el backend lo cerró por timer),
  *       la page renderiza un read-only con los metadatos del attempt
@@ -75,10 +79,10 @@ const TICK_INTERVAL_MS = 1000;
     <header class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div class="min-w-0">
         <p class="text-xs uppercase tracking-wide text-content-muted">
-          <a [routerLink]="quizDetailRoute()" class="hover:underline">← Volver al quiz</a>
+          <a [routerLink]="quizDetailRoute()" class="hover:underline">← Volver a la práctica</a>
         </p>
         <h1 class="text-2xl font-semibold text-content">
-          {{ quizTitle() ?? 'Tomar quiz' }}
+          {{ quizTitle() ?? 'Tomar práctica' }}
         </h1>
         @if (quizDescription(); as d) {
           <p class="mt-1 max-w-2xl text-sm text-content-muted">{{ d }}</p>
@@ -289,7 +293,7 @@ const TICK_INTERVAL_MS = 1000;
               </a>
               <a [routerLink]="quizDetailRoute()" class="btn btn-ghost btn-sm">
                 <app-icon name="arrow-left" [size]="14" />
-                Volver al quiz
+                Volver a la práctica
               </a>
             </app-empty-state>
 
@@ -342,6 +346,7 @@ export class QuizTakePageComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly quizzes = inject(QuizzesStore);
   private readonly attempts = inject(AttemptsStore);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly quizPublicUuid = computed<string>(
     () => this.route.snapshot.paramMap.get('uuid') ?? '',
@@ -414,18 +419,12 @@ export class QuizTakePageComponent implements OnInit, OnDestroy {
 
       const ok = await this.attempts.startAttempt(this.quizPublicUuid());
       if (!ok) {
-        const err = this.attempts.error();
-        // 409 / already started → backend has a pending attempt; the store left the
-        // previous current untouched. Surface a friendly banner with a retry that
-        // would resolve a real resume flow once BE-7b.2 exposes a "find my IN_PROGRESS"
-        // helper (out of scope for FE-7b.2). For now we still allow the user to back out.
-        if (err && /already.started|ya.iniciado|en curso|in.progress/i.test(err)) {
-          this.attempts.clearError();
-        }
+        // Backend resumes IN_PROGRESS; ATTEMPTS_EXHAUSTED only when no open attempt remains.
+        // Error banner comes from the store (localized for ATTEMPTS_EXHAUSTED).
       } else {
         this.startTimerIfNeededFromAttempt(this.attempts.current());
       }
-    } catch (err) {
+    } catch {
       this.attempts.clearError();
       this.attempts.clearCurrent();
       // No rethrow — the error signal already carries the message; the page
@@ -571,7 +570,12 @@ export class QuizTakePageComponent implements OnInit, OnDestroy {
     const a = this.attempts.current();
     if (!a) return;
     if (!isAttemptInProgress(a)) return;
-    const ok = window.confirm('¿Enviar el intento? No podrás modificar las respuestas después.');
+    const ok = await this.confirmDialog.open({
+      title: 'Enviar intento',
+      message: '¿Enviar el intento? No podrás modificar las respuestas después.',
+      confirmLabel: 'Enviar',
+      variant: 'warning',
+    });
     if (!ok) return;
     await this.flushNow();
     const updated = await this.attempts.submitAttempt(a.publicUuid);

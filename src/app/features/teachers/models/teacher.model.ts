@@ -158,9 +158,9 @@ export interface CreateTeacherRequest {
  * Patch payload de {@code PUT /v1/teachers/{publicUuid}}.
  *
  * <p>Partial-merge: campos {@code undefined} se omiten del JSON
- * (no-op server-side); pasar {@code null} explícito limpia el campo
- * para los nullable ({@code email}, {@code phone}, {@code secondLastName},
- * etc.). Linkear el User <em>no</em> se hace por aquí — usar
+ * (no-op server-side); un string vacío limpia los campos nullable
+ * de texto ({@code email}, {@code phone}, {@code secondLastName}, etc.).
+ * Enviar {@code null} se trata como no-op. Linkear el User <em>no</em> se hace por aquí — usar
  * {@code POST /teachers/{uuid}/link-user}.</p>
  */
 export interface UpdateTeacherRequest {

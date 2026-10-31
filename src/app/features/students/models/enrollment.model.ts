@@ -18,6 +18,8 @@ export interface EnrollmentListItemRaw {
   studentFullName: string;
   sectionPublicUuid: string;
   sectionName: string;
+  /** Grade label of the section (e.g. "2do Primaria"). */
+  gradeName: string | null;
   academicYearPublicUuid: string;
   academicYearName: string;
   /** {@code LocalDate} ISO (yyyy-MM-dd). */
@@ -42,6 +44,7 @@ export interface EnrollmentResponseRaw {
   studentDocumentNumber: string;
   sectionPublicUuid: string;
   sectionName: string;
+  gradeName: string | null;
   academicYearPublicUuid: string;
   academicYearName: string;
   enrolledAt: string | null;
@@ -81,6 +84,7 @@ export interface EnrollmentRow {
   studentFullName: string;
   sectionPublicUuid: string;
   sectionName: string;
+  gradeName: string | null;
   academicYearPublicUuid: string;
   academicYearName: string;
   enrolledAt?: Date;
@@ -132,6 +136,12 @@ export interface CreateEnrollmentRequest {
   enrolledAt: string;
   /** Free-form, max 1000 chars. */
   notes?: string;
+}
+
+/** Body de {@code PATCH /v1/enrollments/{publicUuid}}. */
+export interface UpdateEnrollmentRequest {
+  /** ISO {@code yyyy-MM-dd}; must fall inside the academic year. */
+  enrolledAt: string;
 }
 
 /**

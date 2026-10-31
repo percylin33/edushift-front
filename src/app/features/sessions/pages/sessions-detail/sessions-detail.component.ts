@@ -11,12 +11,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
 import {
+  ConfirmDialogService,
   PageContainerComponent,
   PageHeaderComponent,
   IconComponent,
   SpinnerComponent,
 } from '@shared/components';
 import { RouterLink } from '@angular/router';
+import { AcademicApiService } from '@features/academic/services';
 import { SessionsApiService } from '../../services';
 import {
   LearningSessionDetail,
@@ -24,7 +26,19 @@ import {
   SESSION_STATUS_LABELS,
   SESSION_STATUS_BADGE_CLASS,
   LifecycleRequest,
+  ApplicationSheetKind,
+  ApplicationSheetView,
 } from '../../models';
+
+interface GradeAssignment {
+  publicUuid: string;
+  coursePublicUuid: string;
+  academicPeriodPublicUuid: string;
+  gradeName?: string | null;
+  sectionName?: string;
+  courseCode?: string;
+  active?: boolean;
+}
 
 /**
  * `/learning-sessions/:id`
@@ -143,6 +157,118 @@ import {
             }
           </div>
         </section>
+
+        <section class="card mb-6">
+          <div class="card-body grid gap-3">
+            <h3 class="text-sm font-semibold">Fichas de aplicación</h3>
+            <p class="text-xs text-content-muted">
+              Cada grado tiene su propia ficha. El alumno la completa en papel.
+            </p>
+            @if (sheets().length === 0) {
+              <p class="text-sm text-content-muted">Esta sesión todavía no tiene fichas.</p>
+            }
+            @for (sheet of sheets(); track sheet.kind + sheet.grade) {
+              <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+                <div>
+                  <p class="text-sm font-medium">{{ sheet.title }}</p>
+                  <p class="text-xs text-content-muted">
+                    {{ sheet.kind === 'DIAGNOSTIC' ? 'Evaluación diagnóstica' : 'Ficha de aprendizaje' }}
+                    · {{ sheet.grade }}
+                  </p>
+                </div>
+                <div class="flex gap-2">
+                  <button type="button" class="btn btn-outline btn-sm" [disabled]="actionLoading()" (click)="downloadSheet(sheet)">
+                    PDF
+                  </button>
+                  <button type="button" class="btn btn-ghost btn-sm" [disabled]="actionLoading()" (click)="regenerateSheet(sheet.kind, sheet.grade)">
+                    Regenerar
+                  </button>
+                </div>
+              </div>
+            }
+            <div class="flex flex-wrap items-end gap-2">
+              <label class="text-sm">
+                Grado
+                <input
+                  class="input mt-1"
+                  [value]="newSheetGrade()"
+                  (input)="newSheetGrade.set($any($event.target).value)"
+                />
+              </label>
+              <button type="button" class="btn btn-outline btn-sm" [disabled]="actionLoading()" (click)="regenerateSheet('LEARNING', newSheetGrade())">
+                Generar ficha
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm" [disabled]="actionLoading()" (click)="regenerateSheet('DIAGNOSTIC', newSheetGrade())">
+                Generar diagnóstico
+              </button>
+            </div>
+            @if (sheetMessage()) {
+              <p class="text-xs text-content-muted">{{ sheetMessage() }}</p>
+            }
+          </div>
+        </section>
+
+        @if (s!.status !== 'CANCELLED') {
+          <section class="card mb-6">
+            <div class="card-body grid gap-4">
+              <label class="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  class="checkbox mt-1"
+                  [checked]="s!.sharedWithGrade"
+                  [disabled]="actionLoading()"
+                  (change)="toggleShare($any($event.target).checked)"
+                />
+                <span>
+                  <span class="block text-sm font-medium">Compartir con el grado</span>
+                  <span class="block text-xs text-content-muted">
+                    Otros docentes del mismo curso y grado pueden ver el plan y copiarlo a su
+                    sección. Las observaciones no se comparten.
+                  </span>
+                </span>
+              </label>
+
+              @if (siblingAssignments().length > 0) {
+                <div class="grid gap-3">
+                  <p class="text-sm font-medium">Aplicar a mis otras secciones</p>
+                  @for (assignment of siblingAssignments(); track assignment.publicUuid) {
+                    <div class="flex flex-wrap items-center gap-3">
+                      <label class="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          class="checkbox"
+                          [checked]="isSiblingSelected(assignment.publicUuid)"
+                          (change)="toggleSibling(assignment.publicUuid, $any($event.target).checked)"
+                        />
+                        <span>
+                          {{ assignment.gradeName }} {{ assignment.sectionName }} ·
+                          {{ assignment.courseCode }}
+                        </span>
+                      </label>
+                      <input
+                        type="date"
+                        class="input w-auto"
+                        [value]="siblingDate(assignment.publicUuid)"
+                        (change)="setSiblingDate(assignment.publicUuid, $any($event.target).value)"
+                      />
+                    </div>
+                  }
+                  <button
+                    type="button"
+                    class="btn btn-outline btn-sm w-fit"
+                    [disabled]="actionLoading() || selectedSiblings().size === 0"
+                    (click)="applyToSiblings()"
+                  >
+                    Aplicar a las secciones elegidas
+                  </button>
+                  @if (copyMessage()) {
+                    <p class="text-sm text-content-muted">{{ copyMessage() }}</p>
+                  }
+                </div>
+              }
+            </div>
+          </section>
+        }
 
         <!-- Detalles -->
         <div class="grid gap-6 md:grid-cols-3">
@@ -286,8 +412,10 @@ import {
 })
 export class SessionsDetailComponent implements OnInit {
   private readonly api = inject(SessionsApiService);
+  private readonly academicApi = inject(AcademicApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly ROUTES = ROUTES;
 
@@ -295,6 +423,13 @@ export class SessionsDetailComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly actionLoading = signal(false);
+  protected readonly siblingAssignments = signal<GradeAssignment[]>([]);
+  protected readonly selectedSiblings = signal<Set<string>>(new Set());
+  protected readonly siblingDates = signal<Record<string, string>>({});
+  protected readonly copyMessage = signal<string | null>(null);
+  protected readonly sheets = signal<ApplicationSheetView[]>([]);
+  protected readonly newSheetGrade = signal('');
+  protected readonly sheetMessage = signal<string | null>(null);
 
   protected readonly isTerminal = computed(() => {
     const status = this.session()?.status;
@@ -316,11 +451,168 @@ export class SessionsDetailComponent implements OnInit {
     try {
       const data = await firstValueFrom(this.api.getSession(publicUuid));
       this.session.set(data);
+      this.newSheetGrade.set(data.assignment.section.gradeName?.trim() ?? '');
+      await this.loadSheets(publicUuid);
+      await this.loadSiblingAssignments(data);
     } catch (err) {
       this.errorMessage.set(err instanceof Error ? err.message : 'Error de red');
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private async loadSheets(publicUuid: string): Promise<void> {
+    try {
+      const rows = await firstValueFrom(this.api.listApplicationSheets(publicUuid));
+      this.sheets.set(rows);
+    } catch {
+      this.sheets.set([]);
+    }
+  }
+
+  protected async regenerateSheet(kind: ApplicationSheetKind, grade: string): Promise<void> {
+    const session = this.session();
+    const trimmed = grade.trim();
+    if (!session || !trimmed) {
+      this.sheetMessage.set('Escribe el grado de la ficha.');
+      return;
+    }
+    this.actionLoading.set(true);
+    this.sheetMessage.set(null);
+    try {
+      await firstValueFrom(
+        this.api.generateStoredApplicationSheet(session.publicUuid, { kind, grade: trimmed }),
+      );
+      await this.loadSheets(session.publicUuid);
+      this.sheetMessage.set('Ficha lista para este grado.');
+    } catch (err) {
+      this.sheetMessage.set(err instanceof Error ? err.message : 'No se pudo generar la ficha.');
+    } finally {
+      this.actionLoading.set(false);
+    }
+  }
+
+  protected async downloadSheet(sheet: ApplicationSheetView): Promise<void> {
+    const session = this.session();
+    if (!session) return;
+    this.actionLoading.set(true);
+    try {
+      const blob = await firstValueFrom(
+        this.api.downloadApplicationSheet(session.publicUuid, sheet.kind, sheet.grade),
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ficha-${sheet.grade}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      this.sheetMessage.set('No se pudo descargar el PDF.');
+    } finally {
+      this.actionLoading.set(false);
+    }
+  }
+
+  private async loadSiblingAssignments(session: LearningSessionDetail): Promise<void> {
+    try {
+      const rows = (await firstValueFrom(
+        this.academicApi.listAssignments({ activeOnly: true }),
+      )) as GradeAssignment[];
+      const siblings = rows.filter(
+        (row) =>
+          row.active !== false &&
+          row.publicUuid !== session.assignment.publicUuid &&
+          row.coursePublicUuid === session.assignment.course.publicUuid &&
+          row.academicPeriodPublicUuid === session.assignment.period.publicUuid &&
+          (row.gradeName ?? '') === (session.assignment.section.gradeName ?? ''),
+      );
+      const dates: Record<string, string> = {};
+      for (const row of siblings) {
+        dates[row.publicUuid] = this.isoDate(session.scheduledDate);
+      }
+      this.siblingAssignments.set(siblings);
+      this.siblingDates.set(dates);
+      this.selectedSiblings.set(new Set());
+    } catch {
+      this.siblingAssignments.set([]);
+    }
+  }
+
+  protected isSiblingSelected(publicUuid: string): boolean {
+    return this.selectedSiblings().has(publicUuid);
+  }
+
+  protected toggleSibling(publicUuid: string, selected: boolean): void {
+    const next = new Set(this.selectedSiblings());
+    if (selected) next.add(publicUuid);
+    else next.delete(publicUuid);
+    this.selectedSiblings.set(next);
+  }
+
+  protected siblingDate(publicUuid: string): string {
+    return this.siblingDates()[publicUuid] ?? '';
+  }
+
+  protected setSiblingDate(publicUuid: string, value: string): void {
+    this.siblingDates.set({ ...this.siblingDates(), [publicUuid]: value });
+  }
+
+  protected async toggleShare(shared: boolean): Promise<void> {
+    const current = this.session();
+    if (!current) return;
+    this.actionLoading.set(true);
+    this.errorMessage.set(null);
+    try {
+      const updated = await firstValueFrom(
+        this.api.updateSession(current.publicUuid, { sharedWithGrade: shared }),
+      );
+      this.session.set(updated);
+    } catch (err) {
+      this.errorMessage.set(err instanceof Error ? err.message : 'No se pudo compartir la sesión');
+    } finally {
+      this.actionLoading.set(false);
+    }
+  }
+
+  protected async applyToSiblings(): Promise<void> {
+    const current = this.session();
+    if (!current) return;
+    const selected = Array.from(this.selectedSiblings());
+    if (selected.length === 0) return;
+    this.actionLoading.set(true);
+    this.copyMessage.set(null);
+    this.errorMessage.set(null);
+    try {
+      const results = await Promise.allSettled(
+        selected.map((assignmentUuid) =>
+          firstValueFrom(
+            this.api.copySession(current.publicUuid, {
+              assignmentUuid,
+              scheduledDate: this.siblingDate(assignmentUuid),
+            }),
+          ),
+        ),
+      );
+      const created = results.filter((result) => result.status === 'fulfilled').length;
+      const failed = results.length - created;
+      this.copyMessage.set(
+        failed === 0
+          ? `Se crearon ${created} sesiones en las secciones elegidas.`
+          : `Se crearon ${created} sesiones. ${failed} no se pudieron copiar.`,
+      );
+      this.selectedSiblings.set(new Set());
+    } catch (err) {
+      this.errorMessage.set(err instanceof Error ? err.message : 'No se pudo copiar la sesión');
+    } finally {
+      this.actionLoading.set(false);
+    }
+  }
+
+  private isoDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   protected editRoute(): string {
@@ -367,12 +659,24 @@ export class SessionsDetailComponent implements OnInit {
   // ===========================================================================
 
   protected async startSession(): Promise<void> {
-    if (!confirm('¿Iniciar esta sesión de aprendizaje?')) return;
+    const ok = await this.confirmDialog.open({
+      title: 'Iniciar sesión',
+      message: '¿Iniciar esta sesión de aprendizaje?',
+      confirmLabel: 'Iniciar',
+      variant: 'default',
+    });
+    if (!ok) return;
     await this.executeLifecycleAction('start');
   }
 
   protected async completeSession(): Promise<void> {
-    if (!confirm('¿Marcar esta sesión como completada?')) return;
+    const ok = await this.confirmDialog.open({
+      title: 'Completar sesión',
+      message: '¿Marcar esta sesión como completada?',
+      confirmLabel: 'Completar',
+      variant: 'warning',
+    });
+    if (!ok) return;
     await this.executeLifecycleAction('complete');
   }
 

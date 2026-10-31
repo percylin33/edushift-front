@@ -1,7 +1,11 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { mapHttpError } from '@shared/utils';
 import { UsersApiService } from '../services';
 import {
+  AdminPasswordResetDelivery,
+  AdminResetPasswordResponse,
   AssignRolesRequest,
   UpdateUserRequest,
   UserDetail,
@@ -175,15 +179,17 @@ export class UsersStore {
     return this.runMutation(() => this.api.enable(publicUuid));
   }
 
-  async resetPassword(publicUuid: string): Promise<boolean> {
+  async resetPassword(
+    publicUuid: string,
+    delivery: AdminPasswordResetDelivery = 'EMAIL',
+  ): Promise<AdminResetPasswordResponse | null> {
     this._saving.set(true);
     this._error.set(null);
     try {
-      await firstValueFrom(this.api.resetPassword(publicUuid));
-      return true;
+      return await firstValueFrom(this.api.resetPassword(publicUuid, { delivery }));
     } catch (err) {
       this._error.set(this.toErrorMessage(err));
-      return false;
+      return null;
     } finally {
       this._saving.set(false);
     }
@@ -268,6 +274,9 @@ export class UsersStore {
    */
   private toErrorMessage(err: unknown): string {
     if (typeof err === 'string') return err;
+    if (err instanceof HttpErrorResponse) {
+      return mapHttpError(err, { fallback: 'No se pudo completar la gestión de la cuenta. Inténtalo de nuevo.' });
+    }
     if (err && typeof err === 'object') {
       const anyErr = err as { message?: unknown; error?: { message?: unknown } };
       if (typeof anyErr.error?.message === 'string') return anyErr.error.message;

@@ -32,6 +32,8 @@ export enum FeatureKey {
   // can be used if ever needed for environment-level gating.
   Admin = 'admin',
   Family = 'family',
+  Disclosures = 'disclosures',
+  Admissions = 'admissions',
   // DEBT-STUDENT-PRIVACY / Fase 1: STUDENT-facing personal surface
   // (Mis cursos / Mis notas / Mi asistencia / Mi QR / Mis pagos /
   // Mi perfil). Feature flag mirrors the BE module's availability so

@@ -15,7 +15,6 @@ import {
 } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import {
-	EmptyStateComponent,
 	IconComponent,
 	PageContainerComponent,
 	PageHeaderComponent,
@@ -29,6 +28,7 @@ import {
 	PaymentConceptRequest,
 	PaymentConceptsApiService,
 } from '../../services/payment-concepts-api.service';
+import { centsToSoles, solesToCents } from '../../models/invoice.model';
 
 /**
  * Sprint cierre-C / F14 — Admin Payment Concepts page.
@@ -43,9 +43,9 @@ import {
  *   <li><b>Single-screen list</b> — the page shows the table + a collapsible
  *       drawer with the create/edit form. Saves a route hop and keeps
  *       the admin's context when iterating.</li>
- *   <li><b>Money in centavos</b> — the BE stores amounts as bigint
- *       cents; the form takes cents as the canonical unit and the UI
- *       displays {@code S/ 1,250.00} via a small formatter.</li>
+ *   <li><b>Money in soles</b> — the BE stores amounts as bigint
+ *       cents; the form takes soles and converts with {@code solesToCents}
+ *       on save. Lists still show {@code S/ 1,250.00} via formatter.</li>
  *   <li><b>Soft-delete</b> — DELETE flips {@code deleted=true}. The row
  *       disappears from the list immediately (the BE list query
  *       filters {@code deleted=false}); admins can recreate the code
@@ -53,6 +53,49 @@ import {
  * </ul>
  * </p>
  */
+/** Opciones predefinidas para crear conceptos automáticamente. */
+interface AutoCreateOption {
+	key: string;
+	name: string;
+	description: string;
+	suggestedCode: string;
+	suggestedAmount: string;
+	defaultChecked: boolean;
+	category: PaymentConceptCategory;
+	recurringDefault?: boolean;
+}
+
+interface PaymentConceptExample {
+	code: string;
+	name: string;
+	amount: string;
+}
+
+interface PaymentConceptExampleGroup {
+	title: string;
+	items: readonly PaymentConceptExample[];
+	tip?: string;
+}
+
+const EXAMPLE_GROUPS: readonly PaymentConceptExampleGroup[] = [
+	{
+		title: 'Pagos principales',
+		items: [
+			{ code: 'MATRICULA', name: 'Matrícula', amount: 'S/ 350.00' },
+			{ code: 'PENSION', name: 'Pensión mensual', amount: 'S/ 450.00' },
+			{ code: 'MATERIALES', name: 'Materiales escolares', amount: 'S/ 80.00' },
+		],
+		tip: 'Adapta los montos a las tarifas de cada colegio.',
+	},
+	{
+		title: 'Servicios adicionales',
+		items: [
+			{ code: 'REFRIGERIO', name: 'Refrigerio', amount: 'S/ 10.00' },
+			{ code: 'MOVILIDAD', name: 'Movilidad escolar', amount: 'S/ 180.00' },
+		],
+	},
+];
+
 @Component({
 	selector: 'app-payment-concepts-page',
 	standalone: true,
@@ -64,7 +107,6 @@ import {
 		PageContainerComponent,
 		PageHeaderComponent,
 		IconComponent,
-		EmptyStateComponent,
 		SpinnerComponent,
 	],
 	template: `
@@ -74,6 +116,18 @@ import {
 				title="Conceptos de pago"
 				subtitle="Catálogo de conceptos cobrables que se usan al emitir facturas."
 			>
+				<button
+					type="button"
+					class="btn btn-ghost btn-sm"
+					(click)="examplesOpen.set(!examplesOpen())"
+					[attr.aria-expanded]="examplesOpen()"
+					aria-controls="concept-examples-panel"
+					title="Ver ejemplos de conceptos"
+					data-testid="concepts-examples-toggle"
+				>
+					<app-icon name="info" [size]="16" />
+					<span>Ejemplos</span>
+				</button>
 				<button
 					type="button"
 					class="btn btn-primary btn-sm"
@@ -94,16 +148,148 @@ import {
 				</button>
 			</app-page-header>
 
+			@if (banner(); as notice) {
+				<div class="mb-4 rounded-md px-4 py-3 text-sm" [class.bg-emerald-50]="notice.ok" [class.text-emerald-800]="notice.ok" [class.bg-rose-50]="!notice.ok" [class.text-rose-800]="!notice.ok" role="status">
+					{{ notice.message }}
+				</div>
+			}
+
+			@if (examplesOpen()) {
+				<aside
+					id="concept-examples-panel"
+					class="card mb-6 border-l-4 border-l-sky-500"
+					data-testid="concepts-examples-panel"
+				>
+					<header class="card-header flex items-start justify-between gap-3">
+						<div>
+							<h2 class="card-title text-base">Ejemplos para un colegio</h2>
+							<p class="mt-1 text-sm text-content-muted">
+								Ideas de códigos y montos. Adáptalos a tu tarifa; el monto se registra en soles.
+							</p>
+						</div>
+						<button
+							type="button"
+							class="btn btn-ghost btn-sm shrink-0"
+							(click)="examplesOpen.set(false)"
+							aria-label="Cerrar ejemplos"
+						>
+							<app-icon name="x" [size]="16" />
+						</button>
+					</header>
+					<div class="card-body space-y-5 text-sm">
+						@for (group of EXAMPLE_GROUPS; track group.title) {
+							<section>
+								<h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-content-subtle">
+									{{ group.title }}
+								</h3>
+								<ul class="overflow-hidden rounded-lg ring-1 ring-border">
+									<li
+										class="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_auto] gap-2 border-b border-border bg-surface-muted px-3 py-1.5 text-2xs font-medium uppercase tracking-wide text-content-subtle"
+									>
+										<span>Código</span>
+										<span>Nombre</span>
+										<span class="text-right">Monto ej.</span>
+									</li>
+									@for (row of group.items; track row.code) {
+										<li
+											class="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_auto] gap-2 border-b border-border px-3 py-2 last:border-b-0"
+										>
+											<code class="truncate font-mono text-xs text-content">{{ row.code }}</code>
+											<span class="truncate text-content">{{ row.name }}</span>
+											<span class="text-right tabular-nums text-content-muted">{{ row.amount }}</span>
+										</li>
+									}
+								</ul>
+								@if (group.tip) {
+									<p class="mt-1.5 text-xs text-content-muted">{{ group.tip }}</p>
+								}
+							</section>
+						}
+						<p class="rounded-md bg-surface-muted px-3 py-2 text-xs text-content-muted">
+							<strong class="text-content">Tip:</strong> códigos en mayúsculas sin espacios
+							(<code class="font-mono">PENSION_PRIMARIA</code>). Luego, en Emitir eliges el
+							concepto y el monto se rellena solo.
+						</p>
+					</div>
+				</aside>
+			}
+
 			@if (loading() && concepts().length === 0) {
 				<div class="flex items-center justify-center py-16">
 					<app-spinner [size]="24" [label]="commonLabels.cargando()" />
 				</div>
 			} @else if (concepts().length === 0) {
-				<app-empty-state
-					icon="layers"
-					title="Aún no hay conceptos configurados"
-					description="Creá el primer concepto (por ejemplo: Matrícula 2026) para empezar a emitir facturas."
-				/>
+				<div class="card mb-6 p-6 max-w-2xl mx-auto">
+					<h2 class="mb-4 text-xl font-bold text-slate-900 dark:text-slate-100">Primeros conceptos de pago</h2>
+					<p class="text-slate-500 dark:text-slate-400 mb-6">
+						Configuremos los conceptos más usados en colegios particulares para que puedas empezar a emitir facturas de inmediato.
+					</p>
+
+					<!-- Auto-create concepts form -->
+					<form
+						class="grid gap-4 sm:grid-cols-2"
+						(submit)="autoCreateConcepts($event)"
+					>
+						@for (option of AUTO_CREATE_OPTIONS; track option.key) {
+							<div class="field">
+								<label class="flex items-center gap-2 cursor-pointer select-none">
+									<input
+										type="checkbox"
+										class="checkbox"
+										[checked]="selectedOptions().has(option.key)"
+										(change)="toggleOption(option.key)"
+									/>
+									<span>
+										<span class="font-medium text-slate-700 dark:text-slate-300">
+											{{ option.name }}
+										</span>
+										<span class="text-xs text-slate-500 dark:text-slate-300">
+											({{ option.description }})
+										</span>
+									</span>
+								</label>
+								@if (!option.defaultChecked) {
+									<div class="mt-2 text-xs text-slate-400">
+										Código: <strong class="font-mono uppercase">{{ option.suggestedCode }}</strong>
+										<br />
+										Monto sugerido: <strong>S/ {{ option.suggestedAmount }}</strong>
+									</div>
+								}
+							</div>
+						}
+
+						<div class="sm:col-span-2">
+							<div class="flex items-center justify-between">
+								<label class="text-xs text-slate-500 dark:text-slate-300">
+									<input type="checkbox" class="checkbox" [checked]="allSelected()" [indeterminate]="selectedCount() > 0 && !allSelected()" (change)="toggleAllOptions($event)" />
+									Seleccionar todos
+								</label>
+								@if (selectedCount() > 0) {
+									<span class="text-xs text-rose-600">({{ selectedCount() }} seleccionados)</span>
+								}
+							</div>
+						</div>
+
+						@if (formError(); as msg) {
+							<div class="sm:col-span-2 text-sm text-danger" role="alert">{{ msg }}</div>
+						}
+						<div class="sm:col-span-2">
+							<button
+								type="submit"
+								class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+								[disabled]="saving() || selectedCount() === 0"
+							>
+								@if (saving()) {
+									<app-spinner [size]="12" label="Creando" />
+									<span>Creando conceptos…</span>
+								} @else {
+									<app-icon name="check" [size]="14" />
+									<span>Crear {{ selectedCount() }} concepto(s)</span>
+								}
+							</button>
+						</div>
+					</form>
+				</div>
 			} @else {
 				<div class="card overflow-hidden">
 					<div class="overflow-x-auto">
@@ -223,23 +409,25 @@ import {
 						</div>
 						<div class="field">
 							<label class="label">Categoría *</label>
-							<select class="input" formControlName="category">
+							<select class="select" formControlName="category">
 								@for (cat of CATEGORIES; track cat) {
 									<option [value]="cat">{{ categoryLabel(cat) }}</option>
 								}
 							</select>
 						</div>
 						<div class="field">
-							<label class="label">Monto por defecto (centavos) *</label>
+							<label class="label">Monto por defecto (S/) *</label>
 							<input
 								type="number"
 								class="input"
-								formControlName="defaultAmountCents"
+								formControlName="defaultAmountSoles"
 								min="0"
-								step="1"
+								step="0.01"
+								placeholder="20.00"
 							/>
 							<p class="field-hint">
-								{{ formatMoney(form.get('defaultAmountCents')?.value ?? 0, form.get('currency')?.value) }}
+								Se guarda como
+								{{ formatMoney(solesPreviewCents(), form.get('currency')?.value) }}
 							</p>
 						</div>
 						<div class="field">
@@ -355,9 +543,111 @@ export class PaymentConceptsPageComponent implements OnInit {
 		'TUITION', 'ENROLLMENT', 'MATERIALS', 'MEALS', 'TRANSPORT', 'EXAM', 'EVENT', 'OTHER',
 	];
 
-	protected readonly loading = signal(false);
+	protected readonly examplesOpen = signal(false);
+
+	protected readonly EXAMPLE_GROUPS = EXAMPLE_GROUPS;
+
+	protected readonly AUTO_CREATE_OPTIONS: readonly AutoCreateOption[] = [
+		{
+			key: 'enrollment',
+			name: 'Matrícula / inscripción',
+			description: 'Cobro único al momento del ingreso del estudiante',
+			suggestedCode: 'MATRICULA',
+			suggestedAmount: '350',
+			defaultChecked: true,
+			category: 'ENROLLMENT',
+		},
+		{
+			key: 'tuition',
+			name: 'Pensión Inicial',
+			description: 'Cuota periódica mensual inicial para estudiantes nuevos (marca "Recurrente" si luego usas Planes de cobro)',
+			suggestedCode: 'PENSION_INICIAL',
+			suggestedAmount: '450',
+			defaultChecked: true,
+			category: 'TUITION',
+			recurringDefault: true,
+		},
+		{
+			key: 'tuition_2',
+			name: 'Pensión Primaria',
+			description: 'Cuota periódica mensual para estudiantes de primaria (marca "Recurrente" si luego usas Planes de cobro)',
+			suggestedCode: 'PENSION_PRIMARIA',
+			suggestedAmount: '520',
+			defaultChecked: true,
+			category: 'TUITION',
+			recurringDefault: true,
+		},
+		{
+			key: 'tuition_3',
+			name: 'Pensión Secundaria',
+			description: 'Cuota periódica mensual para estudiantes de secundaria (marca "Recurrente" si luego usas Planes de cobro)',
+			suggestedCode: 'PENSION_SECUNDARIA',
+			suggestedAmount: '580',
+			defaultChecked: true,
+			category: 'TUITION',
+			recurringDefault: true,
+		},
+		{
+			key: 'materials',
+			name: 'Materiales / útiles',
+			description: 'Cobro por materiales escolares',
+			suggestedCode: 'MATERIALES',
+			suggestedAmount: '80',
+			defaultChecked: false,
+			category: 'MATERIALS',
+		},
+		{
+			key: 'meals',
+			name: 'Refrigerio / almuerzo',
+			description: 'Cuota por servicio de comida',
+			suggestedCode: 'REFRIGERIO',
+			suggestedAmount: '10',
+			defaultChecked: false,
+			category: 'MEALS',
+		},
+		{
+			key: 'transport',
+			name: 'Movilidad escolar',
+			description: 'Servicio de transporte del estudiante',
+			suggestedCode: 'MOVILIDAD',
+			suggestedAmount: '180',
+			defaultChecked: false,
+			category: 'TRANSPORT',
+		},
+	];
+
+	protected readonly autoCreateOptions = signal<readonly AutoCreateOption[]>(this.AUTO_CREATE_OPTIONS);
+	protected readonly selectedOptions = signal<Set<string>>(
+		new Set(this.AUTO_CREATE_OPTIONS.filter((option) => option.defaultChecked).map((option) => option.key)),
+	);
+	protected readonly allSelected = computed(
+		() => this.autoCreateOptions().length > 0 && this.selectedOptions().size === this.autoCreateOptions().length,
+	);
+	protected readonly selectedCount = computed(() => this.selectedOptions().size);
+	protected readonly selectedOptionsList = computed(() =>
+		this.autoCreateOptions().filter((option) => this.selectedOptions().has(option.key)),
+	);
 	protected readonly saving = signal(false);
+	protected readonly loading = signal(false);
 	protected readonly concepts = signal<readonly PaymentConcept[]>([]);
+	protected readonly banner = signal<{ ok: boolean; message: string } | null>(null);
+
+	protected toggleOption(key: string): void {
+		this.selectedOptions.update((current) => {
+			const next = new Set(current);
+			if (next.has(key)) next.delete(key);
+			else next.add(key);
+			return next;
+		});
+	}
+
+	protected toggleAllOptions(event: Event): void {
+		const checked = (event.target as HTMLInputElement | null)?.checked ?? false;
+		this.selectedOptions.set(
+			checked ? new Set(this.autoCreateOptions().map((option) => option.key)) : new Set<string>(),
+		);
+	}
+
 	protected readonly editing = signal<{ existing: PaymentConcept | null; editingExisting: boolean } | null>(null);
 	protected readonly deleting = signal<PaymentConcept | null>(null);
 	protected readonly formError = signal<string | null>(null);
@@ -368,12 +658,16 @@ export class PaymentConceptsPageComponent implements OnInit {
 		name: ['', [Validators.required, Validators.maxLength(120)]],
 		description: ['', Validators.maxLength(500)],
 		category: ['TUITION' as PaymentConceptCategory, Validators.required],
-		defaultAmountCents: [0, [Validators.required, Validators.min(0)]],
+		defaultAmountSoles: [0, [Validators.required, Validators.min(0)]],
 		currency: ['PEN', [Validators.required, Validators.pattern(/^[A-Z]{3}$/)]],
 		recurring: [false],
 		active: [true],
 		sortOrder: [0],
 	});
+
+	protected solesPreviewCents(): number {
+		return solesToCents(Number(this.form.get('defaultAmountSoles')?.value) || 0);
+	}
 
 	async ngOnInit(): Promise<void> {
 		await this.reload();
@@ -403,7 +697,7 @@ export class PaymentConceptsPageComponent implements OnInit {
 			name: '',
 			description: '',
 			category: 'TUITION',
-			defaultAmountCents: 0,
+			defaultAmountSoles: 0,
 			currency: 'PEN',
 			recurring: false,
 			active: true,
@@ -420,7 +714,7 @@ export class PaymentConceptsPageComponent implements OnInit {
 			name: concept.name,
 			description: concept.description ?? '',
 			category: concept.category,
-			defaultAmountCents: concept.defaultAmountCents,
+			defaultAmountSoles: centsToSoles(concept.defaultAmountCents),
 			currency: concept.currency,
 			recurring: concept.recurring,
 			active: concept.active,
@@ -490,6 +784,49 @@ export class PaymentConceptsPageComponent implements OnInit {
 		}
 	}
 
+	async autoCreateConcepts(event?: Event): Promise<void> {
+		event?.preventDefault();
+		const options = this.selectedOptionsList();
+		if (this.saving() || options.length === 0) {
+			return;
+		}
+		this.saving.set(true);
+		this.formError.set(null);
+
+		try {
+			const created: PaymentConcept[] = [];
+			for (const option of options) {
+				const payload: PaymentConceptRequest = {
+					code: option.suggestedCode,
+					name: option.name,
+					description: '',
+					category: option.category,
+					defaultAmountCents: solesToCents(Number(option.suggestedAmount)),
+					currency: 'PEN',
+					recurring: option.recurringDefault ?? false,
+					active: true,
+					sortOrder: 0,
+				};
+				const createdConcept = await firstValueFrom(
+					this.conceptsApi.create(payload)
+				);
+				created.push(createdConcept);
+			}
+			this.selectedOptions.set(new Set());
+			this.banner.set({
+				ok: true,
+				message: `Se crearon ${created.length} concepto(s) de pago automáticamente.`,
+			});
+			await this.reload();
+		}
+		catch (err: unknown) {
+			this.formError.set(this.extractError(err, 'No se pudieron crear todos los conceptos. Verifica cuáles se registraron antes de reintentar.'));
+		}
+		finally {
+			this.saving.set(false);
+		}
+	}
+
 	private toRequest(): PaymentConceptRequest {
 		const v = this.form.getRawValue();
 		return {
@@ -497,7 +834,7 @@ export class PaymentConceptsPageComponent implements OnInit {
 			name: String(v.name).trim(),
 			description: (v.description ?? '').toString().trim() || null,
 			category: v.category as PaymentConceptCategory,
-			defaultAmountCents: Number(v.defaultAmountCents) || 0,
+			defaultAmountCents: solesToCents(Number(v.defaultAmountSoles) || 0),
 			currency: String(v.currency).trim().toUpperCase(),
 			recurring: Boolean(v.recurring),
 			active: Boolean(v.active),

@@ -46,7 +46,7 @@ describe('SubmitButtonComponent', () => {
 
   it('el botón está disabled cuando disabled=true', () => {
     create(false);
-    component.disabled = true;
+    fixture.componentRef.setInput('disabled', true);
     fixture.detectChanges();
     const button = fixture.nativeElement.querySelector('button');
     expect(button.disabled).toBeTrue();
@@ -54,7 +54,7 @@ describe('SubmitButtonComponent', () => {
 
   it('oculta la flecha cuando showArrow=false', () => {
     create(false);
-    component.showArrow = false;
+    fixture.componentRef.setInput('showArrow', false);
     fixture.detectChanges();
     const icons = fixture.nativeElement.querySelectorAll('app-icon');
     expect(icons.length).toBe(0);

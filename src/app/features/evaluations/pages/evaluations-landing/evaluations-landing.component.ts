@@ -1,26 +1,21 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { UserRole } from '@core/enums';
 import { AuthService } from '@core/services';
 import {
   EmptyStateComponent,
-  IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
+  SpinnerComponent,
 } from '@shared/components';
+import { LmsSectionContextService } from '@features/lms/services/lms-section-context.service';
+import { EvaluationsAdminPickerComponent } from '../evaluations-admin-picker/evaluations-admin-picker.component';
 
 /**
- * `/evaluations` — landing page (FE-5B.6).
- *
- * <p>Per ADR-5B.2 the evaluations module is scoped to a
- * {@code TeacherAssignment}; there is no global listing. This screen
- * exists so that the sidebar item resolves to something useful
- * instead of a blank {@code <router-outlet/>} (BUG-2026-07-30-04).</p>
- *
- * <p>From here the user can drill into the per-assignment list, which
- * already has the full filter / create / lifecycle UX.</p>
+ * `/evaluations` landing — TENANT_ADMIN ve picker del colegio;
+ * TEACHER redirige al funnel (o by-assignment si 1).
  */
 @Component({
   selector: 'app-evaluations-landing',
@@ -28,99 +23,97 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
-    RouterLink,
     EmptyStateComponent,
-    IconComponent,
+    EvaluationsAdminPickerComponent,
     PageContainerComponent,
     PageHeaderComponent,
+    SpinnerComponent,
   ],
   template: `
-    <app-page-container size="wide">
-      <app-page-header
-        eyebrow="Evaluaciones"
-        title="Evaluaciones"
-        subtitle="Las evaluaciones viven dentro de cada asignación de un docente."
-      />
+    @if (showAdminPicker()) {
+      <app-evaluations-admin-picker />
+    } @else {
+      <app-page-container size="wide">
+        <app-page-header
+          eyebrow="Registros"
+          title="Registros"
+          [subtitle]="
+            noTeacherAssignments()
+              ? 'Cuando tengas materias asignadas podrás gestionar registros aquí.'
+              : 'Preparando Registros…'
+          "
+        />
 
-      <section class="card">
-        <div class="card-body space-y-6">
-          <p class="text-sm text-content-muted">
-            EduShift no expone un listado global de evaluaciones. Para
-            revisarlas, calificar o crear nuevas, abre la asignación de
-            la materia correspondiente.
-          </p>
-
-          <div class="grid gap-3 sm:grid-cols-2">
-            <a
-              [routerLink]="teachersRoute"
-              class="group flex items-start gap-3 rounded-lg border border-border-subtle p-4 transition-colors hover:border-primary-500 hover:bg-surface-muted"
-            >
-              <span
-                class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-500/10 text-primary-600"
-              >
-                <app-icon name="users" [size]="18" />
-              </span>
-              <span class="flex-1">
-                <span class="block text-sm font-semibold text-content">
-                  Ir a Docentes
-                </span>
-                <span class="mt-1 block text-xs text-content-muted">
-                  Selecciona un docente y luego una de sus asignaciones para
-                  ver sus evaluaciones.
-                </span>
-              </span>
-              <app-icon
-                name="chevron-right"
-                [size]="16"
-                class="mt-1 text-content-subtle transition-transform group-hover:translate-x-0.5"
-              />
-            </a>
-
-            @if (canUseLms()) {
-              <a
-                [routerLink]="lmsRoute"
-                class="group flex items-start gap-3 rounded-lg border border-border-subtle p-4 transition-colors hover:border-primary-500 hover:bg-surface-muted"
-              >
-                <span
-                  class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-500/10 text-primary-600"
-                >
-                  <app-icon name="book-open" [size]="18" />
-                </span>
-                <span class="flex-1">
-                  <span class="block text-sm font-semibold text-content">
-                    Ir a Mis cursos
-                  </span>
-                  <span class="mt-1 block text-xs text-content-muted">
-                    Vista rápida de LMS con materiales y tareas por sección.
-                  </span>
-                </span>
-                <app-icon
-                  name="chevron-right"
-                  [size]="16"
-                  class="mt-1 text-content-subtle transition-transform group-hover:translate-x-0.5"
-                />
-              </a>
-            }
+        @if (loading()) {
+          <div class="card">
+            <div class="card-body flex items-center gap-3 text-sm text-content-muted">
+              <app-spinner [size]="20" />
+              <span>Preparando Registros…</span>
+            </div>
           </div>
-
-          <app-empty-state
-            icon="clipboard-check"
-            title="Sin listado global"
-            description="Las evaluaciones se gestionan dentro de cada asignación. Esto es por diseño (ADR-5B.2)."
-          />
-        </div>
-      </section>
-    </app-page-container>
+        } @else if (errorMsg()) {
+          <div class="alert alert-danger" role="alert">
+            <p class="text-sm">{{ errorMsg() }}</p>
+          </div>
+        } @else if (noTeacherAssignments()) {
+          <section class="card">
+            <div class="card-body">
+              <app-empty-state
+                icon="clipboard-check"
+                title="Sin asignaciones activas"
+                description="Aún no tienes materias asignadas. Cuando el administrador te vincule a una sección podrás gestionar registros aquí."
+              />
+            </div>
+          </section>
+        }
+      </app-page-container>
+    }
   `,
 })
-export class EvaluationsLandingComponent {
+export class EvaluationsLandingComponent implements OnInit {
   private readonly auth = inject(AuthService);
+  private readonly sectionContext = inject(LmsSectionContextService);
+  private readonly router = inject(Router);
 
-  readonly teachersRoute = ROUTES.TEACHERS.ROOT;
-  readonly lmsRoute = ROUTES.LMS.ROOT;
+  readonly loading = signal(true);
+  readonly errorMsg = signal<string | null>(null);
+  readonly noTeacherAssignments = signal(false);
+  readonly showAdminPicker = signal(false);
 
-  readonly canUseLms = computed(() => {
-    const roles = this.auth.roles();
-    return roles.includes(UserRole.TenantAdmin) || roles.includes(UserRole.Teacher);
-  });
+  async ngOnInit(): Promise<void> {
+    try {
+      const isTeacher = this.auth.hasRole(UserRole.Teacher);
+      const isAdmin = this.auth.hasRole(UserRole.TenantAdmin);
+
+      // Admin (con o sin rol TEACHER): picker de todo el colegio.
+      if (isAdmin) {
+        this.showAdminPicker.set(true);
+        this.loading.set(false);
+        return;
+      }
+
+      if (isTeacher) {
+        const assignments = await this.sectionContext.loadCurrentYearAssignments();
+        if (assignments.length === 1) {
+          await this.router.navigateByUrl(
+            this.sectionContext.evaluationsUrlForAssignment(assignments[0]!),
+          );
+          return;
+        }
+        if (assignments.length > 1) {
+          await this.router.navigateByUrl(ROUTES.EVALUATIONS.COURSES);
+          return;
+        }
+        this.noTeacherAssignments.set(true);
+        this.loading.set(false);
+        return;
+      }
+
+      this.loading.set(false);
+      this.errorMsg.set('No tienes permiso para ver Registros.');
+    } catch {
+      this.loading.set(false);
+      this.errorMsg.set('No pudimos cargar tus asignaciones.');
+    }
+  }
 }

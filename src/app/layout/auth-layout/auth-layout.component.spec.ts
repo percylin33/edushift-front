@@ -6,6 +6,7 @@ import { TenantService } from '@core/services';
 import { TenantStatus } from '@core/enums';
 import { Tenant, TenantContext } from '@core/models';
 import { TenantAssetsService } from '@core/theming/tenant-assets.service';
+import { provideHttpClient } from '@angular/common/http';
 
 describe('AuthLayoutComponent', () => {
   let component: AuthLayoutComponent;
@@ -21,6 +22,7 @@ describe('AuthLayoutComponent', () => {
       imports: [AuthLayoutComponent],
       providers: [
         provideRouter([]),
+        provideHttpClient(),
         {
           provide: TenantService,
           useValue: {

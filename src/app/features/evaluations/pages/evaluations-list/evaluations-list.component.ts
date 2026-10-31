@@ -12,6 +12,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom, Subscription } from 'rxjs';
 import { ROUTES } from '@core/constants';
 import {
+  ConfirmDialogService,
   EmptyStateComponent,
   IconComponent,
   PageContainerComponent,
@@ -35,6 +36,14 @@ import {
   legalNextStatuses,
 } from '../../models';
 import { EvaluationsApiService } from '../../services';
+import { GradeBookApiService } from '@features/gradebook/services';
+import { GradeBookCategory } from '@features/gradebook/models';
+
+interface EvaluationCategoryGroup {
+  key: string;
+  label: string;
+  rows: EvaluationRow[];
+}
 
 /**
  * `/evaluations/by-assignment/:assignmentUuid` — Listado de evaluations
@@ -74,18 +83,14 @@ import { EvaluationsApiService } from '../../services';
   ],
   template: `
     <app-page-container size="wide">
-      <app-page-header eyebrow="Evaluaciones" [title]="headerTitle()" [subtitle]="headerSubtitle()">
-        <button type="button" class="btn btn-ghost btn-sm" (click)="goBack()">
-          <app-icon name="chevron-left" [size]="16" />
-          <span>Volver</span>
-        </button>
+      <app-page-header [title]="headerTitle()" [subtitle]="headerSubtitle()">
         <button type="button" class="btn btn-ghost btn-sm" (click)="goToGradeBook()">
           <app-icon name="bar-chart" [size]="16" />
           <span>Libro de calificaciones</span>
         </button>
         <button type="button" class="btn btn-primary btn-sm" (click)="openCreate()">
           <app-icon name="plus" [size]="16" />
-          <span>Nueva evaluación</span>
+          <span>Nuevo registro</span>
         </button>
       </app-page-header>
 
@@ -95,7 +100,7 @@ import { EvaluationsApiService } from '../../services';
           <div class="field">
             <label class="label">Estado</label>
             <select
-              class="input"
+              class="select"
               [value]="filters().status ?? ''"
               (change)="onFilterChange('status', $any($event.target).value || undefined)"
             >
@@ -157,7 +162,7 @@ import { EvaluationsApiService } from '../../services';
         >
           <app-icon [name]="weightTotal() === 100 ? 'check' : 'alert-circle'" [size]="16" />
           <span class="text-content-muted">
-            Peso total de evaluaciones publicadas / cerradas:
+            Peso total de registros publicados / cerrados:
           </span>
           <span class="font-semibold text-content">
             {{ weightTotal() | number: '1.0-2' }}
@@ -168,132 +173,175 @@ import { EvaluationsApiService } from '../../services';
         </div>
       }
 
+      @if (actionError()) {
+        <div class="alert alert-danger mb-4">
+          <app-icon name="alert-circle" [size]="18" />
+          <div class="flex-1">
+            <p class="font-medium">No se pudo completar la acción.</p>
+            <p class="mt-1 text-xs opacity-80">{{ actionError() }}</p>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="dismissActionError()">
+            Cerrar
+          </button>
+        </div>
+      }
+
       <!-- Tabla -->
       <section class="card overflow-hidden">
         @if (loading()) {
           <div class="flex items-center justify-center py-16">
-            <app-spinner [size]="24" label="Cargando evaluaciones…" />
+            <app-spinner [size]="24" label="Cargando registros…" />
           </div>
         } @else if (errorBanner()) {
           <div class="alert alert-danger m-5">
             <app-icon name="alert-circle" [size]="18" />
             <div class="flex-1">
-              <p class="font-medium">No pudimos cargar las evaluaciones.</p>
+              <p class="font-medium">No pudimos cargar los registros.</p>
               <p class="mt-1 text-xs opacity-80">{{ errorBanner() }}</p>
             </div>
             <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">
               Reintentar
             </button>
           </div>
-        } @else if (rows().length === 0) {
+        } @else if (rows().length === 0 && templateCategories().length === 0) {
           <app-empty-state
             icon="target"
-            title="Aún no hay evaluaciones"
-            description="Crea la primera evaluación para esta asignación. Empezará en estado borrador y podrás publicarla cuando esté lista."
+            title="Aún no hay registros"
+            description="Crea el primer registro para esta asignación. Empezará en estado borrador y podrás publicarlo cuando esté listo."
           >
             <button type="button" class="btn btn-primary btn-sm" (click)="openCreate()">
               <app-icon name="plus" [size]="16" />
-              <span>Crear evaluación</span>
+              <span>Crear registro</span>
             </button>
           </app-empty-state>
         } @else {
-          <div class="overflow-x-auto">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Tipo</th>
-                  <th>Nombre</th>
-                  <th class="text-right">Peso</th>
-                  <th>Fecha</th>
-                  <th>Calificadas</th>
-                  <th>Estado</th>
-                  <th class="text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of rows(); track row.publicUuid) {
-                  <tr class="hover:bg-surface-subtle">
-                    <td>
-                      <app-evaluation-kind-badge [kind]="row.kind" />
-                    </td>
-                    <td>
-                      <p class="font-medium text-content">{{ row.name }}</p>
-                      @if (!row.isActive) {
-                        <p class="text-xs text-content-muted">Inactiva</p>
-                      }
-                    </td>
-                    <td class="text-right tabular-nums">
-                      {{ row.weight | number: '1.0-2' }}
-                    </td>
-                    <td>
-                      <p class="text-sm">{{ formatDate(row.scheduledDate) }}</p>
-                      @if (row.dueDate) {
-                        <p class="text-xs text-content-muted">
-                          entrega {{ formatDate(row.dueDate) }}
-                        </p>
-                      }
-                    </td>
-                    <td>
-                      <span class="font-mono text-sm">{{ row.gradeCount }}</span>
-                    </td>
-                    <td>
-                      <app-evaluation-status-badge [status]="row.status" />
-                    </td>
-                    <td class="text-right">
-                      <div class="flex justify-end gap-1">
-                        @for (next of legalNext(row.status); track next) {
-                          <button
-                            type="button"
-                            class="btn btn-ghost btn-xs"
-                            [title]="lifecycleHint(row.status, next)"
-                            [disabled]="busyRow().has(row.publicUuid)"
-                            (click)="onLifecycleHop(row, next)"
-                          >
-                            @if (next === 'PUBLISHED') {
-                              <app-icon name="check" [size]="14" />
-                              <span>Publicar</span>
-                            } @else if (next === 'CLOSED') {
-                              <app-icon name="lock" [size]="14" />
-                              <span>Cerrar</span>
-                            }
-                          </button>
-                        }
-                        @if (canEdit(row)) {
-                          <button
-                            type="button"
-                            class="btn btn-ghost btn-xs"
-                            title="Editar"
-                            [disabled]="busyRow().has(row.publicUuid)"
-                            (click)="openEdit(row)"
-                          >
-                            <app-icon name="pencil" [size]="14" />
-                          </button>
-                        }
-                        <button
-                          type="button"
-                          class="btn btn-ghost btn-xs"
-                          title="Ver detalle"
-                          (click)="goToDetail(row.publicUuid)"
-                        >
-                          <app-icon name="eye" [size]="14" />
-                        </button>
-                        @if (canDelete(row)) {
-                          <button
-                            type="button"
-                            class="btn btn-ghost btn-xs text-danger-600 hover:bg-danger-50"
-                            title="Eliminar"
-                            [disabled]="busyRow().has(row.publicUuid)"
-                            (click)="onDelete(row)"
-                          >
-                            <app-icon name="x" [size]="14" />
-                          </button>
-                        }
-                      </div>
-                    </td>
-                  </tr>
+          <div class="space-y-3 p-3 sm:p-4">
+            @for (group of categoryGroups(); track group.key) {
+              <section class="overflow-hidden rounded-lg border border-border-subtle">
+                <button
+                  type="button"
+                  class="group-header"
+                  (click)="toggleGroup(group.key)"
+                  [attr.aria-expanded]="isGroupExpanded(group.key)"
+                >
+                  <app-icon
+                    [name]="isGroupExpanded(group.key) ? 'chevron-down' : 'chevron-right'"
+                    [size]="16"
+                  />
+                  <span class="min-w-0 flex-1 truncate text-left font-semibold text-content">
+                    {{ group.label }}
+                  </span>
+                  <span class="badge badge-neutral text-xs">{{ group.rows.length }}</span>
+                </button>
+                @if (isGroupExpanded(group.key)) {
+                  @if (group.rows.length === 0) {
+                    <p class="px-4 py-3 text-sm text-content-muted">
+                      Sin columnas aún. Abre el libro de calificaciones para materializar series, o
+                      crea un registro en esta categoría.
+                    </p>
+                  } @else {
+                    <div class="overflow-x-auto">
+                      <table class="table">
+                        <thead>
+                          <tr>
+                            <th>Tipo</th>
+                            <th>Nombre</th>
+                            <th class="text-right">Peso</th>
+                            <th>Fecha</th>
+                            <th>Calificadas</th>
+                            <th>Estado</th>
+                            <th class="text-right">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (row of group.rows; track row.publicUuid) {
+                            <tr class="hover:bg-surface-subtle">
+                              <td>
+                                <app-evaluation-kind-badge [kind]="row.kind" />
+                              </td>
+                              <td>
+                                <p class="font-medium text-content">{{ row.name }}</p>
+                                @if (!row.isActive) {
+                                  <p class="text-xs text-content-muted">Inactiva</p>
+                                }
+                              </td>
+                              <td class="text-right tabular-nums">
+                                {{ row.weight | number: '1.0-2' }}
+                              </td>
+                              <td>
+                                <p class="text-sm">{{ formatDate(row.scheduledDate) }}</p>
+                                @if (row.dueDate) {
+                                  <p class="text-xs text-content-muted">
+                                    entrega {{ formatDate(row.dueDate) }}
+                                  </p>
+                                }
+                              </td>
+                              <td>
+                                <span class="font-mono text-sm">{{ row.gradeCount }}</span>
+                              </td>
+                              <td>
+                                <app-evaluation-status-badge [status]="row.status" />
+                              </td>
+                              <td class="text-right">
+                                <div class="flex justify-end gap-1">
+                                  @for (next of legalNext(row.status); track next) {
+                                    <button
+                                      type="button"
+                                      class="btn btn-ghost btn-xs"
+                                      [title]="lifecycleHint(row.status, next)"
+                                      [disabled]="busyRow().has(row.publicUuid)"
+                                      (click)="onLifecycleHop(row, next)"
+                                    >
+                                      @if (next === 'PUBLISHED') {
+                                        <app-icon name="check" [size]="14" />
+                                        <span>Publicar</span>
+                                      } @else if (next === 'CLOSED') {
+                                        <app-icon name="lock" [size]="14" />
+                                        <span>Cerrar</span>
+                                      }
+                                    </button>
+                                  }
+                                  @if (canEdit(row)) {
+                                    <button
+                                      type="button"
+                                      class="btn btn-ghost btn-xs"
+                                      title="Editar"
+                                      [disabled]="busyRow().has(row.publicUuid)"
+                                      (click)="openEdit(row)"
+                                    >
+                                      <app-icon name="pencil" [size]="14" />
+                                    </button>
+                                  }
+                                  <button
+                                    type="button"
+                                    class="btn btn-ghost btn-xs"
+                                    title="Ver detalle"
+                                    (click)="goToDetail(row.publicUuid)"
+                                  >
+                                    <app-icon name="eye" [size]="14" />
+                                  </button>
+                                  @if (canDelete(row)) {
+                                    <button
+                                      type="button"
+                                      class="btn btn-ghost btn-xs text-danger-600 hover:bg-danger-50"
+                                      title="Eliminar"
+                                      [disabled]="busyRow().has(row.publicUuid)"
+                                      (click)="onDelete(row)"
+                                    >
+                                      <app-icon name="x" [size]="14" />
+                                    </button>
+                                  }
+                                </div>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  }
                 }
-              </tbody>
-            </table>
+              </section>
+            }
           </div>
         }
       </section>
@@ -302,6 +350,7 @@ import { EvaluationsApiService } from '../../services';
     @if (showCreate()) {
       <app-evaluation-form-modal
         [assignmentUuid]="assignmentUuid()"
+        [categories]="templateCategories()"
         (closed)="closeCreate()"
         (saved)="onCreated($event)"
       />
@@ -310,6 +359,7 @@ import { EvaluationsApiService } from '../../services';
     @if (editing(); as e) {
       <app-evaluation-form-modal
         [evaluation]="e"
+        [categories]="templateCategories()"
         (closed)="closeEdit()"
         (saved)="onEdited($event)"
       />
@@ -329,6 +379,33 @@ import { EvaluationsApiService } from '../../services';
       .table td {
         @apply border-b border-border-subtle px-4 py-3;
       }
+      .group-header {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: var(--color-surface-subtle, #f9fafb);
+        border: 0;
+        border-bottom: 1px solid var(--color-border-subtle, #e5e7eb);
+        cursor: pointer;
+        text-align: left;
+      }
+      .group-header:hover {
+        filter: brightness(0.98);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.125rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+      }
+      .badge-neutral {
+        background: white;
+        border: 1px solid var(--color-border-subtle, #e5e7eb);
+        color: var(--color-content-muted, #4b5563);
+      }
     `,
   ],
 })
@@ -337,19 +414,25 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly store = inject(EvaluationsStore);
   private readonly api = inject(EvaluationsApiService);
+  private readonly gradeBookApi = inject(GradeBookApiService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly assignmentUuid = signal<string>('');
   protected readonly assignmentLabel = signal<string>('');
+  protected readonly templateCategories = signal<GradeBookCategory[]>([]);
 
   protected readonly rows = this.store.rows;
   protected readonly loading = this.store.loading;
   protected readonly errorBanner = this.store.error;
+  protected readonly actionError = this.store.actionError;
   protected readonly filters = this.store.filters;
   protected readonly weightTotal = this.store.weightTotalLive;
 
   protected readonly showCreate = signal<boolean>(false);
   protected readonly editing = signal<EvaluationDetail | null>(null);
   protected readonly busyRow = signal<Set<string>>(new Set());
+  /** Keys of expanded category groups (collapsed by default on enter). */
+  protected readonly expandedGroups = signal<Set<string>>(new Set());
 
   protected readonly statuses: EvaluationStatus[] = [
     EvaluationStatus.DRAFT,
@@ -359,14 +442,50 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
 
   protected readonly headerTitle = computed(() => {
     const label = this.assignmentLabel();
-    return label || 'Evaluaciones';
+    return label ? `Listado · ${label}` : 'Listado de registros';
   });
 
   protected readonly headerSubtitle = computed(() => {
     const total = this.rows().length;
-    if (total === 0) return 'Aún no se han creado evaluaciones para esta asignación.';
-    if (total === 1) return '1 evaluación registrada.';
-    return `${total} evaluaciones registradas.`;
+    if (total === 0) return 'Aún no se han creado registros para esta asignación.';
+    if (total === 1) return '1 registro registrado.';
+    return `${total} registros.`;
+  });
+
+  /** Grupos por categoría (plantilla + filas), orden plantilla luego huérfanas. */
+  protected readonly categoryGroups = computed<EvaluationCategoryGroup[]>(() => {
+    const rows = this.rows();
+    const cats = this.templateCategories();
+    const map = new Map<string, EvaluationCategoryGroup>();
+    const order: string[] = [];
+
+    for (const c of cats) {
+      map.set(c.publicUuid, { key: c.publicUuid, label: c.name, rows: [] });
+      order.push(c.publicUuid);
+    }
+
+    for (const r of rows) {
+      const key = r.categoryPublicUuid ?? '__none__';
+      const label = r.categoryName?.trim() || 'Sin categoría';
+      if (!map.has(key)) {
+        map.set(key, { key, label, rows: [] });
+        order.push(key);
+      }
+      map.get(key)!.rows.push(r);
+    }
+
+    return order
+      .map((k) => map.get(k)!)
+      .filter((g) => g.rows.length > 0 || cats.some((c) => c.publicUuid === g.key))
+      .map((g) => ({
+        ...g,
+        rows: [...g.rows].sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, {
+            numeric: true,
+            sensitivity: 'base',
+          }),
+        ),
+      }));
   });
 
   private routeSub?: Subscription;
@@ -379,7 +498,9 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
         return;
       }
       this.assignmentUuid.set(uuid);
+      this.expandedGroups.set(new Set());
       await this.loadFromUrl();
+      await this.loadTemplateCategories(uuid);
     });
   }
 
@@ -409,6 +530,19 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
     return EVALUATION_STATUS_LABELS[s];
   }
 
+  protected toggleGroup(key: string): void {
+    this.expandedGroups.update((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  protected isGroupExpanded(key: string): boolean {
+    return this.expandedGroups().has(key);
+  }
+
   // ===========================================================================
   // Reload / navigation
   // ===========================================================================
@@ -416,10 +550,6 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
   protected async reload(): Promise<void> {
     this.store.clearError();
     await this.loadFromUrl();
-  }
-
-  protected goBack(): void {
-    history.back();
   }
 
   protected goToDetail(publicUuid: string): void {
@@ -444,6 +574,15 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
 
   protected closeCreate(): void {
     this.showCreate.set(false);
+  }
+
+  private async loadTemplateCategories(assignmentUuid: string): Promise<void> {
+    try {
+      const gb = await firstValueFrom(this.gradeBookApi.getByAssignment(assignmentUuid));
+      this.templateCategories.set(gb.categories ?? []);
+    } catch {
+      this.templateCategories.set([]);
+    }
   }
 
   protected onCreated(_detail: EvaluationDetail): void {
@@ -494,12 +633,17 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
   protected async onLifecycleHop(row: EvaluationRow, target: EvaluationStatus): Promise<void> {
     const fromLabel = EVALUATION_STATUS_LABELS[row.status];
     const toLabel = EVALUATION_STATUS_LABELS[target];
-    const ok = confirm(
-      `¿Cambiar la evaluación "${row.name}" de ${fromLabel} a ${toLabel}?\n\n` +
-        (target === EvaluationStatus.CLOSED
+    const isClose = target === EvaluationStatus.CLOSED;
+    const ok = await this.confirmDialog.open({
+      title: isClose ? 'Cerrar registro' : 'Publicar registro',
+      message:
+        `¿Cambiar el registro "${row.name}" de ${fromLabel} a ${toLabel}?\n\n` +
+        (isClose
           ? 'Una vez cerrada NO se podrá reabrir.'
-          : 'Las evaluaciones publicadas son visibles para los estudiantes.'),
-    );
+          : 'Los registros publicados son visibles para los estudiantes.'),
+      confirmLabel: isClose ? 'Cerrar' : 'Publicar',
+      variant: isClose ? 'warning' : 'default',
+    });
     if (!ok) return;
 
     this.setBusy(row.publicUuid, true);
@@ -515,10 +659,15 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
   }
 
   protected async onDelete(row: EvaluationRow): Promise<void> {
-    const ok = confirm(
-      `¿Eliminar la evaluación borrador "${row.name}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar borrador',
+      message:
+        `¿Eliminar el registro borrador "${row.name}"?\n\n` +
         'Solo se permite eliminar borradores sin calificaciones registradas.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
 
     this.setBusy(row.publicUuid, true);
@@ -527,6 +676,10 @@ export class EvaluationsListComponent implements OnInit, OnDestroy {
     } finally {
       this.setBusy(row.publicUuid, false);
     }
+  }
+
+  protected dismissActionError(): void {
+    this.store.clearError();
   }
 
   // ===========================================================================

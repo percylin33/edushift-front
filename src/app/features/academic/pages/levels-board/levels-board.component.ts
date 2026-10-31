@@ -8,7 +8,8 @@ import {
   signal,
 } from '@angular/core';
 import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import { ConfirmDialogService, EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import { NotificationService } from '@core/services';
 import { GradeFormModalComponent, LevelFormModalComponent } from '../../components';
 import { AcademicStore } from '../../store';
 import { AcademicLevel, Grade } from '../../models';
@@ -42,8 +43,6 @@ import { AcademicLevel, Grade } from '../../models';
  *   <li>El "restaurar defaults" del spec original queda como follow-up
  *       — el backend aún no expone un endpoint dedicado y la UX
  *       prefiere "Nuevo nivel" mientras tanto.</li>
- *   <li>Confirm de delete vía {@code window.confirm} (DEBT-UX-1; se
- *       reemplazará cuando aterrice {@code ConfirmDialogComponent}).</li>
  * </ul>
  */
 @Component({
@@ -65,7 +64,7 @@ import { AcademicLevel, Grade } from '../../models';
       <div class="min-w-0">
         <h2 class="text-lg font-semibold text-content">Niveles y grados</h2>
         <p class="text-sm text-content-muted">
-          Estructura curricular del workspace. Selecciona un nivel a la izquierda y arrastra los
+          Estructura curricular de la institución. Selecciona un nivel a la izquierda y arrastra los
           grados para reordenarlos.
         </p>
       </div>
@@ -80,13 +79,24 @@ import { AcademicLevel, Grade } from '../../models';
       </button>
     </header>
 
+    @if (errorMessage() && hasLevels()) {
+      <div class="alert alert-danger mb-4">
+        <app-icon name="alert-circle" [size]="18" />
+        <div class="flex-1">
+          <p class="font-medium">No se pudo completar la acción.</p>
+          <p class="mt-1 text-xs opacity-80">{{ errorMessage() }}</p>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" (click)="dismissError()">Cerrar</button>
+      </div>
+    }
+
     @if (loadingLevels() && !hasLevels()) {
       <div class="card">
         <div class="flex items-center justify-center py-16">
           <app-spinner [size]="24" label="Cargando niveles…" />
         </div>
       </div>
-    } @else if (errorMessage()) {
+    } @else if (errorMessage() && !hasLevels()) {
       <div class="alert alert-danger">
         <app-icon name="alert-circle" [size]="18" />
         <div class="flex-1">
@@ -117,47 +127,43 @@ import { AcademicLevel, Grade } from '../../models';
           </header>
           <ul class="divide-y divide-border-subtle">
             @for (level of levels(); track level.publicUuid) {
-              <li>
+              <li
+                class="flex items-center gap-2 px-3 py-2 hover:bg-surface-subtle"
+                [class.bg-primary-50]="isSelected(level)"
+                [class.text-primary-700]="isSelected(level)"
+              >
                 <button
                   type="button"
-                  class="flex w-full items-center justify-between gap-2 px-5 py-3 text-left hover:bg-surface-subtle"
-                  [class.bg-primary-50]="isSelected(level)"
-                  [class.text-primary-700]="isSelected(level)"
+                  class="min-w-0 flex-1 px-2 py-1 text-left"
                   (click)="selectLevel(level)"
                 >
-                  <div class="min-w-0 flex-1">
-                    <p class="font-medium">
-                      <span class="mr-2 text-xs text-content-muted">{{ level.ordinal }}.</span>
-                      {{ level.name }}
-                    </p>
-                    <p class="text-xs text-content-muted">
-                      <span class="font-mono">{{ level.code }}</span>
-                      · {{ level.grades.length }} grados
-                    </p>
-                  </div>
-                  <div class="flex shrink-0 items-center gap-1">
-                    <span
-                      class="btn btn-ghost btn-sm"
-                      role="button"
-                      tabindex="0"
-                      aria-label="Editar nivel"
-                      (click)="onLevelEdit($event, level)"
-                      (keydown.enter)="onLevelEdit($event, level)"
-                    >
-                      <app-icon name="edit-2" [size]="14" />
-                    </span>
-                    <span
-                      class="btn btn-ghost btn-sm text-danger-600"
-                      role="button"
-                      tabindex="0"
-                      aria-label="Eliminar nivel"
-                      (click)="onLevelDelete($event, level)"
-                      (keydown.enter)="onLevelDelete($event, level)"
-                    >
-                      <app-icon name="trash-2" [size]="14" />
-                    </span>
-                  </div>
+                  <p class="font-medium">
+                    <span class="mr-2 text-xs text-content-muted">{{ level.ordinal }}.</span>
+                    {{ level.name }}
+                  </p>
+                  <p class="text-xs text-content-muted">
+                    <span class="font-mono">{{ level.code }}</span>
+                    · {{ level.grades.length }} grados
+                  </p>
                 </button>
+                <div class="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm"
+                    aria-label="Editar nivel"
+                    (click)="onLevelEdit($event, level)"
+                  >
+                    <app-icon name="edit-2" [size]="14" />
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm text-danger-600"
+                    aria-label="Eliminar nivel"
+                    (click)="onLevelDelete($event, level)"
+                  >
+                    <app-icon name="trash-2" [size]="14" />
+                  </button>
+                </div>
               </li>
             }
           </ul>
@@ -283,6 +289,8 @@ import { AcademicLevel, Grade } from '../../models';
 })
 export class LevelsBoardComponent implements OnInit {
   private readonly store = inject(AcademicStore);
+  private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly notifications = inject(NotificationService);
 
   protected readonly levels = this.store.levels;
   protected readonly hasLevels = this.store.hasLevels;
@@ -326,6 +334,10 @@ export class LevelsBoardComponent implements OnInit {
     void this.store.loadLevels();
   }
 
+  protected dismissError(): void {
+    this.store.clearError();
+  }
+
   // ===========================================================================
   // Level CRUD
   // ===========================================================================
@@ -356,12 +368,18 @@ export class LevelsBoardComponent implements OnInit {
 
   protected async confirmDeleteLevel(level: AcademicLevel): Promise<void> {
     if (level.grades.length > 0) {
-      alert(
+      this.notifications.warning(
         `No se puede eliminar el nivel "${level.name}" porque aún tiene ${level.grades.length} grados.\n\nElimina o mueve los grados primero.`,
       );
       return;
     }
-    const ok = confirm(`¿Eliminar el nivel "${level.name}"?`);
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar nivel',
+      message: `¿Eliminar el nivel "${level.name}"?`,
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.deleteLevel(level.publicUuid);
   }
@@ -385,7 +403,13 @@ export class LevelsBoardComponent implements OnInit {
   }
 
   protected async confirmDeleteGrade(grade: Grade): Promise<void> {
-    const ok = confirm(`¿Eliminar el grado "${grade.name}"?`);
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar grado',
+      message: `¿Eliminar el grado "${grade.name}"?`,
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.deleteGrade(grade.levelPublicUuid, grade.publicUuid);
   }

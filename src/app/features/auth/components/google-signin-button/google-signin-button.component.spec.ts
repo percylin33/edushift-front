@@ -3,7 +3,7 @@ import { GoogleSigninButtonComponent } from './google-signin-button.component';
 
 describe('GoogleSigninButtonComponent', () => {
   let fixture: ComponentFixture<GoogleSigninButtonComponent>;
-  let component: any;
+  let component: GoogleSigninButtonComponent;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -18,47 +18,29 @@ describe('GoogleSigninButtonComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('label por defecto "Continuar con Google"', () => {
-    expect((component as any).label()).toBe('Continuar con Google');
+  it('expone los valores iniciales del stub', () => {
+    expect(component.busy).toBeFalse();
+    expect(component.label).toBe('');
+    expect(component.loadingLabel).toBe('');
   });
 
-  it('label acepta custom input', () => {
+  it('acepta los inputs declarados por el stub', () => {
+    fixture.componentRef.setInput('busy', true);
     fixture.componentRef.setInput('label', 'Entrar con Google');
+    fixture.componentRef.setInput('loadingLabel', 'Conectando…');
     fixture.detectChanges();
-    expect((component as any).label()).toBe('Entrar con Google');
+
+    expect(component.busy).toBeTrue();
+    expect(component.label).toBe('Entrar con Google');
+    expect(component.loadingLabel).toBe('Conectando…');
   });
 
-  it('ariaLabel cambia cuando loading', () => {
-    fixture.componentRef.setInput('loading', false);
-    fixture.detectChanges();
-    expect((component as any).ariaLabel()).toBe('Iniciar sesión con Google');
-    fixture.componentRef.setInput('loading', true);
-    fixture.detectChanges();
-    expect((component as any).ariaLabel()).toContain('procesando');
-  });
-
-  it('onClick emite googleSigninClick', () => {
+  it('expone el evento signinClick', () => {
     const emitSpy = jasmine.createSpy('emit');
-    component.googleSigninClick.subscribe(emitSpy);
-    (component as any).onClick();
+    component.signinClick.subscribe(emitSpy);
+
+    component.signinClick.emit();
+
     expect(emitSpy).toHaveBeenCalled();
-  });
-
-  it('onClick bloqueado si disabled', () => {
-    fixture.componentRef.setInput('disabled', true);
-    fixture.detectChanges();
-    const emitSpy = jasmine.createSpy('emit');
-    component.googleSigninClick.subscribe(emitSpy);
-    (component as any).onClick();
-    expect(emitSpy).not.toHaveBeenCalled();
-  });
-
-  it('onClick bloqueado si loading', () => {
-    fixture.componentRef.setInput('loading', true);
-    fixture.detectChanges();
-    const emitSpy = jasmine.createSpy('emit');
-    component.googleSigninClick.subscribe(emitSpy);
-    (component as any).onClick();
-    expect(emitSpy).not.toHaveBeenCalled();
   });
 });

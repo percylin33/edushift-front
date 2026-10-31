@@ -47,6 +47,7 @@ export const ALLOWED_LITERALS_BY_SCALE: Record<EvaluationScale, readonly string[
   [EvaluationScale.LITERAL_AD]: ['AD', 'A'],
   [EvaluationScale.LITERAL_NA]: ['NA', 'A'],
   [EvaluationScale.LITERAL_A_B_C_D]: ['A', 'B', 'C', 'D'],
+  [EvaluationScale.LITERAL_CNEB]: ['AD', 'A', 'B', 'C'],
 };
 
 // ===========================================================================
@@ -164,6 +165,12 @@ export interface GradeRecordFilters {
   isActive?: boolean;
 }
 
+/** Opción del select de estudiante en el modal de registro de nota. */
+export interface GradeStudentOption {
+  publicUuid: string;
+  fullName: string;
+}
+
 // ===========================================================================
 // Adapters
 // ===========================================================================
@@ -255,8 +262,8 @@ export function validateGradeShape(
   }
 
   if (scale === EvaluationScale.SCORE_0_20) {
-    if (!hasScore) return 'Esta evaluación requiere una nota numérica.';
-    if (hasLiteral) return 'Esta evaluación no admite literal, solo nota numérica.';
+    if (!hasScore) return 'Este registro requiere una nota numérica.';
+    if (hasLiteral) return 'Este registro no admite literal, solo nota numérica.';
     if (payload.score! < SCORE_MIN || payload.score! > SCORE_MAX) {
       return `La nota debe estar entre ${SCORE_MIN} y ${SCORE_MAX}.`;
     }
@@ -265,7 +272,7 @@ export function validateGradeShape(
 
   // LITERAL_* + BINARY_PASS_FAIL
   if (hasScore) {
-    return 'Esta evaluación no admite nota numérica, solo literal.';
+    return 'Este registro no admite nota numérica, solo literal.';
   }
   const allowed = ALLOWED_LITERALS_BY_SCALE[scale];
   if (allowed.length === 0) {

@@ -2,7 +2,7 @@
 # Sprint cierre-D / I1 — Frontend Dockerfile
 # =============================================================================
 # Multi-stage:
-#   1. builder — Node 20, runs `npm ci && npm run build:prod` (PWA bundle)
+#   1. builder — Node 22, runs `npm ci && npm run build:prod` (PWA bundle)
 #   2. runner  — nginx:alpine, serves dist/edushift-front/browser with
 #                 SPA fallback to /index.html (PWA / deep-link support)
 #                 + service-worker cache headers
@@ -13,7 +13,7 @@
 # =============================================================================
 
 # ---- Stage 1: builder ----
-FROM node:20-bookworm-slim AS builder
+FROM node:22-bookworm-slim@sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d AS builder
 WORKDIR /workspace
 
 # Python is required by node-gyp for some native deps.
@@ -22,13 +22,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json* ./
-RUN npm ci --no-audit --no-fund
+RUN npm ci --legacy-peer-deps --no-audit --no-fund
 
 COPY . .
 RUN npm run build:prod
 
 # ---- Stage 2: runtime (nginx) ----
-FROM nginx:1.27-alpine AS runtime
+FROM nginx:stable-alpine@sha256:47928bf67eb62a1863cb08d9ecb52d3e704304ba614eaee17884204677702951 AS runtime
+RUN apk upgrade --no-cache
 
 # Replace default config with one that:
 #   - listens on 80
@@ -44,14 +45,22 @@ COPY <<'EOF' /etc/nginx/conf.d/default.conf
 server {
   listen 80;
   server_name _;
+  # Preserve server-level security headers in cache-specific locations.
+  # NGINX 1.29.3+ supports merge inheritance; the pinned image is 1.30.x.
+  add_header_inherit merge;
   sendfile on;
   tcp_nopush on;
+  gzip on;
+  gzip_vary on;
+  gzip_min_length 1024;
+  gzip_comp_level 5;
+  gzip_types text/css application/javascript image/svg+xml;
 
   root /usr/share/nginx/html;
   index index.html;
 
   # Hashed chunk files: cache 1y.
-  location ~* \.[0-9a-f]{8,}\.(?:js|css|woff2?|png|jpg|svg|webp)$ {
+  location ~* "-[A-Za-z0-9_-]{8,}\.(?:js|css|woff2?|png|jpg|svg|webp)$" {
     add_header Cache-Control "public, max-age=31536000, immutable";
     access_log off;
     try_files $uri =404;
@@ -68,16 +77,24 @@ server {
     try_files $uri /index.html;
   }
 
+  # The / request internally redirects to index.html; set the same policy on
+  # that URI so the SPA shell cannot become stale in browser or service-worker caches.
+  location = /index.html {
+    add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+    try_files $uri =404;
+  }
+
   # SPA fallback for client-side routing.
   location / {
     try_files $uri $uri/ /index.html;
   }
 
-  # Lightweight security headers (CSP is set by the app).
+  # Security headers
   add_header X-Content-Type-Options "nosniff" always;
   add_header X-Frame-Options          "DENY"   always;
   add_header Referrer-Policy          "no-referrer-when-downgrade" always;
-  add_header Permissions-Policy       "camera=(), microphone=(), geolocation=()" always;
+  add_header Permissions-Policy       "camera=(self), microphone=(), geolocation=()" always;
+  add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-Xc2sB4L71e3Lgt62KSclQUubR1F5rw29YW5FbgHQlqM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: wss:; manifest-src 'self'; frame-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
 }
 EOF
 

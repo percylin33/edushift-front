@@ -5,6 +5,7 @@ import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component';
 import { NotificationsBellComponent } from '../notifications-bell/notifications-bell.component';
 import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
 import { UserMenuComponent } from '../user-menu/user-menu.component';
+import { PwaInstallButtonComponent } from '@shared/components/pwa-install-button/pwa-install-button.component';
 
 /**
  * Top bar that lives inside the content column (sidebar runs full-height).
@@ -25,6 +26,7 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
     NotificationsBellComponent,
     ThemeToggleComponent,
     UserMenuComponent,
+    PwaInstallButtonComponent,
   ],
   template: `
     <header
@@ -55,6 +57,7 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
         </label>
 
         <app-theme-toggle />
+        <app-pwa-install-button [compact]="true" />
         <app-notifications-bell />
         <div class="mx-1 hidden h-6 w-px bg-border-subtle sm:block"></div>
         <app-user-menu />

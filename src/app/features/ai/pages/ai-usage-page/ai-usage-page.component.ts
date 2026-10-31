@@ -11,6 +11,7 @@ import { RouterModule } from '@angular/router';
 import { AiUsageService, UsageSummary } from '../../services/ai-usage.service';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { firstValueFrom } from 'rxjs';
+import { readErrorMessage } from '@core/utils/error.utils';
 
 /**
  * AI usage dashboard (FE-8.4).
@@ -232,8 +233,8 @@ export class AiUsagePageComponent implements OnInit {
     try {
       const s = await firstValueFrom(this.service.summary());
       this.summary.set(s);
-    } catch (e: any) {
-      this.error.set(e?.message ?? 'No se pudo cargar el uso de IA.');
+    } catch (e: unknown) {
+      this.error.set(readErrorMessage(e, 'No se pudo cargar el uso de IA.'));
     } finally {
       this.loading.set(false);
     }

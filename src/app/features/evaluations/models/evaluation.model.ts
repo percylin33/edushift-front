@@ -27,6 +27,7 @@ export enum EvaluationScale {
   LITERAL_AD = 'LITERAL_AD',
   LITERAL_NA = 'LITERAL_NA',
   LITERAL_A_B_C_D = 'LITERAL_A_B_C_D',
+  LITERAL_CNEB = 'LITERAL_CNEB',
 }
 
 /**
@@ -54,9 +55,10 @@ export const EVALUATION_KIND_LABELS: Record<EvaluationKind, string> = {
 
 export const EVALUATION_SCALE_LABELS: Record<EvaluationScale, string> = {
   [EvaluationScale.SCORE_0_20]: 'Vigesimal (0-20)',
-  [EvaluationScale.LITERAL_AD]: 'Literal AD/A/B/C',
+  [EvaluationScale.LITERAL_AD]: 'Literal AD/A',
   [EvaluationScale.LITERAL_NA]: 'NA / Logrado / En proceso',
   [EvaluationScale.LITERAL_A_B_C_D]: 'Literal A/B/C/D',
+  [EvaluationScale.LITERAL_CNEB]: 'Literal AD/A/B/C',
 };
 
 export const EVALUATION_STATUS_LABELS: Record<EvaluationStatus, string> = {
@@ -89,17 +91,21 @@ export const EVALUATION_KIND_BADGE_CLASS: Record<EvaluationKind, string> = {
 export const ALLOWED_SCALES_BY_KIND: Record<EvaluationKind, EvaluationScale[]> = {
   [EvaluationKind.TASK]: [
     EvaluationScale.SCORE_0_20,
-    EvaluationScale.LITERAL_NA,
     EvaluationScale.LITERAL_A_B_C_D,
+    EvaluationScale.LITERAL_CNEB,
   ],
-  [EvaluationKind.QUIZ]: [EvaluationScale.SCORE_0_20],
+  [EvaluationKind.QUIZ]: [
+    EvaluationScale.SCORE_0_20,
+    EvaluationScale.LITERAL_A_B_C_D,
+    EvaluationScale.LITERAL_CNEB,
+  ],
   [EvaluationKind.EXAM]: [EvaluationScale.SCORE_0_20],
   [EvaluationKind.RUBRIC]: [
     EvaluationScale.LITERAL_AD,
-    EvaluationScale.LITERAL_A_B_C_D,
     EvaluationScale.LITERAL_NA,
+    EvaluationScale.LITERAL_A_B_C_D,
   ],
-  [EvaluationKind.COMPETENCY]: [EvaluationScale.LITERAL_AD, EvaluationScale.LITERAL_A_B_C_D],
+  [EvaluationKind.COMPETENCY]: [EvaluationScale.LITERAL_NA],
 };
 
 // =============================================================================
@@ -118,6 +124,8 @@ export interface EvaluationResponseRaw {
   assignment: AssignmentRefRaw;
   unitPublicUuid: string | null;
   learningSessionPublicUuid: string | null;
+  categoryPublicUuid?: string | null;
+  categoryName?: string | null;
   kind: EvaluationKind;
   name: string;
   description: string | null;
@@ -150,6 +158,8 @@ export interface EvaluationListItemRaw {
   dueDate: string | null;
   scale: EvaluationScale;
   status: EvaluationStatus;
+  categoryPublicUuid?: string | null;
+  categoryName?: string | null;
   gradeCount: number;
   isActive: boolean;
   createdAt: string;
@@ -176,6 +186,8 @@ export interface EvaluationDetail {
   assignment: AssignmentRef;
   unitPublicUuid?: string;
   learningSessionPublicUuid?: string;
+  categoryPublicUuid?: string | null;
+  categoryName?: string | null;
   kind: EvaluationKind;
   name: string;
   description?: string;
@@ -203,6 +215,8 @@ export interface EvaluationRow {
   dueDate?: Date;
   scale: EvaluationScale;
   status: EvaluationStatus;
+  categoryPublicUuid?: string | null;
+  categoryName?: string | null;
   gradeCount: number;
   isActive: boolean;
   createdAt: Date;
@@ -233,6 +247,8 @@ export interface CreateEvaluationRequest {
   unitPublicUuid?: string;
   /** Public UUID del LearningSession anchor (opcional). */
   learningSessionPublicUuid?: string;
+  /** Categoría de la plantilla de registro (F1). */
+  categoryPublicUuid?: string | null;
 }
 
 /**
@@ -256,6 +272,8 @@ export interface UpdateEvaluationRequest {
   unitPublicUuid?: string;
   /** Pasar `''` para desanclar. */
   learningSessionPublicUuid?: string;
+  /** Pasar `''` para quitar categoría. */
+  categoryPublicUuid?: string | null;
   isActive?: boolean;
 }
 
@@ -291,6 +309,8 @@ export function toEvaluationDetail(raw: EvaluationResponseRaw): EvaluationDetail
     assignment: { ...raw.assignment },
     unitPublicUuid: raw.unitPublicUuid ?? undefined,
     learningSessionPublicUuid: raw.learningSessionPublicUuid ?? undefined,
+    categoryPublicUuid: raw.categoryPublicUuid ?? null,
+    categoryName: raw.categoryName ?? null,
     kind: raw.kind,
     name: raw.name,
     description: raw.description ?? undefined,
@@ -318,6 +338,8 @@ export function toEvaluationRow(raw: EvaluationListItemRaw): EvaluationRow {
     dueDate: parseLocalDate(raw.dueDate),
     scale: raw.scale,
     status: raw.status,
+    categoryPublicUuid: raw.categoryPublicUuid ?? null,
+    categoryName: raw.categoryName ?? null,
     gradeCount: raw.gradeCount ?? 0,
     isActive: raw.isActive,
     createdAt: new Date(raw.createdAt),

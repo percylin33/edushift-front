@@ -36,19 +36,20 @@ describe('SubmissionApiService', () => {
 
   it('listByAssignment hace GET y mapea a rows', (done) => {
     httpSpy.get.and.returnValue(
-      of([
-        {
-          publicUuid: 'sub-1',
-          studentPublicUuid: 'st-1',
-          studentFullName: 'Juan',
-          studentAvatarUrl: null,
-          status: SubmissionStatus.Submitted,
-          version: 1,
-          submittedAt: '2026-01-15T10:00:00.000Z',
-          grade: null,
-          hasAttachment: false,
-        },
-      ]),
+      of({
+        success: true,
+        data: [
+          {
+            publicUuid: 'sub-1',
+            studentPublicUuid: 'st-1',
+            studentFullName: 'Juan',
+            status: SubmissionStatus.Submitted,
+            submittedAt: '2026-01-15T10:00:00.000Z',
+            grade: null,
+            hasAttachment: false,
+          },
+        ],
+      }),
     );
 
     service.listByAssignment('a-1').subscribe((rows) => {

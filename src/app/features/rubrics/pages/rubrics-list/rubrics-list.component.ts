@@ -10,6 +10,7 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import {
+  ConfirmDialogService,
   EmptyStateComponent,
   IconComponent,
   PageContainerComponent,
@@ -42,7 +43,7 @@ import { RubricFilters, RubricRow } from '../../models';
   template: `
     <app-page-container size="wide">
       <app-page-header
-        eyebrow="Evaluación"
+        eyebrow="Registros"
         title="Rúbricas"
         subtitle="Plantillas de criterios y niveles para calificar de forma cualitativa."
       >
@@ -84,7 +85,7 @@ import { RubricFilters, RubricRow } from '../../models';
           <div class="field">
             <label class="label">Tipo</label>
             <select
-              class="input"
+              class="select"
               [value]="systemFilterValue()"
               (change)="onSystemChange($any($event.target).value)"
             >
@@ -97,7 +98,7 @@ import { RubricFilters, RubricRow } from '../../models';
           <div class="field">
             <label class="label">Estado</label>
             <select
-              class="input"
+              class="select"
               [value]="filters().isActive === false ? 'inactive' : 'active'"
               (change)="onActiveChange($any($event.target).value)"
             >
@@ -174,6 +175,7 @@ export class RubricsListComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly store = inject(RubricsStore);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly rows = this.store.rows;
   protected readonly filters = this.store.filters;
@@ -277,11 +279,16 @@ export class RubricsListComponent implements OnInit {
 
   protected async onDelete(row: RubricRow): Promise<void> {
     if (row.isSystem) return;
-    const ok = confirm(
-      `¿Eliminar la rúbrica "${row.name}"?\n\n` +
-        'Si está vinculada a una evaluación, el servidor lo rechazará con\n' +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar rúbrica',
+      message:
+        `¿Eliminar la rúbrica "${row.name}"?\n\n` +
+        'Si está vinculada a un registro, el servidor lo rechazará con\n' +
         '"RUB_IN_USE". Las inactivas se mantienen para reportes históricos.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.remove(row.publicUuid);
   }

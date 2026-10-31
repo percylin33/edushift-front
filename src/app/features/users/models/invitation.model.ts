@@ -15,6 +15,7 @@ export interface InvitationResponseRaw {
   email: string;
   firstName: string;
   lastName: string;
+  secondLastName?: string | null;
   documentType: DocumentType;
   documentNumber: string;
   roles: string[];
@@ -37,6 +38,7 @@ export interface Invitation {
   email: string;
   firstName: string;
   lastName: string;
+  secondLastName?: string | null;
   documentType: DocumentType;
   documentNumber: string;
   /** Convenience derived field — backend doesn't ship a `fullName` for invitations. */
@@ -60,6 +62,7 @@ export interface CreateInvitationRequest {
   email: string;
   firstName: string;
   lastName: string;
+  secondLastName?: string;
   documentType: DocumentType;
   documentNumber: string;
   roles: UserRole[];
@@ -73,6 +76,7 @@ export interface InvitationPreflightResponseRaw {
   email: string;
   firstName: string;
   lastName: string;
+  secondLastName?: string | null;
   tenantName: string;
   tenantSlug?: string | null;
 }
@@ -81,6 +85,7 @@ export interface InvitationPreflight {
   email: string;
   firstName: string;
   lastName: string;
+  secondLastName?: string;
   fullName: string;
   tenantName: string;
   tenantSlug?: string;

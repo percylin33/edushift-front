@@ -1,8 +1,6 @@
 import {
   NOTIFICATION_CHANNELS,
   NOTIFICATION_CATEGORIES,
-  NotificationChannel,
-  NotificationCategory,
   NotificationPreferenceRow,
 } from './preferences.model';
 

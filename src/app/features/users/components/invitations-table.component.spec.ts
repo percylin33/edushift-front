@@ -5,10 +5,12 @@ import { InvitationsStore } from '../store';
 import { Invitation } from '../models';
 import { InvitationStatus, UserRole } from '@core/enums';
 import { DocumentType } from '@core/enums';
+import { ConfirmDialogService } from '@shared/components';
 
 describe('InvitationsTableComponent', () => {
   let fixture: ComponentFixture<InvitationsTableComponent>;
   let component: InvitationsTableComponent;
+  let fakeConfirm: jasmine.SpyObj<ConfirmDialogService>;
   let fakeStore: {
     items: ReturnType<typeof signal<Invitation[]>>;
     hasItems: ReturnType<typeof signal<boolean>>;
@@ -50,9 +52,14 @@ describe('InvitationsTableComponent', () => {
       goToPage: jasmine.createSpy('goToPage').and.returnValue(Promise.resolve()),
       cancel: jasmine.createSpy('cancel').and.returnValue(Promise.resolve(invitation)),
     };
+    fakeConfirm = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['open']);
+    fakeConfirm.open.and.returnValue(Promise.resolve(false));
     TestBed.configureTestingModule({
       imports: [InvitationsTableComponent],
-      providers: [{ provide: InvitationsStore, useValue: fakeStore }],
+      providers: [
+        { provide: InvitationsStore, useValue: fakeStore },
+        { provide: ConfirmDialogService, useValue: fakeConfirm },
+      ],
     });
     fixture = TestBed.createComponent(InvitationsTableComponent);
     component = fixture.componentInstance;
@@ -79,56 +86,56 @@ describe('InvitationsTableComponent', () => {
   it('canCancel true solo para PENDING', () => {
     configureModule();
     expect(
-      (component as any).canCancel({ ...invitation, status: InvitationStatus.Pending }),
+      component['canCancel']({ ...invitation, status: InvitationStatus.Pending }),
     ).toBeTrue();
     expect(
-      (component as any).canCancel({ ...invitation, status: InvitationStatus.Cancelled }),
+      component['canCancel']({ ...invitation, status: InvitationStatus.Cancelled }),
     ).toBeFalse();
     expect(
-      (component as any).canCancel({ ...invitation, status: InvitationStatus.Accepted }),
+      component['canCancel']({ ...invitation, status: InvitationStatus.Accepted }),
     ).toBeFalse();
   });
 
   it('onCancel confirmado llama store y limpia pendingCancelId', async () => {
     configureModule();
-    spyOn(window, 'confirm').and.returnValue(true);
-    await (component as any).onCancel(invitation);
+    fakeConfirm.open.and.returnValue(Promise.resolve(true));
+    await component['onCancel'](invitation);
     expect(fakeStore.cancel).toHaveBeenCalledWith('inv-1');
-    expect((component as any).pendingCancelId()).toBeNull();
+    expect(component['pendingCancelId']()).toBeNull();
   });
 
   it('onCancel cancelado por confirm', async () => {
     configureModule();
-    spyOn(window, 'confirm').and.returnValue(false);
-    await (component as any).onCancel(invitation);
+    fakeConfirm.open.and.returnValue(Promise.resolve(false));
+    await component['onCancel'](invitation);
     expect(fakeStore.cancel).not.toHaveBeenCalled();
   });
 
   it('prev y next delegan al store', () => {
     configureModule();
     fakeStore.pagination.set({ page: 1, size: 20, totalElements: 100, totalPages: 5 });
-    (component as any).prev();
-    (component as any).next();
+    component['prev']();
+    component['next']();
     expect(fakeStore.goToPage).toHaveBeenCalledWith(0);
     expect(fakeStore.goToPage).toHaveBeenCalledWith(2);
   });
 
   it('retry limpia error y recarga', () => {
     configureModule();
-    (component as any).retry();
+    component['retry']();
     expect(fakeStore.clearError).toHaveBeenCalled();
     expect(fakeStore.loadList).toHaveBeenCalled();
   });
 
   it('formatDate maneja undefined', () => {
     configureModule();
-    expect((component as any).formatDate(undefined)).toBe('—');
+    expect(component['formatDate'](undefined)).toBe('—');
   });
 
   it('canPrev / canNext reflejan paginación', () => {
     configureModule();
     fakeStore.pagination.set({ page: 0, size: 20, totalElements: 100, totalPages: 5 });
-    expect((component as any).canPrev()).toBeFalse();
-    expect((component as any).canNext()).toBeTrue();
+    expect(component['canPrev']()).toBeFalse();
+    expect(component['canNext']()).toBeTrue();
   });
 });

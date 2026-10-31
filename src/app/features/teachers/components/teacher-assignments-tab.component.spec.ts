@@ -7,6 +7,9 @@ import { TeacherDetail, AssignmentRow } from '../models';
 import { DocumentType, EmploymentStatus } from '@core/enums';
 import { PeriodType } from '@features/academic/models';
 import { ROUTES } from '@core/constants';
+import { of } from 'rxjs';
+import { AcademicApiService } from '@features/academic/services';
+import { ConfirmDialogService } from '@shared/components';
 
 describe('TeacherAssignmentsTabComponent', () => {
   let fixture: ComponentFixture<TeacherAssignmentsTabComponent>;
@@ -22,6 +25,8 @@ describe('TeacherAssignmentsTabComponent', () => {
     setActiveFilter: jasmine.Spy;
     softEnd: jasmine.Spy;
   };
+  let fakeAcademicApi: jasmine.SpyObj<AcademicApiService>;
+  let fakeConfirm: jasmine.SpyObj<ConfirmDialogService>;
 
   const teacher: TeacherDetail = {
     publicUuid: 't-1',
@@ -41,6 +46,7 @@ describe('TeacherAssignmentsTabComponent', () => {
     teacherFullName: 'Maria Gomez',
     sectionPublicUuid: 'sec-1',
     sectionName: 'A',
+    gradeName: '1ro',
     coursePublicUuid: 'c-1',
     courseCode: 'MATH-101',
     courseName: 'Algebra',
@@ -53,6 +59,15 @@ describe('TeacherAssignmentsTabComponent', () => {
   };
 
   function configureModule(): void {
+    fakeAcademicApi = jasmine.createSpyObj<AcademicApiService>(
+      'AcademicApiService',
+      ['listYears', 'listSections', 'listPeriods'],
+    );
+    fakeAcademicApi.listYears.and.returnValue(of([]));
+    fakeAcademicApi.listSections.and.returnValue(of([]));
+    fakeAcademicApi.listPeriods.and.returnValue(of([]));
+    fakeConfirm = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['open']);
+    fakeConfirm.open.and.resolveTo(false);
     fakeStore = {
       assignments: signal<AssignmentRow[]>([]),
       loading: signal(false),
@@ -68,7 +83,12 @@ describe('TeacherAssignmentsTabComponent', () => {
     };
     TestBed.configureTestingModule({
       imports: [TeacherAssignmentsTabComponent],
-      providers: [provideRouter([]), { provide: TeacherAssignmentsStore, useValue: fakeStore }],
+      providers: [
+        provideRouter([]),
+        { provide: TeacherAssignmentsStore, useValue: fakeStore },
+        { provide: AcademicApiService, useValue: fakeAcademicApi },
+        { provide: ConfirmDialogService, useValue: fakeConfirm },
+      ],
     });
     fixture = TestBed.createComponent(TeacherAssignmentsTabComponent);
     component = fixture.componentInstance;
@@ -83,24 +103,28 @@ describe('TeacherAssignmentsTabComponent', () => {
   it('ngOnInit carga asignaciones activas por defecto', async () => {
     configureModule();
     await component.ngOnInit();
-    expect(fakeStore.loadAssignmentsFor).toHaveBeenCalledWith('t-1', { active: true });
+    expect(fakeStore.loadAssignmentsFor).toHaveBeenCalledWith('t-1', {
+      active: true,
+      periodId: undefined,
+    });
   });
 
   it('evaluationsRoute retorna ruta correcta', () => {
     configureModule();
-    expect((component as any).evaluationsRoute('a-1')).toBe(ROUTES.EVALUATIONS.byAssignment('a-1'));
+    expect(component['evaluationsRoute']('a-1')).toBe(ROUTES.EVALUATIONS.byAssignment('a-1'));
   });
 
   it('showActiveOnly refleja filtros del store', () => {
     configureModule();
-    expect((component as any).showActiveOnly()).toBeTrue();
+    expect(component['showActiveOnly']()).toBeTrue();
     fakeStore.filters.set({ active: false });
-    expect((component as any).showActiveOnly()).toBeFalse();
+    expect(component['showActiveOnly']()).toBeFalse();
   });
 
   it('periodLabel combina tipo y ordinal', () => {
     configureModule();
-    const label = (component as any).periodLabel({
+    const label = component['periodLabelForAssignment']('p-1', {
+      ...assignment,
       periodType: PeriodType.Bimestre,
       periodOrdinal: 2,
     });
@@ -109,45 +133,45 @@ describe('TeacherAssignmentsTabComponent', () => {
 
   it('setActive cambia filtro si difiere', async () => {
     configureModule();
-    await (component as any).setActive(false);
+    await component['setActive'](false);
     expect(fakeStore.setActiveFilter).toHaveBeenCalledWith(false);
   });
 
   it('setActive no llama store si es mismo valor', async () => {
     configureModule();
-    await (component as any).setActive(true);
+    await component['setActive'](true);
     expect(fakeStore.setActiveFilter).not.toHaveBeenCalled();
   });
 
   it('reload limpia error y recarga', async () => {
     configureModule();
-    await (component as any).reload();
+    await component['reload']();
     expect(fakeStore.clearError).toHaveBeenCalled();
     expect(fakeStore.loadAssignmentsFor).toHaveBeenCalled();
   });
 
   it('openCreate y closeCreate alternan modal', () => {
     configureModule();
-    (component as any).openCreate();
-    expect((component as any).showCreate()).toBeTrue();
-    (component as any).closeCreate();
-    expect((component as any).showCreate()).toBeFalse();
-    (component as any).openCreate();
-    (component as any).onCreated();
-    expect((component as any).showCreate()).toBeFalse();
+    component['openCreate']();
+    expect(component['showCreate']()).toBeTrue();
+    component['closeCreate']();
+    expect(component['showCreate']()).toBeFalse();
+    component['openCreate']();
+    component['onCreated']();
+    expect(component['showCreate']()).toBeFalse();
   });
 
   it('onSoftEnd confirmado llama store', async () => {
     configureModule();
-    spyOn(window, 'confirm').and.returnValue(true);
-    await (component as any).onSoftEnd('a-1', 'A', 'MATH');
+    fakeConfirm.open.and.resolveTo(true);
+    await component['onSoftEnd']('a-1', 'A', 'MATH');
     expect(fakeStore.softEnd).toHaveBeenCalledWith('a-1');
   });
 
   it('onSoftEnd cancelado no llama store', async () => {
     configureModule();
-    spyOn(window, 'confirm').and.returnValue(false);
-    await (component as any).onSoftEnd('a-1', 'A', 'MATH');
+    fakeConfirm.open.and.resolveTo(false);
+    await component['onSoftEnd']('a-1', 'A', 'MATH');
     expect(fakeStore.softEnd).not.toHaveBeenCalled();
   });
 });

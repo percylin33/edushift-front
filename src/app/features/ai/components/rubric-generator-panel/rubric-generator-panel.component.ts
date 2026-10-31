@@ -16,6 +16,7 @@ import {
   FormControl,
 } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
+import { readErrorDetails } from '@core/utils/error.utils';
 import { RubricGeneratorService, RubricDraft } from '../../services/rubric-generator.service';
 import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
 
@@ -265,10 +266,11 @@ export class RubricGeneratorPanelComponent {
       };
       const d = await firstValueFrom(this.service.generate(req));
       this.draft.set(d);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const details = readErrorDetails(e);
       this.error.set({
-        code: e?.code ?? 'AI_UNKNOWN',
-        message: e?.message ?? 'Error desconocido.',
+        code: details.code ?? 'AI_UNKNOWN',
+        message: details.message ?? 'Error desconocido.',
       });
       this.draft.set(null);
     } finally {

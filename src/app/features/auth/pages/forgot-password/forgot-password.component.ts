@@ -27,9 +27,10 @@ import { TenantService } from '@core/services';
  * had an account.
  *
  * <h3>Tenant from URL (same as login)</h3>
- * Institution identity comes from {@code ?tenant=} / subdomain, resolved
- * at boot by {@link TenantService}. There is no "Institución" field —
- * {@code /auth/forgot-password?tenant=tecnosur} already scopes the request.
+ * Institution identity comes from the hostname in local development and
+ * the configured strategy elsewhere, resolved at boot by
+ * {@link TenantService}. There is no "Institución" field; the hostname
+ * scopes the request locally.
  */
 @Component({
   selector: 'app-forgot-password',
@@ -158,7 +159,7 @@ export class ForgotPasswordComponent {
     const tenantSlug = this.tenant.tenantSlug()?.trim().toLowerCase();
     if (!tenantSlug) {
       this.errorMessage.set(
-        'Abre el enlace de tu institución (con ?tenant=…) para recuperar la contraseña.',
+        'Pide a tu institución el enlace de acceso y luego selecciona «¿Olvidaste tu contraseña?».',
       );
       return;
     }

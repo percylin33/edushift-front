@@ -29,6 +29,8 @@ export interface TeacherMySessionRaw {
 	sessionPublicUuid: string | null;
 	sectionPublicUuid: string;
 	sectionName: string;
+	/** Nullable when the grade row was removed after section creation. */
+	gradeName: string | null;
 	/** ISO date `YYYY-MM-DD`. */
 	occurredOn: string;
 	slot: AttendanceSessionSlot;
@@ -69,6 +71,7 @@ export interface TeacherMySession {
 	sessionPublicUuid: string | null;
 	sectionPublicUuid: string;
 	sectionName: string;
+	gradeName?: string;
 	occurredOn: Date;
 	slot: AttendanceSessionSlot;
 	/** 'PENDING' | 'ACTIVE' | 'CLOSED'. The template branches on this
@@ -141,6 +144,7 @@ function toMySession(raw: TeacherMySessionRaw): TeacherMySession {
 		sessionPublicUuid: raw.sessionPublicUuid,
 		sectionPublicUuid: raw.sectionPublicUuid,
 		sectionName: raw.sectionName,
+		gradeName: raw.gradeName ?? undefined,
 		occurredOn: parseLocalDate(raw.occurredOn),
 		slot: raw.slot,
 		status: status ?? 'PENDING',

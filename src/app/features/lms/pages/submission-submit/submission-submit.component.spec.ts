@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { provideRouter } from '@angular/router';
@@ -36,6 +37,7 @@ describe('SubmissionSubmitComponent', () => {
     await TestBed.configureTestingModule({
       imports: [SubmissionSubmitComponent],
       providers: [
+        provideHttpClient(),
         provideRouter([]),
         { provide: TasksStore, useValue: mockTasksStore },
         { provide: SubmissionsStore, useValue: mockSubmissionsStore },

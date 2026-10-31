@@ -96,7 +96,7 @@ test.describe('AI — API: chat session lifecycle as TENANT_ADMIN', () => {
       // Send message. The endpoint returns SSE; we use Playwright's
       // request context with a short timeout to verify the headers.
       const ctx = await import('@playwright/test').then((m) =>
-        m.request.newContext({ baseURL: 'http://localhost:8081' }),
+        m.request.newContext({ baseURL: 'http://localhost:8080' }),
       );
       try {
         const apiLogin = await apiContextFor({ user: TENANT_ADMIN });
@@ -301,7 +301,7 @@ test.describe('AI — API: RBAC matrix', () => {
         return;
       }
       try {
-        const url = `${process.env['API_URL'] ?? 'http://localhost:8081'}${c.path}`;
+        const url = `${process.env['API_URL'] ?? 'http://localhost:8080'}${c.path}`;
         const res = await ctx.api.fetch(url, {
           method: c.method,
           data: c.body,

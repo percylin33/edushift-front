@@ -7,12 +7,16 @@ import { ApiResponse, AuthResponseRaw, AuthSession, SpringPage } from '@core/mod
 import { ApiService } from '@core/services';
 import {
   AcceptInvitationRequest,
+  AdminResetPasswordRequest,
+  AdminResetPasswordResponse,
   AssignRolesRequest,
   CreateInvitationRequest,
   Invitation,
   InvitationPreflight,
   InvitationPreflightResponseRaw,
   InvitationResponseRaw,
+  ReplaceStaffAccessRequest,
+  StaffAccessState,
   UpdateUserRequest,
   UserDetail,
   UserDetailResponseRaw,
@@ -99,6 +103,24 @@ export class UsersApiService {
       .pipe(map((envelope) => this.toUserDetail(envelope.data)));
   }
 
+  getStaffAccess(publicUuid: string): Observable<StaffAccessState> {
+    return this.api
+      .get<ApiResponse<StaffAccessState>>(API.USERS.STAFF_ACCESS(publicUuid))
+      .pipe(map((envelope) => envelope.data));
+  }
+
+  replaceStaffAccess(
+    publicUuid: string,
+    request: ReplaceStaffAccessRequest,
+  ): Observable<StaffAccessState> {
+    return this.api
+      .put<ApiResponse<StaffAccessState>, ReplaceStaffAccessRequest>(
+        API.USERS.STAFF_ACCESS(publicUuid),
+        request,
+      )
+      .pipe(map((envelope) => envelope.data));
+  }
+
   disable(publicUuid: string): Observable<UserDetail> {
     return this.api
       .post<ApiResponse<UserDetailResponseRaw>>(API.USERS.DISABLE(publicUuid))
@@ -111,8 +133,16 @@ export class UsersApiService {
       .pipe(map((envelope) => this.toUserDetail(envelope.data)));
   }
 
-  resetPassword(publicUuid: string): Observable<void> {
-    return this.api.post<void>(API.USERS.RESET_PASSWORD(publicUuid));
+  resetPassword(
+    publicUuid: string,
+    request: AdminResetPasswordRequest = { delivery: 'EMAIL' },
+  ): Observable<AdminResetPasswordResponse> {
+    return this.api
+      .post<ApiResponse<AdminResetPasswordResponse>, AdminResetPasswordRequest>(
+        API.USERS.RESET_PASSWORD(publicUuid),
+        request,
+      )
+      .pipe(map((envelope) => envelope.data));
   }
 
   // ===========================================================================
@@ -198,6 +228,7 @@ export class UsersApiService {
       email: raw.email,
       firstName: raw.firstName ?? undefined,
       lastName: raw.lastName ?? undefined,
+      secondLastName: raw.secondLastName ?? undefined,
       fullName: raw.fullName,
       status: raw.status,
       roles: this.narrowRoles(raw.roles),
@@ -212,12 +243,14 @@ export class UsersApiService {
       email: raw.email,
       firstName: raw.firstName ?? undefined,
       lastName: raw.lastName ?? undefined,
+      secondLastName: raw.secondLastName ?? undefined,
       fullName: raw.fullName,
       phone: raw.phone ?? undefined,
       avatarUrl: raw.avatarUrl ?? undefined,
       status: raw.status,
       emailVerified: raw.emailVerified,
       mfaEnabled: raw.mfaEnabled,
+      emailSource: raw.emailSource === 'SYNTHETIC' ? 'SYNTHETIC' : 'REAL',
       roles: this.narrowRoles(raw.roles),
       lastLoginAt: this.parseDate(raw.lastLoginAt),
       createdAt: this.parseDate(raw.createdAt),
@@ -251,12 +284,13 @@ export class UsersApiService {
   }
 
   private toInvitation(raw: InvitationResponseRaw): Invitation {
-    const fullName = `${raw.firstName} ${raw.lastName}`.trim();
+    const fullName = [raw.firstName, raw.lastName, raw.secondLastName].filter(Boolean).join(' ').trim();
     return {
       publicUuid: raw.publicUuid,
       email: raw.email,
       firstName: raw.firstName,
       lastName: raw.lastName,
+      secondLastName: raw.secondLastName ?? undefined,
       documentType: raw.documentType,
       documentNumber: raw.documentNumber,
       fullName: fullName || raw.email,
@@ -271,11 +305,12 @@ export class UsersApiService {
   }
 
   private toPreflight(raw: InvitationPreflightResponseRaw): InvitationPreflight {
-    const fullName = `${raw.firstName} ${raw.lastName}`.trim();
+    const fullName = [raw.firstName, raw.lastName, raw.secondLastName].filter(Boolean).join(' ').trim();
     return {
       email: raw.email,
       firstName: raw.firstName,
       lastName: raw.lastName,
+      secondLastName: raw.secondLastName ?? undefined,
       fullName: fullName || raw.email,
       tenantName: raw.tenantName,
       tenantSlug: raw.tenantSlug ?? undefined,

@@ -1,10 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal, computed } from '@angular/core';
+import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { QuizTakePageComponent } from './quiz-take.page';
 import { QuizzesStore } from '../../store/quizzes.store';
 import { AttemptsStore } from '../../store/attempts.store';
-import { QuizStatus, QuestionType, QuizDetail } from '../../models/quiz.model';
+import { QuizStatus, QuestionType } from '../../models/quiz.model';
 import { AttemptStatus } from '../../models/attempt.model';
 
 describe('QuizTakePageComponent', () => {

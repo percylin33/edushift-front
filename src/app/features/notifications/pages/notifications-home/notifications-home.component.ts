@@ -20,7 +20,7 @@ import {
 } from '@shared/components';
 import { NotificationsStore } from '../../store';
 import { NotificationItem } from '../../models';
-import { notificationDeepLink, resolvePayload } from '../../utils/notification-deep-link';
+import { notificationDeepLink, notificationDisplaySubject, resolvePayload } from '../../utils/notification-deep-link';
 
 /**
  * In-app notifications home (Sprint 9 / FE-9.3 + Sprint 5C cascade wiring).
@@ -55,8 +55,17 @@ import { notificationDeepLink, resolvePayload } from '../../utils/notification-d
     <app-page-container size="narrow">
       <app-page-header
         title="Notificaciones"
-        subtitle="Centro de notificaciones del tenant."
+        subtitle="Centro de notificaciones de tu institución."
       />
+
+      <div class="mb-4 flex justify-end">
+        <a
+          routerLink="/notifications/preferences"
+          class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          Preferencias
+        </a>
+      </div>
 
       @if (loading()) {
         <div
@@ -120,7 +129,7 @@ import { notificationDeepLink, resolvePayload } from '../../utils/notification-d
                 >
                 <div class="flex items-center justify-between gap-3">
                   <p class="truncate text-sm font-semibold text-content">
-                    {{ n.subject }}
+                    {{ displaySubject(n) }}
                   </p>
                   <span class="shrink-0 text-xs text-content-subtle">
                     @if (n.sentAt) {
@@ -214,6 +223,10 @@ export class NotificationsHomeComponent implements OnInit {
     return notificationDeepLink(n);
   }
 
+  displaySubject(n: NotificationItem): string {
+    return notificationDisplaySubject(n);
+  }
+
   isRead(n: NotificationItem): boolean {
     return n.status === 'READ' || Boolean(n.readAt);
   }
@@ -235,7 +248,7 @@ export class NotificationsHomeComponent implements OnInit {
         {
           ABSENCE: 'Ausencias',
           GRADE: 'Calificaciones',
-          QUIZ: 'Quizzes',
+          QUIZ: 'Prácticas',
           TASK: 'Tareas',
           AI_FEEDBACK: 'Feedback IA',
           ANNOUNCEMENT: 'Anuncios',
@@ -251,7 +264,11 @@ export class NotificationsHomeComponent implements OnInit {
     const section = parsed['sectionName'];
     const teacher = parsed['teacherName'];
     const course = parsed['courseCode'] ?? parsed['courseName'];
-    const title = parsed['title'] ?? parsed['taskTitle'] ?? parsed['evaluationTitle'];
+    const title =
+      parsed['title'] ??
+      parsed['taskTitle'] ??
+      parsed['evaluationTitle'] ??
+      parsed['quizTitle'];
     const body = parsed['body'];
     const parts: string[] = [];
     if (typeof course === 'string' && course) parts.push(`Curso ${course}`);

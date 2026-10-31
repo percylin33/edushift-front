@@ -2,9 +2,13 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import {
+  ConfirmDialogService,
+  EmptyStateComponent,
+  IconComponent,
+  SpinnerComponent,
+} from '@shared/components';
 import { RubricSystemBadgeComponent } from '@features/rubrics/components/rubric-system-badge.component';
-import { RubricDetail } from '@features/rubrics/models';
 import { EvaluationsStore } from '../store';
 import { EvaluationDetail } from '../models';
 import { RubricAttachModalComponent } from './rubric-attach-modal.component';
@@ -201,6 +205,7 @@ import { RubricAttachModalComponent } from './rubric-attach-modal.component';
 export class EvaluationRubricTabComponent {
   private readonly store = inject(EvaluationsStore);
   private readonly router = inject(Router);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly evaluation = input.required<EvaluationDetail>();
 
@@ -257,11 +262,15 @@ export class EvaluationRubricTabComponent {
   protected async onDetach(): Promise<void> {
     const r = this.rubric();
     if (!r) return;
-    const ok = confirm(
-      `¿Desvincular la rúbrica "${r.name}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Desvincular rúbrica',
+      message:
+        `¿Desvincular la rúbrica "${r.name}"?\n\n` +
         'No se borrará nada de la rúbrica original. Solo se quita el ' +
-        'enlace con esta evaluación.',
-    );
+        'enlace con este registro.',
+      confirmLabel: 'Desvincular',
+      variant: 'warning',
+    });
     if (!ok) return;
     await this.store.detachRubric(this.evaluation().publicUuid);
   }

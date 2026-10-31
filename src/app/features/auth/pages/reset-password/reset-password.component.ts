@@ -20,6 +20,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, finalize, of } from 'rxjs';
+import { extractApiError, mapHttpError, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, passwordPolicyMessage, passwordPolicyValidator } from '@shared/utils';
 
 import { AuthApiService } from '../../services/auth-api.service';
 import { TenantService } from '@core/services';
@@ -30,7 +31,6 @@ import {
   PasswordFieldComponent,
   SubmitButtonComponent,
 } from '@shared/components';
-import { mapHttpError } from '@shared/utils';
 
 /**
  * Reset-password screen.
@@ -113,7 +113,8 @@ import { mapHttpError } from '@shared/utils';
             autocomplete="new-password"
             placeholder="••••••••"
             [error]="passwordError()"
-            hint="Mínimo 8 caracteres."
+            [maxlength]="PASSWORD_MAX_LENGTH"
+            hint="8–72 caracteres, con mayúscula, minúscula y número."
           />
 
           <app-password-field
@@ -146,6 +147,7 @@ import { mapHttpError } from '@shared/utils';
   `,
 })
 export class ResetPasswordComponent implements OnInit {
+  protected readonly PASSWORD_MAX_LENGTH = PASSWORD_MAX_LENGTH;
   private readonly fb = inject(FormBuilder);
   private readonly authApi = inject(AuthApiService);
   private readonly tenant = inject(TenantService);
@@ -170,7 +172,7 @@ export class ResetPasswordComponent implements OnInit {
 
   protected readonly form: FormGroup = this.fb.nonNullable.group(
     {
-      password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
+      password: ['', [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH), Validators.maxLength(PASSWORD_MAX_LENGTH), passwordPolicyValidator]],
       passwordConfirmation: ['', [Validators.required]],
     },
     { validators: [this.passwordsMatch] },
@@ -234,6 +236,7 @@ export class ResetPasswordComponent implements OnInit {
     if (ctrl.errors['required']) return 'La contraseña es obligatoria.';
     if (ctrl.errors['minlength']) return 'La contraseña debe tener al menos 8 caracteres.';
     if (ctrl.errors['maxlength']) return 'La contraseña es demasiado larga.';
+    if (ctrl.errors['passwordPolicy']) return passwordPolicyMessage(ctrl.value);
     return null;
   }
 
@@ -286,31 +289,20 @@ export class ResetPasswordComponent implements OnInit {
   }
 
   private toMessage(err: HttpErrorResponse): string {
-    if (err.status === 0) {
-      return 'No se pudo conectar con el servidor. Verifica tu conexión.';
-    }
+    const code = extractApiError(err)?.code;
     if (err.status === 401) {
       return 'El enlace ha caducado o ya fue utilizado.';
     }
-    if (err.status === 400) {
-      const body = err.error as { code?: string; message?: string } | null | undefined;
-      if (body?.code === 'PASSWORD_CONFIRM_MISMATCH') {
-        return 'Las contraseñas no coinciden.';
-      }
-      if (body?.code === 'VALIDATION_ERROR') {
-        return body.message ?? 'La contraseña no cumple los requisitos.';
-      }
-      return body?.message ?? 'La contraseña no es válida.';
-    }
-    if (err.status >= 500) {
-      return 'Ocurrió un error inesperado. Intenta nuevamente en unos minutos.';
-    }
+    if (code === 'WEAK_PASSWORD') return passwordPolicyMessage(this.passwordCtrl.value);
     return mapHttpError(err, { fallback: 'No se pudo restablecer la contraseña.' });
   }
 
   private toValidationMessage(err: HttpErrorResponse): string {
-    const body = err.error as { message?: string } | null | undefined;
-    return body?.message ?? 'No se pudo validar el enlace. Intenta nuevamente.';
+    const code = extractApiError(err)?.code;
+    if (code) return this.toValidationReasonMessage(code);
+    if (err.status === 0) return 'No se pudo conectar con el servidor. Verifica tu conexión.';
+    if (err.status >= 500) return 'Ocurrió un error inesperado. Intenta nuevamente en unos minutos.';
+    return 'No se pudo validar el enlace. Revisa que esté completo o solicita uno nuevo.';
   }
 
   private toValidationReasonMessage(code: string | null | undefined): string {

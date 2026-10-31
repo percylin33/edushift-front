@@ -1,15 +1,17 @@
 import {
 	ChangeDetectionStrategy,
 	Component,
+	DestroyRef,
 	EventEmitter,
 	Output,
 	computed,
+	inject,
 	input,
 	signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IconComponent } from '@shared/components';
-import { firstValueFrom } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { SseClientService, SseToken } from '../../services/sse-client.service';
 
 /**
@@ -148,8 +150,9 @@ export class AiPanelComponent<TDraft> {
 	protected readonly isStreaming = computed(() => this.status() === 'streaming');
 	protected readonly isIdle = computed(() => this.status() === 'idle');
 
-	private controller: AbortController | null = null;
-	private readonly sse = new SseClientService();
+	private readonly destroyRef = inject(DestroyRef);
+	private readonly sse = inject(SseClientService);
+	private subscription: Subscription | null = null;
 
 	async run(): Promise<void> {
 		if (this.status() === 'streaming') return;
@@ -157,24 +160,7 @@ export class AiPanelComponent<TDraft> {
 		this.tokenBuffer.set('');
 		this.tokenCount.set(0);
 		this.errorMessage.set('');
-		this.controller = new AbortController();
-
-		try {
-			await firstValueFrom(
-				this.sse.stream(this.endpoint(), this.requestBody()).pipe(
-					takeUntilDestroyed(),
-				),
-			).catch(async (err: unknown) => {
-				// firstValueFrom only resolves the first value; we need a
-				// full subscriber to drive the stream to completion. Fall
-				// back to a manual subscribe.
-				await this.consumeStream();
-				throw err;
-			});
-		}
-		catch (_e) {
-			// consumeStream already handled the error path.
-		}
+		await this.consumeStream();
 	}
 
 	/**
@@ -195,9 +181,9 @@ export class AiPanelComponent<TDraft> {
 				fn();
 				resolve();
 			};
-			this.sse
+			this.subscription = this.sse
 				.stream(this.endpoint(), this.requestBody())
-				.pipe(takeUntilDestroyed())
+				.pipe(takeUntilDestroyed(this.destroyRef))
 				.subscribe({
 					next: (token: SseToken) => {
 						if (token.event === 'token') {
@@ -244,7 +230,8 @@ export class AiPanelComponent<TDraft> {
 	}
 
 	cancel(): void {
-		this.controller?.abort();
+		this.subscription?.unsubscribe();
+		this.subscription = null;
 		this.status.set('idle');
 		this.tokenBuffer.set('');
 		this.tokenCount.set(0);

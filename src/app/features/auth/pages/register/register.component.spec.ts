@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ReactiveFormsModule } from '@angular/forms';
 
@@ -77,8 +77,16 @@ describe('RegisterComponent', () => {
   });
 
   it('slugHint refleja el valor del campo en lowercase', () => {
-    component.tenantSlugCtrl.setValue('Mi-Colegio');
-    expect(component.slugHint()).toContain('mi-colegio');
+    component.tenantSlugCtrl.setValue('MiColegio');
+    expect(component.slugHint()).toContain('micolegio');
+  });
+
+  it('validación: tenantSlug solo permite letras y números, sin guiones', () => {
+    component.tenantSlugCtrl.setValue('mi-colegio');
+    component.tenantSlugCtrl.markAsTouched();
+    expect(component.invalid('tenantSlug')).toBeTrue();
+    component.tenantSlugCtrl.setValue('micolegio');
+    expect(component.invalid('tenantSlug')).toBeFalse();
   });
 
   it('validación: tenantName required', () => {
@@ -119,7 +127,7 @@ describe('RegisterComponent', () => {
 
   it('markSlugAsTouched fija _slugTouchedByUser', () => {
     component.markSlugAsTouched();
-    expect((component as any)._slugTouchedByUser).toBeTrue();
+    expect(component['_slugTouchedByUser']).toBeTrue();
   });
 
   it('onSubmit no llama register si el form es inválido', () => {
@@ -133,18 +141,21 @@ describe('RegisterComponent', () => {
     component.inviteToken.set('tokentokentoken12');
     component.form.patchValue({
       tenantName: 'Mi Cole',
-      tenantSlug: 'mi-cole',
+      tenantSlug: 'micole',
       adminFirstName: 'Admin',
       adminLastName: 'User',
       adminEmail: 'admin@test.com',
-      adminPassword: 'password123',
+      adminPassword: 'SchoolAccess2026!',
+      confirmAdminPassword: 'SchoolAccess2026!',
     });
     component.form.updateValueAndValidity();
     expect(component.form.valid).toBeTrue();
 
     const beginSpy = spyOn(store, 'beginSubmit').and.callThrough();
+    const redirectSpy = spyOn(component as unknown as { redirectToSchoolOnboarding: () => void }, 'redirectToSchoolOnboarding');
     component.onSubmit();
     expect(beginSpy).toHaveBeenCalled();
+    expect(redirectSpy).toHaveBeenCalledOnceWith();
   });
 
   it('applyServerErrors mapea TENANT_SLUG_TAKEN a error de campo', () => {
@@ -152,7 +163,7 @@ describe('RegisterComponent', () => {
       error: { code: 'TENANT_SLUG_TAKEN' },
       status: 409,
     });
-    (component as any).applyServerErrors(err);
+    component['applyServerErrors'](err);
     expect(component.form.get('tenantSlug')!.hasError('serverField')).toBeTrue();
     expect(store.error()).toContain('identificador');
   });
@@ -162,7 +173,7 @@ describe('RegisterComponent', () => {
       error: { code: 'EMAIL_TAKEN' },
       status: 409,
     });
-    (component as any).applyServerErrors(err);
+    component['applyServerErrors'](err);
     expect(component.form.get('adminEmail')!.hasError('serverField')).toBeTrue();
     expect(store.error()).toContain('correo');
   });
@@ -172,7 +183,7 @@ describe('RegisterComponent', () => {
       error: { message: 'Server error' },
       status: 500,
     });
-    (component as any).applyServerErrors(err);
+    component['applyServerErrors'](err);
     expect(store.error()).toContain('error inesperado');
   });
 
@@ -180,7 +191,7 @@ describe('RegisterComponent', () => {
     // slugify now lives in @shared/utils; we exercise it indirectly by
     // typing into tenantName and observing the auto-derived slug.
     component.tenantNameCtrl.setValue('Colegio San José');
-    expect(component.tenantSlugCtrl.value).toBe('colegio-san-jose');
+    expect(component.tenantSlugCtrl.value).toBe('colegiosanjose');
   });
 
   it('toSlug retorna vacío para input vacío', () => {

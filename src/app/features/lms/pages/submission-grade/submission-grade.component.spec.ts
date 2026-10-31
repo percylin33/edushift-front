@@ -1,6 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
 import { SubmissionGradeComponent } from './submission-grade.component';
 import { TasksStore } from '../../store';
 import { SubmissionsStore } from '../../store';
@@ -67,6 +66,9 @@ describe('SubmissionGradeComponent', () => {
       submittedAt: new Date(),
       grade: null,
       hasAttachment: false,
+      attachmentPublicUuid: null,
+      attachmentFilename: null,
+      attachmentDownloadUrl: null,
     };
     component.onOpenGrade(row);
     expect(component.dialogMode()).toBe('Grade');
@@ -84,6 +86,9 @@ describe('SubmissionGradeComponent', () => {
       submittedAt: new Date(),
       grade: 15,
       hasAttachment: false,
+      attachmentPublicUuid: null,
+      attachmentFilename: null,
+      attachmentDownloadUrl: null,
     };
     component.onOpenReturn(row);
     expect(component.dialogMode()).toBe('Return');
@@ -98,7 +103,7 @@ describe('SubmissionGradeComponent', () => {
 
   it('onConfirmGrade llama al store', async () => {
     mockSubmissionsStore.grade.and.returnValue(Promise.resolve({} as any));
-    component.selectedRow = {
+    component.onOpenGrade({
       publicUuid: 'sub-1',
       studentPublicUuid: 'st-1',
       studentFullName: 'Juan',
@@ -108,7 +113,10 @@ describe('SubmissionGradeComponent', () => {
       submittedAt: new Date(),
       grade: null,
       hasAttachment: false,
-    };
+      attachmentPublicUuid: null,
+      attachmentFilename: null,
+      attachmentDownloadUrl: null,
+    });
     await component.onConfirmGrade({ grade: 15, feedback: 'Bien' });
     expect(mockSubmissionsStore.grade).toHaveBeenCalledWith('sub-1', {
       grade: 15,
@@ -118,7 +126,7 @@ describe('SubmissionGradeComponent', () => {
 
   it('onConfirmReturn llama al store', async () => {
     mockSubmissionsStore.return.and.returnValue(Promise.resolve({} as any));
-    component.selectedRow = {
+    component.onOpenReturn({
       publicUuid: 'sub-1',
       studentPublicUuid: 'st-1',
       studentFullName: 'Juan',
@@ -128,7 +136,10 @@ describe('SubmissionGradeComponent', () => {
       submittedAt: new Date(),
       grade: 15,
       hasAttachment: false,
-    };
+      attachmentPublicUuid: null,
+      attachmentFilename: null,
+      attachmentDownloadUrl: null,
+    });
     await component.onConfirmReturn({ feedback: 'revisa' });
     expect(mockSubmissionsStore.return).toHaveBeenCalledWith('sub-1', { feedback: 'revisa' });
   });

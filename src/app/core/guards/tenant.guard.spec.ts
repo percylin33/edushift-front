@@ -1,11 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, UrlTree, provideRouter } from '@angular/router';
+import { UrlTree, provideRouter } from '@angular/router';
 import { tenantGuard } from './tenant.guard';
 import { TenantService } from '@core/services';
 
 describe('tenantGuard', () => {
-  let router: Router;
-
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
@@ -16,7 +14,6 @@ describe('tenantGuard', () => {
         },
       ],
     });
-    router = TestBed.inject(Router);
   });
 
   it('permite acceso cuando hay tenant slug', () => {
@@ -35,7 +32,6 @@ describe('tenantGuard', () => {
         },
       ],
     });
-    router = TestBed.inject(Router);
     const result = TestBed.runInInjectionContext(() => tenantGuard({} as any, {} as any));
     expect(result instanceof UrlTree).toBeTrue();
   });

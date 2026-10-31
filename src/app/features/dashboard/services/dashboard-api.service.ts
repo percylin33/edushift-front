@@ -3,6 +3,7 @@ import { Observable, map } from 'rxjs';
 import { ApiService } from '@core/services';
 import { ApiResponse } from '@core/models';
 import { API } from '@core/constants';
+import { SchoolOperationsDashboardSummary } from '../models/school-operations-dashboard.model';
 import {
   AttendanceDashboardOverview,
   AttendanceDashboardOverviewRaw,
@@ -44,6 +45,13 @@ export class DashboardApiService {
     return this.api
       .get<ApiResponse<AttendanceDashboardOverviewRaw>>(API.ATTENDANCE.DASHBOARD_OVERVIEW)
       .pipe(map((envelope) => toDashboardOverview(envelope.data)));
+  }
+
+  /** Aggregated school-year indicators, authorized for the tenant administrator. */
+  getSchoolOperationsSummary(): Observable<SchoolOperationsDashboardSummary> {
+    return this.api
+      .get<ApiResponse<SchoolOperationsDashboardSummary>>(API.DASHBOARD.SCHOOL_OPERATIONS_SUMMARY)
+      .pipe(map((envelope) => envelope.data));
   }
 
   /**

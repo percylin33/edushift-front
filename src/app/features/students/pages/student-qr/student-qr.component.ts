@@ -14,6 +14,7 @@ import { ROUTES } from '@core/constants';
 import { UserRole } from '@core/enums';
 import { AuthService, NotificationService, TenantService } from '@core/services';
 import {
+  ConfirmDialogService,
   EmptyStateComponent,
   IconComponent,
   PageContainerComponent,
@@ -221,6 +222,7 @@ export class StudentQrPageComponent implements OnInit, OnDestroy {
   private readonly tenant = inject(TenantService);
   private readonly auth = inject(AuthService);
   private readonly notifications = inject(NotificationService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly backRoute = ROUTES.STUDENTS.LIST;
 
@@ -291,7 +293,13 @@ export class StudentQrPageComponent implements OnInit, OnDestroy {
    */
   protected async rotate(): Promise<void> {
     if (this.busy() || !this.canRotate()) return;
-    const confirmed = window.confirm('Esto invalida el QR actual. ¿Confirmar?');
+    const confirmed = await this.confirmDialog.open({
+      title: 'Invalidar QR',
+      message: 'Esto invalida el QR actual. ¿Confirmar?',
+      confirmLabel: 'Invalidar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!confirmed) return;
 
     this.rotating.set(true);
@@ -341,7 +349,7 @@ export class StudentQrPageComponent implements OnInit, OnDestroy {
       const status = (err as { status?: number }).status;
       this.loadError.set(
         status === 404
-          ? 'No encontramos al alumno en este tenant.'
+          ? 'No encontramos al alumno en esta institución.'
           : 'Ocurrió un error al cargar los datos del alumno.',
       );
       console.error('[student-qr] load failed', err);

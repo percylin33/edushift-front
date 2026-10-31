@@ -1,8 +1,8 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
-  computed,
   effect,
   inject,
   signal,
@@ -58,7 +58,7 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
     <header class="mb-6">
       <h1 class="text-2xl font-semibold tracking-tight">Datos de la institución</h1>
       <p class="mt-1 text-sm text-content-muted">
-        Personaliza el nombre y el branding que verán tus usuarios.
+        Personaliza el nombre y la identidad visual que verán tus usuarios.
       </p>
     </header>
 
@@ -73,7 +73,7 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
     }
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="grid gap-4 sm:grid-cols-2" novalidate>
-      <div class="field sm:col-span-2">
+      <div class="field min-w-0 sm:col-span-2">
         <label class="label" for="ob-name">Nombre de la institución</label>
         <input
           id="ob-name"
@@ -89,7 +89,7 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
         }
       </div>
 
-      <div class="field sm:col-span-2">
+      <div class="field min-w-0 sm:col-span-2">
         <label class="label" for="ob-color">Color principal</label>
         <div class="flex items-center gap-3">
           <input
@@ -99,7 +99,8 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
             formControlName="primaryColor"
           />
           <input
-            class="input flex-1 font-mono"
+            class="input min-w-0 flex-1 font-mono"
+            aria-label="Código del color principal"
             type="text"
             spellcheck="false"
             formControlName="primaryColor"
@@ -110,15 +111,15 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
         @if (invalid('primaryColor')) {
           <p class="hint text-danger">{{ errorOf('primaryColor') }}</p>
         } @else {
-          <p class="hint">Hex CSS (ej. <span class="font-mono">#0F62FE</span>).</p>
+          <p class="hint">Código de color (ej. <span class="font-mono">#0F62FE</span>). Se aplicará al continuar; los botones usarán un tono legible de este color.</p>
         }
       </div>
 
-      <div class="field sm:col-span-2">
+      <div class="field min-w-0 sm:col-span-2">
         <label class="label">Logo de la institución</label>
-        <div class="flex items-start gap-4">
+        <div class="flex flex-col items-start gap-4 sm:flex-row">
           <div
-            class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-surface-2"
+            class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-surface-muted"
             [attr.aria-label]="currentLogoUrl() ? 'Logo actual' : 'Sin logo'"
           >
             @if (currentLogoUrl(); as logo) {
@@ -127,7 +128,7 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
               <app-icon name="image" [size]="32" class="text-content-muted" />
             }
           </div>
-          <div class="flex-1 space-y-2">
+          <div class="min-w-0 w-full flex-1 space-y-2">
             <app-file-upload
               module="branding"
               accept="image/png,image/jpeg,image/webp,image/svg+xml"
@@ -173,6 +174,12 @@ import { ONBOARDING_STEPS } from '../../onboarding.steps';
   `,
 })
 export class OnboardingSchoolComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly tenantApi = inject(TenantApiService);
   private readonly tenantService = inject(TenantService);
@@ -364,7 +371,6 @@ export class OnboardingSchoolComponent implements OnInit {
 
     this.store.setLoading(true);
     this.store.setError(null);
-
     this.tenantApi
       .updateCurrent(payload)
       .pipe(finalize(() => this.store.setLoading(false)))
@@ -372,6 +378,7 @@ export class OnboardingSchoolComponent implements OnInit {
         next: (tenant) => {
           this.tenantService.setTenant(tenant, 'header');
           this.onboarding.markCompleted('school');
+          this.formProtection.markSaved();
           void this.router.navigate(['/onboarding/complete']);
         },
         error: (err: HttpErrorResponse) => {

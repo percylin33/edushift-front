@@ -1,6 +1,5 @@
 import {
   TaskLifecycle,
-  SubmissionStatus,
   TaskSummaryRaw,
   TaskResponseRaw,
   toTaskRow,
@@ -20,6 +19,7 @@ describe('task.model', () => {
         maxScore: 20,
         lifecycle: TaskLifecycle.Published,
         submissionsCount: 3,
+        gradedSubmissionsCount: 1,
         sectionLabel: 'Sección A',
         courseLabel: 'Matemáticas',
         createdAt: '2026-01-01T00:00:00.000Z',
@@ -29,6 +29,7 @@ describe('task.model', () => {
       expect(row.dueAt?.toISOString()).toBe('2030-01-15T00:00:00.000Z');
       expect(row.createdAt.toISOString()).toBe('2026-01-01T00:00:00.000Z');
       expect(row.lifecycle).toBe(TaskLifecycle.Published);
+      expect(row.gradedSubmissionsCount).toBe(1);
     });
 
     it('maneja dueAt null', () => {
@@ -64,6 +65,8 @@ describe('task.model', () => {
         requiresAttachment: false,
         lifecycle: TaskLifecycle.Published,
         createdByTeacherPublicUuid: 'tch-1',
+        ownerPublicUuid: 'tch-1',
+        status: 'PUBLISHED',
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: null,
       };
@@ -74,7 +77,7 @@ describe('task.model', () => {
       expect(detail.description).toBe('Descripción');
     });
 
-    it('usa default 0 para submissionsCount ausente', () => {
+    it('usa default 0 para submissionsCount y gradedSubmissionsCount ausentes', () => {
       const raw = {
         publicUuid: 't-1',
         sectionPublicUuid: 's-1',
@@ -93,6 +96,7 @@ describe('task.model', () => {
       } as TaskResponseRaw;
       const detail = toTaskDetail(raw);
       expect(detail.submissionsCount).toBe(0);
+      expect(detail.gradedSubmissionsCount).toBe(0);
     });
   });
 
@@ -105,12 +109,12 @@ describe('task.model', () => {
       expect(isTaskEditable({ lifecycle: TaskLifecycle.Closed, dueAt: null })).toBeFalse();
     });
 
-    it('isTaskEditable true en Published si dueAt es futuro', () => {
+    it('isTaskEditable false en Published aunque dueAt sea futuro', () => {
       const future = new Date(Date.now() + 86_400_000);
-      expect(isTaskEditable({ lifecycle: TaskLifecycle.Published, dueAt: future })).toBeTrue();
+      expect(isTaskEditable({ lifecycle: TaskLifecycle.Published, dueAt: future })).toBeFalse();
     });
 
-    it('isTaskEditable false en Published si dueAt es pasado', () => {
+    it('isTaskEditable false en Published aunque dueAt haya pasado', () => {
       const past = new Date(Date.now() - 86_400_000);
       expect(isTaskEditable({ lifecycle: TaskLifecycle.Published, dueAt: past })).toBeFalse();
     });

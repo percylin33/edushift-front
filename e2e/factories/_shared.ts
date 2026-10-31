@@ -69,7 +69,7 @@ export interface CreatedEntity<TPublic = string> {
   cleanup: () => Promise<void>;
 }
 
-const BASE = process.env['API_URL'] ?? 'http://localhost:8081';
+const BASE = process.env['API_URL'] ?? 'http://localhost:8080';
 
 /**
  * Single-flight DELETE that swallows 404 and 204. Used by every

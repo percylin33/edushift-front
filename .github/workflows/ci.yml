@@ -1,0 +1,69 @@
+name: frontend-ci
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: frontend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Lint, tests, production build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Scan repository history for leaked secrets
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: false
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
+
+      - name: Audit production dependencies for HIGH and CRITICAL vulnerabilities
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run unit tests with coverage
+        run: npm run test:ci
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+
+      - name: Build production bundle
+        run: npm run build:prod
+
+      - name: Package and checksum deployable frontend bundle
+        run: |
+          tar -czf frontend-static.tar.gz -C dist/edushift-front/browser .
+          sha256sum frontend-static.tar.gz > frontend-static.tar.gz.sha256
+
+      - name: Upload deployable frontend artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: edushift-frontend-${{ github.sha }}
+          path: |
+            frontend-static.tar.gz
+            frontend-static.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 30

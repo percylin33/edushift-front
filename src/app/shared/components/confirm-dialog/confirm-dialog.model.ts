@@ -7,4 +7,5 @@ export interface ConfirmDialogConfig {
   cancelLabel?: string;
   variant?: 'danger' | 'warning' | 'default';
   icon?: IconName;
+  preferCancel?: boolean;
 }

@@ -1,6 +1,7 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
-import { roleGuard } from '@core/guards';
-import { UserRole } from '@core/enums';
+import { permissionGuard, roleGuard } from '@core/guards';
+import { Permission, UserRole } from '@core/enums';
 
 /**
  * Routes for the {@code students} module.
@@ -22,17 +23,24 @@ import { UserRole } from '@core/enums';
  */
 export const STUDENTS_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
-    canActivate: [roleGuard],
-    data: { roles: [UserRole.TenantAdmin], title: 'Estudiantes' },
+    canMatch: [permissionGuard],
+    data: {
+      roles: [UserRole.TenantAdmin],
+      permissions: Permission.StudentsReadGranular,
+      title: 'Estudiantes',
+    },
     loadComponent: () =>
       import('./pages/students-list/students-list.component').then((m) => m.StudentsListComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'new',
-    canActivate: [roleGuard],
+    canMatch: [permissionGuard],
     data: {
       roles: [UserRole.TenantAdmin],
+      permissions: Permission.StudentsCreateGranular,
       breadcrumb: 'Nuevo',
       title: 'Nuevo estudiante',
     },
@@ -40,10 +48,12 @@ export const STUDENTS_ROUTES: Routes = [
       import('./pages/student-form/student-form.component').then((m) => m.StudentFormComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: ':id',
-    canActivate: [roleGuard],
+    canMatch: [permissionGuard],
     data: {
       roles: [UserRole.TenantAdmin],
+      permissions: Permission.StudentsReadGranular,
       breadcrumb: 'Detalle',
       title: 'Estudiante',
     },
@@ -53,10 +63,12 @@ export const STUDENTS_ROUTES: Routes = [
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: ':id/edit',
-    canActivate: [roleGuard],
+    canMatch: [permissionGuard],
     data: {
       roles: [UserRole.TenantAdmin],
+      permissions: Permission.StudentsUpdateGranular,
       breadcrumb: 'Editar',
       title: 'Editar estudiante',
     },
@@ -68,6 +80,7 @@ export const STUDENTS_ROUTES: Routes = [
      * el endpoint backend que permite hasAnyRole('TENANT_ADMIN','TEACHER').
      * El botón de rotación dentro de la página queda gateado por canRotate
      * (solo TENANT_ADMIN), reflejando el RBAC del POST /attendance-qr/rotate. */
+    canDeactivate: [pendingChangesGuard],
     path: ':id/qr',
     canActivate: [roleGuard],
     data: {

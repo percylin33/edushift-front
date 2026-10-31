@@ -1,0 +1,359 @@
+<section
+  aria-labelledby="application-detail-title"
+  [attr.aria-busy]="loadingSignal()"
+  class="scroll-mt-4 space-y-5 rounded-2xl border border-indigo-200 bg-white p-4 shadow-sm dark:border-indigo-900 dark:bg-slate-900 sm:p-6"
+>
+  <header class="flex items-start justify-between gap-3">
+    <div>
+      <h2
+        id="application-detail-title"
+        tabindex="-1"
+        class="text-xl font-bold text-slate-900 dark:text-white"
+      >
+        Expediente de admisión
+      </h2>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        Consulta los datos antes de tomar una decisión.
+      </p>
+    </div>
+    <button
+      type="button"
+      (click)="closed.emit()"
+      class="rounded-xl border px-3 py-2 text-sm dark:border-slate-700 dark:text-slate-200"
+    >
+      Cerrar expediente
+    </button>
+  </header>
+  @if (loadingSignal()) {
+    <p role="status" class="text-sm text-slate-500">Cargando expediente…</p>
+  } @else if (errorSignal()) {
+    <div
+      role="alert"
+      class="rounded-xl bg-rose-50 p-4 text-sm text-rose-800 dark:bg-rose-950 dark:text-rose-200"
+    >
+      {{ errorSignal()
+      }}<button
+        type="button"
+        (click)="retrySignal.update(increment)"
+        class="ml-3 font-semibold underline"
+      >
+        Reintentar
+      </button>
+    </div>
+  } @else {
+    @if (detailSignal(); as detail) {
+      <div class="grid gap-3 rounded-xl bg-slate-50 p-4 text-sm dark:bg-slate-950 sm:grid-cols-4">
+        <div>
+          <span class="block text-slate-500">Estado</span
+          ><strong class="text-slate-900 dark:text-white">{{
+            statusLabel(detail.application.status)
+          }}</strong>
+        </div>
+        <div>
+          <span class="block text-slate-500">Año académico</span
+          ><span class="dark:text-slate-200">{{ detail.application.academicYearName }}</span>
+        </div>
+        <div>
+          <span class="block text-slate-500">Grado solicitado</span
+          ><span class="dark:text-slate-200">{{ detail.application.gradeName }}</span>
+        </div>
+        <div>
+          <span class="block text-slate-500">Canal de ingreso</span
+          ><span class="dark:text-slate-200">{{ sourceLabel(detail.application.source) }}</span>
+        </div>
+      </div>
+      <aside
+        class="rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm dark:border-indigo-900 dark:bg-indigo-950/40"
+        aria-label="Siguiente paso"
+      >
+        <h3 class="font-semibold">{{ nextStep(detail.application.status) }}</h3>
+        @if (
+          detail.application.status === 'UNDER_REVIEW' || detail.application.status === 'WAITLISTED'
+        ) {
+          @if (vacancy(); as capacity) {
+            <p class="mt-1">
+              {{
+                capacity.capacityConfigured
+                  ? capacity.availableSeats + ' vacantes disponibles para este grado.'
+                  : 'Falta configurar el aforo antes de admitir.'
+              }}
+            </p>
+            <a
+              routerLink="/admissions/vacancies"
+              [queryParams]="{ yearId: detail.application.academicYearPublicUuid }"
+              class="mt-2 inline-flex font-semibold underline"
+              >Revisar capacidad</a
+            >
+          }
+        }
+        @if (
+          !canDecide() &&
+          ['RECEIVED', 'UNDER_REVIEW', 'WAITLISTED'].includes(detail.application.status)
+        ) {
+          <p class="mt-1">Un usuario con permiso de decisión debe continuar la revisión.</p>
+        }
+        @if (!canEnroll() && detail.application.status === 'ADMITTED') {
+          <p class="mt-1">Un usuario con permiso de matrícula debe completar este paso.</p>
+        }
+      </aside>
+      <section aria-labelledby="detail-student-title">
+        <h3 id="detail-student-title" class="mb-3 font-semibold text-slate-900 dark:text-white">
+          Datos del estudiante
+        </h3>
+        <dl class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <dt class="text-slate-500">Nombre completo</dt>
+            <dd class="break-words text-slate-900 dark:text-slate-100">
+              {{ detail.student.fullName || 'Sin datos registrados' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-slate-500">Documento</dt>
+            <dd class="text-slate-900 dark:text-slate-100">
+              {{ detail.student.documentType || '' }}
+              {{ detail.student.documentNumber || 'No registrado' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-slate-500">Nacimiento</dt>
+            <dd class="text-slate-900 dark:text-slate-100">
+              {{ (detail.student.birthDate | date: 'dd/MM/yyyy') || 'No registrado' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-slate-500">Sexo</dt>
+            <dd class="text-slate-900 dark:text-slate-100">
+              {{ genderLabel(detail.student.gender) }}
+            </dd>
+          </div>
+        </dl>
+      </section>
+      <section aria-labelledby="detail-guardian-title">
+        <h3 id="detail-guardian-title" class="mb-3 font-semibold text-slate-900 dark:text-white">
+          Apoderado y contacto
+        </h3>
+        @for (guardian of detail.guardians; track $index) {
+          <dl
+            class="mb-3 grid gap-3 rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-700 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            <div>
+              <dt class="text-slate-500">Nombre completo</dt>
+              <dd class="break-words dark:text-slate-100">
+                {{ guardian.fullName || 'No registrado' }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-slate-500">Documento</dt>
+              <dd class="dark:text-slate-100">
+                {{ guardian.documentType || '' }}
+                {{ guardian.documentNumber || 'No registrado' }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-slate-500">Parentesco</dt>
+              <dd class="dark:text-slate-100">
+                {{ relationshipLabel(guardian.relationship) }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-slate-500">Teléfono</dt>
+              <dd class="break-words dark:text-slate-100">
+                {{ guardian.phone || 'No registrado' }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-slate-500">Correo</dt>
+              <dd class="break-words dark:text-slate-100">
+                {{ guardian.email || 'No registrado (opcional)' }}
+              </dd>
+            </div>
+          </dl>
+        } @empty {
+          <p class="text-sm text-slate-500">
+            Esta solicitud no tiene datos de apoderado registrados.
+          </p>
+        }
+      </section>
+      <section aria-labelledby="detail-inquiry-title">
+        <h3 id="detail-inquiry-title" class="mb-3 font-semibold text-slate-900 dark:text-white">
+          Consulta de origen y atención
+        </h3>
+        @if (detail.inquiry; as inquiry) {
+          <p class="break-words text-sm text-slate-700 dark:text-slate-200">
+            {{ inquiry.contactName }} · {{ inquiry.contactValue }} · {{ inquiry.gradeName }} · Año
+            {{ inquiry.academicYearName }}
+          </p>
+          <p class="mt-1 text-xs text-slate-500">
+            Recibida: {{ inquiry.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+          </p>
+          <ol class="mt-3 space-y-2">
+            @for (event of inquiry.history; track $index) {
+              <li class="rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-950">
+                <time class="text-xs text-slate-500"
+                  >{{ event.createdAt | date: 'dd/MM/yyyy HH:mm' }} ·
+                  {{ event.actorType === 'SYSTEM' ? 'Sistema' : 'Personal de Admisiones' }}</time
+                >
+                <p class="whitespace-pre-wrap break-words text-slate-700 dark:text-slate-200">
+                  {{ event.note || 'Actualización del seguimiento' }}
+                </p>
+              </li>
+            } @empty {
+              <li class="text-sm text-slate-500">
+                {{ inquiry.note || 'Sin notas de atención registradas.' }}
+              </li>
+            }
+          </ol>
+        } @else {
+          <p class="text-sm text-slate-500">
+            Sin consulta pública vinculada. La solicitud fue registrada directamente.
+          </p>
+        }
+      </section>
+      <section aria-labelledby="detail-history-title">
+        <h3 id="detail-history-title" class="mb-3 font-semibold text-slate-900 dark:text-white">
+          Historial de la solicitud
+        </h3>
+        <p class="mb-3 text-xs text-slate-500">
+          Registrada: {{ detail.application.submittedAt | date: 'dd/MM/yyyy HH:mm' }}
+        </p>
+        <ol class="space-y-2">
+          @for (event of detail.history; track $index) {
+            <li class="border-l-2 border-indigo-200 pl-3 text-sm dark:border-indigo-800">
+              <strong class="text-slate-800 dark:text-slate-100">{{
+                statusLabel(event.toStatus)
+              }}</strong
+              ><time class="ml-2 text-xs text-slate-500">{{
+                event.createdAt | date: 'dd/MM/yyyy HH:mm'
+              }}</time>
+              @if (event.note) {
+                <p class="whitespace-pre-wrap break-words text-slate-600 dark:text-slate-300">
+                  {{ event.note }}
+                </p>
+              }
+            </li>
+          } @empty {
+            <li class="text-sm text-slate-500">Sin eventos registrados.</li>
+          }
+        </ol>
+        @if (detail.application.lastStatusNote) {
+          <p
+            class="mt-3 whitespace-pre-wrap break-words text-sm text-slate-600 dark:text-slate-300"
+          >
+            Última observación: {{ detail.application.lastStatusNote }}
+          </p>
+        }
+      </section>
+      @if (detail.application.enrollmentPublicUuid) {
+        <p
+          class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+        >
+          Matrícula registrada correctamente.
+        </p>
+      }
+      <footer class="flex flex-wrap gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
+        @if (
+          canManage() &&
+          detail.editableApplicant &&
+          ['RECEIVED', 'UNDER_REVIEW', 'WAITLISTED'].includes(detail.application.status)
+        ) {
+          <a
+            routerLink="/admissions/new"
+            [queryParams]="{
+              edit: detail.application.publicUuid,
+              yearId: detail.application.academicYearPublicUuid,
+            }"
+            class="rounded-xl border px-4 py-2 text-sm dark:border-slate-700 dark:text-slate-200"
+            >Corregir datos</a
+          >
+        }
+        @if (canDecide() && detail.application.status === 'RECEIVED') {
+          <button
+            type="button"
+            (click)="choose('UNDER_REVIEW')"
+            [disabled]="busy()"
+            class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            Iniciar revisión
+          </button>
+        }
+        @if (
+          canDecide() &&
+          (detail.application.status === 'UNDER_REVIEW' ||
+            detail.application.status === 'WAITLISTED')
+        ) {
+          <button
+            type="button"
+            (click)="choose('ADMITTED')"
+            [disabled]="
+              busy() ||
+              (vacancy() !== null &&
+                (!vacancy()?.capacityConfigured || vacancy()?.availableSeats === 0))
+            "
+            class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            Admitir
+          </button>
+          @if (detail.application.status !== 'WAITLISTED') {
+            <button
+              type="button"
+              (click)="choose('WAITLISTED')"
+              [disabled]="busy()"
+              class="rounded-xl border px-4 py-2 text-sm disabled:opacity-50 dark:border-slate-700 dark:text-slate-200"
+            >
+              Enviar a espera
+            </button>
+          }
+          <button
+            type="button"
+            (click)="choose('REJECTED')"
+            [disabled]="busy()"
+            class="rounded-xl border border-rose-200 px-4 py-2 text-sm text-rose-700 disabled:opacity-50 dark:border-rose-800 dark:text-rose-300"
+          >
+            Rechazar
+          </button>
+        }
+        @if (
+          canDecide() &&
+          ['RECEIVED', 'UNDER_REVIEW', 'WAITLISTED', 'ADMITTED'].includes(detail.application.status)
+        ) {
+          <button
+            type="button"
+            (click)="choose('WITHDRAWN')"
+            [disabled]="busy()"
+            class="rounded-xl border px-4 py-2 text-sm disabled:opacity-50 dark:border-slate-700 dark:text-slate-200"
+          >
+            Retirar solicitud
+          </button>
+        }
+        @if (
+          canEnroll() &&
+          detail.application.status === 'ADMITTED' &&
+          detail.application.studentPublicUuid
+        ) {
+          <button
+            type="button"
+            (click)="linkEnrollment.emit(detail.application)"
+            [disabled]="busy()"
+            class="rounded-xl border px-4 py-2 text-sm dark:border-slate-700 dark:text-slate-200"
+          >
+            Vincular matrícula existente
+          </button>
+        }
+        @if (
+          canEnroll() &&
+          detail.application.status === 'ADMITTED' &&
+          !detail.application.enrollmentPublicUuid
+        ) {
+          <button
+            type="button"
+            (click)="enroll.emit(detail.application)"
+            [disabled]="busy()"
+            class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            Completar matrícula
+          </button>
+        }
+      </footer>
+    }
+  }
+</section>

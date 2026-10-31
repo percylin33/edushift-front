@@ -23,6 +23,8 @@ export interface CourseListItemRaw {
   credits: number | null;
   hoursPerWeek: number | null;
   isActive: boolean;
+  color: string | null;
+  icon: string | null;
   levels: CourseLevelRefRaw[];
 }
 
@@ -35,6 +37,8 @@ export interface CourseResponseRaw {
   credits: number | null;
   hoursPerWeek: number | null;
   isActive: boolean;
+  color: string | null;
+  icon: string | null;
   levels: CourseLevelRefRaw[];
   createdAt: string | null;
   updatedAt: string | null;
@@ -60,6 +64,8 @@ export interface CourseRow {
   credits?: number;
   hoursPerWeek?: number;
   isActive: boolean;
+  color?: string;
+  icon?: string;
   levels: CourseLevelRef[];
 }
 
@@ -97,6 +103,10 @@ export interface CreateCourseRequest {
   credits?: number;
   hoursPerWeek?: number;
   isActive?: boolean;
+  /** Optional hex {@code #RRGGBB}; BE applies code-based default when omitted. */
+  color?: string;
+  /** Optional icon registry key; BE applies code-based default when omitted. */
+  icon?: string;
   levelPublicUuids: string[];
 }
 
@@ -115,6 +125,8 @@ export interface UpdateCourseRequest {
   credits?: number;
   hoursPerWeek?: number;
   isActive?: boolean;
+  color?: string;
+  icon?: string;
 }
 
 /**

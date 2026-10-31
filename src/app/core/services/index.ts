@@ -8,3 +8,4 @@ export * from './tenant.service';
 export * from './api.service';
 export * from './breakpoint.service';
 export * from './file-upload.service';
+export * from './pwa-install.service';

@@ -1,5 +1,7 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { permissionGuard } from '@core/guards';
+import { Permission } from '@core/enums';
 import { PaymentsRoleRedirectComponent } from './pages/payments-role-redirect/payments-role-redirect.component';
 
 /**
@@ -18,24 +20,27 @@ import { PaymentsRoleRedirectComponent } from './pages/payments-role-redirect/pa
  * ("Mis cuotas") is wrong for the admin. The new resolver picks the
  * right entry-point per role:</p>
  * <ul>
- *   <li>TENANT_ADMIN / STAFF → {@code /payments/admin/payments}
- *       (admin listing, gated by {@code LMS_PAYMENT_ADMIN}).</li>
+ *   <li>TENANT_ADMIN / payment staff → {@code /payments/admin/invoices}
+ *       (admin invoice listing, gated by granular payment permissions).</li>
  *   <li>STUDENT / PARENT    → {@code /payments/invoices}
  *       (guardian listing).</li>
  * </ul>
  */
 export const PAYMENTS_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     pathMatch: 'full',
     component: PaymentsRoleRedirectComponent,
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'invoices',
     loadComponent: () =>
       import('./pages/invoices-page/invoices-page.component').then((m) => m.InvoicesPageComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'invoices/:publicUuid',
     loadComponent: () =>
       import('./pages/invoice-detail-page/invoice-detail-page.component').then(
@@ -43,41 +48,115 @@ export const PAYMENTS_ROUTES: Routes = [
       ),
   },
   // -------------------------------------------------------------------------
-  // Admin surface (Sprint 11 / FE-11.1). Gated by `LMS_PAYMENT_ADMIN`,
-  // matching the backend's `@PreAuthorize` on `AdminPaymentController`.
-  // `permissionGuard` uses the JWT's `permissions` array populated by
-  // `LmsRoleAuthorityMapper` (BE-7a.3) → (BE-11.7). Note: the authority
-  // string is passed as a literal (matching the backend), not the
-  // `Permission` enum, because `LMS_*` authorities are emitted as
-  // verbatim strings by the backend — see `permission.enum.ts` for
-  // the rationale.
+  // Finance staff can reach operational payment pages through granular
+  // authorities; subscription and policy configuration stays administrative.
+  // `permissionGuard` uses the JWT's `permissions` array. The values in
+  // `Permission` match the authorities emitted by the backend.
   // -------------------------------------------------------------------------
   {
     path: 'admin',
     canMatch: [permissionGuard],
-    data: { permissions: 'LMS_PAYMENT_ADMIN' },
+    data: {
+      refreshPermissions: true,
+      permissions: [
+        Permission.LmsPaymentAdmin,
+        Permission.PaymentsReadGranular,
+        Permission.PaymentsReceive,
+        Permission.PaymentsReconcile,
+        Permission.PaymentsRefund,
+        Permission.PaymentsIssue,
+        Permission.PaymentConceptsManage,
+      ],
+    },
     children: [
       {
         path: '',
         pathMatch: 'full',
+        redirectTo: 'invoices',
+      },
+      {
+        canDeactivate: [pendingChangesGuard],
+    path: 'payments',
+        canMatch: [permissionGuard],
+        data: {
+          permissions: [Permission.LmsPaymentAdmin, Permission.PaymentsReadGranular],
+        },
         loadComponent: () =>
           import('./pages/admin-payments-page/admin-payments-page.component').then(
             (m) => m.AdminPaymentsPageComponent,
           ),
       },
       {
-        path: 'payments',
+        canDeactivate: [pendingChangesGuard],
+    path: 'invoices',
+        canMatch: [permissionGuard],
+        data: {
+          collectionsTab: 'payments',
+          permissions: [
+            Permission.LmsPaymentAdmin,
+            Permission.PaymentsReadGranular,
+            Permission.PaymentsReconcile,
+          ],
+        },
         loadComponent: () =>
-          import('./pages/admin-payments-page/admin-payments-page.component').then(
-            (m) => m.AdminPaymentsPageComponent,
+          import('./pages/admin-collections-page/admin-collections-page.component').then(
+            (m) => m.AdminCollectionsPageComponent,
           ),
       },
       {
         // Sprint cierre-C / F14 — payment concepts catalog.
-        path: 'concepts',
+        canDeactivate: [pendingChangesGuard],
+    path: 'concepts',
+        canMatch: [permissionGuard],
+        data: { permissions: [Permission.PaymentConceptsManage, Permission.LmsPaymentAdmin] },
         loadComponent: () =>
           import('./pages/payment-concepts-page/payment-concepts-page.component').then(
             (m) => m.PaymentConceptsPageComponent,
+          ),
+      },
+      {
+        canDeactivate: [pendingChangesGuard],
+    path: 'emit',
+        canMatch: [permissionGuard],
+        data: {
+          collectionsTab: 'generate',
+          permissions: [Permission.PaymentsIssue, Permission.LmsPaymentAdmin],
+        },
+        loadComponent: () =>
+          import('./pages/admin-collections-page/admin-collections-page.component').then(
+            (m) => m.AdminCollectionsPageComponent,
+          ),
+      },
+      {
+        canDeactivate: [pendingChangesGuard],
+    path: 'plans',
+        canMatch: [permissionGuard],
+        data: { permissions: Permission.LmsPaymentAdmin },
+        loadComponent: () =>
+          import('./pages/admin-plans-page/admin-plans-page.component').then(
+            (m) => m.AdminPlansPageComponent,
+          ),
+      },
+      {
+        canDeactivate: [pendingChangesGuard],
+    path: 'policy',
+        canMatch: [permissionGuard],
+        data: { permissions: Permission.LmsPaymentAdmin },
+        loadComponent: () =>
+          import('./pages/admin-payment-policy-page/admin-payment-policy-page.component').then(
+            (m) => m.AdminPaymentPolicyPageComponent,
+          ),
+      },
+      {
+        // Tenant payment methods (bank transfer / Yape / Plin) — the data
+        // guardians read to pay an invoice.
+        canDeactivate: [pendingChangesGuard],
+    path: 'methods',
+        canMatch: [permissionGuard],
+        data: { permissions: Permission.LmsPaymentAdmin },
+        loadComponent: () =>
+          import('./pages/admin-payment-methods-page/admin-payment-methods-page.component').then(
+            (m) => m.AdminPaymentMethodsPageComponent,
           ),
       },
     ],

@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { QuizListPageComponent } from './quiz-list.page';
 import { QuizzesStore } from '../../store/quizzes.store';
 import { QuizStatus, ALL_QUIZ_STATUSES } from '../../models/quiz.model';
@@ -24,7 +24,19 @@ describe('QuizListPageComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [QuizListPageComponent],
-      providers: [provideRouter([]), { provide: QuizzesStore, useValue: mockStore }],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: { get: (key: string) => (key === 'sectionUuid' ? 's-1' : null) },
+              queryParamMap: { get: () => null },
+            },
+          },
+        },
+        { provide: QuizzesStore, useValue: mockStore },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(QuizListPageComponent);
@@ -47,22 +59,29 @@ describe('QuizListPageComponent', () => {
   });
 
   it('emptyTitle retorna string', () => {
-    expect(component.emptyTitle()).toBe('Aún no hay quizzes');
+    expect(component.emptyTitle()).toBe('Aún no hay prácticas');
   });
 
   it('emptyDescription sin filtro', () => {
-    expect(component.emptyDescription()).toContain('primer quiz');
+    expect(component.emptyDescription()).toContain('primera práctica');
   });
 
   it('onStatusChange actualiza filtro', () => {
     component.onStatusChange(QuizStatus.Published);
-    expect(mockStore.setStatusFilter).toHaveBeenCalledWith(QuizStatus.Published);
+    expect(component.statusFilter()).toBe(QuizStatus.Published);
+    expect(mockStore.loadBySection).toHaveBeenCalledWith('s-1', {
+      status: QuizStatus.Published,
+      assignmentPublicUuid: undefined,
+    });
   });
 
   it('reload llama clearError y loadBySection', () => {
-    component['#sectionUuid'] = 's-1';
     component.reload();
     expect(mockStore.clearError).toHaveBeenCalled();
+    expect(mockStore.loadBySection).toHaveBeenCalledWith('s-1', {
+      status: undefined,
+      assignmentPublicUuid: undefined,
+    });
   });
 
   it('onPublish llama store.publishQuiz', async () => {

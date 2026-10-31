@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, map, of, shareReplay, tap } from 'rxjs';
+import { Observable, map, shareReplay } from 'rxjs';
 
 import {
   RoleKey,
@@ -128,7 +128,7 @@ export class WalkthroughService {
         /Acción UI|Qué haces|Acción/i.test(line) &&
         /^\|[\s-:|]+\|$/.test(lines[i + 1] ?? '')
       ) {
-        const { steps, bodyAfter } = this.parseStepsTable(lines, i, current.capabilityId);
+        const { steps, bodyAfter } = this.parseStepsTable(lines, i);
         current.steps = steps;
         current.body = current.body.trim();
         i = bodyAfter - 1;
@@ -145,7 +145,6 @@ export class WalkthroughService {
   private parseStepsTable(
     lines: string[],
     headerIdx: number,
-    capabilityId: string | null,
   ): { steps: WalkthroughStep[]; bodyAfter: number } {
     const steps: WalkthroughStep[] = [];
     let idx = headerIdx + 2; // skip header + separator

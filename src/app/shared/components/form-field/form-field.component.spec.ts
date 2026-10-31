@@ -7,6 +7,11 @@ describe('FormFieldComponent', () => {
   let component: FormFieldComponent;
   let control: FormControl<string>;
 
+  function render(): void {
+    fixture.changeDetectorRef.markForCheck();
+    fixture.detectChanges();
+  }
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [FormFieldComponent],
@@ -19,7 +24,7 @@ describe('FormFieldComponent', () => {
     component = fixture.componentInstance as any;
     component.fieldId = 'email';
     component.control = control;
-    fixture.detectChanges();
+    render();
   });
 
   it('se crea correctamente', () => {
@@ -27,8 +32,8 @@ describe('FormFieldComponent', () => {
   });
 
   it('renderiza el label', () => {
-    component.label = 'Correo';
-    fixture.detectChanges();
+    fixture.componentRef.setInput('label', 'Correo');
+    render();
     const label = fixture.nativeElement.querySelector('label');
     expect(label.textContent).toContain('Correo');
     expect(label.getAttribute('for')).toBe('email');
@@ -41,14 +46,14 @@ describe('FormFieldComponent', () => {
 
   it('pasa formControl al input', () => {
     control.setValue('hola@test.com');
-    fixture.detectChanges();
+    render();
     const input = fixture.nativeElement.querySelector('input');
     expect(input.value).toBe('hola@test.com');
   });
 
   it('muestra error cuando error tiene valor', () => {
-    component.error = 'Campo obligatorio';
-    fixture.detectChanges();
+    fixture.componentRef.setInput('error', 'Campo obligatorio');
+    render();
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Campo obligatorio');
     expect(text).toContain('Campo obligatorio');
@@ -59,8 +64,8 @@ describe('FormFieldComponent', () => {
   });
 
   it('muestra hint cuando no hay error', () => {
-    component.hint = 'Te enviaremos un correo';
-    fixture.detectChanges();
+    fixture.componentRef.setInput('hint', 'Te enviaremos un correo');
+    render();
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Te enviaremos un correo');
     const hintP = fixture.nativeElement.querySelector('[id="email-hint"]');
@@ -68,9 +73,9 @@ describe('FormFieldComponent', () => {
   });
 
   it('error toma precedencia sobre hint', () => {
-    component.error = 'Requerido';
-    component.hint = 'ayuda';
-    fixture.detectChanges();
+    fixture.componentRef.setInput('error', 'Requerido');
+    fixture.componentRef.setInput('hint', 'ayuda');
+    render();
     const errorP = fixture.nativeElement.querySelector('[id="email-error"]');
     const hintP = fixture.nativeElement.querySelector('[id="email-hint"]');
     expect(errorP).toBeTruthy();
@@ -98,16 +103,19 @@ describe('FormFieldComponent', () => {
   });
 
   it('renderiza el icon cuando se provee', () => {
-    component.icon = 'mail';
-    fixture.detectChanges();
+    fixture.componentRef.setInput('icon', 'mail');
+    render();
     const icons = fixture.nativeElement.querySelectorAll('app-icon');
     expect(icons.length).toBe(1);
   });
 
   it('theme=dark no rompe el render', () => {
-    component.theme = 'dark';
-    fixture.detectChanges();
+    fixture.componentRef.setInput('theme', 'dark');
+    fixture.componentRef.setInput('label', 'Correo');
+    render();
     const input = fixture.nativeElement.querySelector('input');
     expect(input).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('label').classList.contains('text-slate-300')).toBeTrue();
+    expect(input.getAttribute('placeholder')).toBeNull();
   });
 });

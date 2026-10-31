@@ -16,7 +16,7 @@ import { loginSuperAdminSession } from '../fixtures/super-admin-login';
  * {@code EDUSHIFT_DEV_MFA_BYPASS_CODE}).</p>
  */
 
-const API_BASE = process.env['API_URL'] ?? 'http://localhost:8081';
+const API_BASE = process.env['API_URL'] ?? 'http://localhost:8080';
 
 async function loginAsSuperAdmin(): Promise<string> {
   const session = await loginSuperAdminSession();

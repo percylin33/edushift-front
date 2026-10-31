@@ -36,21 +36,21 @@ export class ChatService {
   /** List the caller's active chat sessions, newest first. */
   listSessions(limit = 20): Observable<ChatSession[]> {
     return this.api
-      .get<ApiResponse<ChatSession[]>>(`${API.AI.CHAT}/sessions`, { limit })
+      .get<ApiResponse<ChatSessionResponse[]>>(`${API.AI.CHAT}/sessions`, { limit })
       .pipe(map((e) => (e.data ?? []).map(toChatSession)));
   }
 
   /** Create a new chat session. */
   createSession(): Observable<ChatSession> {
     return this.api
-      .post<ApiResponse<ChatSession>>(`${API.AI.CHAT}/sessions`, {})
+      .post<ApiResponse<ChatSessionResponse>>(`${API.AI.CHAT}/sessions`, {})
       .pipe(map((e) => toChatSession(e.data)));
   }
 
   /** List all visible messages of a session. */
   listMessages(sessionPublicUuid: string): Observable<ChatMessage[]> {
     return this.api
-      .get<ApiResponse<ChatMessage[]>>(`${API.AI.CHAT}/sessions/${sessionPublicUuid}/messages`)
+      .get<ApiResponse<ChatMessageResponse[]>>(`${API.AI.CHAT}/sessions/${sessionPublicUuid}/messages`)
       .pipe(map((e) => (e.data ?? []).map(toChatMessage)));
   }
 
@@ -75,8 +75,8 @@ export class ChatService {
    * </ul>
    *
    * <p>Implementation note: SSE streaming uses {@link SseClientService},
-   * which attaches the JWT via {@code fetch} (Angular interceptors do
-   * not apply to the streaming API).
+   * which sends the auth cookies via {@code fetch} (Angular interceptors
+   * do not apply to the streaming API).
    */
   sendMessage(
     sessionPublicUuid: string,
@@ -150,10 +150,29 @@ export type ChatChunk =
   | { kind: 'cancelled' }
   | { kind: 'error'; message: string };
 
-function toChatSession(s: any): ChatSession {
+interface ChatSessionResponse {
+  id?: string | null;
+  publicUuid?: string | null;
+  title?: string | null;
+  status?: ChatSession['status'] | null;
+  messageCount?: number | null;
+  updatedAt?: string | null;
+  lastMessageAt?: string | null;
+}
+
+interface ChatMessageResponse {
+  id?: string | null;
+  publicUuid?: string | null;
+  role?: ChatMessage['role'] | null;
+  content?: string | null;
+  status?: ChatMessage['status'] | null;
+  createdAt?: string | null;
+}
+
+function toChatSession(s: ChatSessionResponse): ChatSession {
   return {
-    id: s.id ?? s.publicUuid,
-    publicUuid: s.publicUuid ?? s.id,
+    id: s.id ?? s.publicUuid ?? '',
+    publicUuid: s.publicUuid ?? s.id ?? '',
     title: s.title ?? 'Nueva conversacion',
     status: s.status ?? 'ACTIVE',
     messageCount: s.messageCount ?? 0,
@@ -161,10 +180,10 @@ function toChatSession(s: any): ChatSession {
   };
 }
 
-function toChatMessage(m: any): ChatMessage {
+function toChatMessage(m: ChatMessageResponse): ChatMessage {
   return {
-    id: m.id ?? m.publicUuid,
-    publicUuid: m.publicUuid ?? m.id,
+    id: m.id ?? m.publicUuid ?? '',
+    publicUuid: m.publicUuid ?? m.id ?? '',
     role: m.role ?? 'ASSISTANT',
     content: m.content ?? '',
     status: m.status ?? 'COMPLETED',

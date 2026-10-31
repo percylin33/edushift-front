@@ -1,35 +1,20 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
 import { environment } from '@env/environment';
-import { AuthService } from '@core/services';
 
 /**
- * Attach `Authorization: Bearer <token>` to outbound requests to our API.
+ * Tokens live in httpOnly cookies. Cross-origin calls (SPA on :4201, API on
+ * :8080) only attach those cookies when the request sets
+ * {@code withCredentials}. Fetch's default is {@code same-origin}, so a raw
+ * {@code HttpClient} call omits the access cookie, the API answers 401, and
+ * the refresh retry — which clones that same request — stays anonymous and
+ * the session is cleared.
  *
- * <h3>Token precedence</h3>
- * <ol>
- *   <li><b>accessToken</b> (normal authenticated session) — preferred.</li>
- *   <li><b>mfaToken</b> (Sprint 17 / BE-17.2) — used during the MFA
- *       challenge window when no full session is established yet.
- *       The BE recognizes this short-lived token and uses it to
- *       validate the {@code /auth/mfa/challenge} call without ever
- *       minting a full session.</li>
- * </ol>
- *
- * <p>The mfaToken takes over only when there is no accessToken
- * (otherwise the user is fully signed in and any subsequent
- * MFA-related call is on behalf of the existing session, not the
- * challenge flow).
+ * Downstream interceptors, including the silent-refresh retry, see this
+ * cloned request and keep the flag.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const auth = inject(AuthService);
-  const token = auth.accessToken() ?? auth.mfaToken();
-  if (!token) return next(req);
-  if (!req.url.startsWith(environment.apiUrl)) return next(req);
-
-  const headerName = environment.auth.tokenHeaderName;
-  const scheme = environment.auth.tokenScheme;
-  const value = scheme ? `${scheme} ${token}` : token;
-
-  return next(req.clone({ setHeaders: { [headerName]: value } }));
+  if (!req.url.startsWith(environment.apiUrl) || req.withCredentials) {
+    return next(req);
+  }
+  return next(req.clone({ withCredentials: true }));
 };

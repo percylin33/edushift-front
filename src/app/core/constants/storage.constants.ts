@@ -1,8 +1,6 @@
-import { environment } from '@env/environment';
 
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: environment.auth.tokenStorageKey,
-  REFRESH_TOKEN: environment.auth.refreshTokenStorageKey,
+  // SECURITY FIX: Tokens are now in httpOnly cookies, not localStorage
   /* Absolute ISO date string at which the access token expires. Computed
    * client-side from the backend's `expiresInSec` and persisted so a tab
    * refresh can decide whether to silent-refresh before any HTTP call. */

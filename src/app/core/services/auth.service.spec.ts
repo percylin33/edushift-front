@@ -52,27 +52,31 @@ describe('AuthService', () => {
   it('inicia desautenticado', () => {
     expect(service.isAuthenticated()).toBeFalse();
     expect(service.user()).toBeNull();
-    expect(service.accessToken()).toBeNull();
-    expect(service.refreshToken()).toBeNull();
     expect(service.expiresAt()).toBeNull();
     expect(service.roles()).toEqual([]);
     expect(service.permissions()).toEqual([]);
   });
 
-  it('setSession persiste todo en signals + storage', () => {
+  it('sigue autenticado cuando el access token ya venció (el refresh cookie puede rotarlo)', () => {
+    service.setSession({
+      ...mockSession,
+      expiresAt: new Date(0),
+    });
+    expect(service.isAuthenticated()).toBeTrue();
+  });
+
+  it('setSession persiste user + expiresAt en signals + storage', () => {
     service.setSession(mockSession);
 
     expect(service.isAuthenticated()).toBeTrue();
-    expect(service.accessToken()).toBe('access-123');
-    expect(service.refreshToken()).toBe('refresh-456');
     expect(service.user()?.email).toBe('test@test.com');
+    expect(service.expiresAt()).toEqual(mockSession.expiresAt);
 
     expect(storage.set).toHaveBeenCalledWith(STORAGE_KEYS.CURRENT_USER, mockUser);
-    expect(storage.set).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN, 'access-123');
-    expect(storage.set).toHaveBeenCalledWith(STORAGE_KEYS.REFRESH_TOKEN, 'refresh-456');
+    expect(storage.set).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_EXPIRES_AT, mockSession.expiresAt.toISOString());
   });
 
-  it('rotateTokens solo rota tokens, no toca el user', () => {
+  it('rotateTokens solo rota expiresAt, no toca el user', () => {
     service.setSession(mockSession);
     storage.set.calls.reset();
 
@@ -84,8 +88,7 @@ describe('AuthService', () => {
     };
     service.rotateTokens(newSession);
 
-    expect(service.accessToken()).toBe('access-new');
-    expect(service.refreshToken()).toBe('refresh-new');
+    expect(service.expiresAt()).toEqual(newSession.expiresAt);
     expect(service.user()?.email).toBe('test@test.com');
   });
 
@@ -104,37 +107,33 @@ describe('AuthService', () => {
     service.clearSession();
 
     expect(service.user()).toBeNull();
-    expect(service.accessToken()).toBeNull();
-    expect(service.refreshToken()).toBeNull();
     expect(service.expiresAt()).toBeNull();
     expect(service.isAuthenticated()).toBeFalse();
 
     expect(storage.remove).toHaveBeenCalledWith(STORAGE_KEYS.CURRENT_USER);
-    expect(storage.remove).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN);
-    expect(storage.remove).toHaveBeenCalledWith(STORAGE_KEYS.REFRESH_TOKEN);
     expect(storage.remove).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_EXPIRES_AT);
   });
 
-  it('clearSession también limpia tenant (signals + storage)', () => {
+  it('clearSession conserva el colegio activo para volver a iniciar sesión', () => {
     tenantService.setSlug('tecnosur');
     expect(tenantService.tenantSlug()).toBe('tecnosur');
     service.setSession(mockSession);
 
     service.clearSession();
 
-    expect(tenantService.tenantSlug()).toBeNull();
-    expect(tenantService.tenant()).toBeNull();
-    expect(storage.remove).toHaveBeenCalledWith(STORAGE_KEYS.CURRENT_TENANT);
+    expect(tenantService.tenantSlug()).toBe('tecnosur');
+    expect(tenantService.tenant()).not.toBeNull();
+    expect(storage.remove).not.toHaveBeenCalledWith(STORAGE_KEYS.CURRENT_TENANT);
   });
 
-  it('clearSession deja el tenant context en resolvedFrom unknown', () => {
+  it('clearSession conserva la fuente del tenant activo', () => {
     tenantService.setSlug('tecnosur');
     service.setSession(mockSession);
 
     service.clearSession();
 
-    expect(tenantService.context().resolvedFrom).toBe('unknown');
-    expect(tenantService.context().tenant).toBeNull();
+    expect(tenantService.context().resolvedFrom).toBe('header');
+    expect(tenantService.context().tenant?.slug).toBe('tecnosur');
   });
 
   it('clearSession no rompe el flujo de auth (no-regresión)', () => {
@@ -144,8 +143,6 @@ describe('AuthService', () => {
     service.clearSession();
 
     expect(service.user()).toBeNull();
-    expect(service.accessToken()).toBeNull();
-    expect(service.refreshToken()).toBeNull();
     expect(service.isAuthenticated()).toBeFalse();
   });
 

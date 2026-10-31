@@ -12,6 +12,7 @@ export interface UserListItemRaw {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  secondLastName?: string | null;
   fullName: string;
   status: UserStatus;
   roles: string[];
@@ -29,12 +30,14 @@ export interface UserDetailResponseRaw {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  secondLastName?: string | null;
   fullName: string;
   phone: string | null;
   avatarUrl: string | null;
   status: UserStatus;
   emailVerified: boolean;
   mfaEnabled: boolean;
+  emailSource?: 'REAL' | 'SYNTHETIC' | null;
   roles: string[];
   lastLoginAt: string | null;
   createdAt: string | null;
@@ -52,6 +55,7 @@ export interface UserRow {
   email: string;
   firstName?: string;
   lastName?: string;
+  secondLastName?: string;
   fullName: string;
   status: UserStatus;
   roles: UserRole[];
@@ -68,7 +72,25 @@ export interface UserDetail extends UserRow {
   avatarUrl?: string;
   emailVerified: boolean;
   mfaEnabled: boolean;
+  /** REAL = mailbox usable; SYNTHETIC = provisioned login-only address. */
+  emailSource?: 'REAL' | 'SYNTHETIC';
   updatedAt?: Date;
+}
+
+/**
+ * Admin reset delivery mode for {@code POST /users/{uuid}/reset-password}.
+ */
+export type AdminPasswordResetDelivery = 'EMAIL' | 'TEMPORARY';
+
+export interface AdminResetPasswordRequest {
+  delivery: AdminPasswordResetDelivery;
+}
+
+export interface AdminResetPasswordResponse {
+  delivery: AdminPasswordResetDelivery;
+  email: string;
+  temporaryPassword: string | null;
+  mustChangePassword: boolean;
 }
 
 /**
@@ -103,6 +125,7 @@ export interface UserListPagination {
 export interface UpdateUserRequest {
   firstName?: string;
   lastName?: string;
+  secondLastName?: string;
   phone?: string;
   avatarUrl?: string;
 }
@@ -116,4 +139,46 @@ export interface UpdateUserRequest {
  */
 export interface AssignRolesRequest {
   roles: UserRole[];
+}
+
+export type StaffProfileCode =
+  | 'SECRETARIA'
+  | 'ADMISIONES'
+  | 'ASISTENCIA'
+  | 'FINANZAS'
+  | 'COORDINACION'
+  | 'SOPORTE'
+  | 'INFORMACION_ANUAL'
+  | 'LEGACY_OPERATIONS';
+
+export interface StaffProfileOption {
+  code: StaffProfileCode;
+  label: string;
+  description: string;
+  legacy: boolean;
+  authorities: string[];
+}
+
+export interface StaffPermissionOption {
+  authority: string;
+  label: string;
+  category: string;
+  sensitive: boolean;
+}
+
+export interface StaffAccessState {
+  profiles: StaffProfileCode[];
+  /** Contains only explicit per-user grants or denials. */
+  overrides: Record<string, boolean>;
+  /** Tenant and role permissions before this person's profiles and exceptions. */
+  baseAuthorities: string[];
+  effectiveAuthorities: string[];
+  availableProfiles: StaffProfileOption[];
+  permissionCatalog: StaffPermissionOption[];
+}
+
+export interface ReplaceStaffAccessRequest {
+  profiles: StaffProfileCode[];
+  /** Omit an authority to inherit the combined profile result. */
+  overrides: Record<string, boolean>;
 }

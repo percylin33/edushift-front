@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminInvoicesService } from '../../services';
+import { B2BInvoiceDetail } from '../../models';
 
 @Component({
   selector: 'app-admin-invoices',
@@ -49,11 +50,14 @@ import { AdminInvoicesService } from '../../services';
             <div><span class="text-slate-400">Estado:</span> <span class="text-white">{{ inv.status }}</span></div>
             <div><span class="text-slate-400">Vencimiento:</span> <span class="text-white">{{ inv.dueDate }}</span></div>
           </div>
+          @if (inv.payments.length) { <div class="mt-4"><h4 class="text-sm font-medium text-white">Pagos asociados</h4><ul class="mt-2 space-y-1">@for (payment of inv.payments; track payment.publicUuid) { <li class="text-xs text-slate-400">{{ payment.method }} · S/ {{ (payment.amountCents / 100).toFixed(2) }} · {{ payment.reference || 'Sin referencia' }} · {{ payment.status }}</li> }</ul></div> }
           @if (inv.status === 'PENDING' || inv.status === 'OVERDUE') {
-            <div class="mt-4">
-              <button (click)="markAsPaid(inv.publicUuid)" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500">
-                Marcar como pagada
-              </button>
+            <div class="mt-4 grid gap-3 rounded-lg border border-slate-700 p-3 sm:grid-cols-2">
+              <label class="text-xs text-slate-400">Monto recibido (céntimos)<input type="number" min="1" [(ngModel)]="paymentAmountCents" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-white" /></label>
+              <label class="text-xs text-slate-400">Método<select [(ngModel)]="paymentMethod" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-white"><option value="TRANSFER">Transferencia</option><option value="CASH">Efectivo</option><option value="DEBIT">Débito</option><option value="MERCADOPAGO">Mercado Pago</option></select></label>
+              <label class="text-xs text-slate-400">Referencia<input [(ngModel)]="paymentReference" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-white" /></label>
+              <label class="text-xs text-slate-400">Notas<input [(ngModel)]="paymentNotes" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-white" /></label>
+              <button (click)="registerPayment(inv)" [disabled]="paymentAmountCents <= 0" class="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50">Registrar pago</button>
             </div>
           }
         </div>
@@ -95,6 +99,7 @@ import { AdminInvoicesService } from '../../services';
           </tbody>
         </table>
       </div>
+      @if (svc.totalPages() > 1) { <div class="mt-4 flex justify-end gap-2"><button (click)="changePage(page-1)" [disabled]="page===0" class="rounded border border-slate-700 px-3 py-1 disabled:opacity-40">Anterior</button><span class="px-2 py-1 text-sm text-slate-400">{{ page + 1 }} / {{ svc.totalPages() }}</span><button (click)="changePage(page+1)" [disabled]="page+1>=svc.totalPages()" class="rounded border border-slate-700 px-3 py-1 disabled:opacity-40">Siguiente</button></div> }
     </div>
   `,
 })
@@ -102,7 +107,11 @@ export class AdminInvoicesComponent implements OnInit {
   protected readonly svc = inject(AdminInvoicesService);
 
   protected statusFilter = '';
-  protected readonly selectedInvoice = signal<any | null>(null);
+  protected readonly selectedInvoice = signal<B2BInvoiceDetail | null>(null);
+  protected paymentAmountCents = 0;
+  protected paymentMethod = 'TRANSFER';
+  protected paymentReference = '';
+  protected paymentNotes = '';
 
   constructor() {
     // Mirror the service's selected invoice signal into our local one
@@ -111,19 +120,41 @@ export class AdminInvoicesComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.svc.loadInvoices();
+    this.svc.loadInvoices({ page: this.page });
   }
 
+  protected page = 0;
+
   protected applyFilters(): void {
-    this.svc.loadInvoices({ status: this.statusFilter || undefined });
+    this.page = 0;
+    this.svc.loadInvoices({ status: this.statusFilter || undefined, page: this.page });
   }
 
   protected selectInvoice(uuid: string): void {
     this.svc.loadInvoiceDetail(uuid);
+    this.paymentAmountCents = 0;
+    this.paymentReference = '';
+    this.paymentNotes = '';
   }
 
-  protected markAsPaid(uuid: string): void {
-    this.svc.markAsPaid(uuid, { method: 'CASH', reference: 'Pago manual', notes: 'Marcado por admin' });
+  protected registerPayment(invoice: B2BInvoiceDetail): void {
+    if (this.paymentAmountCents <= 0) return;
+    this.svc.registerPayment({
+      invoiceId: invoice.publicUuid,
+      amountCents: this.paymentAmountCents,
+      method: this.paymentMethod,
+      externalRef: this.paymentReference.trim() || undefined,
+      notes: this.paymentNotes.trim() || undefined,
+    }, invoice.publicUuid);
+    this.paymentAmountCents = 0;
+    this.paymentReference = '';
+    this.paymentNotes = '';
+  }
+
+  protected changePage(page: number): void {
+    if (page < 0 || page >= this.svc.totalPages()) return;
+    this.page = page;
+    this.svc.loadInvoices({ status: this.statusFilter || undefined, page });
   }
 
   protected statusClass(status: string): string {

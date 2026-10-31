@@ -1,14 +1,21 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { MySubmissionsCardComponent } from './my-submissions-card.component';
 import { SubmissionStatus } from '../../models';
 
 describe('MySubmissionsCardComponent', () => {
-  let component: any;
+  let component: MySubmissionsCardComponent;
   let fixture: ComponentFixture<MySubmissionsCardComponent>;
+  const testApi = () =>
+    component as unknown as {
+      statusLabel(status: SubmissionStatus): string;
+      formatSize(bytes: number): string;
+    };
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [MySubmissionsCardComponent],
+      providers: [provideHttpClient()],
     }).compileComponents();
     fixture = TestBed.createComponent(MySubmissionsCardComponent);
     component = fixture.componentInstance;
@@ -59,10 +66,10 @@ describe('MySubmissionsCardComponent', () => {
   });
 
   it('statusLabel retorna español', () => {
-    expect(component.statusLabel(SubmissionStatus.Graded)).toBe('Calificada');
+    expect(testApi().statusLabel(SubmissionStatus.Graded)).toBe('Calificada');
   });
 
   it('formatSize formatea bytes', () => {
-    expect(component.formatSize(1024 * 1024)).toBe('1.0 MB');
+    expect(testApi().formatSize(1024 * 1024)).toBe('1.0 MB');
   });
 });

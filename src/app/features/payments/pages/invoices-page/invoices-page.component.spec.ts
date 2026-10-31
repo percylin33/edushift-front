@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { InvoicesPageComponent } from './invoices-page.component';
@@ -26,6 +27,10 @@ describe('InvoicesPageComponent', () => {
     dueAt: '2026-03-15',
     paidAt: null,
     notes: null,
+    evidenceFilePublicUuid: null,
+    evidenceSubmittedAt: null,
+    evidenceNotes: null,
+    evidenceRejectionReason: null,
     items: [
       { id: '1', description: 'X', quantity: 1, unitAmountCents: 10000, lineTotalCents: 10000 },
     ],
@@ -35,7 +40,7 @@ describe('InvoicesPageComponent', () => {
     fakeApi = jasmine.createSpyObj<PaymentsApiService>('PaymentsApiService', ['listMyInvoices']);
     TestBed.configureTestingModule({
       imports: [InvoicesPageComponent],
-      providers: [provideRouter([]), { provide: PaymentsApiService, useValue: fakeApi }],
+      providers: [provideHttpClient(), provideRouter([]), { provide: PaymentsApiService, useValue: fakeApi }],
     });
     fixture = TestBed.createComponent(InvoicesPageComponent);
     component = fixture.componentInstance;
@@ -48,20 +53,20 @@ describe('InvoicesPageComponent', () => {
   it('ngOnInit carga invoices', () => {
     fakeApi.listMyInvoices.and.returnValue(of({ content: [invoice], totalElements: 1 }));
     component.ngOnInit();
-    expect((component as any).items()).toHaveSize(1);
-    expect((component as any).loading()).toBeFalse();
+    expect(component['items']()).toHaveSize(1);
+    expect(component['loading']()).toBeFalse();
   });
 
   it('ngOnInit maneja error', () => {
     fakeApi.listMyInvoices.and.returnValue(throwError(() => ({ error: { message: 'falló' } })));
     component.ngOnInit();
-    expect((component as any).errorMsg()).toBe('falló');
-    expect((component as any).loading()).toBeFalse();
+    expect(component['errorMsg']()).toBe('falló');
+    expect(component['loading']()).toBeFalse();
   });
 
   it('helpers de formato delegan al modelo', () => {
-    expect((component as any).statusLabel('PENDING')).toBe('Pendiente');
-    expect((component as any).badgeClass('PENDING')).toContain('amber');
-    expect((component as any).money(25000, 'PEN')).toBe('S/ 250.00');
+    expect(component['statusLabel']('PENDING')).toBe('Pendiente');
+    expect(component['badgeClass']('PENDING')).toContain('amber');
+    expect(component['money'](25000, 'PEN')).toBe('S/ 250.00');
   });
 });

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { AttendanceStore, ScanOutcome } from './attendance.store';
+import { AttendanceStore } from './attendance.store';
 import { AttendanceApiService } from '../services';
 
 describe('AttendanceStore', () => {

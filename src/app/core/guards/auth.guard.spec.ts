@@ -1,20 +1,19 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, UrlTree, provideRouter } from '@angular/router';
+import { UrlTree, provideRouter } from '@angular/router';
 import { authGuard, authChildGuard } from './auth.guard';
 import { AuthService } from '@core/services';
 
 describe('authGuard', () => {
-  let router: Router;
   let authSpy: jasmine.SpyObj<AuthService>;
 
   const configure = (isAuthenticated: boolean) => {
     authSpy = jasmine.createSpyObj('AuthService', ['isAuthenticated', 'hasRole', 'hasPermission'], {
       isAuthenticated: () => isAuthenticated,
+      user: () => null,
     });
     TestBed.configureTestingModule({
       providers: [provideRouter([]), { provide: AuthService, useValue: authSpy }],
     });
-    router = TestBed.inject(Router);
   };
 
   it('permite acceso cuando está autenticado', () => {
@@ -33,17 +32,16 @@ describe('authGuard', () => {
 });
 
 describe('authChildGuard', () => {
-  let router: Router;
   let authSpy: jasmine.SpyObj<AuthService>;
 
   beforeEach(() => {
     authSpy = jasmine.createSpyObj('AuthService', ['isAuthenticated', 'hasRole', 'hasPermission'], {
       isAuthenticated: () => true,
+      user: () => null,
     });
     TestBed.configureTestingModule({
       providers: [provideRouter([]), { provide: AuthService, useValue: authSpy }],
     });
-    router = TestBed.inject(Router);
   });
 
   it('permite acceso cuando está autenticado', () => {

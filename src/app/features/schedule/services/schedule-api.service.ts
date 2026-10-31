@@ -125,6 +125,15 @@ export class ScheduleApiService {
       .pipe(map((env) => env.data));
   }
 
+  markDayTemplateReviewed(templateUuid: string): Observable<DayTemplate> {
+    return this.api
+      .post<ApiResponse<DayTemplate>, Record<string, never>>(
+        API.ACADEMIC.DAY_SCHEDULE.REVIEW_DAY_TEMPLATE(templateUuid),
+        {},
+      )
+      .pipe(map((env) => env.data));
+  }
+
   // ---------------------------------------------------------------------------
   // Validation / clone / bootstrap
   // ---------------------------------------------------------------------------

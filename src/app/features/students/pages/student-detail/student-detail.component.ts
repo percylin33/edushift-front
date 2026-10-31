@@ -9,7 +9,10 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
+import { Permission, UserRole } from '@core/enums';
+import { AuthService } from '@core/services';
 import {
+  ConfirmDialogService,
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
@@ -22,7 +25,7 @@ import {
   InvitePortalDialogComponent,
 } from '../../components';
 import { StudentsStore } from '../../store';
-import { portalStatus, StudentDetail } from '../../models';
+import { Guardian, portalStatus, StudentDetail } from '../../models';
 
 /**
  * `/students/:id` — read-only detail page.
@@ -67,23 +70,33 @@ import { portalStatus, StudentDetail } from '../../models';
             <app-icon name="arrow-left" [size]="16" />
             <span class="hidden sm:inline">Volver</span>
           </a>
-          <a [routerLink]="editLink(s.publicUuid)" class="btn btn-outline btn-sm">
-            <app-icon name="pencil" [size]="16" />
-            <span class="hidden sm:inline">Editar</span>
-          </a>
-          <button
-            type="button"
-            class="btn btn-danger btn-sm"
-            [disabled]="saving()"
-            (click)="onDelete(s)"
-          >
-            @if (saving()) {
-              <app-spinner [size]="14" label="Eliminando" />
-            } @else {
-              <app-icon name="trash" [size]="16" />
-            }
-            <span class="hidden sm:inline">Eliminar</span>
-          </button>
+          @if (canUpdate()) {
+            <a [routerLink]="editLink(s.publicUuid)" class="btn btn-outline btn-sm">
+              <app-icon name="pencil" [size]="16" />
+              <span class="hidden sm:inline">Editar</span>
+            </a>
+          }
+          @if (canProvisionAnyAccess() && shouldOfferWelcome(s)) {
+            <button type="button" class="btn btn-primary btn-sm" [disabled]="saving()" (click)="openWelcome(s)">
+              <app-icon name="mail" [size]="16" />
+              <span>Activar portal</span>
+            </button>
+          }
+          @if (canDelete()) {
+            <button
+              type="button"
+              class="btn btn-danger btn-sm"
+              [disabled]="saving()"
+              (click)="onDelete(s)"
+            >
+              @if (saving()) {
+                <app-spinner [size]="14" label="Eliminando" />
+              } @else {
+                <app-icon name="trash" [size]="16" />
+              }
+              <span class="hidden sm:inline">Eliminar</span>
+            </button>
+          }
         </app-page-header>
 
         <div class="grid gap-4 lg:grid-cols-3">
@@ -150,26 +163,20 @@ import { portalStatus, StudentDetail } from '../../models';
                     }
                     @case ('pending') {
                       <span class="badge badge-warning">Invitación pendiente</span>
-                      <button type="button" class="btn btn-ghost btn-sm" (click)="openStudentResend(s)">
-                        Reenviar
-                      </button>
+                      @if (canProvisionStudent()) {
+                        <button type="button" class="btn btn-ghost btn-sm" (click)="openStudentResend(s)">
+                          Reenviar
+                        </button>
+                      }
                     }
                     @default {
                       <span class="badge">Sin cuenta</span>
-                      <button
-                        type="button"
-                        class="btn btn-outline btn-sm"
-                        [disabled]="!s.email"
-                        (click)="openStudentInvite(s)"
-                      >
-                        Activar portal
-                      </button>
                     }
                   }
                 </div>
                 @if (!s.email && !s.userId) {
                   <p class="mt-1 text-xs text-content-muted">
-                    Agrega un email para que el alumno use el portal. En primaria el portal canónico es el del tutor.
+                    Al activar el portal se generará un correo ficticio para ingresar. En inicial puedes dar acceso al tutor.
                   </p>
                 }
               </div>
@@ -197,9 +204,16 @@ import { portalStatus, StudentDetail } from '../../models';
             </div>
           </section>
 
-          <app-enrollments-section [student]="s" />
+          @if (canReadEnrollments()) {
+            <app-enrollments-section class="col-span-full block min-w-0" [student]="s" />
+          }
 
-          <app-guardians-section [studentPublicUuid]="s.publicUuid" />
+          @if (canReadGuardians()) {
+            <app-guardians-section
+              class="col-span-full block min-w-0"
+              [studentPublicUuid]="s.publicUuid"
+            />
+          }
 
           @if (portalInvite(); as inv) {
             <app-invite-portal-dialog
@@ -209,6 +223,10 @@ import { portalStatus, StudentDetail } from '../../models';
               [studentPublicUuid]="s.publicUuid"
               [guardianPublicUuid]="inv.guardianPublicUuid"
               [invitationPublicUuid]="inv.invitationPublicUuid"
+              [studentAndGuardian]="inv.studentAndGuardian ?? false"
+              [studentAlreadyActive]="inv.studentAlreadyActive ?? false"
+              [studentName]="s.fullName"
+              [additionalGuardian]="inv.guardian ?? null"
               (closed)="closePortalInvite()"
             />
           }
@@ -252,10 +270,32 @@ import { portalStatus, StudentDetail } from '../../models';
 })
 export class StudentDetailComponent implements OnInit {
   private readonly store = inject(StudentsStore);
+  private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly listRoute = ROUTES.STUDENTS.LIST;
+
+  protected canUpdate(): boolean {
+    return this.auth.hasPermission(Permission.StudentsUpdateGranular);
+  }
+
+  protected canDelete(): boolean {
+    return this.auth.hasRole(UserRole.TenantAdmin);
+  }
+
+  protected canProvisionStudent(): boolean {
+    return this.auth.hasPermission(Permission.UsersProvisionStudent);
+  }
+
+  protected canReadEnrollments(): boolean {
+    return this.auth.hasPermission(Permission.EnrollmentsRead, Permission.EnrollmentsManage);
+  }
+
+  protected canReadGuardians(): boolean {
+    return this.auth.hasPermission(Permission.GuardiansRead, Permission.GuardiansManage);
+  }
 
   protected readonly student = this.store.selected;
   protected readonly loading = this.store.loadingDetail;
@@ -270,6 +310,15 @@ export class StudentDetailComponent implements OnInit {
     audience: 'estudiante' | 'tutor';
     guardianPublicUuid?: string;
     invitationPublicUuid?: string;
+    studentAndGuardian?: boolean;
+    studentAlreadyActive?: boolean;
+    guardian?: {
+      fullName: string;
+      email?: string;
+      guardianPublicUuid: string;
+      userId?: string;
+      pendingInvitationPublicUuid?: string;
+    };
   } | null>(null);
 
   protected readonly fullName = computed(() => this.student()?.fullName ?? '');
@@ -344,6 +393,49 @@ export class StudentDetailComponent implements OnInit {
     return portalStatus(s.userId, s.pendingInvitationPublicUuid);
   }
 
+  protected canProvisionAnyAccess(): boolean {
+    return this.canProvisionStudent() || this.canProvisionGuardian();
+  }
+
+  protected shouldOfferWelcome(s: StudentDetail): boolean {
+    const studentNeedsAccess = this.canProvisionStudent() && this.studentPortalStatus(s) !== 'active';
+    const primaryGuardian = this.primaryGuardian();
+    const guardianNeedsAccess = this.canProvisionGuardian() && !!primaryGuardian && !primaryGuardian.userId;
+    return studentNeedsAccess || guardianNeedsAccess;
+  }
+
+  protected async openWelcome(s: StudentDetail): Promise<void> {
+    this.store.clearError();
+    if (this.canProvisionGuardian()) await this.store.loadGuardians(s.publicUuid);
+    const primaryGuardian = this.canProvisionGuardian() ? this.primaryGuardian() : null;
+    this.portalInvite.set({
+      personName: s.fullName,
+      email: s.email,
+      audience: 'estudiante',
+      invitationPublicUuid: s.pendingInvitationPublicUuid,
+      studentAndGuardian: true,
+      studentAlreadyActive: !!s.userId || !this.canProvisionStudent(),
+      guardian: primaryGuardian && !primaryGuardian.userId
+        ? {
+            fullName: primaryGuardian.fullName,
+            email: primaryGuardian.email,
+            guardianPublicUuid: primaryGuardian.guardianPublicUuid,
+            userId: primaryGuardian.userId,
+            pendingInvitationPublicUuid: primaryGuardian.pendingInvitationPublicUuid,
+          }
+        : undefined,
+    });
+  }
+
+  private primaryGuardian(): Guardian | null {
+    const guardians = this.store.guardians();
+    return guardians.find((guardian) => guardian.isPrimaryContact) ?? guardians[0] ?? null;
+  }
+
+  protected canProvisionGuardian(): boolean {
+    return this.auth.hasPermission(Permission.UsersProvisionGuardian);
+  }
+
   protected openStudentInvite(s: StudentDetail): void {
     this.store.clearError();
     this.portalInvite.set({
@@ -369,13 +461,13 @@ export class StudentDetailComponent implements OnInit {
   }
 
   protected async onDelete(student: StudentDetail): Promise<void> {
-    /* No fancy modal yet — Sprint 3 ships a native confirm() so we
-     * don't bikeshed the dialog component while the rest of the
-     * flow stabilizes. Promote to {@code app-confirm-dialog} the
-     * second another delete flow lands. */
-    const ok = window.confirm(
-      `¿Eliminar a ${student.fullName}? Esta acción es reversible (soft delete).`,
-    );
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar estudiante',
+      message: `¿Eliminar a ${student.fullName}? Esta acción es reversible (soft delete).`,
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
 
     const success = await this.store.delete(student.publicUuid);

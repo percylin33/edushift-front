@@ -4,34 +4,63 @@ import type { AppEnvironment } from './environment.model';
  * Runtime overrides for `apiUrl`. Used by the bundle to resolve the
  * backend host without hard-coding environment-specific URLs at build
  * time. The detection lives here (not in `environment.model.ts`) so that
- * production builds default to the production URL unless the page is
- * served from localhost, a tunnel, or a Vercel preview.
+ * production builds default to the Contabo application URL unless the page
+ * is served from a local development host or a public tunnel.
  *
- * <p>Why this exists: EduShift runs on Render (production) and locally
- * on Docker / docker-compose (development). Both backends are reachable
- * from any client over the internet, but the dev backend is on the
- * developer's machine only. If the build always bakes in the prod URL,
- * the developer cannot test from their own browser; if it always bakes
- * in localhost, the live site cannot talk to Render. The
+ * <p>Why this exists: EduShift runs on Contabo (production) and locally
+ * on Docker / docker-compose (development). If the build always bakes in
+ * localhost, the live site cannot reach the production backend. The
  * {@link resolveApiUrl} helper picks the right one based on
  * {@code window.location.hostname}.</p>
  */
-function resolveApiUrl(builtInApiUrl: string): string {
-  if (typeof window === 'undefined') {
+export function resolveApiUrl(builtInApiUrl: string, hostname?: string): string {
+  if (typeof window === 'undefined' && hostname === undefined) {
     // SSR or non-browser context — trust the build-time value.
     return builtInApiUrl;
   }
-  const host = window.location.hostname.toLowerCase();
-  // Localhost variants (Angular dev server, dev proxy, docker-compose).
-  if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '0.0.0.0') {
-    // Preserve the dev port from the build-time URL so the dev team can
-    // move 8081 → 8082 without rebuilding.
+  const host = (hostname ?? window.location.hostname).toLowerCase();
+  // Production DNS serves Angular and its same-origin API through Contabo
+  // Nginx. Keep auth cookies same-site and host-only on app and tenant hosts.
+  if (host === 'edushift.pe' || host.endsWith('.edushift.pe')) {
+    return '/api';
+  }
+  // Tenant pages on `<slug>.localhost` use a same-origin API URL. The dev
+  // server and local Docker Nginx proxy `/api` to the backend, avoiding
+  // cross-port browser restrictions while keeping host-only auth cookies.
+  if (host.endsWith('.localhost')) {
+    return '/api';
+  }
+  // Root localhost variants keep the direct backend URL for local workflows.
+  if (
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '::1' ||
+    host === '0.0.0.0'
+  ) {
+    // Preserve the dev port from the build-time URL. Production URLs have
+    // no explicit port, so fall back to the local Compose backend port.
     try {
       const built = new URL(builtInApiUrl);
-      return `${window.location.protocol}//${window.location.hostname}:${built.port}${built.pathname.replace(/\/$/, '')}`;
+      const port = built.port || '8080';
+      return `${window.location.protocol}//${window.location.hostname}:${port}${built.pathname.replace(/\/$/, '')}`;
     } catch {
       return builtInApiUrl;
     }
+  }
+  // Public tunnels: same-origin `/api` so `ng serve` proxy → local BE works.
+  // Without this, the browser would call `http://localhost:8080` on the
+  // remote device and fail.
+  if (
+    host.endsWith('.trycloudflare.com') ||
+    host.endsWith('.loca.lt') ||
+    host.endsWith('.devtunnels.ms') ||
+    host.endsWith('.ngrok-free.app') ||
+    host.endsWith('.ngrok.io') ||
+    host.endsWith('.ngrok.app') ||
+    host.endsWith('.ngrok.dev') ||
+    host.endsWith('.lhr.life')
+  ) {
+    return '/api';
   }
   return builtInApiUrl;
 }

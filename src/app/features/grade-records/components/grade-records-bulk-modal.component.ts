@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -5,7 +7,6 @@ import {
   HostListener,
   OnInit,
   computed,
-  inject,
   input,
   output,
   signal,
@@ -51,14 +52,14 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
   selector: 'app-grade-records-bulk-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="bulk-grade-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card flex max-h-[92vh] w-full max-w-3xl flex-col shadow-xl"
@@ -201,6 +202,12 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
   ],
 })
 export class GradeRecordsBulkModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.csv(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   /** Scale del padre evaluation; determina cómo parseamos la 2da columna. */
   readonly scale = input.required<EvaluationScale>();
   /** Indica que el submit está in-flight; deshabilita el botón. */
@@ -279,7 +286,9 @@ export class GradeRecordsBulkModalComponent implements OnInit {
   }
 
   protected cancel(): void {
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.closed.emit();
+    });
   }
 
   protected submit(): void {
@@ -314,10 +323,17 @@ export class GradeRecordsBulkModalComponent implements OnInit {
     if (!UUID_REGEX.test(uuid)) {
       return { index, raw, payload: null, error: 'UUID inválido.' };
     }
-    const comments = rest.length ? rest.join(',').trim() : null;
+
+    // The documented CSV format accepts decimal commas, even though commas
+    // also separate columns. Treat a numeric pair like "11,75" as one score.
+    const hasDecimalComma =
+      rest.length > 0 && /^-?\d+$/.test(valueRaw) && /^\d{1,2}$/.test(rest[0]);
+    const scoreRaw = hasDecimalComma ? `${valueRaw}.${rest[0]}` : valueRaw;
+    const commentCells = hasDecimalComma ? rest.slice(1) : rest;
+    const comments = commentCells.length ? commentCells.join(',').trim() : null;
 
     if (this.scale() === EvaluationScale.SCORE_0_20) {
-      const normalized = valueRaw.replace(',', '.');
+      const normalized = scoreRaw.replace(',', '.');
       if (!/^-?\d+(\.\d+)?$/.test(normalized)) {
         return { index, raw, payload: null, error: 'Nota debe ser numérica.' };
       }

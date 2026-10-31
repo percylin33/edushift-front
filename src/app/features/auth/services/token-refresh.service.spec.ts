@@ -6,7 +6,7 @@ import { AuthApiService } from './auth-api.service';
 
 describe('TokenRefreshService', () => {
   let service: TokenRefreshService;
-  let authStub: { refreshToken: jasmine.Spy; rotateTokens: jasmine.Spy; clearSession: jasmine.Spy };
+  let authStub: { rotateTokens: jasmine.Spy; clearSession: jasmine.Spy };
   let authApiStub: jasmine.SpyObj<AuthApiService>;
 
   const session: any = {
@@ -28,7 +28,6 @@ describe('TokenRefreshService', () => {
 
   beforeEach(() => {
     authStub = {
-      refreshToken: jasmine.createSpy('refreshToken').and.returnValue('r-token'),
       rotateTokens: jasmine.createSpy('rotateTokens'),
       clearSession: jasmine.createSpy('clearSession'),
     };
@@ -43,12 +42,13 @@ describe('TokenRefreshService', () => {
     service = TestBed.inject(TokenRefreshService);
   });
 
-  it('sin refreshToken emite NO_REFRESH_TOKEN', (done) => {
-    authStub.refreshToken.and.returnValue(null);
+  it('delega al servidor la validación de la cookie de refresh y propaga su error', (done) => {
+    authApiStub.refresh.and.returnValue(throwError(() => new Error('NO_REFRESH_TOKEN')));
     service.refresh().subscribe({
       next: () => done.fail('expected error'),
       error: (err) => {
         expect(err.message).toBe('NO_REFRESH_TOKEN');
+        expect(authApiStub.refresh).toHaveBeenCalledTimes(1);
         done();
       },
     });
@@ -91,11 +91,15 @@ describe('TokenRefreshService', () => {
 
   it('después de finalizar el refresh, una nueva llamada arranca flujo nuevo', (done) => {
     authApiStub.refresh.and.returnValue(of(session));
-    service.refresh().subscribe(() => {
-      service.refresh().subscribe(() => {
-        expect(authApiStub.refresh).toHaveBeenCalledTimes(2);
-        done();
-      });
+    service.refresh().subscribe({
+      complete: () => {
+        queueMicrotask(() => {
+          service.refresh().subscribe(() => {
+            expect(authApiStub.refresh).toHaveBeenCalledTimes(2);
+            done();
+          });
+        });
+      },
     });
   });
 });

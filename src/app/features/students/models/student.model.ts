@@ -75,6 +75,14 @@ export interface StudentRow {
   enrollmentDate?: Date;
 }
 
+/** Minimal identity projection returned to staff searching invoice recipients. */
+export interface StudentPaymentRecipient {
+  publicUuid: string;
+  documentType: DocumentType;
+  documentNumber: string;
+  fullName: string;
+}
+
 /**
  * UI-side detail shape (superset of {@link StudentRow}) used by the
  * detail page and the edit form. {@code metadata} stays as the raw
@@ -207,6 +215,10 @@ export interface BulkImportRowErrorRaw {
   code: string;
   /** Human-readable message — already localized server-side. */
   message: string;
+  /** Who failed, e.g. "Ana López · DNI 12345678". */
+  label?: string | null;
+  /** Values the admin can edit and retry. */
+  fields?: Record<string, string> | null;
 }
 
 /**
@@ -216,7 +228,7 @@ export interface BulkImportRowErrorRaw {
  */
 export interface BulkImportJobResponseRaw {
   publicUuid: string;
-  jobType: 'STUDENTS';
+  jobType: 'STUDENTS' | 'TEACHERS';
   status: BulkImportStatus;
   fileName: string;
   fileSizeBytes: number;
@@ -233,7 +245,7 @@ export interface BulkImportJobResponseRaw {
 /** UI-side bulk-import job (superset of the raw shape with parsed dates). */
 export interface BulkImportJob {
   publicUuid: string;
-  jobType: 'STUDENTS';
+  jobType: 'STUDENTS' | 'TEACHERS';
   status: BulkImportStatus;
   fileName: string;
   fileSizeBytes: number;
@@ -251,7 +263,81 @@ export interface BulkImportRowError {
   row: number;
   code: string;
   message: string;
+  label?: string;
+  fields?: Record<string, string>;
 }
+
+/** Preview of an .xlsx before enqueueing the import job. */
+export interface BulkImportPreviewRaw {
+  headers: string[];
+  sampleRows: Record<string, string | null>[];
+  suggestedMapping: Record<string, string>;
+  unmappedRequired: string[];
+}
+
+export interface BulkImportPreview {
+  headers: string[];
+  sampleRows: Record<string, string | null>[];
+  suggestedMapping: Record<string, string>;
+  unmappedRequired: string[];
+}
+
+/** Options sent with {@code POST /students/bulk-import}. */
+export interface BulkImportUploadOptions {
+  columnMapping: Record<string, string>;
+  sectionPublicUuid?: string | null;
+  academicYearPublicUuid?: string | null;
+  enrolledAt?: string | null;
+}
+
+/** Canonical fields the mapping wizard can bind. */
+export interface BulkImportFieldDef {
+  key: string;
+  label: string;
+  group: 'student' | 'guardian';
+  required: boolean;
+}
+
+export const BULK_IMPORT_FIELD_DEFS: BulkImportFieldDef[] = [
+  { key: 'documentType', label: 'Tipo de documento', group: 'student', required: true },
+  { key: 'documentNumber', label: 'Número de documento', group: 'student', required: true },
+  { key: 'fullName', label: 'Nombre completo', group: 'student', required: false },
+  { key: 'firstName', label: 'Nombres', group: 'student', required: true },
+  { key: 'lastName', label: 'Apellido paterno', group: 'student', required: true },
+  { key: 'secondLastName', label: 'Apellido materno', group: 'student', required: false },
+  { key: 'birthDate', label: 'Fecha de nacimiento', group: 'student', required: false },
+  { key: 'gender', label: 'Género', group: 'student', required: false },
+  { key: 'email', label: 'Correo', group: 'student', required: false },
+  { key: 'phone', label: 'Teléfono', group: 'student', required: false },
+  { key: 'address', label: 'Dirección', group: 'student', required: false },
+  { key: 'enrollmentStatus', label: 'Estado de matrícula', group: 'student', required: false },
+  { key: 'enrollmentDate', label: 'Fecha de matrícula', group: 'student', required: false },
+  { key: 'guardianDocumentType', label: 'Tipo doc. apoderado', group: 'guardian', required: false },
+  {
+    key: 'guardianDocumentNumber',
+    label: 'Número doc. apoderado',
+    group: 'guardian',
+    required: false,
+  },
+  {
+    key: 'guardianFullName',
+    label: 'Nombre completo apoderado',
+    group: 'guardian',
+    required: false,
+  },
+  { key: 'guardianFirstName', label: 'Nombres apoderado', group: 'guardian', required: false },
+  { key: 'guardianLastName', label: 'Apellido apoderado', group: 'guardian', required: false },
+  { key: 'guardianPhone', label: 'Teléfono apoderado', group: 'guardian', required: false },
+  { key: 'guardianEmail', label: 'Correo apoderado', group: 'guardian', required: false },
+  { key: 'guardianRelationship', label: 'Parentesco', group: 'guardian', required: false },
+];
+
+export const BULK_IMPORT_GUARDIAN_REQUIRED_KEYS = [
+  'guardianDocumentType',
+  'guardianDocumentNumber',
+  'guardianFirstName',
+  'guardianLastName',
+] as const;
 
 /** RAW {@code InviteStudentResponse} / {@code InviteGuardianResponse}. */
 export interface InvitePortalResponseRaw {

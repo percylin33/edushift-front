@@ -34,26 +34,26 @@ describe('authInterceptor', () => {
     httpMock.verify();
   });
 
-  it('no añade Authorization si no hay token', () => {
+  it('envía cookies en llamadas al API', () => {
     httpClient.get(environment.apiUrl + '/test').subscribe();
     const req = httpMock.expectOne(environment.apiUrl + '/test');
+    expect(req.request.withCredentials).toBeTrue();
     expect(req.request.headers.has('Authorization')).toBeFalse();
     req.flush({});
   });
 
-  it('no añade Authorization a URLs externas (que no empiezan con apiUrl)', () => {
+  it('no fuerza cookies en URLs externas', () => {
     accessToken.set('my-token');
     httpClient.get('https://external.com/api').subscribe();
     const req = httpMock.expectOne('https://external.com/api');
-    expect(req.request.headers.has('Authorization')).toBeFalse();
+    expect(req.request.withCredentials).toBeFalse();
     req.flush({});
   });
 
-  it('añade Authorization: Bearer <token> cuando hay token', () => {
-    accessToken.set('my-token');
-    httpClient.get(environment.apiUrl + '/test').subscribe();
+  it('respeta withCredentials si el caller ya lo activó', () => {
+    httpClient.get(environment.apiUrl + '/test', { withCredentials: true }).subscribe();
     const req = httpMock.expectOne(environment.apiUrl + '/test');
-    expect(req.request.headers.get('Authorization')).toBe('Bearer my-token');
+    expect(req.request.withCredentials).toBeTrue();
     req.flush({});
   });
 });

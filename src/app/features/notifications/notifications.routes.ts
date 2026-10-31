@@ -1,8 +1,10 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { authChildGuard, permissionGuard } from '@core/guards';
 
 export const NOTIFICATIONS_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     loadComponent: () =>
       import('./pages/notifications-home/notifications-home.component').then(
@@ -10,6 +12,7 @@ export const NOTIFICATIONS_ROUTES: Routes = [
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'preferences',
     canActivate: [authChildGuard],
     loadComponent: () =>
@@ -20,6 +23,7 @@ export const NOTIFICATIONS_ROUTES: Routes = [
   {
     // Sprint cierre-C / F11 — admin templates editor.
     // Gated by LMS_NOTIFICATIONS_MANAGE (matches @PreAuthorize on the BE).
+    canDeactivate: [pendingChangesGuard],
     path: 'templates',
     canMatch: [permissionGuard],
     data: { permissions: 'LMS_NOTIFICATIONS_MANAGE' },

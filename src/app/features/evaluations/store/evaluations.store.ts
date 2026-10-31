@@ -53,7 +53,10 @@ export class EvaluationsStore {
 
   // -------- shared --------
   private readonly _saving = signal<boolean>(false);
+  /** Load / list errors only (wipe table when set). */
   private readonly _error = signal<string | null>(null);
+  /** Mutation errors (delete/publish/…) — keep table visible. */
+  private readonly _actionError = signal<string | null>(null);
 
   readonly rows = this._rows.asReadonly();
   readonly filters = this._filters.asReadonly();
@@ -69,6 +72,7 @@ export class EvaluationsStore {
 
   readonly saving = this._saving.asReadonly();
   readonly error = this._error.asReadonly();
+  readonly actionError = this._actionError.asReadonly();
 
   readonly hasRows = computed(() => this._rows().length > 0);
   readonly isEmpty = computed(() => !this._loading() && this._rows().length === 0);
@@ -116,7 +120,7 @@ export class EvaluationsStore {
     request: CreateEvaluationRequest,
   ): Promise<EvaluationDetail | null> {
     this._saving.set(true);
-    this._error.set(null);
+    this._actionError.set(null);
     try {
       const created = await firstValueFrom(
         this.api.createForAssignment(assignmentPublicUuid, request),
@@ -126,7 +130,7 @@ export class EvaluationsStore {
       }
       return created;
     } catch (err) {
-      this._error.set(this.toErrorMessage(err));
+      this._actionError.set(this.toErrorMessage(err));
       return null;
     } finally {
       this._saving.set(false);
@@ -158,14 +162,14 @@ export class EvaluationsStore {
     patch: UpdateEvaluationRequest,
   ): Promise<EvaluationDetail | null> {
     this._saving.set(true);
-    this._error.set(null);
+    this._actionError.set(null);
     try {
       const updated = await firstValueFrom(this.api.updateEvaluation(publicUuid, patch));
       this.replaceInRows(updated);
       this._selected.set(updated);
       return updated;
     } catch (err) {
-      this._error.set(this.toErrorMessage(err));
+      this._actionError.set(this.toErrorMessage(err));
       return null;
     } finally {
       this._saving.set(false);
@@ -186,7 +190,7 @@ export class EvaluationsStore {
 
   async remove(publicUuid: string): Promise<boolean> {
     this._saving.set(true);
-    this._error.set(null);
+    this._actionError.set(null);
     try {
       await firstValueFrom(this.api.deleteEvaluation(publicUuid));
       this._rows.update((rows) => rows.filter((r) => r.publicUuid !== publicUuid));
@@ -195,7 +199,7 @@ export class EvaluationsStore {
       }
       return true;
     } catch (err) {
-      this._error.set(this.toErrorMessage(err));
+      this._actionError.set(this.toErrorMessage(err));
       return false;
     } finally {
       this._saving.set(false);
@@ -284,6 +288,7 @@ export class EvaluationsStore {
 
   clearError(): void {
     this._error.set(null);
+    this._actionError.set(null);
   }
 
   // ---------------------------------------------------------------------------
@@ -311,7 +316,7 @@ export class EvaluationsStore {
     op: () => Promise<EvaluationDetail>,
   ): Promise<EvaluationDetail | null> {
     this._saving.set(true);
-    this._error.set(null);
+    this._actionError.set(null);
     try {
       const updated = await op();
       this.replaceInRows(updated);
@@ -320,7 +325,7 @@ export class EvaluationsStore {
       }
       return updated;
     } catch (err) {
-      this._error.set(this.toErrorMessage(err));
+      this._actionError.set(this.toErrorMessage(err));
       return null;
     } finally {
       this._saving.set(false);

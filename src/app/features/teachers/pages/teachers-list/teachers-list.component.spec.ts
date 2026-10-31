@@ -1,11 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, signal } from '@angular/core';
 import { ActivatedRoute, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
 import { TeachersListComponent } from './teachers-list.component';
 import { TeachersStore } from '../../store';
 import { TeacherRow, TeacherListFilters } from '../../models';
-import { DocumentType, EmploymentStatus } from '@core/enums';
+import {  EmploymentStatus } from '@core/enums';
 import { ROUTES } from '@core/constants';
 
 @Component({ template: '', standalone: true })
@@ -67,7 +66,7 @@ describe('TeachersListComponent', () => {
 
   it('expone newRoute apuntando al alta', () => {
     configureModule();
-    expect((component as any).newRoute).toBe(ROUTES.TEACHERS.NEW);
+    expect(component['newRoute']).toBe(ROUTES.TEACHERS.NEW);
   });
 
   it('ngOnInit sin query params hidrata del store y carga lista', async () => {
@@ -118,8 +117,8 @@ describe('TeachersListComponent', () => {
   it('onSearchChange programa debounce y aplica filtros', async () => {
     configureModule();
     jasmine.clock().install();
-    (component as any).onSearchChange('Maria');
-    expect((component as any).search()).toBe('Maria');
+    component['onSearchChange']('Maria');
+    expect(component['search']()).toBe('Maria');
     jasmine.clock().tick(400);
     expect(fakeStore.applyFilters).toHaveBeenCalled();
     jasmine.clock().uninstall();
@@ -127,58 +126,58 @@ describe('TeachersListComponent', () => {
 
   it('onStatusChange aplica filtros', async () => {
     configureModule();
-    (component as any).onStatusChange(EmploymentStatus.Active);
-    expect((component as any).employmentStatus()).toBe(EmploymentStatus.Active);
+    component['onStatusChange'](EmploymentStatus.Active);
+    expect(component['employmentStatus']()).toBe(EmploymentStatus.Active);
     expect(fakeStore.applyFilters).toHaveBeenCalled();
   });
 
   it('onAccountChange aplica filtros', async () => {
     configureModule();
-    (component as any).onAccountChange(true);
-    expect((component as any).hasUserAccount()).toBeTrue();
+    component['onAccountChange'](true);
+    expect(component['hasUserAccount']()).toBeTrue();
     expect(fakeStore.applyFilters).toHaveBeenCalled();
   });
 
   it('prev y next delegan al store', async () => {
     configureModule();
     fakeStore.pagination.set({ page: 1, size: 20, totalElements: 100, totalPages: 5 });
-    (component as any).prev();
-    (component as any).next();
+    component['prev']();
+    component['next']();
     expect(fakeStore.goToPage).toHaveBeenCalledWith(0);
     expect(fakeStore.goToPage).toHaveBeenCalledWith(2);
   });
 
   it('retry limpia error y recarga', () => {
     configureModule();
-    (component as any).retry();
+    component['retry']();
     expect(fakeStore.clearError).toHaveBeenCalled();
     expect(fakeStore.loadList).toHaveBeenCalled();
   });
 
   it('detailLink retorna ruta del detalle', () => {
     configureModule();
-    expect((component as any).detailLink('t-1')).toBe(ROUTES.TEACHERS.detail('t-1'));
+    expect(component['detailLink']('t-1')).toBe(ROUTES.TEACHERS.detail('t-1'));
   });
 
   it('canPrev / canNext reflejan paginación', () => {
     configureModule();
     fakeStore.pagination.set({ page: 0, size: 20, totalElements: 100, totalPages: 5 });
-    expect((component as any).canPrev()).toBeFalse();
-    expect((component as any).canNext()).toBeTrue();
+    expect(component['canPrev']()).toBeFalse();
+    expect(component['canNext']()).toBeTrue();
   });
 
   it('parseStatus descarta valores inválidos', () => {
     configureModule();
-    expect((component as any).parseStatus('BOGUS')).toBeNull();
-    expect((component as any).parseStatus(EmploymentStatus.Active)).toBe(EmploymentStatus.Active);
-    expect((component as any).parseStatus(null)).toBeNull();
+    expect(component['parseStatus']('BOGUS')).toBeNull();
+    expect(component['parseStatus'](EmploymentStatus.Active)).toBe(EmploymentStatus.Active);
+    expect(component['parseStatus'](null)).toBeNull();
   });
 
   it('parseBool interpreta true/false o null', () => {
     configureModule();
-    expect((component as any).parseBool('true')).toBeTrue();
-    expect((component as any).parseBool('false')).toBeFalse();
-    expect((component as any).parseBool(null)).toBeNull();
-    expect((component as any).parseBool('other')).toBeNull();
+    expect(component['parseBool']('true')).toBeTrue();
+    expect(component['parseBool']('false')).toBeFalse();
+    expect(component['parseBool'](null)).toBeNull();
+    expect(component['parseBool']('other')).toBeNull();
   });
 });

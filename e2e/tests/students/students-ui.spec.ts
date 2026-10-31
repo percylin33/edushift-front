@@ -129,14 +129,13 @@ test.describe('Students — UI', () => {
       await page.goto(`/students/${student.publicUuid}`);
       await expect(page.locator('h1')).toContainText('DeleteSpec');
 
-      // The detail component uses a native window.confirm() — register
-      // a handler BEFORE clicking the button so Playwright auto-accepts.
-      page.once('dialog', async (dialog) => {
-        await dialog.accept();
-      });
-
       // Click the delete button (in the detail header / actions area).
       await page.locator('button:has-text("Eliminar")').first().click();
+
+      // Branded ConfirmDialog — confirm the destructive action.
+      const confirm = page.getByRole('dialog');
+      await expect(confirm).toBeVisible();
+      await confirm.getByRole('button', { name: 'Eliminar' }).click();
 
       // Should navigate away from the detail page.
       await expect(page).toHaveURL(/\/students(?!\/[a-f0-9])/, { timeout: 10_000 });

@@ -1,14 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { AcademicApiService } from '@features/academic/services';
 import { SessionsListComponent } from './sessions-list.component';
 import { SessionsApiService } from '../../services';
 import { LearningSessionRow, SessionStatus } from '../../models';
+import { ConfirmDialogService } from '@shared/components';
 
 describe('SessionsListComponent', () => {
   let fixture: ComponentFixture<SessionsListComponent>;
   let component: SessionsListComponent;
   let fakeApi: jasmine.SpyObj<SessionsApiService>;
+  let fakeConfirmDialog: jasmine.SpyObj<ConfirmDialogService>;
 
   const session: LearningSessionRow = {
     publicUuid: 'sess-1',
@@ -27,15 +30,21 @@ describe('SessionsListComponent', () => {
   function configureModule(): void {
     fakeApi = jasmine.createSpyObj<SessionsApiService>('SessionsApiService', [
       'listSessions',
+      'listSharedSessions',
       'startSession',
       'completeSession',
       'cancelSession',
     ]);
+    fakeApi.listSharedSessions.and.returnValue(of([]));
+    fakeConfirmDialog = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['open']);
+    fakeConfirmDialog.open.and.returnValue(Promise.resolve(false));
     TestBed.configureTestingModule({
       imports: [SessionsListComponent],
       providers: [
         provideRouter([]),
         { provide: SessionsApiService, useValue: fakeApi },
+        { provide: ConfirmDialogService, useValue: fakeConfirmDialog },
+        { provide: AcademicApiService, useValue: { listAssignments: () => of([]) } },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { queryParamMap: { get: (_: string) => null } } },
@@ -55,63 +64,63 @@ describe('SessionsListComponent', () => {
     configureModule();
     fakeApi.listSessions.and.returnValue(of([session]));
     await component.ngOnInit();
-    expect((component as any).sessions()).toHaveSize(1);
-    expect((component as any).loading()).toBeFalse();
+    expect(component['sessions']()).toHaveSize(1);
+    expect(component['loading']()).toBeFalse();
   });
 
   it('ngOnInit maneja error', async () => {
     configureModule();
     fakeApi.listSessions.and.returnValue(throwError(() => new Error('boom')));
     await component.ngOnInit();
-    expect((component as any).errorMessage()).toBe('boom');
+    expect(component['errorMessage']()).toBe('boom');
   });
 
   it('statusLabel y statusBadgeClass delegan al modelo', () => {
     configureModule();
-    expect((component as any).getStatusLabel(SessionStatus.PLANNED)).toBe('Planificada');
-    expect((component as any).getStatusBadgeClass(SessionStatus.PLANNED)).toContain('neutral');
+    expect(component['getStatusLabel'](SessionStatus.PLANNED)).toBe('Planificada');
+    expect(component['getStatusBadgeClass'](SessionStatus.PLANNED)).toContain('neutral');
   });
 
   it('formatDate formatea en es', () => {
     configureModule();
-    const formatted = (component as any).formatDate(new Date('2026-06-15'));
+    const formatted = component['formatDate'](new Date('2026-06-15'));
     expect(formatted).toContain('2026');
   });
 
   it('toggleSelection agrega y quita', () => {
     configureModule();
-    (component as any).toggleSelection('sess-1');
-    expect((component as any).selectedSessions().has('sess-1')).toBeTrue();
-    (component as any).toggleSelection('sess-1');
-    expect((component as any).selectedSessions().has('sess-1')).toBeFalse();
+    component['toggleSelection']('sess-1');
+    expect(component['selectedSessions']().has('sess-1')).toBeTrue();
+    component['toggleSelection']('sess-1');
+    expect(component['selectedSessions']().has('sess-1')).toBeFalse();
   });
 
   it('clearSelection vacía selección', () => {
     configureModule();
-    (component as any).toggleSelection('sess-1');
-    (component as any).clearSelection();
-    expect((component as any).selectedSessions().size).toBe(0);
+    component['toggleSelection']('sess-1');
+    component['clearSelection']();
+    expect(component['selectedSessions']().size).toBe(0);
   });
 
   it('isAllSelected / isIndeterminate reflejan selección', () => {
     configureModule();
-    (component as any).sessions.set([session, { ...session, publicUuid: 'sess-2' }]);
-    expect((component as any).isAllSelected()).toBeFalse();
-    (component as any).toggleSelection('sess-1');
-    (component as any).toggleSelection('sess-2');
-    expect((component as any).isAllSelected()).toBeTrue();
-    expect((component as any).isIndeterminate()).toBeFalse();
+    component['sessions'].set([session, { ...session, publicUuid: 'sess-2' }]);
+    expect(component['isAllSelected']()).toBeFalse();
+    component['toggleSelection']('sess-1');
+    component['toggleSelection']('sess-2');
+    expect(component['isAllSelected']()).toBeTrue();
+    expect(component['isIndeterminate']()).toBeFalse();
   });
 
   it('toggleSelectAll selecciona todos los PLANNED/IN_PROGRESS', () => {
     configureModule();
-    (component as any).sessions.set([
+    component['sessions'].set([
       session,
       { ...session, publicUuid: 'sess-2' },
       { ...session, publicUuid: 'sess-3', status: SessionStatus.COMPLETED },
     ]);
-    (component as any).toggleSelectAll();
-    const sel = (component as any).selectedSessions();
+    component['toggleSelectAll']();
+    const sel = component['selectedSessions']();
     expect(sel.has('sess-1')).toBeTrue();
     expect(sel.has('sess-2')).toBeTrue();
     expect(sel.has('sess-3')).toBeFalse();
@@ -119,44 +128,44 @@ describe('SessionsListComponent', () => {
 
   it('bulkComplete procesa seleccionados', async () => {
     configureModule();
-    (component as any).sessions.set([session, { ...session, publicUuid: 'sess-2' }]);
-    (component as any).selectedSessions.set(new Set(['sess-1', 'sess-2']));
+    component['sessions'].set([session, { ...session, publicUuid: 'sess-2' }]);
+    component['selectedSessions'].set(new Set(['sess-1', 'sess-2']));
     fakeApi.listSessions.and.returnValue(of([]));
     fakeApi.completeSession.and.returnValue(of({ publicUuid: 'x' } as any));
-    await (component as any).bulkComplete();
+    await component['bulkComplete']();
     expect(fakeApi.completeSession).toHaveBeenCalledTimes(2);
-    expect((component as any).bulkActionLoading()).toBeFalse();
+    expect(component['bulkActionLoading']()).toBeFalse();
   });
 
   it('bulkComplete vacío no llama api', async () => {
     configureModule();
     fakeApi.listSessions.and.returnValue(of([]));
-    await (component as any).bulkComplete();
+    await component['bulkComplete']();
     expect(fakeApi.completeSession).not.toHaveBeenCalled();
   });
 
   it('startSession confirmado llama api', async () => {
     configureModule();
-    spyOn(window, 'confirm').and.returnValue(true);
+    fakeConfirmDialog.open.and.returnValue(Promise.resolve(true));
     fakeApi.startSession.and.returnValue(of({ publicUuid: 'x' } as any));
     fakeApi.listSessions.and.returnValue(of([]));
-    await (component as any).startSession(session);
+    await component['startSession'](session);
     expect(fakeApi.startSession).toHaveBeenCalled();
   });
 
   it('startSession cancelado no llama api', async () => {
     configureModule();
-    spyOn(window, 'confirm').and.returnValue(false);
-    await (component as any).startSession(session);
+    fakeConfirmDialog.open.and.returnValue(Promise.resolve(false));
+    await component['startSession'](session);
     expect(fakeApi.startSession).not.toHaveBeenCalled();
   });
 
   it('completeSession confirmado llama api', async () => {
     configureModule();
-    spyOn(window, 'confirm').and.returnValue(true);
+    fakeConfirmDialog.open.and.returnValue(Promise.resolve(true));
     fakeApi.completeSession.and.returnValue(of({ publicUuid: 'x' } as any));
     fakeApi.listSessions.and.returnValue(of([]));
-    await (component as any).completeSession(session);
+    await component['completeSession'](session);
     expect(fakeApi.completeSession).toHaveBeenCalled();
   });
 
@@ -165,14 +174,14 @@ describe('SessionsListComponent', () => {
     spyOn(window, 'prompt').and.returnValue('razón');
     fakeApi.cancelSession.and.returnValue(of({ publicUuid: 'x' } as any));
     fakeApi.listSessions.and.returnValue(of([]));
-    await (component as any).cancelSession(session);
+    await component['cancelSession'](session);
     expect(fakeApi.cancelSession).toHaveBeenCalledWith('sess-1', { version: 1, reason: 'razón' });
   });
 
   it('cancelSession cancelado por prompt no llama api', async () => {
     configureModule();
     spyOn(window, 'prompt').and.returnValue(null);
-    await (component as any).cancelSession(session);
+    await component['cancelSession'](session);
     expect(fakeApi.cancelSession).not.toHaveBeenCalled();
   });
 
@@ -180,7 +189,7 @@ describe('SessionsListComponent', () => {
     configureModule();
     const router: any = TestBed.inject(Router);
     spyOn(router, 'navigate');
-    (component as any).onCreate();
+    component['onCreate']();
     expect(router.navigate).toHaveBeenCalled();
   });
 
@@ -188,21 +197,21 @@ describe('SessionsListComponent', () => {
     configureModule();
     const router: any = TestBed.inject(Router);
     spyOn(router, 'navigate');
-    (component as any).viewDetail('sess-1');
+    component['viewDetail']('sess-1');
     expect(router.navigate).toHaveBeenCalled();
   });
 
   it('onFilterChange dispara fetch', () => {
     configureModule();
     fakeApi.listSessions.and.returnValue(of([]));
-    (component as any).onFilterChange('status', SessionStatus.PLANNED);
+    component['onFilterChange']('status', SessionStatus.PLANNED);
     expect(fakeApi.listSessions).toHaveBeenCalled();
   });
 
   it('clearFilters limpia URL y recarga', () => {
     configureModule();
     fakeApi.listSessions.and.returnValue(of([]));
-    (component as any).clearFilters();
+    component['clearFilters']();
     expect(fakeApi.listSessions).toHaveBeenCalled();
   });
 });

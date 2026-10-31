@@ -238,6 +238,21 @@ export class CompetenciesStore {
     }
   }
 
+  async promoteCompetency(publicUuid: string): Promise<boolean> {
+    this._saving.set(true);
+    this._error.set(null);
+    try {
+      const detail = await firstValueFrom(this.api.promoteCompetency(publicUuid));
+      this.upsertCompetency(detail);
+      return true;
+    } catch (err) {
+      this._error.set(this.toErrorMessage(err));
+      return false;
+    } finally {
+      this._saving.set(false);
+    }
+  }
+
   async seedCompetencies(): Promise<boolean> {
     const courseUuid = this._courseUuid();
     if (!courseUuid) return false;
@@ -271,12 +286,22 @@ export class CompetenciesStore {
         displayOrder: detail.displayOrder,
         isActive: detail.isActive,
         capacityCount: detail.capacities.length,
+        origin: detail.origin,
+        createdBy: detail.createdBy ?? null,
+        sourceCatalogVersion: detail.sourceCatalogVersion ?? null,
+        sourceCatalogCode: detail.sourceCatalogCode ?? null,
+        sourceLevelCode: detail.sourceLevelCode ?? null,
+        sourceCycleCodes: detail.sourceCycleCodes ?? null,
+        sourceContentStatus: detail.sourceContentStatus ?? null,
         capacities: detail.capacities.map((cap) => ({
           publicUuid: cap.publicUuid,
           code: cap.code,
           name: cap.name,
           displayOrder: cap.displayOrder,
           isActive: cap.isActive,
+          sourceCatalogVersion: cap.sourceCatalogVersion ?? null,
+          sourceCatalogCode: cap.sourceCatalogCode ?? null,
+          sourceContentStatus: cap.sourceContentStatus ?? null,
           competency: cap.competency,
           createdAt: cap.createdAt,
           updatedAt: cap.updatedAt,
@@ -304,6 +329,9 @@ export class CompetenciesStore {
           displayOrder: detail.displayOrder,
           isActive: detail.isActive,
           description: detail.description,
+          sourceCatalogVersion: detail.sourceCatalogVersion ?? null,
+          sourceCatalogCode: detail.sourceCatalogCode ?? null,
+          sourceContentStatus: detail.sourceContentStatus ?? null,
           competency: detail.competency,
           createdAt: detail.createdAt,
           updatedAt: detail.updatedAt,

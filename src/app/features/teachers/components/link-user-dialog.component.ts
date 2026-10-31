@@ -1,3 +1,4 @@
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -12,7 +13,6 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
-import { UserRole } from '@core/enums';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { UsersApiService } from '@features/users/services';
 import { UserRow } from '@features/users/models';
@@ -26,8 +26,8 @@ import { TeacherDetail } from '../models';
  *
  * <h3>Flow</h3>
  * <ol>
- *   <li>El dialog hace {@code GET /v1/users?role=TEACHER&size=100}
- *       (escopado al rol) y guarda el resultado.</li>
+ *   <li>El dialog carga las cuentas de la institución, incluso si todavía
+ *       no tienen el rol de docente.</li>
  *   <li>Búsqueda client-side por nombre/email mientras el admin
  *       tipea (instantáneo, sin debouncing — listas chicas).</li>
  *   <li>Click en un user dispara
@@ -35,20 +35,15 @@ import { TeacherDetail } from '../models';
  * </ol>
  *
  * <h3>Errores</h3>
- * El backend valida tres invariantes; cualquier 409 se mapea a un
- * banner local del dialog:
+ * El backend asigna TEACHER y vincula la ficha en una transacción.
+ * Los conflictos se muestran en un banner local:
  * <ul>
  *   <li>{@code TEACHER_ALREADY_HAS_USER}</li>
- *   <li>{@code USER_NOT_TEACHER_ROLE} — no debería pasar porque
- *       filtramos por rol, pero defendemos por race con role-changes.</li>
  *   <li>{@code USER_ALREADY_LINKED_TO_TEACHER}</li>
  * </ul>
  *
  * <h3>Decisiones</h3>
- * Para no expandir la API (que el spec original sugería: filtro
- * {@code linkedToTeacher=false}), filtramos client-side cualquier
- * user con rol TEACHER cuya cuenta ya esté en uso por <em>este</em>
- * docente (autoexclusión). Si la lista crece >100 entries,
+ * Si la lista crece >100 entries,
  * agregaremos un parámetro de búsqueda al backend en sprint
  * posterior.
  */
@@ -56,14 +51,14 @@ import { TeacherDetail } from '../models';
   selector: 'app-link-user-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, FormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="link-user-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card flex max-h-[80vh] w-full max-w-2xl flex-col shadow-xl"
@@ -73,8 +68,8 @@ import { TeacherDetail } from '../models';
           <div>
             <h2 id="link-user-title" class="card-title">Vincular a usuario existente</h2>
             <p class="card-description">
-              Selecciona el usuario con rol <strong>Profesor</strong> al que quieres vincular a
-              {{ teacher().fullName }}.
+              Selecciona la cuenta que quieres vincular a {{ teacher().fullName }}. Al vincularla,
+              se le asignará el acceso de Profesor.
             </p>
           </div>
           <button
@@ -125,7 +120,7 @@ import { TeacherDetail } from '../models';
                   No hay usuarios que coincidan con "<strong>{{ search() }}</strong
                   >".
                 } @else {
-                  No hay usuarios con rol Profesor en este workspace.
+                  No hay cuentas disponibles en esta institución.
                 }
               </p>
             } @else {
@@ -155,8 +150,8 @@ import { TeacherDetail } from '../models';
 
         <footer class="card-footer">
           <p class="flex-1 text-xs text-content-muted">
-            ¿No aparece? Asegúrate de que el usuario tenga el rol
-            <strong>Profesor</strong> asignado en <em>Usuarios</em>.
+            Si la persona aún no tiene cuenta, usa <strong>Invitar al sistema</strong> desde esta
+            ficha.
           </p>
           <button type="button" class="btn btn-ghost btn-sm" (click)="close()">Cancelar</button>
         </footer>
@@ -219,11 +214,11 @@ export class LinkUserDialogComponent implements OnInit {
     this.loading.set(true);
     try {
       /* Tomamos un cap razonable (100). Si el tenant tiene más
-       * docentes con cuenta, en sprint posterior agregamos paginación
+       * cuentas, en sprint posterior agregamos paginación
        * o un endpoint con filtro {@code linkedToTeacher=false}. */
       const page = await firstValueFrom(
         this.usersApi.list(
-          { role: UserRole.Teacher },
+          {},
           { page: 0, size: 100, sort: 'lastName,ASC' },
         ),
       );

@@ -3,6 +3,9 @@ export interface DashboardKpis {
   activeTenants: number;
   activeStudents: number;
   totalReceivable: number;
+  overdue: number;
+  collectedThisMonth: number;
+  collectionRate: number;
 }
 
 export interface RevenueTrendPoint {
@@ -10,7 +13,7 @@ export interface RevenueTrendPoint {
   revenue: number;
 }
 
-export interface ActiveTenantsPoint {
+export interface NewInstitutionsPoint {
   month: string;
   count: number;
 }
@@ -23,6 +26,7 @@ export interface PlanDistributionItem {
 
 export interface TopTenant {
   tenantName: string;
+  publicUuid: string;
   revenue: number;
 }
 

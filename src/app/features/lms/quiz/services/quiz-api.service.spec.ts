@@ -73,7 +73,7 @@ describe('QuizApiService', () => {
       expect(rows[0].status).toBe(QuizStatus.Draft);
       expect(apiSpy.get).toHaveBeenCalledOnceWith(
         jasmine.stringMatching(/\/sections\/s-1\/quizzes$/),
-        { status: undefined },
+        { status: undefined, assignmentPublicUuid: undefined },
       );
       done();
     });
@@ -95,7 +95,7 @@ describe('QuizApiService', () => {
     service.listBySection('s-1', { status: QuizStatus.Published }).subscribe(() => {
       expect(apiSpy.get).toHaveBeenCalledOnceWith(
         jasmine.stringMatching(/\/sections\/s-1\/quizzes$/),
-        { status: QuizStatus.Published },
+        { status: QuizStatus.Published, assignmentPublicUuid: undefined },
       );
       done();
     });
@@ -159,12 +159,13 @@ describe('QuizApiService', () => {
         title: 'Nuevo',
         maxAttempts: 1,
         maxScore: 50,
+        teacherAssignmentPublicUuid: 'assignment-1',
       })
       .subscribe((detail) => {
         expect(detail.publicUuid).toBe('q-new');
         expect(apiSpy.post).toHaveBeenCalledOnceWith(
           jasmine.stringMatching(/\/sections\/s-1\/quizzes$/),
-          { title: 'Nuevo', maxAttempts: 1, maxScore: 50 },
+          { title: 'Nuevo', maxAttempts: 1, maxScore: 50, teacherAssignmentPublicUuid: 'assignment-1' },
         );
         done();
       });

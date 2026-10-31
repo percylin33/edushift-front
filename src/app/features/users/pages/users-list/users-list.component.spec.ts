@@ -5,7 +5,7 @@ import { of } from 'rxjs';
 import { UsersListComponent } from './users-list.component';
 import { InvitationsStore, UsersStore } from '../../store';
 import { UserRow, UserListFilters, Invitation } from '../../models';
-import { UserRole, UserStatus, InvitationStatus } from '@core/enums';
+import { UserRole, UserStatus } from '@core/enums';
 import { ROUTES } from '@core/constants';
 
 describe('UsersListComponent', () => {
@@ -99,23 +99,23 @@ describe('UsersListComponent', () => {
 
   it('openInviteModal limpia estado y abre modal', () => {
     configureModule();
-    (component as any).openInviteModal();
+    component['openInviteModal']();
     expect(fakeInvStore.clearLastCreated).toHaveBeenCalled();
     expect(fakeInvStore.clearError).toHaveBeenCalled();
-    expect((component as any).modalOpen()).toBeTrue();
+    expect(component['modalOpen']()).toBeTrue();
   });
 
   it('closeInviteModal cierra modal', () => {
     configureModule();
-    (component as any).closeInviteModal();
-    expect((component as any).modalOpen()).toBeFalse();
+    component['closeInviteModal']();
+    expect(component['modalOpen']()).toBeFalse();
   });
 
   it('onSearchChange debounce aplica filtros', async () => {
     configureModule();
     jasmine.clock().install();
-    (component as any).onSearchChange('juan');
-    expect((component as any).search()).toBe('juan');
+    component['onSearchChange']('juan');
+    expect(component['search']()).toBe('juan');
     jasmine.clock().tick(400);
     expect(fakeUsersStore.applyFilters).toHaveBeenCalled();
     jasmine.clock().uninstall();
@@ -123,60 +123,60 @@ describe('UsersListComponent', () => {
 
   it('onStatusChange aplica filtros', () => {
     configureModule();
-    (component as any).onStatusChange(UserStatus.Active);
+    component['onStatusChange'](UserStatus.Active);
     expect(fakeUsersStore.applyFilters).toHaveBeenCalled();
   });
 
   it('onRoleChange aplica filtros', () => {
     configureModule();
-    (component as any).onRoleChange(UserRole.Teacher);
+    component['onRoleChange'](UserRole.Teacher);
     expect(fakeUsersStore.applyFilters).toHaveBeenCalled();
   });
 
   it('prev y next delegan al store', () => {
     configureModule();
     fakeUsersStore.pagination.set({ page: 1, size: 20, totalElements: 100, totalPages: 5 });
-    (component as any).prev();
-    (component as any).next();
+    component['prev']();
+    component['next']();
     expect(fakeUsersStore.goToPage).toHaveBeenCalledWith(0);
     expect(fakeUsersStore.goToPage).toHaveBeenCalledWith(2);
   });
 
   it('retry limpia error y recarga', () => {
     configureModule();
-    (component as any).retry();
+    component['retry']();
     expect(fakeUsersStore.clearError).toHaveBeenCalled();
     expect(fakeUsersStore.loadList).toHaveBeenCalled();
   });
 
   it('detailLink retorna ruta del detalle', () => {
     configureModule();
-    expect((component as any).detailLink('u-1')).toBe(ROUTES.USERS.detail('u-1'));
+    expect(component['detailLink']('u-1')).toBe(ROUTES.USERS.detail('u-1'));
   });
 
   it('formatDate maneja undefined con em-dash', () => {
     configureModule();
-    expect((component as any).formatDate(undefined)).toBe('—');
+    expect(component['formatDate'](undefined)).toBe('—');
   });
 
   it('invitationsBadge lee del InvitationsStore', () => {
     configureModule();
     fakeInvStore.pagination.set({ page: 0, size: 20, totalElements: 7, totalPages: 1 });
-    expect((component as any).invitationsBadge()).toBe(7);
+    expect(component['invitationsBadge']()).toBe(7);
   });
 
   it('switchTab noop si ya está seleccionado', () => {
     configureModule();
-    (component as any).tab.set('invitations');
-    (component as any).switchTab('invitations');
-    expect((component as any).tab()).toBe('invitations');
+    component['tab'].set('invitations');
+    component['switchTab']('invitations');
+    expect(component['tab']()).toBe('invitations');
   });
 
   it('tabClass refleja selección', () => {
     configureModule();
-    const active = (component as any).tabClass('users');
+    const active = component['tabClass']('users');
     expect(active).toContain('border-primary-500');
-    const inactive = (component as any).tabClass('invitations');
+    const inactive = component['tabClass']('invitations');
     expect(inactive).toContain('border-transparent');
   });
 });

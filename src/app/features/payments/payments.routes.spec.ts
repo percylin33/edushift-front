@@ -8,15 +8,24 @@ describe('PAYMENTS_ROUTES', () => {
     expect(paths).toContain('admin');
   });
 
-  it('raíz redirige a invoices', () => {
+  it('raíz usa role redirect (no hard redirect)', () => {
     const root = PAYMENTS_ROUTES.find((r) => r.path === '')!;
-    expect(root.redirectTo).toBe('invoices');
+    expect(root.component).toBeDefined();
+  });
+
+  it('admin children incluyen emit, plans y policy', () => {
+    const admin = PAYMENTS_ROUTES.find((r) => r.path === 'admin')!;
+    const childPaths = (admin.children ?? []).map((c) => c.path);
+    expect(childPaths).toContain('emit');
+    expect(childPaths).toContain('plans');
+    expect(childPaths).toContain('policy');
+    expect(childPaths).toContain('concepts');
   });
 
   it('admin usa permissionGuard con LMS_PAYMENT_ADMIN', () => {
     const admin = PAYMENTS_ROUTES.find((r) => r.path === 'admin')!;
     expect(admin.canMatch).toBeDefined();
-    expect((admin.data as any).permissions).toBe('LMS_PAYMENT_ADMIN');
+    expect((admin.data?.['permissions'] as string[])).toContain('LMS_PAYMENT_ADMIN');
   });
 
   it('invoices es lazy loadComponent', () => {

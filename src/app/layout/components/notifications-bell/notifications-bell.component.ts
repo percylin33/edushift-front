@@ -6,8 +6,9 @@ import {
   inject,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router, NavigationEnd } from '@angular/router';
-import { filter } from 'rxjs/operators';
+import { Router } from '@angular/router';
+import { fromEvent, merge } from 'rxjs';
+import { debounceTime, filter } from 'rxjs/operators';
 import { IconComponent } from '@shared/components';
 import { ROUTES } from '@core/constants';
 import { NotificationsStore } from '@features/notifications/store';
@@ -17,13 +18,18 @@ import { NotificationsStore } from '@features/notifications/store';
  *
  * <h3>State source</h3>
  * Reads {@code unread} directly from the {@link NotificationsStore}
- * singleton, which persists across navigations. On every
- * {@code NavigationEnd} we re-fetch the count from the server and call
- * {@link ChangeDetectorRef.markForCheck} so the OnPush template
- * definitely re-renders.
+ * singleton, which persists across navigations. Refresh triggers:
+ * <ul>
+ *   <li>Mount (cold load)</li>
+ *   <li>Window {@code focus} / document {@code visibilitychange} → visible
+ *       (user returns to the tab)</li>
+ * </ul>
+ * Navigation no longer hits {@code GET /unread-count} — that was a
+ * constant load during the school day. Push via STOMP is the next step
+ * (see {@code docs/modules/notifications.md} § Realtime / STOMP FE).
  *
  * <h3>Why a method (not a signal getter) and explicit markForCheck</h3>
- * Earlier versions used a signal ({@code signal<number>}) or a
+ * Earlier versions used a signal ({@code signal&lt;number&gt;}) or a
  * {@code computed} bound to the store. Both worked on
  * {@code /notifications} but disappeared on every other route — the
  * underlying reason is that the home page mounts on
@@ -37,9 +43,8 @@ import { NotificationsStore } from '@features/notifications/store';
  *
  * <p>Fix: read the count via a plain getter (so the template always
  * reads the current value on each CD cycle) and call
- * {@code markForCheck} explicitly after every refresh and every
- * navigation. This works on any Angular version and any CD
- * strategy.</p>
+ * {@code markForCheck} explicitly after every refresh. This works on
+ * any Angular version and any CD strategy.</p>
  */
 @Component({
   selector: 'app-notifications-bell',
@@ -82,18 +87,20 @@ export class NotificationsBellComponent {
 
   constructor() {
     this.refresh();
-    this.router.events
-      .pipe(
-        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-        takeUntilDestroyed(this.destroyRef)
+
+    // Refresh when the user returns to the tab (not on every route change).
+    const win = typeof window !== 'undefined' ? window : null;
+    const doc = typeof document !== 'undefined' ? document : null;
+    if (win && doc) {
+      merge(
+        fromEvent(win, 'focus'),
+        fromEvent(doc, 'visibilitychange').pipe(
+          filter(() => doc.visibilityState === 'visible')
+        )
       )
-      .subscribe(() => {
-        // Force a re-render before the fetch even lands. This makes
-        // the badge survive navigations even if the next fetch
-        // takes a few hundred ms.
-        this.cdr.markForCheck();
-        this.refresh();
-      });
+        .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => this.refresh());
+    }
   }
 
   private refresh(): void {

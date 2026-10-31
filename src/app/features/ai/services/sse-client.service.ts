@@ -1,6 +1,5 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { AuthService } from '@core/services';
 
 /**
  * Token shape of one Server-Sent Event consumed from
@@ -18,7 +17,7 @@ import { AuthService } from '@core/services';
  * </p>
  */
 export interface SseToken {
-	readonly event: 'token' | 'done' | 'error';
+	readonly event: 'token' | 'done' | 'error' | 'citation';
 	readonly data: string;
 }
 
@@ -31,14 +30,11 @@ export interface SseToken {
  * Observable-friendly surface so consumers can use {@code firstValueFrom}
  * or pipe operators.</p>
  *
- * <p>Multi-tenant: the auth token + tenant id are pulled from
- * {@link AuthService}; the request is sent with the same
- * {@code Authorization: Bearer <token>} header the rest of the FE uses.</p>
+ * <p>The browser sends the authenticated user's httpOnly cookies with the
+ * request, including when the API uses a different local development port.</p>
  */
 @Injectable({ providedIn: 'root' })
 export class SseClientService {
-	private readonly auth = inject(AuthService);
-
 	/**
 	 * POST {@code url} with {@code body} as JSON, stream the response as
 	 * SSE, and emit each parsed event via {@link SseToken}.
@@ -46,23 +42,24 @@ export class SseClientService {
 	 * <p>On 4xx/5xx the Observable errors with a {@code SseHttpError}
 	 * carrying the status + best-effort message body.</p>
 	 */
-	stream(url: string, body: unknown): Observable<SseToken> {
+	stream(url: string, body: unknown, extraHeaders: Record<string, string> = {}): Observable<SseToken> {
 		return new Observable<SseToken>((subscriber) => {
 			const controller = new AbortController();
 			const headers: Record<string, string> = {
 				'Content-Type': 'application/json',
 				Accept: 'text/event-stream',
+				...extraHeaders,
 			};
-			const token = this.auth.accessToken();
-			if (token) {
-				headers['Authorization'] = `Bearer ${token}`;
-			}
+			// SECURITY FIX: Tokens are in httpOnly cookies, browser sends them automatically
+			// No need to manually set Authorization header
 			fetch(url, {
 				method: 'POST',
 				headers,
 				body: JSON.stringify(body),
 				signal: controller.signal,
-				credentials: 'same-origin',
+				// The SPA and API use different local ports, so the API's
+				// httpOnly auth cookies require cross-origin credentials.
+				credentials: 'include',
 			})
 				.then(async (response) => {
 					if (!response.ok || !response.body) {
@@ -141,7 +138,7 @@ function parseFrame(frame: string): SseToken | null {
 		let value = line.slice(colon + 1);
 		if (value.startsWith(' ')) value = value.slice(1);
 		if (field === 'event') {
-			if (value === 'token' || value === 'done' || value === 'error') {
+			if (value === 'token' || value === 'done' || value === 'error' || value === 'citation') {
 				event = value;
 			}
 		}

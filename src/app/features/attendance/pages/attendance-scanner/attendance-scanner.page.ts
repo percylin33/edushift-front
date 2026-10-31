@@ -99,12 +99,12 @@ type CameraState =
   template: `
     <app-page-container>
       <app-page-header
-        title="Escanear asistencia"
-        subtitle="Apunta la cámara al QR del alumno para registrar su asistencia."
+        title="Asistencia en la entrada"
+        subtitle="Escanea el QR o busca al alumno. No eliges sección: el sistema la resuelve con la matrícula activa."
       >
-        <a routerLink="/attendance" class="btn btn-ghost btn-sm">
-          <app-icon name="arrow-left" [size]="16" />
-          <span class="hidden sm:inline">Volver</span>
+        <a routerLink="/attendance/sessions" class="btn btn-ghost btn-sm">
+          <app-icon name="calendar-check" [size]="16" />
+          <span class="hidden sm:inline">Ver sesiones</span>
         </a>
       </app-page-header>
 
@@ -146,8 +146,8 @@ type CameraState =
                 </div>
                 <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
                   <p class="text-xs text-slate-500">
-                    Apunta la cámara al QR del alumno. Si no trae credencial, búscalo por nombre
-                    debajo.
+                    Asistencia en la puerta: apunta al QR. Si no trae credencial, búscalo por nombre
+                    debajo. No hace falta abrir una sesión por sección.
                   </p>
                   <div class="flex items-center gap-2">
                     @if (devices().length > 1) {
@@ -312,7 +312,8 @@ type CameraState =
                 </button>
               } @else {
                 <p class="text-sm text-slate-500">
-                  No hay sesión activa. El backend la abrirá en el próximo check-in (idempotente).
+                  No hay sesión preabierta. Al marcar al alumno se abre o reutiliza la sesión de su
+                  sección automáticamente.
                 </p>
               }
             </div>

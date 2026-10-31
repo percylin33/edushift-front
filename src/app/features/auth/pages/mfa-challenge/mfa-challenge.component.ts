@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } fr
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs/operators';
+import { catchError, finalize, of, tap } from 'rxjs';
 
 import { AuthService, TenantService } from '@core/services';
 import { ROUTES } from '@core/constants';
@@ -160,7 +160,19 @@ export class MfaChallengeComponent implements OnInit {
         next: (session) => {
           this.auth.setSession(session);
           this.auth.clearMfaToken();
-          this.router.navigateByUrl(ROUTES.DASHBOARD.ROOT);
+          this.authApi
+            .me()
+            .pipe(
+              tap((user) => this.auth.setUser(user)),
+              catchError(() => of(null)),
+            )
+            .subscribe((user) => {
+              if (user?.mustChangePassword) {
+                this.router.navigateByUrl(ROUTES.AUTH.FIRST_LOGIN);
+                return;
+              }
+              this.router.navigateByUrl(ROUTES.DASHBOARD.ROOT);
+            });
         },
         error: (err: HttpErrorResponse) => {
           this.errorMessage.set(this.toMessage(err));

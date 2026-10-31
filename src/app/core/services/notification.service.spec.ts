@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { NotificationService, AppNotification } from './notification.service';
+import { NotificationService } from './notification.service';
 
 describe('NotificationService', () => {
   let service: NotificationService;
@@ -13,7 +13,7 @@ describe('NotificationService', () => {
   afterEach(() => {
     try {
       jasmine.clock().uninstall();
-    } catch (e) {
+    } catch {
       // Clock already uninstalled; safe to ignore.
     }
   });
@@ -31,10 +31,10 @@ describe('NotificationService', () => {
   });
 
   it('success, info, warning, error son helpers', () => {
-    const sid = service.success('OK');
-    const iid = service.info('Info');
-    const wid = service.warning('Warning');
-    const eid = service.error('Error');
+    service.success('OK');
+    service.info('Info');
+    service.warning('Warning');
+    service.error('Error');
 
     expect(service.messages()).toHaveSize(4);
     expect(service.messages()[0].kind).toBe('success');

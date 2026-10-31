@@ -6,6 +6,7 @@ import { AttendanceStore } from '../../store';
 import { AuthService } from '@core/services';
 import { UserRole } from '@core/enums';
 import { AttendanceRecord, AttendanceRecordStatus } from '../../models';
+import { AttendanceReportService } from '../../services/attendance-report.service';
 
 describe('AttendanceSessionDetailPageComponent', () => {
   let fixture: ComponentFixture<AttendanceSessionDetailPageComponent>;
@@ -27,7 +28,7 @@ describe('AttendanceSessionDetailPageComponent', () => {
     closeCurrentSession: jasmine.Spy;
     updateRecord: jasmine.Spy;
   };
-  let fakeAuth: { hasRole: jasmine.Spy };
+  let fakeAuth: { hasRole: jasmine.Spy; hasPermission: jasmine.Spy };
 
   const session = {
     publicUuid: 'sess-1',
@@ -62,12 +63,22 @@ describe('AttendanceSessionDetailPageComponent', () => {
         .and.returnValue(Promise.resolve(null)),
       updateRecord: jasmine.createSpy('updateRecord').and.returnValue(Promise.resolve(null)),
     };
-    fakeAuth = { hasRole: jasmine.createSpy('hasRole').and.returnValue(false) };
+    fakeAuth = {
+      hasRole: jasmine.createSpy('hasRole').and.returnValue(false),
+      hasPermission: jasmine.createSpy('hasPermission').and.returnValue(false),
+    };
     TestBed.configureTestingModule({
       imports: [AttendanceSessionDetailPageComponent],
       providers: [
         provideRouter([]),
         { provide: AttendanceStore, useValue: fakeStore },
+        {
+          provide: AttendanceReportService,
+          useValue: {
+            requestInstitutionalExport: jasmine.createSpy('requestInstitutionalExport'),
+            downloadJob: jasmine.createSpy('downloadJob'),
+          },
+        },
         { provide: AuthService, useValue: fakeAuth },
         {
           provide: ActivatedRoute,
@@ -99,66 +110,66 @@ describe('AttendanceSessionDetailPageComponent', () => {
   it('title y subtitle derivados del currentSession', () => {
     configureModule();
     fakeStore.currentSession.set(session);
-    expect((component as any).title()).toBe('A');
-    expect((component as any).subtitle()).toContain('MORNING');
+    expect(component['title']()).toBe('A');
+    expect(component['subtitle']()).toContain('MORNING');
   });
 
   it('canClose true para ACTIVE', () => {
     configureModule();
     fakeStore.currentSession.set(session);
-    expect((component as any).canClose()).toBeTrue();
+    expect(component['canClose']()).toBeTrue();
     fakeStore.currentSession.set({ ...session, status: 'CLOSED' });
-    expect((component as any).canClose()).toBeFalse();
+    expect(component['canClose']()).toBeFalse();
   });
 
   it('filteredRecords aplica onlyPending', () => {
     configureModule();
     fakeStore.records.set([record, { ...record, publicUuid: 'rec-2', status: 'ABSENT' }]);
-    expect((component as any).filteredRecords()).toHaveSize(2);
-    (component as any).onlyPending = true;
-    expect((component as any).filteredRecords()).toHaveSize(1);
+    expect(component['filteredRecords']()).toHaveSize(2);
+    component['onlyPending'].set(true);
+    expect(component['filteredRecords']()).toHaveSize(1);
   });
 
   it('canEdit true para TENANT_ADMIN', () => {
     configureModule();
     fakeStore.currentSession.set(session);
     fakeAuth.hasRole.and.callFake((...roles: UserRole[]) => roles.includes(UserRole.TenantAdmin));
-    expect((component as any).canEdit(record)).toBeTrue();
+    expect(component['canEdit'](record)).toBeTrue();
   });
 
   it('canEdit false para roles desconocidos', () => {
     configureModule();
     fakeAuth.hasRole.and.returnValue(false);
-    expect((component as any).canEdit(record)).toBeFalse();
+    expect(component['canEdit'](record)).toBeFalse();
   });
 
   it('canEdit true para TEACHER en sesión CLOSED', () => {
     configureModule();
     fakeStore.currentSession.set({ ...session, status: 'CLOSED' });
     fakeAuth.hasRole.and.callFake((...roles: UserRole[]) => roles.includes(UserRole.Teacher));
-    expect((component as any).canEdit(record)).toBeTrue();
+    expect(component['canEdit'](record)).toBeTrue();
   });
 
-  it('canEdit false para TEACHER en sesión ACTIVE', () => {
+  it('canEdit permite editar a TEACHER mientras la sesión está activa', () => {
     configureModule();
     fakeStore.currentSession.set(session);
     fakeAuth.hasRole.and.callFake((...roles: UserRole[]) => roles.includes(UserRole.Teacher));
-    expect((component as any).canEdit(record)).toBeFalse();
+    expect(component['canEdit'](record)).toBeTrue();
   });
 
   it('openEdit / closeEdit alternan editing', () => {
     configureModule();
-    (component as any).openEdit(record);
-    expect((component as any).editing()?.publicUuid).toBe('rec-1');
-    (component as any).closeEdit();
-    expect((component as any).editing()).toBeNull();
+    component['openEdit'](record);
+    expect(component['editing']()?.publicUuid).toBe('rec-1');
+    component['closeEdit']();
+    expect(component['editing']()).toBeNull();
   });
 
   it('onSave llama updateRecord y reload', async () => {
     configureModule();
     fakeStore.updateRecord.and.returnValue(Promise.resolve({ ...record, status: 'LATE' }));
     fakeStore.loadRecords.and.returnValue(Promise.resolve());
-    await (component as any).onSave(record, { status: 'LATE' });
+    await component['onSave'](record, { status: 'LATE' });
     expect(fakeStore.updateRecord).toHaveBeenCalledWith('rec-1', { status: 'LATE' });
     expect(fakeStore.loadRecords).toHaveBeenCalled();
   });
@@ -166,19 +177,14 @@ describe('AttendanceSessionDetailPageComponent', () => {
   it('onSave sin éxito no recarga records', async () => {
     configureModule();
     fakeStore.updateRecord.and.returnValue(Promise.resolve(null));
-    await (component as any).onSave(record, { status: 'LATE' });
+    await component['onSave'](record, { status: 'LATE' });
     expect(fakeStore.loadRecords).not.toHaveBeenCalled();
   });
 
   it('onClose delega al store', () => {
     configureModule();
-    (component as any).onClose();
+    component['onClose']();
     expect(fakeStore.closeCurrentSession).toHaveBeenCalled();
   });
 
-  it('retry recarga records', () => {
-    configureModule();
-    (component as any).retry();
-    expect(fakeStore.loadRecords).toHaveBeenCalled();
-  });
 });

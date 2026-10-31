@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { API } from '@core/constants';
@@ -254,6 +254,32 @@ export class AttendanceApiService {
       .pipe(map((envelope) => this.toRecord(envelope.data)));
   }
 
+  /**
+   * Student attendance history for staff reports (TA / TEACHER / STAFF).
+   */
+  listStudentAttendance(
+    studentPublicUuid: string,
+    from?: string,
+    to?: string,
+  ): Observable<StudentAttendanceHistoryRow[]> {
+    const params: Record<string, string | undefined> = { from, to };
+    return this.api
+      .get<ApiResponse<StudentAttendanceHistoryRowRaw[]>>(
+        `/v1/students/${studentPublicUuid}/attendance`,
+        params,
+      )
+      .pipe(map((envelope) => envelope.data.map((r) => this.toStudentHistoryRow(r))));
+  }
+
+  private toStudentHistoryRow(raw: StudentAttendanceHistoryRowRaw): StudentAttendanceHistoryRow {
+    return {
+      publicUuid: raw.publicUuid,
+      occurredAt: this.parseDate(raw.occurredAt) ?? new Date(),
+      status: raw.status,
+      notes: raw.notes ?? undefined,
+    };
+  }
+
   // ===========================================================================
   // Student attendance QR (BE-6.3)
   // ===========================================================================
@@ -412,4 +438,18 @@ export interface AttendanceListResult<T> {
   totalPages: number;
   page: number;
   size: number;
+}
+
+export interface StudentAttendanceHistoryRow {
+  publicUuid: string;
+  occurredAt: Date;
+  status: string;
+  notes?: string;
+}
+
+interface StudentAttendanceHistoryRowRaw {
+  publicUuid: string;
+  occurredAt: string;
+  status: string;
+  notes?: string | null;
 }

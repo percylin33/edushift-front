@@ -1,3 +1,4 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -5,7 +6,6 @@ import {
   OnInit,
   computed,
   inject,
-  signal,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -19,11 +19,8 @@ import { ROUTES } from '@core/constants';
 import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
 import { AttemptsStore } from '../../store/attempts.store';
 import {
-  AttemptDetail,
-  AttemptStatus,
   GradingQueueItem,
   ManualGradeAttemptRequest,
-  ManualGradeEntry,
 } from '../../models/attempt.model';
 
 /**
@@ -77,7 +74,7 @@ import {
         </p>
         <h1 class="text-2xl font-semibold text-content">Cola de calificación</h1>
         <p class="text-sm text-content-muted">
-          {{ queue().length }} respuesta(s) corta(s) pendiente(s) en este quiz.
+          {{ queue().length }} respuesta(s) corta(s) pendiente(s) en esta práctica.
         </p>
       </div>
     </header>
@@ -208,6 +205,12 @@ import {
   `,
 })
 export class QuizGradePageComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.storeSaving(),
+    active: () => true,
+  });
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
@@ -327,6 +330,7 @@ export class QuizGradePageComponent implements OnInit {
       // Refresh the queue (the just-graded attempt is no longer pending).
       await this.attempts.loadQueue(this.quizPublicUuid());
       this.rebuildForm();
+      this.formProtection.markSaved();
     }
   }
 

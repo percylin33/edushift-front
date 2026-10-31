@@ -12,6 +12,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ROUTES } from '@core/constants';
 import {
+  ConfirmDialogService,
   IconComponent,
   PageContainerComponent,
   PageHeaderComponent,
@@ -77,7 +78,7 @@ const TABS: readonly TabDef[] = [
   ],
   template: `
     <app-page-container size="wide">
-      <app-page-header eyebrow="Evaluaciones" [title]="title()" [subtitle]="subtitle()">
+      <app-page-header eyebrow="Registros" [title]="title()" [subtitle]="subtitle()">
         <button type="button" class="btn btn-ghost btn-sm" (click)="goBack()">
           <app-icon name="chevron-left" [size]="16" />
           <span>Volver</span>
@@ -115,7 +116,7 @@ const TABS: readonly TabDef[] = [
 
       @if (loading()) {
         <div class="flex items-center justify-center py-16">
-          <app-spinner [size]="24" label="Cargando evaluación…" />
+          <app-spinner [size]="24" label="Cargando registro…" />
         </div>
       } @else if (errorBanner() && !evaluation()) {
         <div class="alert alert-danger">
@@ -258,7 +259,7 @@ const TABS: readonly TabDef[] = [
                 <div class="flex-1">
                   <h4 class="text-danger-700 font-medium">Zona peligrosa</h4>
                   <p class="text-danger-600 mt-1 text-sm">
-                    Esta evaluación es un borrador sin calificaciones. Eliminarla la quita del
+                    Este registro es un borrador sin calificaciones. Eliminarlo lo quita del
                     listado del docente.
                   </p>
                 </div>
@@ -304,6 +305,7 @@ export class EvaluationDetailComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly store = inject(EvaluationsStore);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly evaluation = this.store.selected;
   protected readonly loading = this.store.loadingDetail;
@@ -314,7 +316,7 @@ export class EvaluationDetailComponent implements OnInit, OnDestroy {
   protected readonly activeTab = signal<TabId>('overview');
   protected readonly editing = signal<EvaluationDetail | null>(null);
 
-  protected readonly title = computed(() => this.evaluation()?.name ?? 'Evaluación');
+  protected readonly title = computed(() => this.evaluation()?.name ?? 'Registro');
   protected readonly subtitle = computed(() => this.evaluation()?.assignment.label ?? '');
 
   private routeSub?: Subscription;
@@ -368,10 +370,15 @@ export class EvaluationDetailComponent implements OnInit, OnDestroy {
     const e = this.evaluation();
     if (!e) return;
     const fromLabel = e.status;
-    const ok = confirm(
-      `¿Cambiar la evaluación "${e.name}" a ${target}?` +
-        (target === EvaluationStatus.CLOSED ? '\n\nUna vez cerrada NO se podrá reabrir.' : ''),
-    );
+    const isClose = target === EvaluationStatus.CLOSED;
+    const ok = await this.confirmDialog.open({
+      title: isClose ? 'Cerrar registro' : 'Publicar registro',
+      message:
+        `¿Cambiar el registro "${e.name}" a ${target}?` +
+        (isClose ? '\n\nUna vez cerrada NO se podrá reabrir.' : ''),
+      confirmLabel: isClose ? 'Cerrar' : 'Publicar',
+      variant: isClose ? 'warning' : 'default',
+    });
     if (!ok) return;
 
     if (target === EvaluationStatus.PUBLISHED) {
@@ -385,10 +392,15 @@ export class EvaluationDetailComponent implements OnInit, OnDestroy {
   protected async onDelete(): Promise<void> {
     const e = this.evaluation();
     if (!e) return;
-    const ok = confirm(
-      `¿Eliminar el borrador "${e.name}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar borrador',
+      message:
+        `¿Eliminar el borrador "${e.name}"?\n\n` +
         'Solo se permite eliminar borradores sin calificaciones.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     const success = await this.store.remove(e.publicUuid);
     if (success) {

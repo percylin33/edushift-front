@@ -1,10 +1,11 @@
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import {
   ChangeDetectionStrategy,
   Component,
   HostListener,
-  inject,
   signal,
 } from '@angular/core';
+import { A11yModule } from '@angular/cdk/a11y';
 import { IconComponent } from '@shared/components/icon';
 import { ConfirmDialogConfig } from './confirm-dialog.model';
 
@@ -12,16 +13,19 @@ import { ConfirmDialogConfig } from './confirm-dialog.model';
   selector: 'app-confirm-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent],
+  imports: [SafeBackdropDirective, IconComponent, A11yModule],
   template: `
     <div
       class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="confirm-title"
-      (click)="onBackdropClick($event)"
+      [attr.aria-labelledby]="titleId"
+      [attr.aria-describedby]="messageId"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
         class="card flex max-h-[90vh] w-full max-w-sm flex-col shadow-xl"
         (click)="$event.stopPropagation()"
       >
@@ -43,18 +47,21 @@ import { ConfirmDialogConfig } from './confirm-dialog.model';
                 />
               </div>
             }
-            <h2 id="confirm-title" class="card-title">{{ config().title }}</h2>
+            <h2 [id]="titleId" class="card-title">{{ config().title }}</h2>
           </div>
         </header>
 
         <div class="card-body">
-          <p class="text-sm text-content-muted">{{ config().message }}</p>
+          <p [id]="messageId" class="whitespace-pre-line text-sm text-content-muted">{{ config().message }}</p>
         </div>
 
         <footer class="card-footer flex justify-end gap-2">
           <button
             type="button"
-            class="btn btn-ghost btn-sm"
+            cdkFocusInitial
+            class="btn btn-sm"
+            [class.btn-primary]="config().preferCancel"
+            [class.btn-ghost]="!config().preferCancel"
             (click)="cancel()"
           >
             {{ config().cancelLabel || 'Cancelar' }}
@@ -74,6 +81,9 @@ import { ConfirmDialogConfig } from './confirm-dialog.model';
   `,
 })
 export class ConfirmDialogComponent {
+  private static nextId = 0;
+  readonly titleId = `confirm-title-${++ConfirmDialogComponent.nextId}`;
+  readonly messageId = `${this.titleId}-message`;
   readonly config = signal<ConfirmDialogConfig>({
     title: '',
     message: '',

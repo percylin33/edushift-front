@@ -1,3 +1,4 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { roleGuard } from '@core/guards';
 import { UserRole } from '@core/enums';
@@ -21,6 +22,7 @@ import { UserRole } from '@core/enums';
  */
 export const TEACHERS_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     canActivate: [roleGuard],
     data: { roles: [UserRole.TenantAdmin], title: 'Docentes' },
@@ -28,6 +30,7 @@ export const TEACHERS_ROUTES: Routes = [
       import('./pages/teachers-list/teachers-list.component').then((m) => m.TeachersListComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'new',
     canActivate: [roleGuard],
     data: {
@@ -39,6 +42,7 @@ export const TEACHERS_ROUTES: Routes = [
       import('./pages/teacher-form/teacher-form.component').then((m) => m.TeacherFormComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: ':id',
     canActivate: [roleGuard],
     data: {
@@ -52,6 +56,7 @@ export const TEACHERS_ROUTES: Routes = [
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: ':id/edit',
     canActivate: [roleGuard],
     data: {

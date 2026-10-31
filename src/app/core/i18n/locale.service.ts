@@ -1,5 +1,5 @@
-import { Injectable, inject, signal } from '@angular/core';
-import { DOCUMENT } from '@angular/common';
+import { Injectable, inject, signal, DOCUMENT } from '@angular/core';
+
 import { Subject } from 'rxjs';
 
 /**
@@ -17,67 +17,67 @@ import { Subject } from 'rxjs';
  */
 @Injectable({ providedIn: 'root' })
 export class LocaleService {
-	private static readonly STORAGE_KEY = 'edushift.locale';
+  private static readonly STORAGE_KEY = 'edushift.locale';
+  private readonly document = inject(DOCUMENT);
 
-	readonly current = signal<Locale>(this.detectInitial());
-	readonly changes = new Subject<Locale>();
+  readonly current = signal<Locale>(this.detectInitial());
+  readonly changes = new Subject<Locale>();
 
-	constructor() {
-		this.document = inject(DOCUMENT);
-		this.applyToDom(this.current());
-	}
+  constructor() {
+    this.applyToDom(this.current());
+  }
 
-	private readonly document: Document;
+  get available(): readonly LocaleOption[] {
+    return [
+      { code: 'es-PE', label: 'Español (Perú)', flag: '🇵🇪' },
+      { code: 'en-US', label: 'English (US)', flag: '🇺🇸' },
+    ];
+  }
 
-	get available(): readonly LocaleOption[] {
-		return [
-			{ code: 'es-PE', label: 'Español (Perú)', flag: '🇵🇪' },
-			{ code: 'en-US', label: 'English (US)', flag: '🇺🇸' },
-		];
-	}
+  set(code: Locale): void {
+    if (this.current() === code) return;
+    this.current.set(code);
+    try {
+      localStorage.setItem(LocaleService.STORAGE_KEY, code);
+    } catch {
+      /* localStorage may be disabled (private mode) */
+    }
+    this.applyToDom(code);
+    this.changes.next(code);
+  }
 
-	set(code: Locale): void {
-		if (this.current() === code) return;
-		this.current.set(code);
-		try {
-			localStorage.setItem(LocaleService.STORAGE_KEY, code);
-		}
-		catch { /* localStorage may be disabled (private mode) */ }
-		this.applyToDom(code);
-		this.changes.next(code);
-	}
+  /**
+   * Picks the initial locale from (in order): localStorage,
+   * {@code navigator.language}, the default {@code es-PE}. Falls back
+   * gracefully on SSR / test envs where neither exists.
+   */
+  private detectInitial(): Locale {
+    try {
+      const stored = localStorage.getItem(LocaleService.STORAGE_KEY);
+      if (stored && this.isSupported(stored)) return stored;
+    } catch {
+      /* ignore */
+    }
+    const nav = (this.document.defaultView?.navigator?.language ?? '').toLowerCase();
+    if (nav.startsWith('en')) return 'en-US';
+    return 'es-PE';
+  }
 
-	/**
-	 * Picks the initial locale from (in order): localStorage,
-	 * {@code navigator.language}, the default {@code es-PE}. Falls back
-	 * gracefully on SSR / test envs where neither exists.
-	 */
-	private detectInitial(): Locale {
-		try {
-			const stored = localStorage.getItem(LocaleService.STORAGE_KEY);
-			if (stored && this.isSupported(stored)) return stored;
-		}
-		catch { /* ignore */ }
-		const nav = (this.document.defaultView?.navigator?.language ?? '').toLowerCase();
-		if (nav.startsWith('en')) return 'en-US';
-		return 'es-PE';
-	}
+  private isSupported(code: string): code is Locale {
+    return this.available.some((opt) => opt.code === code);
+  }
 
-	private isSupported(code: string): code is Locale {
-		return this.available.some((opt) => opt.code === code);
-	}
-
-	private applyToDom(code: Locale): void {
-		const root = this.document.documentElement;
-		root.lang = code;
-		root.setAttribute('data-locale', code);
-	}
+  private applyToDom(code: Locale): void {
+    const root = this.document.documentElement;
+    root.lang = code;
+    root.setAttribute('data-locale', code);
+  }
 }
 
 export type Locale = 'es-PE' | 'en-US';
 
 export interface LocaleOption {
-	readonly code: Locale;
-	readonly label: string;
-	readonly flag: string;
+  readonly code: Locale;
+  readonly label: string;
+  readonly flag: string;
 }

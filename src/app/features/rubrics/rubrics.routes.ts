@@ -1,3 +1,4 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { roleGuard } from '@core/guards';
 import { UserRole } from '@core/enums';
@@ -21,6 +22,7 @@ import { UserRole } from '@core/enums';
  */
 export const RUBRICS_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     canActivate: [roleGuard],
     data: {
@@ -31,6 +33,7 @@ export const RUBRICS_ROUTES: Routes = [
       import('./pages/rubrics-list/rubrics-list.component').then((m) => m.RubricsListComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'new',
     canActivate: [roleGuard],
     data: {
@@ -42,6 +45,7 @@ export const RUBRICS_ROUTES: Routes = [
       import('./pages/rubric-form/rubric-form.component').then((m) => m.RubricFormComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: ':publicUuid',
     canActivate: [roleGuard],
     data: {
@@ -53,6 +57,7 @@ export const RUBRICS_ROUTES: Routes = [
       import('./pages/rubric-detail/rubric-detail.component').then((m) => m.RubricDetailComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: ':publicUuid/edit',
     canActivate: [roleGuard],
     data: {

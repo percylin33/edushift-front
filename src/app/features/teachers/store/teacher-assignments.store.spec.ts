@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { TeacherAssignmentsStore } from './teacher-assignments.store';
 import { TeachersApiService } from '../services';
-import { AssignmentRow, AssignmentDetail, SectionTeacherItem } from '../models';
+import { AssignmentRow, AssignmentDetail, SectionTeacherItem, CreateAssignmentRequest } from '../models';
 import { PeriodType } from '@features/academic/models';
 
 describe('TeacherAssignmentsStore', () => {
@@ -16,6 +16,7 @@ describe('TeacherAssignmentsStore', () => {
       teacherFullName: 'Maria Gomez',
       sectionPublicUuid: 'sec-1',
       sectionName: 'A',
+      gradeName: '1ro',
       coursePublicUuid: 'c-1',
       courseCode: 'MATH-101',
       courseName: 'Algebra',
@@ -34,6 +35,7 @@ describe('TeacherAssignmentsStore', () => {
     teacherFullName: 'Maria Gomez',
     sectionPublicUuid: 'sec-2',
     sectionName: 'B',
+    gradeName: '2do',
     coursePublicUuid: 'c-2',
     courseCode: 'PHYS-101',
     courseName: 'Física',
@@ -104,7 +106,7 @@ describe('TeacherAssignmentsStore', () => {
       sectionPublicUuid: 'sec-2',
       coursePublicUuid: 'c-2',
       academicPeriodPublicUuid: 'p-1',
-    } as any);
+    });
 
     expect(result).toEqual(mockDetail);
     expect(store.assignments()).toHaveSize(1);
@@ -116,8 +118,89 @@ describe('TeacherAssignmentsStore', () => {
     apiSpy.listAssignments.and.returnValue(of([]));
     await store.loadAssignmentsFor('t-1');
 
-    await store.create('t-2', {} as any);
+    await store.create('t-2', {
+      sectionPublicUuid: 'sec-2',
+      coursePublicUuid: 'c-2',
+      academicPeriodPublicUuid: 'p-1',
+    });
     expect(store.assignments()).toEqual([]);
+  });
+
+  it('createForPeriods crea una por periodo y omite duplicados', async () => {
+    apiSpy.listAssignments.and.returnValue(of([]));
+    await store.loadAssignmentsFor('t-1');
+
+    apiSpy.createAssignment.and.callFake((_t: string, req: CreateAssignmentRequest) => {
+      if (req.academicPeriodPublicUuid === 'p-2') {
+        return throwError(() => ({
+          status: 409,
+          error: { code: 'ASSIGNMENT_ALREADY_ACTIVE', message: 'Ya existe' },
+        }));
+      }
+      return of({
+        ...mockDetail,
+        publicUuid: `a-${req.academicPeriodPublicUuid}`,
+        academicPeriodPublicUuid: req.academicPeriodPublicUuid,
+      });
+    });
+
+    const result = await store.createForPeriods(
+      't-1',
+      {
+        sectionPublicUuid: 'sec-2',
+        coursePublicUuid: 'c-2',
+      },
+      ['p-1', 'p-2', 'p-3'],
+    );
+
+    expect(result).toEqual({ created: 2, skipped: 1 });
+    expect(apiSpy.createAssignment).toHaveBeenCalledTimes(3);
+    expect(store.assignments()).toHaveSize(2);
+    expect(store.error()).toBeNull();
+  });
+
+  it('createCombinations crea cursos × periodos', async () => {
+    apiSpy.listAssignments.and.returnValue(of([]));
+    await store.loadAssignmentsFor('t-1');
+    apiSpy.createAssignment.and.callFake((_t: string, req: CreateAssignmentRequest) =>
+      of({
+        ...mockDetail,
+        publicUuid: `a-${req.coursePublicUuid}-${req.academicPeriodPublicUuid}`,
+        coursePublicUuid: req.coursePublicUuid,
+        academicPeriodPublicUuid: req.academicPeriodPublicUuid,
+      }),
+    );
+
+    const result = await store.createCombinations(
+      't-1',
+      'sec-2',
+      ['c-1', 'c-2'],
+      ['p-1', 'p-2'],
+    );
+
+    expect(result).toEqual({ created: 4, skipped: 0 });
+    expect(apiSpy.createAssignment).toHaveBeenCalledTimes(4);
+    expect(store.assignments()).toHaveSize(4);
+  });
+
+  it('createForPeriods falla si todos ya existían', async () => {
+    apiSpy.listAssignments.and.returnValue(of([]));
+    await store.loadAssignmentsFor('t-1');
+    apiSpy.createAssignment.and.returnValue(
+      throwError(() => ({
+        status: 409,
+        error: { code: 'ASSIGNMENT_ALREADY_ACTIVE', message: 'Ya existe' },
+      })),
+    );
+
+    const result = await store.createForPeriods(
+      't-1',
+      { sectionPublicUuid: 'sec-2', coursePublicUuid: 'c-2' },
+      ['p-1', 'p-2'],
+    );
+
+    expect(result).toBeNull();
+    expect(store.error()).toContain('Ya existían');
   });
 
   it('softEnd remueve row si active=true', async () => {

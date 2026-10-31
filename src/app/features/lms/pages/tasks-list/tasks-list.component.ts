@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { HttpErrorResponse } from '@angular/common/http';
+import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
+import { filter, startWith } from 'rxjs/operators';
 import { ROUTES } from '@core/constants';
 import { Permission, UserRole } from '@core/enums';
 import { AuthService } from '@core/services';
@@ -58,7 +59,8 @@ import { TaskLifecycleBadgeComponent } from '../../components';
 
       <a
         *appHasPermission="permission.LmsTaskCreate"
-        [routerLink]="newTaskRoute()"
+        [routerLink]="newTaskLink()"
+        [queryParams]="newTaskQuery()"
         class="btn btn-primary btn-sm self-start sm:self-auto"
       >
         <app-icon name="plus" [size]="16" />
@@ -119,7 +121,8 @@ import { TaskLifecycleBadgeComponent } from '../../components';
       >
         <a
           *appHasPermission="permission.LmsTaskCreate"
-          [routerLink]="newTaskRoute()"
+          [routerLink]="newTaskLink()"
+          [queryParams]="newTaskQuery()"
           class="btn btn-primary btn-sm"
         >
           <app-icon name="plus" [size]="16" />
@@ -135,12 +138,13 @@ import { TaskLifecycleBadgeComponent } from '../../components';
             <div class="card-body space-y-3">
               <header class="flex items-start justify-between gap-2">
                 <h2 class="text-base font-semibold text-content">
-                  <a
-                    [routerLink]="detailRoute(row.publicUuid)"
-                    class="hover:underline focus:outline-none"
+                  <button
+                    type="button"
+                    class="text-left hover:underline focus:outline-none"
+                    (click)="onOpenDetail(row.publicUuid)"
                   >
                     {{ row.title }}
-                  </a>
+                  </button>
                 </h2>
                 <app-task-lifecycle-badge [lifecycle]="row.lifecycle" />
               </header>
@@ -158,25 +162,51 @@ import { TaskLifecycleBadgeComponent } from '../../components';
                   <dt class="font-medium text-content">Entregas</dt>
                   <dd>{{ row.submissionsCount }}</dd>
                 </div>
-                @if (row.courseLabel) {
+                <div>
+                  <dt class="font-medium text-content">Revisadas</dt>
+                  <dd>{{ row.gradedSubmissionsCount }}</dd>
+                </div>
+                @if (row.courseName || row.courseLabel) {
                   <div>
                     <dt class="font-medium text-content">Curso</dt>
-                    <dd>{{ row.courseLabel }}</dd>
+                    <dd>
+                      {{ row.courseName || row.courseLabel }}
+                      @if (row.periodLabel) {
+                        <span class="text-content-subtle"> · {{ row.periodLabel }}</span>
+                      }
+                    </dd>
                   </div>
                 }
               </dl>
 
               <footer class="flex flex-wrap items-center gap-2 pt-1">
-                <a [routerLink]="detailRoute(row.publicUuid)" class="btn btn-ghost btn-sm">
-                  Ver detalle
-                </a>
-                <a
-                  *appHasPermission="permission.LmsTaskGrade"
-                  [routerLink]="gradeRoute(row.publicUuid)"
+                <button
+                  type="button"
                   class="btn btn-ghost btn-sm"
+                  (click)="onOpenDetail(row.publicUuid)"
+                >
+                  Ver detalle
+                </button>
+                @if (row.lifecycle === taskLifecycle.Draft) {
+                  <button
+                    *appHasPermission="permission.LmsTaskCreate"
+                    type="button"
+                    class="btn btn-primary btn-sm"
+                    [disabled]="saving()"
+                    (click)="onPublish(row.publicUuid)"
+                  >
+                    <app-icon name="send" [size]="14" />
+                    Publicar
+                  </button>
+                }
+                <button
+                  *appHasPermission="permission.LmsTaskGrade"
+                  type="button"
+                  class="btn btn-ghost btn-sm"
+                  (click)="onOpenGrade(row.publicUuid)"
                 >
                   Calificar
-                </a>
+                </button>
               </footer>
             </div>
           </article>
@@ -190,45 +220,65 @@ export class TasksListComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly rows = this.store.rows;
   protected readonly loading = this.store.loading;
+  protected readonly saving = this.store.saving;
   protected readonly errorBanner = this.store.error;
   protected readonly permission = Permission;
   protected readonly lifecycles = ALL_TASK_LIFECYCLES;
+  protected readonly taskLifecycle = TaskLifecycle;
 
   /** Locally-tracked value for the `[(ngModel)]` two-way binding. */
   private readonly _lifecycleFilter = signal<TaskLifecycle | undefined>(undefined);
   protected readonly lifecycleFilter = this._lifecycleFilter.asReadonly();
 
+  #sectionUuid: string | null = null;
+  #assignmentUuid: string | null = null;
+
   ngOnInit(): void {
+    // Wait for NavigationEnd so section path + assignment query are consistent
+    // (combineLatest can emit mid-navigation with old section + new assignment).
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        startWith(null),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => this.#syncFromRoute());
+  }
+
+  #syncFromRoute(): void {
+    if (!/\/lms\/sections\/[^/?#]+\/assignments/.test(this.router.url)) {
+      return;
+    }
     const sectionUuid = this.route.snapshot.paramMap.get('sectionUuid');
-    // The route is also matched by the empty-state redirect
-    // (`/lms/sections/_/assignments` in lms.routes.ts). Treat `_`
-    // and missing values the same as "no section selected" and
-    // bounce to the dashboard rather than firing an HTTP call with
-    // a literal placeholder UUID.
     if (!sectionUuid || sectionUuid === '_') {
       void this.router.navigate([ROUTES.DASHBOARD.ROOT]);
       return;
     }
+    const assignment = this.route.snapshot.queryParamMap.get('assignment');
+    const sectionChanged = sectionUuid !== this.#sectionUuid;
+    const assignmentChanged = assignment !== this.#assignmentUuid;
+    if (!sectionChanged && !assignmentChanged && this.#sectionUuid) return;
     this.#sectionUuid = sectionUuid;
-    void this.store.loadBySection(sectionUuid);
+    this.#assignmentUuid = assignment;
+    void this.store.loadBySection(sectionUuid, {
+      lifecycle: this._lifecycleFilter(),
+      assignmentPublicUuid: assignment ?? undefined,
+    });
   }
 
-  #sectionUuid: string | null = null;
-
-  protected newTaskRoute(): string {
-    if (!this.#sectionUuid) return ROUTES.LMS.ROOT;
-    return ROUTES.LMS.assignmentNew(this.#sectionUuid);
+  protected newTaskLink(): string[] {
+    return ['/lms', 'assignments', 'new'];
   }
 
-  protected detailRoute(uuid: string): string {
-    return ROUTES.LMS.assignmentDetail(uuid);
-  }
-
-  protected gradeRoute(uuid: string): string {
-    return ROUTES.LMS.assignmentGrade(uuid);
+  protected newTaskQuery(): { section: string; assignment?: string } | null {
+    if (!this.#sectionUuid) return null;
+    return this.#assignmentUuid
+      ? { section: this.#sectionUuid, assignment: this.#assignmentUuid }
+      : { section: this.#sectionUuid };
   }
 
   protected lifecycleLabel(lc: TaskLifecycle): string {
@@ -250,7 +300,11 @@ export class TasksListComponent implements OnInit {
 
   protected onLifecycleChange(value: TaskLifecycle | undefined): void {
     this._lifecycleFilter.set(value);
-    this.store.setLifecycleFilter(value);
+    if (!this.#sectionUuid) return;
+    void this.store.loadBySection(this.#sectionUuid, {
+      lifecycle: value,
+      assignmentPublicUuid: this.#assignmentUuid ?? undefined,
+    });
   }
 
   protected reload(): void {
@@ -258,7 +312,26 @@ export class TasksListComponent implements OnInit {
     this.store.clearError();
     void this.store.loadBySection(this.#sectionUuid, {
       lifecycle: this._lifecycleFilter(),
+      assignmentPublicUuid: this.#assignmentUuid ?? undefined,
     });
+  }
+
+  protected async onPublish(publicUuid: string): Promise<void> {
+    await this.store.publishTask(publicUuid);
+    if (this.#sectionUuid) {
+      void this.store.loadBySection(this.#sectionUuid, {
+        lifecycle: this._lifecycleFilter(),
+        assignmentPublicUuid: this.#assignmentUuid ?? undefined,
+      });
+    }
+  }
+
+  protected onOpenDetail(publicUuid: string): void {
+    void this.router.navigate(['/lms', 'assignments', publicUuid]).catch(() => undefined);
+  }
+
+  protected onOpenGrade(publicUuid: string): void {
+    void this.router.navigate(['/lms', 'assignments', publicUuid, 'grade']).catch(() => undefined);
   }
 
   private isStudent(): boolean {

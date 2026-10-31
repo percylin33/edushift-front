@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -20,46 +22,37 @@ import {
   AcademicYearStatus,
   CourseRow,
   PERIOD_TYPE_LABELS,
+  PeriodType,
   SectionRow,
 } from '@features/academic/models';
 import { TeacherDetail } from '../models';
 import { TeacherAssignmentsStore } from '../store';
 
 /**
- * Dialog "Nueva asignación" — crea una row en
+ * Dialog "Nueva asignación" — crea una o N rows en
  * {@code teacher_assignments} (BE-4.7).
  *
- * <h3>Cascada Section → Course → Period</h3>
+ * <h3>Cascada Section → Courses → Period</h3>
  * <ol>
- *   <li>El admin selecciona una <em>section</em> del año académico
- *       activo.</li>
- *   <li>El dropdown de <em>course</em> se filtra: marca como
- *       deshabilitados los que <strong>no</strong> están vinculados al
- *       {@code level} del grado de la sección. El tooltip explica el
- *       motivo (anticipa el 409
- *       {@code COURSE_NOT_APPLICABLE_TO_SECTION_LEVEL} del back).</li>
- *   <li>El dropdown de <em>period</em> se restringe a los periodos
- *       del año académico de la sección (anticipa
- *       {@code ASSIGNMENT_YEAR_MISMATCH}).</li>
+ *   <li>Sección del año académico activo.</li>
+ *   <li>Uno o varios cursos aplicables al nivel de la sección
+ *       (docente de aula: “Seleccionar todos”; especialista: 1–2 cursos).</li>
+ *   <li>Periodo individual o “Todo el año” (bimestres/trimestres).</li>
  * </ol>
- *
- * <h3>Validaciones cliente</h3>
- * Las cuatro reglas del back se validan localmente para guiar la UX,
- * pero el formulario sigue mandando la mutación si todo se ve OK
- * — los 409 que el back devuelva se renderizan como banner.
+ * El producto cursos × periodos se crea en lote; duplicados se omiten.
  */
 @Component({
   selector: 'app-create-assignment-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, FormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="assignment-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card flex max-h-[90vh] w-full max-w-2xl flex-col shadow-xl"
@@ -69,8 +62,8 @@ import { TeacherAssignmentsStore } from '../store';
           <div>
             <h2 id="assignment-title" class="card-title">Nueva asignación</h2>
             <p class="card-description">
-              Asigna a {{ teacher().fullName }} a una sección, curso y periodo del año académico
-              activo.
+              Asigna a {{ teacher().fullName }} a una sección. Elige uno o varios cursos (útil para
+              docente de aula) y un periodo o todo el año.
             </p>
           </div>
           <button
@@ -141,51 +134,72 @@ import { TeacherAssignmentsStore } from '../store';
             </div>
 
             <div class="field">
-              <label class="label" for="assignment-course">
-                Curso <span class="text-danger-500">*</span>
-              </label>
-              <select
-                id="assignment-course"
-                class="select"
-                [ngModel]="courseUuid()"
-                (ngModelChange)="courseUuid.set($event)"
-                [disabled]="!sectionUuid() || saving() || courses().length === 0"
-              >
-                <option value="" disabled>
-                  @if (sectionUuid()) {
-                    Seleccionar curso…
-                  } @else {
-                    Primero selecciona una sección
-                  }
-                </option>
-                @for (c of courses(); track c.publicUuid) {
-                  <option
-                    [value]="c.publicUuid"
-                    [disabled]="!isCourseApplicable(c)"
-                    [title]="
-                      !isCourseApplicable(c)
-                        ? 'Este curso no está vinculado al nivel ' + selectedLevelCode() + '.'
-                        : null
-                    "
-                  >
-                    {{ c.code }} — {{ c.name }}
-                    @if (!isCourseApplicable(c)) {
-                      (no aplica al nivel)
-                    }
-                  </option>
+              <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                <label class="label mb-0">
+                  Cursos <span class="text-danger-500">*</span>
+                </label>
+                @if (sectionUuid() && applicableCourses().length > 0) {
+                  <div class="flex gap-2">
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-xs"
+                      [disabled]="saving()"
+                      (click)="selectAllApplicableCourses()"
+                    >
+                      Seleccionar todos
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-xs"
+                      [disabled]="saving() || selectedCourseUuids().length === 0"
+                      (click)="clearSelectedCourses()"
+                    >
+                      Ninguno
+                    </button>
+                  </div>
                 }
-              </select>
-              @if (sectionUuid() && courses().length === 0) {
-                <p class="hint mt-1 text-content-muted">
+              </div>
+
+              @if (!sectionUuid()) {
+                <p class="hint text-content-muted">Primero selecciona una sección.</p>
+              } @else if (courses().length === 0) {
+                <p class="hint text-content-muted">
                   No hay cursos creados todavía. Crea uno desde
                   <em>Académico → Cursos</em>.
                 </p>
-              }
-              @if (sectionUuid() && hasOnlyInapplicableCourses()) {
-                <p class="hint text-warning-600 mt-1">
+              } @else if (hasOnlyInapplicableCourses()) {
+                <p class="hint text-warning-600">
                   Ningún curso está vinculado al nivel
                   <strong>{{ selectedLevelCode() }}</strong
                   >. Asocia uno desde el detalle del curso.
+                </p>
+              } @else {
+                <div
+                  class="max-h-48 space-y-1 overflow-y-auto rounded-md border border-border-subtle bg-surface p-2"
+                  role="group"
+                  aria-label="Cursos de la sección"
+                >
+                  @for (c of applicableCourses(); track c.publicUuid) {
+                    <label
+                      class="flex cursor-pointer items-start gap-2 rounded px-2 py-1.5 text-sm hover:bg-surface-subtle"
+                    >
+                      <input
+                        type="checkbox"
+                        class="mt-0.5"
+                        [checked]="isCourseSelected(c.publicUuid)"
+                        [disabled]="saving()"
+                        (change)="toggleCourse(c.publicUuid, $event)"
+                      />
+                      <span class="min-w-0">
+                        <span class="font-medium text-content">{{ c.code }}</span>
+                        <span class="text-content-muted"> — {{ c.name }}</span>
+                      </span>
+                    </label>
+                  }
+                </div>
+                <p class="hint mt-1 text-content-muted">
+                  {{ selectedCourseUuids().length }} de {{ applicableCourses().length }} seleccionados.
+                  Desmarca los que dictará un especialista.
                 </p>
               }
             </div>
@@ -202,6 +216,12 @@ import { TeacherAssignmentsStore } from '../store';
                 [disabled]="saving()"
               >
                 <option value="" disabled>Seleccionar periodo…</option>
+                @if (bulkPeriods().length > 0) {
+                  <option [value]="ALL_YEAR_VALUE">
+                    Todo el año — {{ bulkPeriods().length }}
+                    {{ bulkPeriodTypeLabel() }} ({{ activeYear()?.name }})
+                  </option>
+                }
                 @for (p of periods(); track p.publicUuid) {
                   <option [value]="p.publicUuid">
                     {{ p.name }} ({{ periodTypeLabel(p.periodType) }})
@@ -209,6 +229,19 @@ import { TeacherAssignmentsStore } from '../store';
                 }
               </select>
             </div>
+
+            @if (plannedCount() > 1) {
+              <p class="text-xs text-content-muted">
+                Se crearán hasta <strong>{{ plannedCount() }}</strong> asignaciones
+                ({{ selectedCourseUuids().length }} curso{{
+                  selectedCourseUuids().length === 1 ? '' : 's'
+                }}
+                ×
+                {{ applyAllPeriods() ? bulkPeriods().length : 1 }} periodo{{
+                  applyAllPeriods() && bulkPeriods().length > 1 ? 's' : ''
+                }}). Las que ya existan se omiten.
+              </p>
+            }
 
             <div class="field">
               <label class="label" for="assignment-notes">
@@ -246,7 +279,13 @@ import { TeacherAssignmentsStore } from '../store';
             @if (saving()) {
               <app-spinner [size]="14" />
             }
-            <span>Crear asignación</span>
+            <span>
+              @if (plannedCount() > 1) {
+                Crear {{ plannedCount() }} asignaciones
+              } @else {
+                Crear asignación
+              }
+            </span>
           </button>
         </footer>
       </div>
@@ -254,15 +293,23 @@ import { TeacherAssignmentsStore } from '../store';
   `,
 })
 export class CreateAssignmentModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => [this.sectionUuid(), [...this.selectedCourseUuids()].sort(), this.periodUuid(), this.applyAllPeriods(), this.notes()],
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly academicApi = inject(AcademicApiService);
   private readonly store = inject(TeacherAssignmentsStore);
+
+  /** Sentinel en el select de periodo → crear para todos los periodos de evaluación. */
+  protected readonly ALL_YEAR_VALUE = '__ALL_YEAR__';
 
   readonly teacher = input.required<TeacherDetail>();
 
   readonly closed = output<void>();
   readonly created = output<void>();
 
-  /** Año académico ACTIVE del tenant; necesario para gateway de cascada. */
   protected readonly activeYear = signal<AcademicYearRow | null>(null);
   protected readonly sections = signal<SectionRow[]>([]);
   protected readonly courses = signal<CourseRow[]>([]);
@@ -273,11 +320,10 @@ export class CreateAssignmentModalComponent implements OnInit {
   protected readonly errorMessage = this.store.error;
 
   protected readonly sectionUuid = signal<string>('');
-  protected readonly courseUuid = signal<string>('');
+  protected readonly selectedCourseUuids = signal<string[]>([]);
   protected readonly periodUuid = signal<string>('');
   protected readonly notes = signal<string>('');
 
-  /** Sección actualmente seleccionada (para resolver el level). */
   protected readonly selectedSection = computed<SectionRow | null>(() => {
     const id = this.sectionUuid();
     if (!id) return null;
@@ -288,16 +334,56 @@ export class CreateAssignmentModalComponent implements OnInit {
     () => this.selectedSection()?.levelCode ?? '',
   );
 
+  protected readonly applicableCourses = computed<CourseRow[]>(() =>
+    this.courses().filter((c) => this.isCourseApplicable(c)),
+  );
+
   protected readonly hasOnlyInapplicableCourses = computed<boolean>(() => {
     const all = this.courses();
     if (all.length === 0) return false;
     return all.every((c) => !this.isCourseApplicable(c));
   });
 
+  protected readonly bulkPeriods = computed<AcademicPeriodRow[]>(() => {
+    const all = [...this.periods()].sort((a, b) => a.ordinal - b.ordinal);
+    const bimestres = all.filter((p) => p.periodType === PeriodType.Bimestre);
+    if (bimestres.length > 0) return bimestres;
+    const trimestres = all.filter((p) => p.periodType === PeriodType.Trimestre);
+    if (trimestres.length > 0) return trimestres;
+    return all;
+  });
+
+  protected readonly bulkPeriodTypeLabel = computed(() => {
+    const list = this.bulkPeriods();
+    if (list.length === 0) return 'periodos';
+    const type = list[0].periodType;
+    if (type === PeriodType.Bimestre) return 'bimestres';
+    if (type === PeriodType.Trimestre) return 'trimestres';
+    if (type === PeriodType.Anual) return 'periodo anual';
+    return PERIOD_TYPE_LABELS[type] ?? 'periodos';
+  });
+
+  protected readonly applyAllPeriods = computed(
+    () => this.periodUuid() === this.ALL_YEAR_VALUE,
+  );
+
+  protected readonly selectedPeriodUuids = computed<string[]>(() => {
+    if (this.applyAllPeriods()) {
+      return this.bulkPeriods().map((p) => p.publicUuid);
+    }
+    const id = this.periodUuid();
+    return id ? [id] : [];
+  });
+
+  protected readonly plannedCount = computed(
+    () => this.selectedCourseUuids().length * this.selectedPeriodUuids().length,
+  );
+
   protected readonly canSubmit = computed<boolean>(() => {
-    if (!this.sectionUuid() || !this.courseUuid() || !this.periodUuid()) return false;
-    const course = this.courses().find((c) => c.publicUuid === this.courseUuid());
-    return !course || this.isCourseApplicable(course);
+    if (!this.sectionUuid()) return false;
+    if (this.selectedCourseUuids().length === 0) return false;
+    if (this.selectedPeriodUuids().length === 0) return false;
+    return true;
   });
 
   async ngOnInit(): Promise<void> {
@@ -315,15 +401,20 @@ export class CreateAssignmentModalComponent implements OnInit {
   }
 
   protected close(): void {
-    this.store.clearError();
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.store.clearError();
+      this.closed.emit();
+    });
   }
 
-  /** El curso debe estar vinculado al level del grado de la sección. */
   protected isCourseApplicable(course: CourseRow): boolean {
     const sec = this.selectedSection();
     if (!sec) return true;
     return course.levels.some((l) => l.publicUuid === sec.levelPublicUuid);
+  }
+
+  protected isCourseSelected(courseUuid: string): boolean {
+    return this.selectedCourseUuids().includes(courseUuid);
   }
 
   protected periodTypeLabel(type: AcademicPeriodRow['periodType']): string {
@@ -332,38 +423,54 @@ export class CreateAssignmentModalComponent implements OnInit {
 
   protected onSectionChange(value: string): void {
     this.sectionUuid.set(value);
-    /* Si el curso elegido deja de aplicar al level nuevo, lo
-     * limpiamos para forzar al admin a re-seleccionar. */
-    const course = this.courses().find((c) => c.publicUuid === this.courseUuid());
-    if (course && !this.isCourseApplicable(course)) {
-      this.courseUuid.set('');
-    }
+    /* Solo conservar cursos que sigan aplicando al nuevo nivel. */
+    const kept = this.selectedCourseUuids().filter((id) => {
+      const course = this.courses().find((c) => c.publicUuid === id);
+      return course ? this.isCourseApplicable(course) : false;
+    });
+    this.selectedCourseUuids.set(kept);
+  }
+
+  protected toggleCourse(courseUuid: string, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.selectedCourseUuids.update((ids) => {
+      if (checked) {
+        return ids.includes(courseUuid) ? ids : [...ids, courseUuid];
+      }
+      return ids.filter((id) => id !== courseUuid);
+    });
+  }
+
+  protected selectAllApplicableCourses(): void {
+    this.selectedCourseUuids.set(this.applicableCourses().map((c) => c.publicUuid));
+  }
+
+  protected clearSelectedCourses(): void {
+    this.selectedCourseUuids.set([]);
   }
 
   protected async onSubmit(): Promise<void> {
     if (!this.canSubmit() || this.saving()) return;
-    const result = await this.store.create(this.teacher().publicUuid, {
-      sectionPublicUuid: this.sectionUuid(),
-      coursePublicUuid: this.courseUuid(),
-      academicPeriodPublicUuid: this.periodUuid(),
-      notes: this.notes().trim() || undefined,
-    });
+
+    const result = await this.store.createCombinations(
+      this.teacher().publicUuid,
+      this.sectionUuid(),
+      this.selectedCourseUuids(),
+      this.selectedPeriodUuids(),
+      this.notes().trim() || undefined,
+    );
     if (result) this.created.emit();
   }
 
   private async fetchCatalogs(): Promise<void> {
     this.loadingCatalogs.set(true);
     try {
-      /* 1) Localizamos el año ACTIVE. Sin él la cascada no tiene sentido. */
       const years = await firstValueFrom(this.academicApi.listYears());
       const active = years.find((y) => y.status === AcademicYearStatus.Active) ?? null;
       this.activeYear.set(active);
 
       if (!active) return;
 
-      /* 2) Secciones del año activo + periodos del mismo. Cursos los
-       *    cargamos sin filtro de level (chips dentro del row indican
-       *    cuáles aplican y cuáles no). */
       const [sections, courses, periods] = await Promise.all([
         firstValueFrom(
           this.academicApi.listSections({

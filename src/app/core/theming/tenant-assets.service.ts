@@ -4,8 +4,14 @@ import { TenantService } from '@core/services/tenant.service';
 import { ThemeService } from '@core/services/theme.service';
 import { environment } from '@env/environment';
 
-/** Generic school mark shown when the tenant has not uploaded a logo. */
-export const PLATFORM_DEFAULT_LOGO_URL = '/branding/default-logo.svg';
+/** Horizontal EduShift wordmark (light UI) when the tenant has not uploaded a logo. */
+export const PLATFORM_DEFAULT_LOGO_URL = '/branding/logos/horizontal.png';
+
+/** White wordmark used on dark UI when the tenant has not uploaded a logo. */
+export const PLATFORM_DEFAULT_LOGO_DARK_URL = '/branding/logos/fondo-oscuro.png';
+
+/** Shield mark (sidebar collapsed, favicon-sized slots) without a tenant logo. */
+export const PLATFORM_DEFAULT_MARK_URL = '/branding/icons/isotipo.png';
 
 /** Generic campus background shown when the tenant has not uploaded a login hero. */
 export const PLATFORM_DEFAULT_LOGIN_BG_URL = '/branding/default-login-bg.svg';
@@ -13,7 +19,7 @@ export const PLATFORM_DEFAULT_LOGIN_BG_URL = '/branding/default-login-bg.svg';
 /**
  * Rewrite branding URLs that point at our own API so the browser loads them
  * same-origin via the Angular proxy ({@code /api/...} on :4200/:4201) instead
- * of hitting {@code localhost:8081} directly. That avoids
+ * of hitting {@code localhost:8080} directly. That avoids
  * {@code ERR_BLOCKED_BY_RESPONSE.NotSameOrigin} from CORP on the API.
  * External URLs (Unsplash, CDN) are left untouched.
  */
@@ -46,8 +52,8 @@ export function toSameOriginAssetUrl(url: string | null | undefined): string | n
  *   - `markUrl()`     → square icon (sidebar collapsed, fallback for tabs).
  *
  * Both resolve dark-mode preference automatically with safe fallbacks:
- *   markDark → mark → dark → light → platform default logo
- *   dark     → light → platform default logo
+ *   markDark → mark → dark → light → platform isotipo
+ *   dark     → light → platform wordmark (white on dark UI, color on light UI)
  * Login background: tenant {@code loginBgUrl} → platform default campus image.
  */
 @Injectable({ providedIn: 'root' })
@@ -62,7 +68,10 @@ export class TenantAssetsService {
   readonly fullLogoUrl = computed<string>(() => {
     const l = this.logo();
     const raw = this.theme.isDark() ? (l?.dark ?? l?.light) : l?.light;
-    return toSameOriginAssetUrl(raw) ?? PLATFORM_DEFAULT_LOGO_URL;
+    return (
+      toSameOriginAssetUrl(raw) ??
+      (this.theme.isDark() ? PLATFORM_DEFAULT_LOGO_DARK_URL : PLATFORM_DEFAULT_LOGO_URL)
+    );
   });
 
   readonly markUrl = computed<string>(() => {
@@ -70,7 +79,7 @@ export class TenantAssetsService {
     const raw = this.theme.isDark()
       ? (l?.markDark ?? l?.mark ?? l?.dark ?? l?.light)
       : (l?.mark ?? l?.light);
-    return toSameOriginAssetUrl(raw) ?? PLATFORM_DEFAULT_LOGO_URL;
+    return toSameOriginAssetUrl(raw) ?? PLATFORM_DEFAULT_MARK_URL;
   });
 
   /** True when the tenant uploaded its own logo (not the platform default). */

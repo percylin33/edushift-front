@@ -829,7 +829,7 @@ test.describe('TEACHER flows — API: RBAC quick matrix', () => {
         return;
       }
       try {
-        const url = `${process.env['API_URL'] ?? 'http://localhost:8081'}/api/v1${c.path}`;
+        const url = `${process.env['API_URL'] ?? 'http://localhost:8080'}/api/v1${c.path}`;
         const res = await ctx.api.fetch(url, {
           method: c.method,
           data: c.body,

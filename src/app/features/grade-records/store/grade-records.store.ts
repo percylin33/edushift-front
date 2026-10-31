@@ -214,7 +214,7 @@ export class GradeRecordsStore {
     this._error.set(null);
     try {
       const rows = await firstValueFrom(this.api.listByEvaluation(uuid, this._filters()));
-      this._rows.set(rows);
+      this._rows.set(sortGradeRowsByStudentName(rows));
     } catch (err) {
       this._error.set(this.toErrorMessage(err));
       this._rows.set([]);
@@ -240,10 +240,8 @@ export class GradeRecordsStore {
     };
     this._rows.update((rows) => {
       const idx = rows.findIndex((r) => r.publicUuid === row.publicUuid);
-      if (idx === -1) return [row, ...rows];
-      const next = rows.slice();
-      next[idx] = row;
-      return next;
+      const next = idx === -1 ? [...rows, row] : rows.map((r, i) => (i === idx ? row : r));
+      return sortGradeRowsByStudentName(next);
     });
   }
 
@@ -266,4 +264,12 @@ export class GradeRecordsStore {
     }
     return 'Ocurrió un error inesperado.';
   }
+}
+
+function sortGradeRowsByStudentName(rows: GradeRecordRow[]): GradeRecordRow[] {
+  return [...rows].sort((a, b) =>
+    (a.studentFullName ?? '').localeCompare(b.studentFullName ?? '', 'es', {
+      sensitivity: 'base',
+    }),
+  );
 }

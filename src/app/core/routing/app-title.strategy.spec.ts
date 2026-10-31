@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Title } from '@angular/platform-browser';
-import { RouterStateSnapshot, ActivatedRouteSnapshot } from '@angular/router';
+import { RouterStateSnapshot } from '@angular/router';
 import { AppTitleStrategy } from './app-title.strategy';
 
 describe('AppTitleStrategy', () => {
@@ -20,7 +20,9 @@ describe('AppTitleStrategy', () => {
   });
 
   it('updateTitle establece título con el nombre de la app', () => {
-    const snapshot = { root: { data: {}, firstChild: null } } as unknown as RouterStateSnapshot;
+    const snapshot = {
+      root: { data: {}, children: [], firstChild: null },
+    } as unknown as RouterStateSnapshot;
     strategy.updateTitle(snapshot);
     expect(titleSpy.setTitle).toHaveBeenCalled();
   });

@@ -11,10 +11,16 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NotificationsApiService } from '../../services/notifications-api.service';
 import {
+  PushNotificationsService,
+  type PushActivationResult,
+  type PushDeactivationResult,
+} from '../../services/push-notifications.service';
+import {
   NotificationCategory,
-  NotificationPreferenceRow,
+  NotificationChannel,
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_CHANNELS,
+  PUSH_NOTIFICATION_CATEGORIES,
 } from '../../models/preferences.model';
 
 /**
@@ -37,10 +43,50 @@ import {
           Preferencias de notificaciones
         </h1>
         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Elige cómo quieres recibir cada tipo de aviso. Por defecto, todas las combinaciones están
-          activadas.
+          Elige cómo quieres recibir cada tipo de aviso. Los avisos en la app y por email están
+          activados por defecto; push requiere que lo actives.
         </p>
       </header>
+
+      <section
+        class="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-5 shadow ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800 sm:flex-row sm:items-center sm:justify-between"
+        aria-labelledby="push-notifications-title"
+      >
+        <div>
+          <h2
+            id="push-notifications-title"
+            class="font-semibold text-slate-900 dark:text-slate-100"
+          >
+            Notificaciones en este dispositivo
+          </h2>
+          <p class="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
+            Recibe avisos de EduShift aunque no tengas la aplicación abierta. El contenido académico
+            se consulta dentro de tu cuenta.
+          </p>
+          <p class="mt-1 max-w-2xl text-xs text-slate-500 dark:text-slate-400">
+            Push está disponible para anuncios, ausencias, tareas, prácticas y calificaciones.
+          </p>
+          @if (pushResult()) {
+            <p class="mt-2 text-sm" role="status" aria-live="polite">{{ pushResultLabel() }}</p>
+          }
+        </div>
+        <button
+          type="button"
+          class="min-h-11 shrink-0 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-wait disabled:opacity-60"
+          [disabled]="pushLoading()"
+          (click)="togglePush()"
+        >
+          {{
+            pushLoading()
+              ? pushActive()
+                ? 'Desactivando…'
+                : 'Activando…'
+              : pushActive()
+                ? 'Desactivar notificaciones'
+                : 'Activar notificaciones'
+          }}
+        </button>
+      </section>
 
       <div
         class="overflow-hidden rounded-2xl bg-white shadow ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800"
@@ -70,12 +116,15 @@ import {
                           type="checkbox"
                           class="sr-only"
                           [checked]="isEnabled(cat, ch)"
-                          (change)="onToggle(cat, ch, $any($event.target).checked)"
+                          [disabled]="ch === 'PUSH' && !isPushCategoryAllowed(cat)"
+                          [attr.aria-label]="categoryLabel(cat) + ': ' + channelLabel(ch)"
+                          (change)="onPreferenceChange(cat, ch, $event)"
                         />
                         <span
                           class="relative inline-block h-5 w-9 rounded-full transition focus-within:ring-2 focus-within:ring-emerald-500"
                           [class.bg-emerald-500]="isEnabled(cat, ch)"
                           [class.bg-slate-300]="!isEnabled(cat, ch)"
+                          [class.opacity-40]="ch === 'PUSH' && !isPushCategoryAllowed(cat)"
                         >
                           <span
                             class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform"
@@ -111,31 +160,70 @@ import {
 })
 export class NotificationPreferencesPageComponent implements OnInit {
   private readonly api = inject(NotificationsApiService);
+  private readonly pushNotifications = inject(PushNotificationsService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly channels = NOTIFICATION_CHANNELS;
   readonly categories = NOTIFICATION_CATEGORIES;
+  readonly pushCategories = PUSH_NOTIFICATION_CATEGORIES;
+  private readonly pushCategorySet = new Set<NotificationCategory>(PUSH_NOTIFICATION_CATEGORIES);
 
   /** Default-on matrix. */
   private readonly state = signal<Record<string, boolean>>({});
   readonly saving = signal(false);
   readonly savedAt = signal<Date | null>(null);
+  readonly pushLoading = signal(false);
+  readonly pushResult = signal<PushActivationResult | PushDeactivationResult | null>(null);
+  readonly pushActive = signal(false);
+
+  async togglePush(): Promise<void> {
+    this.pushLoading.set(true);
+    try {
+      if (this.pushActive()) {
+        const result = await this.pushNotifications.deactivateForCurrentDevice();
+        this.pushResult.set(result);
+        if (result === 'disabled') this.pushActive.set(false);
+      } else {
+        const result = await this.pushNotifications.activateForCurrentDevice();
+        this.pushResult.set(result);
+        this.pushActive.set(result === 'enabled');
+      }
+    } finally {
+      this.pushLoading.set(false);
+    }
+  }
+
+  pushResultLabel(): string {
+    const labels: Record<PushActivationResult | PushDeactivationResult, string> = {
+      enabled: 'Este dispositivo quedó registrado para notificaciones push.',
+      disabled: 'Se desactivaron las notificaciones en este dispositivo.',
+      'permission-denied':
+        'El permiso fue denegado. Puedes habilitarlo desde los ajustes del navegador.',
+      unsupported: 'Este navegador o conexión no permite notificaciones push.',
+      'not-configured': 'La configuración de Firebase para push todavía no está completa.',
+      'not-authenticated': 'Inicia sesión para registrar este dispositivo.',
+      failed: 'No se pudo activar push. Revisa tu conexión e inténtalo de nuevo.',
+    };
+    const result = this.pushResult();
+    return result ? labels[result] : '';
+  }
 
   ngOnInit(): void {
+    this.pushActive.set(this.pushNotifications.isEnabledForCurrentUser());
     this.api
       .getPreferences()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (rows) => {
           const next: Record<string, boolean> = {};
-          for (const r of rows as NotificationPreferenceRow[]) {
+          for (const r of rows) {
             next[this.key(r.category, r.channel)] = r.enabled;
           }
           // Fill defaults for missing combinations.
           for (const c of this.categories) {
             for (const ch of this.channels) {
               const k = this.key(c, ch);
-              if (next[k] === undefined) next[k] = true;
+              if (next[k] === undefined) next[k] = this.defaultEnabled(ch);
             }
           }
           this.state.set(next);
@@ -145,22 +233,34 @@ export class NotificationPreferencesPageComponent implements OnInit {
           const next: Record<string, boolean> = {};
           for (const c of this.categories)
             for (const ch of this.channels) {
-              next[this.key(c, ch)] = true;
+              next[this.key(c, ch)] = this.defaultEnabled(ch);
             }
           this.state.set(next);
         },
       });
   }
 
-  isEnabled(category: NotificationCategory, channel: string): boolean {
-    return this.state()[this.key(category, channel as any)] !== false;
+  isEnabled(category: NotificationCategory, channel: NotificationChannel): boolean {
+    return this.state()[this.key(category, channel)] !== false;
   }
 
-  onToggle(category: NotificationCategory, channel: string, enabled: boolean): void {
-    this.state.update((s) => ({ ...s, [this.key(category, channel as any)]: enabled }));
+  onPreferenceChange(
+    category: NotificationCategory,
+    channel: NotificationChannel,
+    event: Event,
+  ): void {
+    if (!(event.target instanceof HTMLInputElement)) return;
+    this.onToggle(category, channel, event.target.checked);
+  }
+
+  onToggle(category: NotificationCategory, channel: NotificationChannel, enabled: boolean): void {
+    if (channel === 'PUSH' && !this.isPushCategoryAllowed(category)) return;
+    const key = this.key(category, channel);
+    const previous = this.isEnabled(category, channel);
+    this.state.update((s) => ({ ...s, [this.key(category, channel)]: enabled }));
     this.saving.set(true);
     this.api
-      .updatePreference({ category, channel: channel as any, enabled })
+      .updatePreference({ category, channel, enabled })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -168,13 +268,20 @@ export class NotificationPreferencesPageComponent implements OnInit {
           this.savedAt.set(new Date());
         },
         error: () => {
-          this.saving.set(false); /* keep UI state; will retry on next toggle */
+          this.state.update((s) => ({ ...s, [key]: previous }));
+          this.saving.set(false);
         },
       });
   }
 
-  channelLabel(ch: string): string {
-    return ch === 'IN_APP' ? 'En la app' : ch === 'EMAIL' ? 'Email' : ch;
+  channelLabel(channel: NotificationChannel): string {
+    if (channel === 'IN_APP') return 'En la app';
+    if (channel === 'EMAIL') return 'Email';
+    return 'Push';
+  }
+
+  isPushCategoryAllowed(category: NotificationCategory): boolean {
+    return this.pushCategorySet.has(category);
   }
 
   categoryLabel(cat: NotificationCategory): string {
@@ -183,7 +290,7 @@ export class NotificationPreferencesPageComponent implements OnInit {
         {
           ABSENCE: 'Ausencias',
           GRADE: 'Calificaciones',
-          QUIZ: 'Quizzes',
+          QUIZ: 'Prácticas',
           TASK: 'Tareas',
           AI_FEEDBACK: 'Feedback IA',
           ANNOUNCEMENT: 'Anuncios',
@@ -194,7 +301,11 @@ export class NotificationPreferencesPageComponent implements OnInit {
     );
   }
 
-  private key(c: NotificationCategory, ch: string): string {
+  private defaultEnabled(channel: NotificationChannel): boolean {
+    return channel !== 'PUSH';
+  }
+
+  private key(c: NotificationCategory, ch: NotificationChannel): string {
     return `${ch}::${c}`;
   }
 }

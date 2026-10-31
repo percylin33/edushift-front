@@ -3,7 +3,7 @@ import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { TaskDetailComponent } from './task-detail.component';
 import { TasksStore } from '../../store';
-import { TaskLifecycle } from '../../models';
+import { TaskDetail, TaskLifecycle } from '../../models';
 
 describe('TaskDetailComponent', () => {
   let component: any;
@@ -11,13 +11,14 @@ describe('TaskDetailComponent', () => {
   let mockStore: jasmine.SpyObj<TasksStore>;
 
   beforeEach(async () => {
-    const detail = {
+    const detail: TaskDetail = {
       publicUuid: 't-1',
       sectionPublicUuid: 's-1',
       coursePublicUuid: 'c-1',
       periodPublicUuid: 'p-1',
       title: 'Tarea 1',
       description: 'Desc',
+      attachmentPublicUuid: null,
       dueAt: null,
       maxScore: 20,
       allowResubmissions: true,
@@ -27,6 +28,10 @@ describe('TaskDetailComponent', () => {
       createdAt: new Date(),
       updatedAt: null,
       submissionsCount: 0,
+      gradedSubmissionsCount: 0,
+      teacherAssignmentPublicUuid: null,
+      courseName: 'Curso 1',
+      periodLabel: 'Periodo 1',
     };
 
     mockStore = jasmine.createSpyObj<TasksStore>(

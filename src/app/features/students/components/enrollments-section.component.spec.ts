@@ -37,6 +37,7 @@ describe('EnrollmentsSectionComponent', () => {
     studentFullName: 'Juan Perez',
     sectionPublicUuid: 'sec-1',
     sectionName: 'A',
+    gradeName: null,
     academicYearPublicUuid: 'y-1',
     academicYearName: '2026',
     enrolledAt: new Date('2026-01-01'),
@@ -77,66 +78,66 @@ describe('EnrollmentsSectionComponent', () => {
 
   it('sectionRoute construye ruta académica', () => {
     configureModule();
-    expect((component as any).sectionRoute('sec-1')).toBe(ROUTES.ACADEMIC.SECTIONS.detail('sec-1'));
+    expect(component['sectionRoute']('sec-1')).toBe(ROUTES.ACADEMIC.SECTIONS.detail('sec-1'));
   });
 
   it('statusLabel retorna etiqueta en español', () => {
     configureModule();
-    expect((component as any).statusLabel(StudentEnrollmentStatus.Active)).toBe('Activa');
-    expect((component as any).statusLabel(StudentEnrollmentStatus.Withdrawn)).toBe('Retirado');
-    expect((component as any).statusLabel(StudentEnrollmentStatus.Transferred)).toBe('Trasladado');
-    expect((component as any).statusLabel(StudentEnrollmentStatus.Graduated)).toBe('Graduado');
+    expect(component['statusLabel'](StudentEnrollmentStatus.Active)).toBe('Activa');
+    expect(component['statusLabel'](StudentEnrollmentStatus.Withdrawn)).toBe('Retirado');
+    expect(component['statusLabel'](StudentEnrollmentStatus.Transferred)).toBe('Trasladado');
+    expect(component['statusLabel'](StudentEnrollmentStatus.Graduated)).toBe('Graduado');
   });
 
   it('badgeClass retorna clase de badge correcta', () => {
     configureModule();
-    expect((component as any).badgeClass(StudentEnrollmentStatus.Active)).toContain(
+    expect(component['badgeClass'](StudentEnrollmentStatus.Active)).toContain(
       'badge-success',
     );
-    expect((component as any).badgeClass(StudentEnrollmentStatus.Withdrawn)).toContain(
+    expect(component['badgeClass'](StudentEnrollmentStatus.Withdrawn)).toContain(
       'badge-danger',
     );
-    expect((component as any).badgeClass(StudentEnrollmentStatus.Graduated)).toContain(
+    expect(component['badgeClass'](StudentEnrollmentStatus.Graduated)).toContain(
       'badge-primary',
     );
   });
 
   it('reload limpia error y recarga', async () => {
     configureModule();
-    await (component as any).reload();
+    await component['reload']();
     expect(fakeStore.clearError).toHaveBeenCalled();
     expect(fakeStore.loadEnrollments).toHaveBeenCalledWith('s-1');
   });
 
   it('openEnroll / closeEnroll / onEnrolled alternan modal de alta', () => {
     configureModule();
-    (component as any).openEnroll();
-    expect((component as any).showEnroll()).toBeTrue();
-    (component as any).closeEnroll();
-    expect((component as any).showEnroll()).toBeFalse();
-    (component as any).openEnroll();
-    (component as any).onEnrolled();
-    expect((component as any).showEnroll()).toBeFalse();
+    component['openEnroll']();
+    expect(component['showEnroll']()).toBeTrue();
+    component['closeEnroll']();
+    expect(component['showEnroll']()).toBeFalse();
+    component['openEnroll']();
+    component['onEnrolled']();
+    expect(component['showEnroll']()).toBeFalse();
   });
 
   it('openTransfer / closeTransfer / onTransferred alternan modal de cambio', () => {
     configureModule();
-    (component as any).openTransfer();
-    expect((component as any).showTransfer()).toBeTrue();
-    (component as any).closeTransfer();
-    expect((component as any).showTransfer()).toBeFalse();
-    (component as any).onTransferred();
-    expect((component as any).showTransfer()).toBeFalse();
+    component['openTransfer']();
+    expect(component['showTransfer']()).toBeTrue();
+    component['closeTransfer']();
+    expect(component['showTransfer']()).toBeFalse();
+    component['onTransferred']();
+    expect(component['showTransfer']()).toBeFalse();
   });
 
   it('openWithdraw / closeWithdraw / onWithdrew alternan modal de cierre', () => {
     configureModule();
-    (component as any).openWithdraw(activeEnrollment);
-    expect((component as any).withdrawTarget()?.publicUuid).toBe('e-1');
-    (component as any).closeWithdraw();
-    expect((component as any).withdrawTarget()).toBeNull();
-    (component as any).openWithdraw(activeEnrollment);
-    (component as any).onWithdrew();
-    expect((component as any).withdrawTarget()).toBeNull();
+    component['openWithdraw'](activeEnrollment);
+    expect(component['withdrawTarget']()?.publicUuid).toBe('e-1');
+    component['closeWithdraw']();
+    expect(component['withdrawTarget']()).toBeNull();
+    component['openWithdraw'](activeEnrollment);
+    component['onWithdrew']();
+    expect(component['withdrawTarget']()).toBeNull();
   });
 });

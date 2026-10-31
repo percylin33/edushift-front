@@ -4,6 +4,9 @@
  */
 export const ROUTES = {
   ROOT: '/',
+  PRIVACY_POLICY: '/politica-privacidad',
+  TERMS_AND_CONDITIONS: '/terminos-y-condiciones',
+  CLAIMS_BOOK: '/libro-de-reclamaciones',
   AUTH: {
     ROOT: '/auth',
     LOGIN: '/auth/login',
@@ -13,6 +16,8 @@ export const ROUTES = {
     RESET_PASSWORD: '/auth/reset-password',
     /** Sprint 17 / FE-17.3 — second-factor challenge page. */
     MFA_CHALLENGE: '/auth/mfa-challenge',
+    /** CRED-7 — forced password + profile onboarding after mass provision. */
+    FIRST_LOGIN: '/auth/first-login',
   },
   INVITATION: {
     /**
@@ -46,15 +51,18 @@ export const ROUTES = {
   },
   HELP: {
     /**
-     * Help / manuals feature. Public list at {@code /help}; viewer at
-     * {@code /help/:role(/onboarding|flujos|autoevaluacion)}.
-     * Reached from the user-menu dropdown in the navbar.
+     * Family UAT guide hub (`/help`). Script viewer at
+     * {@code /help/script/:roleKey}; lead agenda at {@code /help/lead}.
      */
     ROOT: '/help',
-    detail: (role: string) => `/help/${role}`,
-    onboarding: (role: string) => `/help/${role}/onboarding`,
-    flujos: (role: string) => `/help/${role}/flujos`,
-    autoevaluacion: (role: string) => `/help/${role}/autoevaluacion`,
+    LEAD: '/help/lead',
+    REPORTS: '/help/reports',
+    script: (roleKey: string) => `/help/script/${roleKey}`,
+    /** @deprecated Prefer {@link ROUTES.HELP.script} — kept for older callers. */
+    detail: (role: string) => `/help/script/${role}`,
+    onboarding: (role: string) => `/help/script/${role}`,
+    flujos: (role: string) => `/help/script/${role}`,
+    autoevaluacion: (role: string) => `/help/script/${role}`,
   },
   STUDENTS: {
     ROOT: '/students',
@@ -77,6 +85,7 @@ export const ROUTES = {
     YEARS: {
       LIST: '/academic/years',
       NEW: '/academic/years/new',
+      TRANSITION: '/academic/years/transition',
       edit: (id: string) => `/academic/years/${id}/edit`,
     },
     LEVELS: {
@@ -93,6 +102,15 @@ export const ROUTES = {
     },
     PERIODS: {
       LIST: '/academic/periods',
+    },
+    /** Plantillas del registro formal de notas (F1). */
+    GRADE_REGISTER: {
+      LIST: '/academic/grade-register',
+      SETTINGS: '/academic/grade-register/settings',
+    },
+    /** Plantillas de sesión de aprendizaje (catálogo MINEDU + propias). */
+    SESSION_TEMPLATES: {
+      LIST: '/academic/session-templates',
     },
   },
   SESSIONS: {
@@ -115,6 +133,10 @@ export const ROUTES = {
   },
   EVALUATIONS: {
     ROOT: '/evaluations',
+    /** {@code /evaluations/courses} — grilla de materias (funnel Registros). */
+    COURSES: '/evaluations/courses',
+    /** {@code /evaluations/courses/{courseUuid}/sections} — secciones de una materia. */
+    courseSections: (courseUuid: string) => `/evaluations/courses/${courseUuid}/sections`,
     /** {@code /evaluations/by-assignment/{assignmentUuid}} — listing por assignment. */
     byAssignment: (assignmentUuid: string) => `/evaluations/by-assignment/${assignmentUuid}`,
     /** {@code /evaluations/{publicUuid}} — detail con tabs Overview / Rúbrica / Notas. */
@@ -148,11 +170,19 @@ export const ROUTES = {
     ADMIN: {
       ROOT: '/payments/admin',
       PAYMENTS: '/payments/admin/payments',
+      INVOICES: '/payments/admin/invoices',
+      EMIT: '/payments/admin/emit',
+      PLANS: '/payments/admin/plans',
+      POLICY: '/payments/admin/policy',
+      CONCEPTS: '/payments/admin/concepts',
     },
   },
   AI: {
     ROOT: '/ai',
     CHAT: '/ai/chat',
+    TUTOR: '/ai/tutor',
+    TEACHER: '/ai/teacher',
+    FAMILY: '/ai/family',
     INSIGHTS: '/ai/insights',
   },
   REPORTS: {
@@ -175,6 +205,10 @@ export const ROUTES = {
   },
   LMS: {
     ROOT: '/lms',
+    /** {@code /lms/courses} — grilla de materias (funnel Mis cursos). */
+    COURSES: '/lms/courses',
+    /** {@code /lms/courses/{courseUuid}/sections} — secciones de una materia. */
+    courseSections: (courseUuid: string) => `/lms/courses/${courseUuid}/sections`,
     /** {@code /lms/sections/{sectionUuid}/assignments} — list del docente. */
     sectionAssignments: (sectionUuid: string) => `/lms/sections/${sectionUuid}/assignments`,
     /** {@code /lms/students/{studentUuid}/assignments} — "Mis tareas" del alumno. */
@@ -215,6 +249,7 @@ export const ROUTES = {
     TENANTS: '/admin/tenants',
     TENANT_DETAIL: (uuid: string) => `/admin/tenants/${uuid}`,
     PLANS: '/admin/plans',
+    AI_GLOBAL_SOURCES: '/admin/ai/global-sources',
     PLAN_DETAIL: (uuid: string) => `/admin/plans/${uuid}`,
     PLAN_NEW: '/admin/plans/new',
     INVOICES: '/admin/invoices',
@@ -223,6 +258,8 @@ export const ROUTES = {
     METRICS: '/admin/metrics',
     METRICS_TENANT: (uuid: string) => `/admin/metrics/${uuid}`,
     AUDIT: '/admin/audit',
+    SUPER_ADMINS: '/admin/super-admins',
+    SUPPORT: '/admin/support',
   },
   ERRORS: {
     NOT_FOUND: '/404',

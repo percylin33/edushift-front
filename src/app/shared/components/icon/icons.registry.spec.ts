@@ -7,9 +7,9 @@ describe('ICONS registry', () => {
   });
 
   it('cada icono tiene contenido SVG', () => {
-    for (const [key, value] of Object.entries(ICONS)) {
+    for (const value of Object.values(ICONS)) {
       expect(value).toBeTruthy();
-      expect(value).toContain('<path');
+      expect(value).toMatch(/<(path|circle|rect|line|polyline|polygon)\b/);
     }
   });
 

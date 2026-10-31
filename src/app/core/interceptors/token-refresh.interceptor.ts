@@ -4,7 +4,6 @@ import { catchError, switchMap, throwError } from 'rxjs';
 import { environment } from '@env/environment';
 import { HttpStatus } from '@core/enums';
 import { API } from '@core/constants';
-import { AuthService } from '@core/services';
 import { TokenRefreshService } from '@features/auth/services/token-refresh.service';
 
 /**
@@ -70,23 +69,33 @@ import { TokenRefreshService } from '@features/auth/services/token-refresh.servi
  */
 export const tokenRefreshInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith(environment.apiUrl)) return next(req);
+  if (req.headers.has('X-Admin-Impersonation')) return next(req);
   if (isAuthFlowEndpoint(req.url)) return next(req);
 
-  const auth = inject(AuthService);
   const refresher = inject(TokenRefreshService);
+
+  // SECURITY FIX: Refresh token is now in httpOnly cookie, not localStorage
+  // We can't check if it exists, so we just try the refresh on 401
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status !== HttpStatus.Unauthorized) {
         return throwError(() => error);
       }
-      if (!auth.refreshToken()) {
+
+      // SECURITY FIX: Prevent loops — don't retry if already a retry
+      if (req.headers.has('X-Refresh-Retry')) {
         return throwError(() => error);
       }
 
       return refresher.refresh().pipe(
-        switchMap((newAccessToken) => next(applyAuthHeader(req, newAccessToken))),
-        catchError(() => throwError(() => error)),
+        switchMap(() => {
+          // SECURITY FIX: Cookies are set by the browser, just retry the request
+          const retryReqWithFlag = req.clone({
+            setHeaders: { 'X-Refresh-Retry': '1' },
+          });
+          return next(retryReqWithFlag);
+        }),
       );
     }),
   );
@@ -97,20 +106,6 @@ export const tokenRefreshInterceptor: HttpInterceptorFn = (req, next) => {
  * how to surface bad credentials, expired refresh, etc.
  */
 function isAuthFlowEndpoint(url: string): boolean {
-  return url === API.AUTH.LOGIN || url === API.AUTH.REFRESH || url === API.AUTH.LOGOUT;
-}
-
-/**
- * Replace (not append) the configured authorization header on the
- * retry. We mirror {@code authInterceptor} so the header naming and
- * scheme stay configured in a single place ({@code environment.auth}).
- */
-function applyAuthHeader(
-  req: import('@angular/common/http').HttpRequest<unknown>,
-  accessToken: string,
-) {
-  const headerName = environment.auth.tokenHeaderName;
-  const scheme = environment.auth.tokenScheme;
-  const value = scheme ? `${scheme} ${accessToken}` : accessToken;
-  return req.clone({ setHeaders: { [headerName]: value } });
+  return url === API.AUTH.LOGIN || url === API.AUTH.REFRESH || url === API.AUTH.LOGOUT ||
+    url.includes('/admin/login') || url.includes('/admin/mfa/') || url.includes('/admin/dev/');
 }

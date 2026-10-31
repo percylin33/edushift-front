@@ -55,3 +55,9 @@ test-results/
 # Commit the `environment.*.ts` placeholders; put real keys in these:
 src/environments/environment.local.ts
 src/environments/*.local.ts
+# Release build artifacts and local validation output
+/.angular/
+/build.log
+/dist-phase*/
+/.codex-*.log
+/.temp-browser-check/

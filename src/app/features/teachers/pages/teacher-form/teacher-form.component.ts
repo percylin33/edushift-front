@@ -1,3 +1,4 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -268,6 +269,12 @@ import {
   `,
 })
 export class TeacherFormComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(TeachersStore);
   private readonly route = inject(ActivatedRoute);
@@ -374,6 +381,7 @@ export class TeacherFormComponent implements OnInit {
         const patch = this.toUpdateRequest();
         const updated = await this.store.update(id, patch);
         if (updated) {
+          this.formProtection.markSaved();
           await this.router.navigate([ROUTES.TEACHERS.detail(updated.publicUuid)]);
         } else {
           this.applyServerErrorsFromStore();
@@ -382,6 +390,7 @@ export class TeacherFormComponent implements OnInit {
         const request = this.toCreateRequest();
         const created = await this.store.create(request);
         if (created) {
+          this.formProtection.markSaved();
           await this.router.navigate([ROUTES.TEACHERS.detail(created.publicUuid)]);
         } else {
           this.applyServerErrorsFromStore();

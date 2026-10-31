@@ -16,9 +16,9 @@
         <context-group purpose="location"><context context-type="sourcefile">edushift-front/src/app/core/i18n/language-selector.component.ts</context></context-group>
       </trans-unit>
 
-      <trans-unit id="nav.group.workspace" datatype="html"><source>Espacio de trabajo</source><target>Espacio de trabajo</target></trans-unit>
+      <trans-unit id="nav.group.workspace" datatype="html"><source>Institución</source><target>Institution</target></trans-unit>
       <trans-unit id="nav.group.academic"  datatype="html"><source>Acad&#233;mico</source>           <target>Academic</target></trans-unit>
-      <trans-unit id="nav.group.lms"       datatype="html"><source>Mis cursos</source>             <target>My courses</target></trans-unit>
+      <trans-unit id="nav.group.lms"       datatype="html"><source>Aula virtual</source>             <target>Virtual classroom</target></trans-unit>
       <trans-unit id="nav.group.attendance" datatype="html"><source>Asistencia</source>             <target>Attendance</target></trans-unit>
       <trans-unit id="nav.group.payments"  datatype="html"><source>Pagos</source>                  <target>Payments</target></trans-unit>
       <trans-unit id="nav.group.system"    datatype="html"><source>Sistema</source>                <target>System</target></trans-unit>
@@ -34,7 +34,7 @@
       <trans-unit id="nav.item.courses"             datatype="html"><source>Cursos</source>               <target>Courses</target></trans-unit>
       <trans-unit id="nav.item.rubrics"             datatype="html"><source>R&#250;bricas</source>         <target>Rubrics</target></trans-unit>
       <trans-unit id="nav.item.sessions"            datatype="html"><source>Sesiones de clase</source>    <target>Class sessions</target></trans-unit>
-      <trans-unit id="nav.item.evaluations"        datatype="html"><source>Evaluaciones</source>         <target>Evaluations</target></trans-unit>
+      <trans-unit id="nav.item.evaluations"        datatype="html"><source>Registros</source>         <target>Records</target></trans-unit>
       <trans-unit id="nav.item.lms-mine"            datatype="html"><source>Mis cursos</source>           <target>My courses</target></trans-unit>
       <trans-unit id="nav.item.attendance-sessions" datatype="html"><source>Sesiones</source>             <target>Sessions</target></trans-unit>
       <trans-unit id="nav.item.attendance-scanner"  datatype="html"><source>Esc&#225;ner QR</source>       <target>QR scanner</target></trans-unit>

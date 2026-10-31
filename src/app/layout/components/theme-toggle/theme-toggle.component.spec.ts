@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ThemeToggleComponent } from './theme-toggle.component';
 import { ThemeService } from '@core/services';
@@ -6,17 +7,19 @@ import { Theme } from '@core/enums';
 describe('ThemeToggleComponent', () => {
   let component: ThemeToggleComponent;
   let fixture: ComponentFixture<ThemeToggleComponent>;
+  let isDarkSignal: ReturnType<typeof signal<boolean>>;
 
   beforeEach(async () => {
+    isDarkSignal = signal(false);
     await TestBed.configureTestingModule({
       imports: [ThemeToggleComponent],
       providers: [
         {
           provide: ThemeService,
           useValue: jasmine.createSpyObj('ThemeService', ['setTheme', 'clearUserPreference'], {
-            userTheme: () => null,
-            hasUserPreference: () => false,
-            isDark: () => false,
+            userTheme: signal(null),
+            hasUserPreference: signal(false),
+            isDark: isDarkSignal,
           }),
         },
       ],
@@ -66,8 +69,7 @@ describe('ThemeToggleComponent', () => {
   });
 
   it('triggerIcon es moon cuando está oscuro', () => {
-    const themeService = TestBed.inject(ThemeService);
-    (themeService.isDark as unknown as jasmine.Spy).and.returnValue(true);
+    isDarkSignal.set(true);
     expect(component.triggerIcon()).toBe('moon');
   });
 });

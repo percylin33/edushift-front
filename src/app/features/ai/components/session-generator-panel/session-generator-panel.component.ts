@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
+import { readErrorDetails } from '@core/utils/error.utils';
 import { SessionGeneratorService, SessionDraft } from '../../services/session-generator.service';
 import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
 
@@ -262,10 +263,11 @@ export class SessionGeneratorPanelComponent {
     try {
       const d = await firstValueFrom(this.service.generate(this.form.getRawValue()));
       this.draft.set(d);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const details = readErrorDetails(e);
       this.error.set({
-        code: e?.code ?? 'AI_UNKNOWN',
-        message: e?.message ?? 'Error desconocido.',
+        code: details.code ?? 'AI_UNKNOWN',
+        message: details.message ?? 'Error desconocido.',
       });
       this.draft.set(null);
     } finally {

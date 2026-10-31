@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { NotificationsBellComponent } from './notifications-bell.component';
 import { provideRouter } from '@angular/router';
 
@@ -9,7 +10,7 @@ describe('NotificationsBellComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [NotificationsBellComponent],
-      providers: [provideRouter([])],
+      providers: [provideHttpClient(), provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(NotificationsBellComponent);

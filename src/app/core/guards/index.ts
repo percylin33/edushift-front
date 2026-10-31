@@ -4,3 +4,4 @@ export * from './role.guard';
 export * from './tenant.guard';
 export * from './feature-flag.guard';
 export * from './permission.guard';
+export * from './reject-reserved-segments.guard';

@@ -1,3 +1,4 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { roleGuard } from '@core/guards';
 import { UserRole } from '@core/enums';
@@ -13,6 +14,7 @@ import { UserRole } from '@core/enums';
  */
 export const REPORTS_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
     canActivate: [roleGuard],
     data: { roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Staff] },
@@ -20,6 +22,7 @@ export const REPORTS_ROUTES: Routes = [
       import('./pages/reports-home/reports-home.component').then((m) => m.ReportsHomeComponent),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'wizard',
     canActivate: [roleGuard],
     data: { roles: [UserRole.TenantAdmin, UserRole.Teacher, UserRole.Staff] },
@@ -34,6 +37,7 @@ export const REPORTS_ROUTES: Routes = [
    * per-template cron scheduler arriving in cierre-C / B12.
    */
   {
+    canDeactivate: [pendingChangesGuard],
     path: 'catalog',
     canActivate: [roleGuard],
     data: { roles: [UserRole.TenantAdmin] },

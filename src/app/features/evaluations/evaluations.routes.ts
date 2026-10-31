@@ -1,34 +1,35 @@
+import { pendingChangesGuard } from '@shared/services/form-protection.service';
 import { Routes } from '@angular/router';
 import { roleGuard } from '@core/guards';
 import { UserRole } from '@core/enums';
+import {
+  evaluationsAssignmentBreadcrumbsResolver,
+  evaluationsCourseNameResolver,
+} from './resolvers/evaluations-breadcrumb.resolvers';
 
 /**
  * Routes para el feature {@code evaluations} (Sprint 5B).
  *
  * <h3>Estructura</h3>
  * <ul>
- *   <li>{@code /evaluations}                                 → landing con accesos directos (FE-5B.6, fix BUG-2026-07-30-04).</li>
- *   <li>{@code /evaluations/by-assignment/:assignmentUuid}   → list por assignment (FE-5B.1).</li>
- *   <li>{@code /evaluations/by-assignment/:assignmentUuid/gradebook} → grade book matrix (FE-5B.4, no implementada aún).</li>
- *   <li>{@code /evaluations/:publicUuid}                     → detail con tabs (FE-5B.5, no implementada aún).</li>
- *   <li>{@code /evaluations/:publicUuid/grades}              → grade records (FE-5B.3, no implementada aún).</li>
+ *   <li>{@code /evaluations}                                 → admin picker / teacher redirect.</li>
+ *   <li>{@code /evaluations/courses}                         → grilla materias (funnel).</li>
+ *   <li>{@code /evaluations/courses/:courseUuid/sections}    → grilla secciones.</li>
+ *   <li>{@code /evaluations/by-assignment/:assignmentUuid}   → list por assignment (shell).</li>
+ *   <li>{@code /evaluations/by-assignment/:assignmentUuid/gradebook} → grade book.</li>
+ *   <li>{@code /evaluations/:publicUuid}                     → detail.</li>
+ *   <li>{@code /evaluations/:publicUuid/grades}              → grade records.</li>
  * </ul>
- *
- * <h3>RBAC</h3>
- * <p>Mismo trade-off que `academic`: el sprint mantiene el módulo
- * gateado a {@code TENANT_ADMIN | TEACHER}. La granularidad
- * `evaluations:*` llega con la security sprint. El backend impone
- * {@code @PreAuthorize("hasAnyRole('TENANT_ADMIN','TEACHER')")} en
- * cada endpoint — este guard es solo UX hint, no perímetro.</p>
  */
 export const EVALUATIONS_ROUTES: Routes = [
   {
+    canDeactivate: [pendingChangesGuard],
     path: '',
+    pathMatch: 'full',
     canActivate: [roleGuard],
     data: {
       roles: [UserRole.TenantAdmin, UserRole.Teacher],
-      title: 'Evaluaciones',
-      breadcrumb: 'Evaluaciones',
+      title: 'Registros',
     },
     loadComponent: () =>
       import('./pages/evaluations-landing/evaluations-landing.component').then(
@@ -36,31 +37,79 @@ export const EVALUATIONS_ROUTES: Routes = [
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
+    path: 'courses',
+    canActivate: [roleGuard],
+    data: {
+      roles: [UserRole.TenantAdmin, UserRole.Teacher],
+      title: 'Materias',
+    },
+    loadComponent: () =>
+      import('./pages/evaluations-courses/evaluations-courses.component').then(
+        (m) => m.EvaluationsCoursesComponent,
+      ),
+  },
+  {
+    canDeactivate: [pendingChangesGuard],
+    path: 'courses/:courseUuid/sections',
+    canActivate: [roleGuard],
+    resolve: { breadcrumb: evaluationsCourseNameResolver },
+    data: {
+      roles: [UserRole.TenantAdmin, UserRole.Teacher],
+      title: 'Secciones',
+    },
+    loadComponent: () =>
+      import('./pages/evaluations-course-sections/evaluations-course-sections.component').then(
+        (m) => m.EvaluationsCourseSectionsComponent,
+      ),
+  },
+  {
+    canDeactivate: [pendingChangesGuard],
+    path: '',
+    canActivate: [roleGuard],
+    data: {
+      roles: [UserRole.TenantAdmin, UserRole.Teacher],
+      title: 'Registros',
+    },
+    loadComponent: () =>
+      import('./pages/evaluations-shell/evaluations-shell.component').then(
+        (m) => m.EvaluationsShellComponent,
+      ),
+    children: [
+      {
+        canDeactivate: [pendingChangesGuard],
     path: 'by-assignment/:assignmentUuid/gradebook',
-    canActivate: [roleGuard],
-    data: {
-      roles: [UserRole.TenantAdmin, UserRole.Teacher],
-      breadcrumb: 'Libro de calificaciones',
-      title: 'Libro de calificaciones',
-    },
-    loadComponent: () =>
-      import('@features/gradebook/pages/gradebook-page/gradebook-page.component').then(
-        (m) => m.GradeBookPageComponent,
-      ),
-  },
-  {
+        canActivate: [roleGuard],
+        runGuardsAndResolvers: 'paramsOrQueryParamsChange',
+        resolve: { breadcrumbs: evaluationsAssignmentBreadcrumbsResolver },
+        data: {
+          roles: [UserRole.TenantAdmin, UserRole.Teacher],
+          title: 'Libro de calificaciones',
+        },
+        loadComponent: () =>
+          import('@features/gradebook/pages/gradebook-page/gradebook-page.component').then(
+            (m) => m.GradeBookPageComponent,
+          ),
+      },
+      {
+        canDeactivate: [pendingChangesGuard],
     path: 'by-assignment/:assignmentUuid',
-    canActivate: [roleGuard],
-    data: {
-      roles: [UserRole.TenantAdmin, UserRole.Teacher],
-      title: 'Evaluaciones',
-    },
-    loadComponent: () =>
-      import('./pages/evaluations-list/evaluations-list.component').then(
-        (m) => m.EvaluationsListComponent,
-      ),
+        canActivate: [roleGuard],
+        runGuardsAndResolvers: 'paramsOrQueryParamsChange',
+        resolve: { breadcrumbs: evaluationsAssignmentBreadcrumbsResolver },
+        data: {
+          roles: [UserRole.TenantAdmin, UserRole.Teacher],
+          title: 'Registros',
+        },
+        loadComponent: () =>
+          import('./pages/evaluations-list/evaluations-list.component').then(
+            (m) => m.EvaluationsListComponent,
+          ),
+      },
+    ],
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: ':publicUuid/grades',
     canActivate: [roleGuard],
     data: {
@@ -74,12 +123,13 @@ export const EVALUATIONS_ROUTES: Routes = [
       ),
   },
   {
+    canDeactivate: [pendingChangesGuard],
     path: ':publicUuid',
     canActivate: [roleGuard],
     data: {
       roles: [UserRole.TenantAdmin, UserRole.Teacher],
       breadcrumb: 'Detalle',
-      title: 'Detalle de evaluación',
+      title: 'Detalle de registro',
     },
     loadComponent: () =>
       import('./pages/evaluation-detail/evaluation-detail.component').then(

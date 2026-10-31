@@ -1,10 +1,27 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, inject, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { ROUTES } from '@core/constants';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { TeacherAssignmentsStore } from '@features/teachers/store';
-import { PERIOD_TYPE_LABELS } from '@features/academic/models';
+import {
+  AcademicPeriodRow,
+  PERIOD_TYPE_LABELS,
+  PeriodType,
+  formatPeriodLabel,
+  resolveCurrentAcademicPeriod,
+} from '@features/academic/models';
+import { AcademicApiService } from '@features/academic/services';
 
 /**
  * Sub-componente del tab "Docentes" en
@@ -19,21 +36,36 @@ import { PERIOD_TYPE_LABELS } from '@features/academic/models';
   selector: 'app-section-teachers-tab',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterLink, IconComponent, SpinnerComponent],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, SpinnerComponent],
   template: `
     <section class="card">
       <header class="card-header">
         <div>
           <h3 class="card-title">Docentes asignados</h3>
           <p class="card-description">
-            Listado de docentes con asignación activa en esta sección. Para crear una asignación, ve
-            al detalle del docente.
+            Listado de docentes con asignación activa en esta sección. Por defecto se muestra el
+            periodo vigente.
           </p>
         </div>
+        @if (periods().length > 0) {
+          <label class="sr-only" for="section-teachers-period">Periodo</label>
+          <select
+            id="section-teachers-period"
+            class="select select-sm max-w-[16rem]"
+            [ngModel]="periodFilterValue()"
+            (ngModelChange)="onPeriodFilterChange($event)"
+            [disabled]="isBusy()"
+          >
+            @for (p of periods(); track p.publicUuid) {
+              <option [value]="p.publicUuid">{{ periodOptionLabel(p) }}</option>
+            }
+            <option [value]="allPeriodsValue">Todos los periodos</option>
+          </select>
+        }
       </header>
 
       <div class="card-body">
-        @if (loading()) {
+        @if (isBusy()) {
           <div class="flex items-center justify-center py-10">
             <app-spinner [size]="24" label="Cargando docentes…" />
           </div>
@@ -50,8 +82,11 @@ import { PERIOD_TYPE_LABELS } from '@features/academic/models';
             <app-icon name="user" [size]="32" class="mx-auto mb-3 text-content-subtle" />
             <p class="text-sm font-medium text-content">Sin docentes asignados todavía</p>
             <p class="mx-auto mt-1 max-w-md text-xs text-content-muted">
-              Las asignaciones se crean desde la pestaña
-              <em>Asignaciones</em> del docente.
+              @if (periodFilterValue() === allPeriodsValue) {
+                No hay docentes asignados en ningún periodo de esta sección.
+              } @else {
+                No hay docentes asignados en {{ selectedPeriodLabel() }}.
+              }
             </p>
           </div>
         } @else {
@@ -110,15 +145,49 @@ import { PERIOD_TYPE_LABELS } from '@features/academic/models';
 })
 export class SectionTeachersTabComponent implements OnInit {
   private readonly store = inject(TeacherAssignmentsStore);
+  private readonly academicApi = inject(AcademicApiService);
+
+  protected readonly allPeriodsValue = '__ALL_PERIODS__';
 
   readonly sectionPublicUuid = input.required<string>();
+  readonly academicYearPublicUuid = input.required<string>();
+
+  protected readonly periods = signal<AcademicPeriodRow[]>([]);
+  protected readonly loadingPeriods = signal(false);
+  protected readonly periodFilterValue = signal<string>(this.allPeriodsValue);
+  protected readonly currentPeriodId = signal<string | null>(null);
 
   protected readonly rows = this.store.sectionTeachers;
   protected readonly loading = this.store.loadingSection;
   protected readonly errorMessage = this.store.error;
 
+  protected readonly isBusy = computed(() => this.loading() || this.loadingPeriods());
+
+  protected readonly selectedPeriodLabel = computed(() => {
+    const value = this.periodFilterValue();
+    if (value === this.allPeriodsValue) return 'todos los periodos';
+    const period = this.periods().find((p) => p.publicUuid === value);
+    return period ? formatPeriodLabel(period) : 'el periodo seleccionado';
+  });
+
   async ngOnInit(): Promise<void> {
-    await this.store.loadSectionTeachers(this.sectionPublicUuid());
+    await this.loadPeriods();
+    const current = resolveSectionPeriod(this.periods());
+    const defaultPeriodId = current?.publicUuid ?? null;
+    this.currentPeriodId.set(defaultPeriodId);
+    this.periodFilterValue.set(defaultPeriodId ?? this.allPeriodsValue);
+    await this.reload();
+  }
+
+  protected periodOptionLabel(period: AcademicPeriodRow): string {
+    const label = formatPeriodLabel(period);
+    return period.publicUuid === this.currentPeriodId() ? `${label} (vigente)` : label;
+  }
+
+  protected async onPeriodFilterChange(value: string): Promise<void> {
+    if (value === this.periodFilterValue()) return;
+    this.periodFilterValue.set(value);
+    await this.reload();
   }
 
   protected periodLabel(a: {
@@ -134,6 +203,30 @@ export class SectionTeachersTabComponent implements OnInit {
 
   protected async reload(): Promise<void> {
     this.store.clearError();
-    await this.store.loadSectionTeachers(this.sectionPublicUuid());
+    const value = this.periodFilterValue();
+    const periodId = value === this.allPeriodsValue ? undefined : value;
+    await this.store.loadSectionTeachers(this.sectionPublicUuid(), { periodId });
   }
+
+  private async loadPeriods(): Promise<void> {
+    this.loadingPeriods.set(true);
+    try {
+      const periods = await firstValueFrom(
+        this.academicApi.listPeriods({
+          academicYearPublicUuid: this.academicYearPublicUuid(),
+        }),
+      );
+      this.periods.set(periods);
+    } catch {
+      this.periods.set([]);
+    } finally {
+      this.loadingPeriods.set(false);
+    }
+  }
+}
+
+/** Prefers the bimestre or trimestre that contains today over the annual period. */
+function resolveSectionPeriod(periods: AcademicPeriodRow[]): AcademicPeriodRow | null {
+  const operational = periods.filter((p) => p.periodType !== PeriodType.Anual);
+  return resolveCurrentAcademicPeriod(operational.length > 0 ? operational : periods);
 }

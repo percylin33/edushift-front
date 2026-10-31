@@ -1,3 +1,5 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -23,7 +25,7 @@ import { ApiError } from '@core/models';
 import { IconComponent, SpinnerComponent } from '@shared/components';
 import { AcademicStore } from '../store';
 import {
-  AcademicLevel,
+
   AcademicYearRow,
   AcademicYearStatus,
   Grade,
@@ -62,14 +64,14 @@ import {
   selector: 'app-section-form-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
+  imports: [SafeBackdropDirective, CommonModule, FormsModule, ReactiveFormsModule, IconComponent, SpinnerComponent],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="section-form-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div class="card w-full max-w-xl shadow-xl" (click)="$event.stopPropagation()">
         <header class="card-header flex items-start justify-between gap-3">
@@ -178,7 +180,7 @@ import {
                 <p class="field-error">{{ msg }}</p>
               } @else {
                 <p class="field-hint">
-                  Entero ≥ 1. Opcional. Se usará como cupo máximo de matrícula.
+                  Por defecto 30. Ingresa un entero ≥ 1; se usará como cupo máximo de matrícula.
                 </p>
               }
             </div>
@@ -206,6 +208,12 @@ import {
   `,
 })
 export class SectionFormModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(AcademicStore);
 
@@ -266,7 +274,7 @@ export class SectionFormModalComponent implements OnInit {
     academicYearPublicUuid: [null as string | null, [Validators.required]],
     gradePublicUuid: [null as string | null, [Validators.required]],
     name: ['', [Validators.required, Validators.maxLength(40)]],
-    capacity: [null as number | null, [Validators.min(1)]],
+    capacity: [30 as number | null, [Validators.min(1), Validators.pattern(/^[1-9]\d*$/)]],
   });
 
   constructor() {
@@ -383,8 +391,10 @@ export class SectionFormModalComponent implements OnInit {
   }
 
   protected cancel(): void {
-    this.store.clearError();
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.store.clearError();
+      this.closed.emit();
+    });
   }
 
   protected statusLabel(status: AcademicYearStatus): string {
@@ -412,6 +422,7 @@ export class SectionFormModalComponent implements OnInit {
       return `Máximo ${ctrl.errors['maxlength'].requiredLength} caracteres.`;
     }
     if (ctrl.errors['min']) return 'Debe ser ≥ 1.';
+    if (ctrl.errors['pattern']) return 'Ingresa un número entero.';
     return 'Valor inválido.';
   }
 
@@ -423,7 +434,7 @@ export class SectionFormModalComponent implements OnInit {
   private optionalPositive(value: number | null | undefined): number | undefined {
     if (value === null || value === undefined) return undefined;
     const n = Number(value);
-    return Number.isFinite(n) && n >= 1 ? n : undefined;
+    return Number.isInteger(n) && n >= 1 ? n : undefined;
   }
 
   private applyServerErrors(err: unknown): void {

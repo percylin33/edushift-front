@@ -33,7 +33,7 @@ describe('SpinnerComponent', () => {
   });
 
   it('cambia el tamaño del spinner', () => {
-    component.size = 32;
+    fixture.componentRef.setInput('size', 32);
     fixture.detectChanges();
     const span = fixture.nativeElement.querySelector('.animate-spin');
     expect(span.style.width).toBe('32px');

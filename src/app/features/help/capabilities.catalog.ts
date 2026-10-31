@@ -10,12 +10,12 @@ const PA = 'parent' as const;
 const SF = 'staff' as const;
 
 export const ROLES: ReadonlyArray<{ key: RoleKey; title: string; subtitle: string }> = [
-  { key: SA, title: 'SUPER_ADMIN', subtitle: 'Operaciones cross-tenant, planes, impersonación.' },
-  { key: TA, title: 'TENANT_ADMIN', subtitle: 'Administración del colegio: usuarios, académico, asistencia.' },
-  { key: TE, title: 'TEACHER', subtitle: 'Sesiones, asistencia, evaluaciones, LMS.' },
-  { key: ST, title: 'STUDENT', subtitle: 'Mi panel, evaluaciones, QR, materiales.' },
-  { key: PA, title: 'PARENT', subtitle: 'Ver hijos, justificar, calificaciones, pagos.' },
-  { key: SF, title: 'STAFF', subtitle: 'Pagos, reportes operativos, delegadas.' },
+  { key: SA, title: 'Administrador de plataforma', subtitle: 'Gestión entre instituciones, planes y soporte.' },
+  { key: TA, title: 'Administrador de institución', subtitle: 'Usuarios, información académica y asistencia.' },
+  { key: TE, title: 'Docente', subtitle: 'Sesiones, asistencia, registros y aula virtual.' },
+  { key: ST, title: 'Estudiante', subtitle: 'Mi panel, registros, QR y materiales.' },
+  { key: PA, title: 'Apoderado', subtitle: 'Ver hijos, justificar faltas, notas y pagos.' },
+  { key: SF, title: 'Personal administrativo', subtitle: 'Pagos y reportes operativos.' },
 ];
 
 /**
@@ -64,7 +64,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
   {
     id: 'sa.dashboard.kpis',
     roleKey: SA,
-    title: 'Dashboard KPIs cross-tenant',
+    title: 'Indicadores generales de las instituciones',
     summary: 'Indicadores globales de la plataforma.',
     group: 'system',
     status: 'live',
@@ -102,15 +102,15 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
   {
     id: 'sa.dashboard.active-tenants',
     roleKey: SA,
-    title: 'Tendencia de tenants activos',
-    summary: 'Serie temporal de tenants activos.',
+    title: 'Tendencia de instituciones activas',
+    summary: 'Evolución de las instituciones activas.',
     group: 'system',
     status: 'live',
     steps: [
       {
         id: 'active',
         label: 'GET /admin/dashboard/active-tenants',
-        description: 'Cargar tendencia de tenants activos.',
+        description: 'Cargar tendencia de instituciones activas.',
         endpoint: { method: 'GET', path: '/admin/dashboard/active-tenants' },
         autoExecute: true,
         successCriteria: { kind: 'status', value: 200 },
@@ -122,7 +122,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
     id: 'sa.dashboard.plan-distribution',
     roleKey: SA,
     title: 'Distribución de planes',
-    summary: 'Conteo de tenants por plan.',
+    summary: 'Cantidad de instituciones por plan.',
     group: 'system',
     status: 'live',
     steps: [
@@ -140,15 +140,15 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
   {
     id: 'sa.dashboard.top-tenants',
     roleKey: SA,
-    title: 'Top N tenants por revenue',
-    summary: 'Ranking de los N tenants con más revenue.',
+    title: 'Instituciones con mayores ingresos',
+    summary: 'Ranking de instituciones con mayores ingresos.',
     group: 'system',
     status: 'live',
     steps: [
       {
         id: 'top',
         label: 'GET /admin/dashboard/top-tenants',
-        description: 'Cargar top tenants.',
+        description: 'Cargar instituciones con mayores ingresos.',
         endpoint: { method: 'GET', path: '/admin/dashboard/top-tenants' },
         autoExecute: true,
         successCriteria: { kind: 'status', value: 200 },
@@ -197,7 +197,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
   {
     id: 'sa.tenants.list-with-filters',
     roleKey: SA,
-    title: 'Listar tenants con filtros',
+    title: 'Listar instituciones con filtros',
     summary: 'Lista paginada con search/status/plan.',
     group: 'system',
     status: 'live',
@@ -205,7 +205,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
       {
         id: 'list',
         label: 'GET /admin/tenants',
-        description: 'Listar tenants con query params.',
+        description: 'Listar instituciones con filtros.',
         endpoint: { method: 'GET', path: '/admin/tenants?page=0&size=20' },
         autoExecute: true,
         successCriteria: { kind: 'status', value: 200 },
@@ -216,7 +216,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
   {
     id: 'sa.tenants.detail',
     roleKey: SA,
-    title: 'Detalle de tenant',
+    title: 'Detalle de institución',
     summary: 'Detalle completo por publicUuid.',
     group: 'system',
     status: 'live',
@@ -224,7 +224,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
       {
         id: 'detail',
         label: 'GET /admin/tenants/{uuid}',
-        description: 'Cargar detalle de un tenant.',
+        description: 'Cargar detalle de una institución.',
         endpoint: { method: 'GET', path: '/admin/tenants/00000000-0000-0000-0000-000000000000' },
         autoExecute: true,
         successCriteria: { kind: 'status', value: [200, 404] },
@@ -235,7 +235,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
   {
     id: 'sa.tenants.suspend',
     roleKey: SA,
-    title: 'Suspender tenant',
+    title: 'Suspender institución',
     summary: 'Cambia el estado a SUSPENDED.',
     group: 'system',
     status: 'live',
@@ -243,12 +243,12 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
       {
         id: 'suspend',
         label: 'POST /admin/tenants/{uuid}/suspend',
-        description: 'Suspender tenant — requiere confirmación humana.',
+        description: 'Suspender una institución; requiere confirmación.',
         endpoint: { method: 'POST', path: '/admin/tenants/00000000-0000-0000-0000-000000000000/suspend' },
         autoExecute: false,
         successCriteria: {
           kind: 'manualConfirm',
-          prompt: 'Confirma la suspensión del tenant. Esta acción afecta a todos los usuarios.',
+          prompt: 'Confirma la suspensión de la institución. Esta acción afecta a todas sus cuentas.',
         },
       },
     ],
@@ -257,7 +257,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
   {
     id: 'sa.tenants.reactivate',
     roleKey: SA,
-    title: 'Reactivar tenant',
+    title: 'Reactivar institución',
     summary: 'Cambia el estado a ACTIVE.',
     group: 'system',
     status: 'live',
@@ -265,12 +265,12 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
       {
         id: 'reactivate',
         label: 'POST /admin/tenants/{uuid}/reactivate',
-        description: 'Reactivar tenant — confirmar.',
+        description: 'Reactivar una institución; requiere confirmación.',
         endpoint: { method: 'POST', path: '/admin/tenants/00000000-0000-0000-0000-000000000000/reactivate' },
         autoExecute: false,
         successCriteria: {
           kind: 'manualConfirm',
-          prompt: 'Confirma la reactivación del tenant.',
+          prompt: 'Confirma la reactivación de la institución.',
         },
       },
     ],
@@ -302,7 +302,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
   {
     id: 'sa.audit.view',
     roleKey: SA,
-    title: 'Ver log de auditoría cross-tenant',
+    title: 'Ver auditoría entre instituciones',
     summary: 'Búsqueda de eventos en audit_logs.',
     group: 'system',
     status: 'partial',
@@ -323,8 +323,8 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
   {
     id: 'ta.login.tenant-header',
     roleKey: TA,
-    title: 'Login con X-Tenant-Slug',
-    summary: 'Auth requiere header X-Tenant-Slug.',
+    title: 'Acceso de usuario a una institución',
+    summary: 'El inicio de sesión requiere identificar la institución.',
     group: 'auth',
     status: 'live',
     steps: [
@@ -438,7 +438,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
         description: 'No existe endpoint dedicado para STAFF; el rol se asigna por invitación genérica.',
         successCriteria: {
           kind: 'manualConfirm',
-          prompt: 'Reportar como faltante: invitar STAFF con rol LMS_PAYMENT_ADMIN u operativos.',
+          prompt: 'Reportar como faltante: invitar personal administrativo u operativo.',
         },
       },
     ],
@@ -447,15 +447,15 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
   {
     id: 'ta.users.roles',
     roleKey: TA,
-    title: 'Asignar roles LMS_* delegados',
-    summary: 'Otorgar permisos LMS delegados.',
+    title: 'Asignar permisos avanzados',
+    summary: 'Otorgar permisos para tareas, materiales, cuestionarios y pagos.',
     group: 'system',
     status: 'live',
     steps: [
       {
         id: 'assign',
         label: 'PATCH /users/{id}/roles',
-        description: 'Asignar un rol LMS delegado.',
+        description: 'Asignar un permiso avanzado de la plataforma.',
         endpoint: { method: 'PATCH', path: '/users/00000000-0000-0000-0000-000000000000/roles' },
         autoExecute: false,
         successCriteria: {
@@ -509,7 +509,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
     id: 'ta.dashboard.tenant',
     roleKey: TA,
     title: 'Dashboard del colegio',
-    summary: 'KPIs tenant-scoped.',
+    summary: 'Indicadores de esta institución.',
     group: 'system',
     status: 'live',
     steps: [
@@ -530,7 +530,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
     id: 'te.login.mfa',
     roleKey: TE,
     title: 'Login TEACHER (sin header)',
-    summary: 'Auth estándar con tenant header.',
+    summary: 'Acceso con identificación de la institución.',
     group: 'auth',
     status: 'live',
     steps: [
@@ -640,7 +640,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
   {
     id: 'te.evaluations.create',
     roleKey: TE,
-    title: 'Crear evaluación con rúbrica',
+    title: 'Crear registro con rúbrica',
     summary: 'POST /evaluations.',
     group: 'evaluations',
     status: 'live',
@@ -648,12 +648,12 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
       {
         id: 'create',
         label: 'POST /evaluations',
-        description: 'Crear evaluación.',
+        description: 'Crear registro.',
         endpoint: { method: 'POST', path: '/evaluations' },
         autoExecute: false,
         successCriteria: {
           kind: 'manualConfirm',
-          prompt: 'Confirma la creación de la evaluación.',
+          prompt: 'Confirma la creación del registro.',
         },
         defaultPayload: { title: 'QA Eval', courseId: '00000000-0000-0000-0000-000000000000' },
       },
@@ -712,7 +712,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
     id: 'st.login.mfa',
     roleKey: ST,
     title: 'Login STUDENT',
-    summary: 'Auth con tenant header.',
+    summary: 'Acceso con identificación de la institución.',
     group: 'auth',
     status: 'live',
     steps: [
@@ -773,7 +773,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
   {
     id: 'st.quizzes.take',
     roleKey: ST,
-    title: 'Tomar quiz',
+    title: 'Tomar práctica',
     summary: 'POST /quizzes/{id}/attempt.',
     group: 'evaluations',
     status: 'live',
@@ -786,7 +786,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
         autoExecute: false,
         successCriteria: {
           kind: 'manualConfirm',
-          prompt: 'Confirma el intento del quiz.',
+          prompt: 'Confirma el intento de la práctica.',
         },
       },
     ],
@@ -821,7 +821,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
     id: 'pa.login.mfa',
     roleKey: PA,
     title: 'Login PARENT',
-    summary: 'Auth con tenant header.',
+    summary: 'Acceso con identificación de la institución.',
     group: 'auth',
     status: 'live',
     steps: [
@@ -923,7 +923,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
     id: 'sf.login.mfa',
     roleKey: SF,
     title: 'Login STAFF',
-    summary: 'Auth con tenant header.',
+    summary: 'Acceso con identificación de la institución.',
     group: 'auth',
     status: 'live',
     steps: [
@@ -943,7 +943,7 @@ export const CAPABILITIES: ReadonlyArray<Capability> = [
     id: 'sf.payments.reconcile',
     roleKey: SF,
     title: 'Conciliación de pagos',
-    summary: 'POST /payments/{id}/reconcile (LMS_PAYMENT_ADMIN).',
+    summary: 'Revisar y conciliar un pago recibido.',
     group: 'finance',
     status: 'live',
     steps: [

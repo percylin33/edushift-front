@@ -8,12 +8,11 @@
     <meta name="theme-color" content="#4f46e5" />
     <meta name="color-scheme" content="light dark" />
     <!-- The `id` lets `TenantThemeService` swap the favicon at runtime. -->
-    <link rel="icon" id="app-favicon" type="image/x-icon" href="favicon.ico" />
-    <!-- PWA manifest (FE-6.1). `start_url` points at the scanner so the
-       shortcut launched from the home screen opens the most-used screen
-       for the docente persona. -->
-    <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="icons/icon-192.svg" />
+    <link rel="icon" id="app-favicon" type="image/png" href="branding/icons/icono.png" />
+    <!-- Static EduShift fallback; TenantThemeService swaps this for the
+         tenant-specific install manifest as soon as the school is resolved. -->
+    <link rel="manifest" id="app-manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="branding/icons/isotipo.png" />
 
     <script>
       /* Anti-FOUC: set the dark class, tenant slug AND favicon before Angular

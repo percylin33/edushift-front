@@ -56,11 +56,12 @@ export class QuizApiService {
    */
   listBySection(
     sectionPublicUuid: string,
-    filters: { status?: QuizStatus } = {},
+    filters: { status?: QuizStatus; assignmentPublicUuid?: string } = {},
   ): Observable<QuizRow[]> {
     return this.api
       .get<SpringPage<QuizSummaryRaw>>(API.LMS.SECTION_QUIZZES(sectionPublicUuid), {
         status: filters.status,
+        assignmentPublicUuid: filters.assignmentPublicUuid,
       })
       .pipe(map((page) => page.content.map(toQuizRow)));
   }

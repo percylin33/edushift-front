@@ -22,12 +22,14 @@ describe('AttendanceHomeComponent', () => {
   });
 
   it('expone scannerRoute y sessionsRoute', () => {
-    expect((component as any).scannerRoute).toBe(ROUTES.ATTENDANCE.SCANNER);
-    expect((component as any).sessionsRoute).toBe(ROUTES.ATTENDANCE.SESSIONS);
+    expect(component['scannerRoute']).toBe(ROUTES.ATTENDANCE.SCANNER);
+    expect(component['sessionsRoute']).toBe(ROUTES.ATTENDANCE.SESSIONS);
   });
 
-  it('renderiza título', () => {
-    const text = fixture.nativeElement.textContent;
+  it('renderiza título y copy de puerta', () => {
+    const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Asistencia');
+    expect(text).toContain('Entrada / Escáner');
+    expect(text).toContain('Sesiones (por aula)');
   });
 });

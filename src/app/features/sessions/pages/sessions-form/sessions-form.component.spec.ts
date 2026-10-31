@@ -5,7 +5,20 @@ import { of } from 'rxjs';
 import { SessionsFormComponent } from './sessions-form.component';
 import { SessionsApiService } from '../../services';
 import { AcademicApiService } from '@features/academic/services';
+import { AcademicPeriodRow, AcademicYearRow, PeriodType, UnitRow, AcademicYearStatus } from '@features/academic/models';
+import { AssignmentListItemRaw } from '@features/teachers/models';
+import { SessionTemplatesApiService } from '@features/academic/services/session-templates-api.service';
 import { SessionStatus, LearningSessionDetail } from '../../models';
+
+function testRows<T>(rows: Array<Partial<T>>): T[] {
+  return rows as T[];
+}
+
+function checkedEvent(checked: boolean): Event {
+  const event = new Event('change');
+  Object.defineProperty(event, 'target', { value: { checked } });
+  return event;
+}
 
 describe('SessionsFormComponent', () => {
   let fixture: ComponentFixture<SessionsFormComponent>;
@@ -44,6 +57,7 @@ describe('SessionsFormComponent', () => {
     cancelledAt: undefined,
     createdAt: new Date(),
     updatedAt: new Date(),
+    sharedWithGrade: false,
   };
 
   function configureModule(id: string | null = null): void {
@@ -61,13 +75,25 @@ describe('SessionsFormComponent', () => {
       'listAssignments',
       'listUnits',
       'listCompetencies',
+      'getCompetency',
+      'listYears',
+      'listPeriods',
     ]);
+    fakeAcademic.listYears.and.returnValue(of(testRows<AcademicYearRow>([])));
+    fakeAcademic.listPeriods.and.returnValue(of(testRows<AcademicPeriodRow>([])));
+    fakeAcademic.listAssignments.and.returnValue(of(testRows<AssignmentListItemRaw>([])));
+    const fakeTemplates = jasmine.createSpyObj<SessionTemplatesApiService>(
+      'SessionTemplatesApiService',
+      ['listMine'],
+    );
+    fakeTemplates.listMine.and.returnValue(of([]));
     TestBed.configureTestingModule({
       imports: [ReactiveFormsModule, SessionsFormComponent],
       providers: [
         provideRouter([]),
         { provide: SessionsApiService, useValue: fakeApi },
         { provide: AcademicApiService, useValue: fakeAcademic },
+        { provide: SessionTemplatesApiService, useValue: fakeTemplates },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: (_: string) => id } } },
@@ -83,36 +109,138 @@ describe('SessionsFormComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('renderiza el formulario de creación después de cargar los datos iniciales', async () => {
+    configureModule();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('form')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Nueva sesión');
+    expect(fixture.nativeElement.textContent).toContain('¿Para qué clase es?');
+  });
+
   it('ngOnInit carga asignaciones', async () => {
     configureModule();
     fakeAcademic.listAssignments.and.returnValue(
-      of([{ publicUuid: 'a-1', coursePublicUuid: 'c-1', courseUuid: 'c-1' } as any]),
+      of(testRows<AssignmentListItemRaw>([
+        { publicUuid: 'a-1', coursePublicUuid: 'c-1', academicPeriodPublicUuid: 'p-1' },
+      ])),
     );
     await component.ngOnInit();
-    expect((component as any).assignments().length).toBeGreaterThan(0);
+    expect(component['assignments']().length).toBeGreaterThan(0);
+  });
+
+  it('filteredAssignments solo incluye el periodo seleccionado', async () => {
+    configureModule();
+    fakeAcademic.listYears.and.returnValue(
+      of(testRows<AcademicYearRow>([{ publicUuid: 'y-1', status: AcademicYearStatus.Active, name: '2026' }])),
+    );
+    fakeAcademic.listPeriods.and.returnValue(
+      of(testRows<AcademicPeriodRow>([
+        {
+          publicUuid: 'p-1',
+          academicYearPublicUuid: 'y-1',
+          periodType: PeriodType.Bimestre,
+          ordinal: 1,
+          name: 'I Bimestre',
+          startDate: new Date('2026-03-01'),
+          endDate: new Date('2026-05-31'),
+        },
+        {
+          publicUuid: 'p-2',
+          academicYearPublicUuid: 'y-1',
+          periodType: PeriodType.Bimestre,
+          ordinal: 2,
+          name: 'II Bimestre',
+          startDate: new Date('2026-06-01'),
+          endDate: new Date('2026-08-31'),
+        },
+      ])),
+    );
+    fakeAcademic.listAssignments.and.returnValue(
+      of(testRows<AssignmentListItemRaw>([
+        {
+          publicUuid: 'a-p1',
+          coursePublicUuid: 'c-1',
+          academicPeriodPublicUuid: 'p-1',
+          teacherFullName: 'Ana',
+          courseCode: 'MAT',
+          sectionName: 'A',
+        },
+        {
+          publicUuid: 'a-p2',
+          coursePublicUuid: 'c-1',
+          academicPeriodPublicUuid: 'p-2',
+          teacherFullName: 'Ana',
+          courseCode: 'MAT',
+          sectionName: 'A',
+        },
+      ])),
+    );
+    await component.ngOnInit();
+
+    component['selectedPeriodUuid'].set('p-1');
+    expect(component['filteredAssignments']().map((assignment) => assignment.publicUuid)).toEqual([
+      'a-p1',
+    ]);
+
+    component['onPeriodChange']('p-2');
+    expect(component['filteredAssignments']().map((assignment) => assignment.publicUuid)).toEqual([
+      'a-p2',
+    ]);
+  });
+
+  it('al elegir asignación carga unidades con coursePublicUuid', async () => {
+    configureModule();
+    fakeAcademic.listAssignments.and.returnValue(
+      of(testRows<AssignmentListItemRaw>([
+        {
+          publicUuid: 'a-1',
+          coursePublicUuid: 'c-1',
+          academicPeriodPublicUuid: 'p-1',
+          teacherFullName: 'Ana',
+          courseCode: 'MAT',
+          sectionName: 'A',
+        },
+      ])),
+    );
+    fakeAcademic.listUnits.and.returnValue(
+      of(testRows<UnitRow>([
+        { publicUuid: 'u-1', name: 'Unidad 1', displayOrder: 1, isActive: true },
+        { publicUuid: 'u-2', name: 'Unidad 2', displayOrder: 2, isActive: true },
+      ])),
+    );
+    fakeAcademic.listCompetencies.and.returnValue(of([]));
+    await component.ngOnInit();
+
+    component['form'].get('assignmentUuid')?.setValue('a-1');
+    await fixture.whenStable();
+
+    expect(fakeAcademic.listUnits).toHaveBeenCalledWith('c-1');
+    expect(component['units']().length).toBe(2);
   });
 
   it('ngOnInit en edit hidrata form', async () => {
     configureModule('sess-1');
     fakeAcademic.listAssignments.and.returnValue(
-      of([{ publicUuid: 'a-1', coursePublicUuid: 'c-1', courseUuid: 'c-1' } as any]),
+      of(testRows<AssignmentListItemRaw>([{ publicUuid: 'a-1', coursePublicUuid: 'c-1' }])),
     );
     fakeAcademic.listUnits.and.returnValue(
-      of([{ publicUuid: 'u-1', name: 'U1', displayOrder: 1, isActive: true } as any]),
+      of(testRows<UnitRow>([{ publicUuid: 'u-1', name: 'U1', displayOrder: 1, isActive: true }])),
     );
     fakeAcademic.listCompetencies.and.returnValue(of([]));
     fakeApi.getSession.and.returnValue(of(detail));
     await component.ngOnInit();
-    expect((component as any).isEdit()).toBeTrue();
-    expect((component as any).form.get('title')?.value).toBe('Intro');
+    expect(component['isEdit']()).toBeTrue();
+    expect(component['form'].get('title')?.value).toBe('Intro');
   });
-
   it('isReadOnly true para COMPLETED', async () => {
     configureModule('sess-1');
     fakeAcademic.listAssignments.and.returnValue(of([]));
     fakeApi.getSession.and.returnValue(of({ ...detail, status: SessionStatus.COMPLETED }));
     await component.ngOnInit();
-    expect((component as any).isReadOnly()).toBeTrue();
+    expect(component['isReadOnly']()).toBeTrue();
   });
 
   it('isReadOnly true para CANCELLED', async () => {
@@ -120,52 +248,52 @@ describe('SessionsFormComponent', () => {
     fakeAcademic.listAssignments.and.returnValue(of([]));
     fakeApi.getSession.and.returnValue(of({ ...detail, status: SessionStatus.CANCELLED }));
     await component.ngOnInit();
-    expect((component as any).isReadOnly()).toBeTrue();
+    expect(component['isReadOnly']()).toBeTrue();
   });
 
   it('addActivity / removeActivity manipulan FormArray', () => {
     configureModule();
-    (component as any).addActivity();
-    expect((component as any).activitiesArray.length).toBe(1);
-    (component as any).removeActivity(0);
-    expect((component as any).activitiesArray.length).toBe(0);
+    component['addActivity']();
+    expect(component['activitiesArray'].length).toBe(1);
+    component['removeActivity'](0);
+    expect(component['activitiesArray'].length).toBe(0);
   });
 
   it('addMaterial / removeMaterial manipulan FormArray', () => {
     configureModule();
-    (component as any).addMaterial();
-    expect((component as any).materialsArray.length).toBe(1);
-    (component as any).removeMaterial(0);
-    expect((component as any).materialsArray.length).toBe(0);
+    component['addMaterial']();
+    expect(component['materialsArray'].length).toBe(1);
+    component['removeMaterial'](0);
+    expect(component['materialsArray'].length).toBe(0);
   });
 
   it('isCompetencySelected y toggleCompetency reflejan signal', () => {
     configureModule();
-    expect((component as any).isCompetencySelected('c-1')).toBeFalse();
-    (component as any).toggleCompetency('c-1', { target: { checked: true } } as any);
-    expect((component as any).isCompetencySelected('c-1')).toBeTrue();
-    (component as any).toggleCompetency('c-1', { target: { checked: false } } as any);
-    expect((component as any).isCompetencySelected('c-1')).toBeFalse();
+    expect(component['isCompetencySelected']('c-1')).toBeFalse();
+    component['toggleCompetency']('c-1', checkedEvent(true));
+    expect(component['isCompetencySelected']('c-1')).toBeTrue();
+    component['toggleCompetency']('c-1', checkedEvent(false));
+    expect(component['isCompetencySelected']('c-1')).toBeFalse();
   });
 
   it('toggleCapacity agrega y quita', () => {
     configureModule();
-    (component as any).toggleCapacity('cap-1', { target: { checked: true } } as any);
-    expect((component as any).isCapacitySelected('cap-1')).toBeTrue();
-    (component as any).toggleCapacity('cap-1', { target: { checked: false } } as any);
-    expect((component as any).isCapacitySelected('cap-1')).toBeFalse();
+    component['toggleCapacity']('cap-1', checkedEvent(true));
+    expect(component['isCapacitySelected']('cap-1')).toBeTrue();
+    component['toggleCapacity']('cap-1', checkedEvent(false));
+    expect(component['isCapacitySelected']('cap-1')).toBeFalse();
   });
 
   it('onSubmit inválido marca touched y no llama api', async () => {
     configureModule();
-    await (component as any).onSubmit();
-    expect((component as any).form.touched).toBeTrue();
+    await component['onSubmit']();
+    expect(component['form'].touched).toBeTrue();
     expect(fakeApi.createSession).not.toHaveBeenCalled();
   });
 
   it('onSubmit válido en create llama createSession', async () => {
     configureModule();
-    (component as any).form.patchValue({
+    component['form'].patchValue({
       assignmentUuid: 'a-1',
       unitUuid: 'u-1',
       scheduledDate: '2026-06-15',
@@ -174,7 +302,7 @@ describe('SessionsFormComponent', () => {
       objective: 'obj',
     });
     fakeApi.createSession.and.returnValue(of(detail));
-    await (component as any).onSubmit();
+    await component['onSubmit']();
     expect(fakeApi.createSession).toHaveBeenCalled();
   });
 
@@ -184,7 +312,7 @@ describe('SessionsFormComponent', () => {
     fakeApi.getSession.and.returnValue(of(detail));
     await component.ngOnInit();
     fakeApi.updateSession.and.returnValue(of(detail));
-    await (component as any).onSubmit();
+    await component['onSubmit']();
     expect(fakeApi.updateSession).toHaveBeenCalledWith('sess-1', jasmine.any(Object));
   });
 });

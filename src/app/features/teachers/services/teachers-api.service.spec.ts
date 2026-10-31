@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
+import { provideHttpClient } from '@angular/common/http';
 import { ApiService } from '@core/services';
 import { API } from '@core/constants';
 import { TeachersApiService } from './teachers-api.service';
@@ -62,7 +63,7 @@ describe('TeachersApiService', () => {
   beforeEach(() => {
     apiSpy = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'post', 'put', 'delete']);
     TestBed.configureTestingModule({
-      providers: [TeachersApiService, { provide: ApiService, useValue: apiSpy }],
+      providers: [provideHttpClient(), TeachersApiService, { provide: ApiService, useValue: apiSpy }],
     });
     service = TestBed.inject(TeachersApiService);
   });
@@ -156,9 +157,12 @@ describe('TeachersApiService', () => {
         teacherFullName: 'Maria Gomez',
         sectionPublicUuid: 'sec-1',
         sectionName: 'A',
+        gradeName: '1ro',
         coursePublicUuid: 'c-1',
         courseCode: 'MATH-101',
         courseName: 'Algebra',
+        courseColor: '#3B82F6',
+        courseIcon: 'target',
         academicPeriodPublicUuid: 'p-1',
         periodType: 'QUARTER',
         periodOrdinal: 1,
@@ -171,6 +175,8 @@ describe('TeachersApiService', () => {
     service.listAssignments('t-1', {}).subscribe((rows) => {
       expect(rows).toHaveSize(1);
       expect(rows[0].courseCode).toBe('MATH-101');
+      expect(rows[0].courseColor).toBe('#3B82F6');
+      expect(rows[0].courseIcon).toBe('target');
       expect(rows[0].assignedAt).toBeInstanceOf(Date);
       done();
     });

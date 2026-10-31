@@ -1,7 +1,10 @@
+import { createFormProtection } from '@shared/services/form-protection.service';
+import { SafeBackdropDirective } from '@shared/directives/safe-backdrop.directive';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   HostListener,
   OnInit,
   computed,
@@ -10,6 +13,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApiError } from '@core/models';
@@ -17,6 +21,7 @@ import {
   ChipMultiSelectComponent,
   ChipOption,
   IconComponent,
+  IconName,
   SpinnerComponent,
 } from '@shared/components';
 import { AcademicStore } from '../store';
@@ -28,6 +33,18 @@ import {
   CourseDetail,
   UpdateCourseRequest,
 } from '../models';
+import {
+  COURSE_COLOR_PALETTE,
+  COURSE_DEFAULT_COLOR,
+  COURSE_DEFAULT_ICON,
+  COURSE_ICON_ALL,
+  COURSE_ICON_OPTIONS,
+  COURSE_ICON_OPTIONS_MORE,
+  courseChipForeground,
+  isCoursePaletteColor,
+  resolveCourseVisual,
+  suggestCourseVisual,
+} from '../utils/course-visual.util';
 
 /**
  * Modal de creación/edición de un {@link CourseDetail}.
@@ -60,7 +77,7 @@ import {
   selector: 'app-course-form-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [SafeBackdropDirective,
     CommonModule,
     ReactiveFormsModule,
     ChipMultiSelectComponent,
@@ -73,7 +90,7 @@ import {
       role="dialog"
       aria-modal="true"
       aria-labelledby="course-form-title"
-      (click)="onBackdropClick($event)"
+      appSafeBackdrop (click)="onBackdropClick($event)"
     >
       <div
         class="card max-h-[90vh] w-full max-w-2xl overflow-y-auto shadow-xl"
@@ -83,7 +100,7 @@ import {
           <div>
             <h2 id="course-form-title" class="card-title">{{ title() }}</h2>
             <p class="card-description">
-              Catálogo de cursos del workspace. Cada curso se asocia a uno o más niveles para que
+              Catálogo de cursos de la institución. Cada curso se asocia a uno o más niveles para que
               aparezca en la matriz de asignaciones.
             </p>
           </div>
@@ -199,6 +216,118 @@ import {
             </div>
 
             <div class="field sm:col-span-12">
+              <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <label class="label mb-0">Apariencia (opcional)</label>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm"
+                  (click)="applyCodeSuggestion()"
+                >
+                  Usar sugerencia del código
+                </button>
+              </div>
+              <div class="flex flex-col gap-4 rounded-lg border border-border-subtle p-3 sm:flex-row sm:items-start">
+                <div
+                  class="flex size-14 shrink-0 items-center justify-center rounded-xl shadow-sm ring-1 ring-inset ring-black/10"
+                  [style.background-color]="previewColor()"
+                  [style.color]="chipForeground(previewColor())"
+                  aria-hidden="true"
+                >
+                  <app-icon [name]="previewIcon()" [size]="24" />
+                </div>
+                <div class="grid min-w-0 flex-1 gap-3">
+                  <div class="field">
+                    <span class="label">Color</span>
+                    <div
+                      class="mt-1 grid grid-cols-8 gap-2 sm:gap-2.5"
+                      role="listbox"
+                      aria-label="Colores sugeridos"
+                    >
+                      @for (swatch of colorPalette; track swatch.hex) {
+                        <button
+                          type="button"
+                          role="option"
+                          class="mx-auto flex size-8 shrink-0 items-center justify-center rounded-full border-2 shadow-sm transition hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+                          [style.background]="swatch.hex"
+                          [class.border-slate-800]="isPaletteSelected(swatch.hex)"
+                          [class.ring-2]="isPaletteSelected(swatch.hex)"
+                          [class.ring-slate-800]="isPaletteSelected(swatch.hex)"
+                          [class.ring-offset-2]="isPaletteSelected(swatch.hex)"
+                          [class.border-slate-200]="!isPaletteSelected(swatch.hex)"
+                          [attr.aria-selected]="isPaletteSelected(swatch.hex)"
+                          [attr.title]="swatch.label"
+                          (click)="selectPaletteColor(swatch.hex)"
+                        >
+                          <span class="sr-only">{{ swatch.label }}</span>
+                        </button>
+                      }
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm mt-2"
+                      (click)="toggleCustomHex()"
+                    >
+                      <app-icon [name]="customHexOpen() ? 'chevron-up' : 'chevron-down'" [size]="14" />
+                      <span>{{ customHexOpen() ? 'Ocultar hex' : 'Personalizar hex' }}</span>
+                    </button>
+                    @if (customHexOpen()) {
+                      <div class="mt-2 flex items-center gap-2">
+                        <input
+                          id="course-color"
+                          type="color"
+                          class="h-10 w-12 cursor-pointer rounded border border-border bg-transparent p-1"
+                          [value]="previewColor()"
+                          (input)="onColorPicker($event)"
+                        />
+                        <input
+                          type="text"
+                          class="input font-mono uppercase"
+                          formControlName="color"
+                          maxlength="7"
+                          placeholder="#64748B"
+                          (blur)="normalizeColor()"
+                        />
+                      </div>
+                      <p class="field-hint">Hex #RRGGBB personalizado.</p>
+                    } @else {
+                      <p class="field-hint">
+                        Elige un color de la paleta. Si no eliges, el servidor sugiere uno por código.
+                      </p>
+                    }
+                  </div>
+                  <div class="field">
+                    <span class="label">Icono</span>
+                    <div class="mt-1 flex flex-wrap gap-1.5" role="listbox" aria-label="Iconos sugeridos">
+                      @for (opt of visibleIconOptions(); track opt) {
+                        <button
+                          type="button"
+                          role="option"
+                          class="flex size-9 items-center justify-center rounded-md border transition"
+                          [class.border-primary-500]="previewIcon() === opt"
+                          [class.bg-primary-50]="previewIcon() === opt"
+                          [class.border-border]="previewIcon() !== opt"
+                          [attr.aria-selected]="previewIcon() === opt"
+                          [attr.title]="opt"
+                          (click)="selectIcon(opt)"
+                        >
+                          <app-icon [name]="opt" [size]="18" />
+                        </button>
+                      }
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm mt-2"
+                      (click)="toggleMoreIcons()"
+                    >
+                      <app-icon [name]="showMoreIcons() ? 'chevron-up' : 'chevron-down'" [size]="14" />
+                      <span>{{ showMoreIcons() ? 'Mostrar menos' : 'Mostrar más iconos' }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="field sm:col-span-12">
               <label class="label" for="course-levels">Niveles *</label>
               <app-chip-multi-select
                 id="course-levels"
@@ -240,8 +369,15 @@ import {
   `,
 })
 export class CourseFormModalComponent implements OnInit {
+  protected readonly formProtection = createFormProtection({
+    snapshot: () => this.form.getRawValue(),
+    saving: () => this.saving(),
+    active: () => true,
+  });
+
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(AcademicStore);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly course = input<CourseDetail | null>(null);
 
@@ -251,6 +387,23 @@ export class CourseFormModalComponent implements OnInit {
   protected readonly levels = this.store.levels;
   protected readonly saving = this.store.savingCourse;
   protected readonly errorBanner = this.store.error;
+  protected readonly showMoreIcons = signal(false);
+  protected readonly customHexOpen = signal(false);
+  protected readonly colorPalette = COURSE_COLOR_PALETTE;
+
+  protected readonly visibleIconOptions = computed(() => {
+    if (!this.showMoreIcons()) {
+      return COURSE_ICON_OPTIONS;
+    }
+    const seen = new Set<string>(COURSE_ICON_OPTIONS);
+    return [
+      ...COURSE_ICON_OPTIONS,
+      ...COURSE_ICON_OPTIONS_MORE.filter((name) => !seen.has(name)),
+    ];
+  });
+
+  /** When true, code changes no longer overwrite color/icon. */
+  private visualTouched = false;
 
   protected readonly codeMaxLength = COURSE_CODE_MAX_LENGTH;
   protected readonly nameMaxLength = COURSE_NAME_MAX_LENGTH;
@@ -290,7 +443,28 @@ export class CourseFormModalComponent implements OnInit {
     credits: [null as number | null, [Validators.min(0)]],
     hoursPerWeek: [null as number | null, [Validators.min(0)]],
     isActive: [true],
+    color: ['', [Validators.pattern(/^$|^#[0-9A-Fa-f]{6}$/)]],
+    icon: [COURSE_DEFAULT_ICON as string],
     levelIds: [[] as string[], [Validators.required, atLeastOneLevel()]],
+  });
+
+  /** Bumps when color/icon/code change so preview recomputes under OnPush. */
+  private readonly visualVersion = signal(0);
+
+  protected readonly chipForeground = courseChipForeground;
+
+  protected readonly previewColor = computed(() => {
+    this.visualVersion();
+    const c = (this.form.get('color')?.value as string | null) ?? '';
+    return /^#[0-9A-Fa-f]{6}$/.test(c) ? c.toUpperCase() : COURSE_DEFAULT_COLOR;
+  });
+
+  protected readonly previewIcon = computed(() => {
+    this.visualVersion();
+    const icon = (this.form.get('icon')?.value as string | null) ?? COURSE_DEFAULT_ICON;
+    return (COURSE_ICON_ALL as readonly string[]).includes(icon)
+      ? (icon as IconName)
+      : COURSE_DEFAULT_ICON;
   });
 
   /** Snapshot del estado original — usado para detectar cambios. */
@@ -301,6 +475,8 @@ export class CourseFormModalComponent implements OnInit {
     credits: number | null;
     hoursPerWeek: number | null;
     isActive: boolean;
+    color: string;
+    icon: string;
     levelIds: string[];
   } | null = null;
 
@@ -311,6 +487,7 @@ export class CourseFormModalComponent implements OnInit {
    * deshabilitar el submit y evitar PUTs no-op.
    */
   protected readonly hasChanges = computed<boolean>(() => {
+    this.visualVersion();
     if (!this.editing()) return true;
     const orig = this.original;
     if (!orig) return true;
@@ -321,6 +498,8 @@ export class CourseFormModalComponent implements OnInit {
     if (orig.credits !== this.normalizeNullableInt(v.credits)) return true;
     if (orig.hoursPerWeek !== this.normalizeNullableInt(v.hoursPerWeek)) return true;
     if (orig.isActive !== Boolean(v.isActive)) return true;
+    if ((orig.color ?? '') !== ((v.color ?? '') as string).trim().toUpperCase()) return true;
+    if ((orig.icon ?? '') !== ((v.icon ?? '') as string).trim()) return true;
     if (!sameSet(orig.levelIds, v.levelIds ?? [])) return true;
     return false;
   });
@@ -334,8 +513,21 @@ export class CourseFormModalComponent implements OnInit {
       void this.store.loadLevels();
     }
 
+    this.form.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.visualVersion.update((n) => n + 1);
+    });
+
+    this.form
+      .get('code')
+      ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((code: string) => {
+        if (this.visualTouched || this.editing()) return;
+        this.applySuggestionSilent(code);
+      });
+
     const c = this.course();
     if (c) {
+      const visual = resolveCourseVisual(c.code, c.color, c.icon);
       const levelIds = c.levels.map((l) => l.publicUuid);
       this.form.patchValue({
         code: c.code,
@@ -344,8 +536,21 @@ export class CourseFormModalComponent implements OnInit {
         credits: c.credits ?? null,
         hoursPerWeek: c.hoursPerWeek ?? null,
         isActive: c.isActive,
+        color: visual.color,
+        icon: visual.icon,
         levelIds,
       });
+      this.visualTouched = true;
+      if (
+        visual.icon &&
+        !(COURSE_ICON_OPTIONS as readonly string[]).includes(visual.icon) &&
+        (COURSE_ICON_OPTIONS_MORE as readonly string[]).includes(visual.icon)
+      ) {
+        this.showMoreIcons.set(true);
+      }
+      if (visual.color && !isCoursePaletteColor(visual.color)) {
+        this.customHexOpen.set(true);
+      }
       this.original = {
         code: c.code,
         name: c.name,
@@ -353,8 +558,12 @@ export class CourseFormModalComponent implements OnInit {
         credits: c.credits ?? null,
         hoursPerWeek: c.hoursPerWeek ?? null,
         isActive: c.isActive,
+        color: visual.color,
+        icon: visual.icon,
         levelIds: [...levelIds].sort(),
       };
+    } else {
+      this.applySuggestionSilent('');
     }
   }
 
@@ -374,8 +583,10 @@ export class CourseFormModalComponent implements OnInit {
   }
 
   protected cancel(): void {
-    this.store.clearError();
-    this.closed.emit();
+    this.formProtection.requestClose(() => {
+      this.store.clearError();
+      this.closed.emit();
+    });
   }
 
   /** Force-uppercase el code en blur (UX afín a "auto-uppercase" del spec). */
@@ -385,6 +596,68 @@ export class CourseFormModalComponent implements OnInit {
     const v = (ctrl.value ?? '') as string;
     const next = v.trim().toUpperCase();
     if (v !== next) ctrl.setValue(next);
+  }
+
+  protected applyCodeSuggestion(): void {
+    this.visualTouched = false;
+    this.applySuggestionSilent((this.form.get('code')?.value as string) ?? '');
+    this.visualTouched = false;
+  }
+
+  protected selectIcon(icon: IconName): void {
+    this.visualTouched = true;
+    this.form.patchValue({ icon });
+    this.visualVersion.update((v) => v + 1);
+  }
+
+  protected selectPaletteColor(hex: string): void {
+    this.visualTouched = true;
+    this.customHexOpen.set(false);
+    this.form.patchValue({ color: hex.toUpperCase() });
+    this.visualVersion.update((v) => v + 1);
+  }
+
+  protected isPaletteSelected(hex: string): boolean {
+    return !this.customHexOpen() && this.previewColor() === hex.toUpperCase();
+  }
+
+  protected toggleMoreIcons(): void {
+    this.showMoreIcons.update((open) => !open);
+  }
+
+  protected toggleCustomHex(): void {
+    this.customHexOpen.update((open) => !open);
+  }
+
+  protected onColorPicker(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.visualTouched = true;
+    this.customHexOpen.set(true);
+    this.form.patchValue({ color: value.toUpperCase() });
+    this.visualVersion.update((v) => v + 1);
+  }
+
+  protected normalizeColor(): void {
+    const ctrl = this.form.get('color');
+    if (!ctrl) return;
+    const raw = ((ctrl.value as string) ?? '').trim();
+    if (!raw) {
+      ctrl.setValue(COURSE_DEFAULT_COLOR);
+      return;
+    }
+    const next = raw.startsWith('#') ? raw.toUpperCase() : `#${raw.toUpperCase()}`;
+    if (next !== raw) ctrl.setValue(next);
+    this.visualTouched = true;
+    this.visualVersion.update((v) => v + 1);
+  }
+
+  private applySuggestionSilent(code: string): void {
+    const suggested = suggestCourseVisual(code);
+    this.form.patchValue(
+      { color: suggested.color, icon: suggested.icon },
+      { emitEvent: true },
+    );
+    this.customHexOpen.set(!isCoursePaletteColor(suggested.color));
   }
 
   protected async onSubmit(): Promise<void> {
@@ -399,6 +672,8 @@ export class CourseFormModalComponent implements OnInit {
     const credits = this.normalizeNullableInt(v.credits);
     const hoursPerWeek = this.normalizeNullableInt(v.hoursPerWeek);
     const isActive = Boolean(v.isActive);
+    const color = ((v.color as string) ?? '').trim().toUpperCase();
+    const icon = ((v.icon as string) ?? '').trim();
     const levelIds: string[] = v.levelIds ?? [];
 
     const c = this.course();
@@ -418,6 +693,8 @@ export class CourseFormModalComponent implements OnInit {
             patch.hoursPerWeek = hoursPerWeek ?? undefined;
           }
           if (isActive !== this.original.isActive) patch.isActive = isActive;
+          if (color !== this.original.color) patch.color = color || undefined;
+          if (icon !== this.original.icon) patch.icon = icon || undefined;
         }
 
         const levelsChanged = !!this.original && !sameSet(this.original.levelIds, levelIds);
@@ -435,6 +712,8 @@ export class CourseFormModalComponent implements OnInit {
           credits: credits ?? undefined,
           hoursPerWeek: hoursPerWeek ?? undefined,
           isActive,
+          color: color || undefined,
+          icon: icon || undefined,
           levelPublicUuids: levelIds,
         });
         if (created) this.saved.emit(created);

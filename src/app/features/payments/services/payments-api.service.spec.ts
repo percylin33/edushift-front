@@ -2,6 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { PaymentsApiService } from './payments-api.service';
 import { ApiService } from '@core/services';
+import { provideHttpClient } from '@angular/common/http';
+import { TenantService } from '@core/services/tenant.service';
 
 describe('PaymentsApiService', () => {
   let service: PaymentsApiService;
@@ -24,9 +26,14 @@ describe('PaymentsApiService', () => {
   };
 
   beforeEach(() => {
-    apiSpy = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'post', 'patch']);
+    apiSpy = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'post', 'patch', 'delete']);
     TestBed.configureTestingModule({
-      providers: [PaymentsApiService, { provide: ApiService, useValue: apiSpy }],
+      providers: [
+        provideHttpClient(),
+        PaymentsApiService,
+        { provide: ApiService, useValue: apiSpy },
+        { provide: TenantService, useValue: { tenantSlug: () => 'school' } },
+      ],
     });
     service = TestBed.inject(PaymentsApiService);
   });
@@ -48,10 +55,70 @@ describe('PaymentsApiService', () => {
     });
   });
 
+  it('getInvoice desempaqueta ApiResponse.data', (done) => {
+    apiSpy.get.and.returnValue(
+      of({
+        success: true,
+        data: { publicUuid: 'inv-2', periodLabel: '2026-03', totalCents: 2000, items: [] },
+      }),
+    );
+    service.getInvoice('inv-2').subscribe((inv) => {
+      expect(inv.publicUuid).toBe('inv-2');
+      expect(inv.periodLabel).toBe('2026-03');
+      expect(inv.totalCents).toBe(2000);
+      done();
+    });
+  });
+
   it('listPaymentsForInvoice retorna array', (done) => {
     apiSpy.get.and.returnValue(of([samplePayment]));
     service.listPaymentsForInvoice('inv-1').subscribe((payments) => {
       expect(payments).toHaveSize(1);
+      done();
+    });
+  });
+
+  it('searchAccessOverrideCandidates requests linked tenant candidates', (done) => {
+    const candidate = {
+      userPublicUuid: 'user-1',
+      studentPublicUuid: 'student-1',
+      displayName: 'Ana Ruiz',
+      relationship: 'Apoderado' as const,
+    };
+    apiSpy.get.and.returnValue(of({ success: true, data: [candidate] }));
+
+    service.searchAccessOverrideCandidates('ana').subscribe((items) => {
+      expect(items).toEqual([candidate]);
+      expect(apiSpy.get.calls.mostRecent().args[0]).toContain('/access-overrides/candidates');
+      expect(apiSpy.get.calls.mostRecent().args[1]).toEqual({ q: 'ana' });
+      done();
+    });
+  });
+
+  it('listAccessOverrides unwraps tenant exceptions', (done) => {
+    const override = {
+      publicUuid: 'override-1',
+      userPublicUuid: 'user-1',
+      userName: 'Ana Ruiz',
+      studentPublicUuid: 'student-1',
+      studentName: 'Mateo Ruiz',
+      reason: 'Acuerdo de pago',
+      untilAt: '2026-12-01T12:00:00Z',
+    };
+    apiSpy.get.and.returnValue(of({ success: true, data: [override] }));
+
+    service.listAccessOverrides().subscribe((items) => {
+      expect(items).toEqual([override]);
+      expect(apiSpy.get.calls.mostRecent().args[0]).toContain('/access-overrides');
+      done();
+    });
+  });
+
+  it('revokeAccessOverride uses the exception resource URL', (done) => {
+    apiSpy.delete.and.returnValue(of({ success: true, data: null }));
+
+    service.revokeAccessOverride('override-1').subscribe(() => {
+      expect(apiSpy.delete.calls.mostRecent().args[0]).toContain('/access-overrides/override-1');
       done();
     });
   });

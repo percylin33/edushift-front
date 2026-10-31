@@ -37,6 +37,9 @@
   --color-primary-900: 49 46 129;
   --color-primary-950: 30 27 75;
 
+  --color-action-primary: 79 70 229;
+  --color-action-primary-hover: 67 56 202;
+
   /* Secondary / accent palette. Defaults to a vibrant cyan that pairs with
      the indigo primary; tenants can override with `branding.accentColor`. */
   --color-accent-50: 236 254 255;
@@ -123,7 +126,7 @@
 
   --color-content: 241 245 249;
   --color-content-muted: 148 163 184;
-  --color-content-subtle: 100 116 139;
+  --color-content-subtle: 148 163 184;
   --color-content-inverted: 15 23 42;
 
   --color-border: 51 65 85;

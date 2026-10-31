@@ -2,8 +2,9 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { MeGrade } from '../models/me-grade.model';
+import { MeGradesSummary } from '../models/me-grades-summary.model';
 import { MeProfile } from '../models/me-profile.model';
-import { MeSection, MeSectionDetail } from '../models/me-section.model';
+import { MeSection, MeSectionDetail, MeSectionPeriod } from '../models/me-section.model';
 import { MeAttendanceRecord } from '../models/me-attendance.model';
 import { MeInvoice } from '../models/me-invoice.model';
 import { MeQr } from '../models/me-qr.model';
@@ -26,13 +27,29 @@ export class MeApiService {
     return this.http.get<ApiResponse<MeProfile>>('/api/v1/me/profile');
   }
 
-  listSections(): Observable<ApiResponse<MeSection[]>> {
-    return this.http.get<ApiResponse<MeSection[]>>('/api/v1/me/sections');
+  listSections(periodPublicUuid?: string | null): Observable<ApiResponse<MeSection[]>> {
+    const params: Record<string, string> = {};
+    if (periodPublicUuid) {
+      params['period'] = periodPublicUuid;
+    }
+    return this.http.get<ApiResponse<MeSection[]>>('/api/v1/me/sections', { params });
   }
 
-  getSection(sectionPublicUuid: string): Observable<ApiResponse<MeSectionDetail>> {
+  listSectionPeriods(): Observable<ApiResponse<MeSectionPeriod[]>> {
+    return this.http.get<ApiResponse<MeSectionPeriod[]>>('/api/v1/me/sections/periods');
+  }
+
+  getSection(
+    sectionPublicUuid: string,
+    assignmentPublicUuid?: string | null,
+  ): Observable<ApiResponse<MeSectionDetail>> {
+    const params: Record<string, string> = {};
+    if (assignmentPublicUuid) {
+      params['assignment'] = assignmentPublicUuid;
+    }
     return this.http.get<ApiResponse<MeSectionDetail>>(
       `/api/v1/me/sections/${sectionPublicUuid}`,
+      { params },
     );
   }
 
@@ -40,8 +57,20 @@ export class MeApiService {
     return this.http.get<ApiResponse<MeGrade[]>>('/api/v1/me/grades');
   }
 
-  listAttendance(): Observable<ApiResponse<MeAttendanceRecord[]>> {
-    return this.http.get<ApiResponse<MeAttendanceRecord[]>>('/api/v1/me/attendance');
+  gradesSummary(periodPublicUuid?: string | null): Observable<ApiResponse<MeGradesSummary>> {
+    const params: Record<string, string> = {};
+    if (periodPublicUuid) {
+      params['period'] = periodPublicUuid;
+    }
+    return this.http.get<ApiResponse<MeGradesSummary>>('/api/v1/me/grades/summary', { params });
+  }
+
+  listAttendance(params?: { from?: string; to?: string }): Observable<ApiResponse<MeAttendanceRecord[]>> {
+    const query = new URLSearchParams();
+    if (params?.from) query.set('from', params.from);
+    if (params?.to) query.set('to', params.to);
+    const suffix = query.size > 0 ? `?${query.toString()}` : '';
+    return this.http.get<ApiResponse<MeAttendanceRecord[]>>(`/api/v1/me/attendance${suffix}`);
   }
 
   getQr(): Observable<ApiResponse<MeQr>> {
@@ -56,8 +85,12 @@ export class MeApiService {
     return this.http.get<ApiResponse<MeInvoice[]>>('/api/v1/me/payments');
   }
 
-  listSchedule(): Observable<ApiResponse<ScheduleWeekView>> {
-    return this.http.get<ApiResponse<ScheduleWeekViewRaw>>('/api/v1/me/schedule').pipe(
+  listSchedule(periodPublicUuid?: string | null): Observable<ApiResponse<ScheduleWeekView>> {
+    const params: Record<string, string> = {};
+    if (periodPublicUuid) {
+      params['periodId'] = periodPublicUuid;
+    }
+    return this.http.get<ApiResponse<ScheduleWeekViewRaw>>('/api/v1/me/schedule', { params }).pipe(
       map((response) => ({
         ...response,
         data: toScheduleWeekView(response.data),

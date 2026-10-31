@@ -3,8 +3,17 @@ import { CriterionEditorComponent } from './criterion-editor.component';
 import { CriterionInput, LevelInput } from '../models';
 
 describe('CriterionEditorComponent', () => {
-  let component: any;
+  let component: CriterionEditorComponent;
   let fixture: ComponentFixture<CriterionEditorComponent>;
+  const testApi = () =>
+    component as unknown as {
+      addLevel(): void;
+      removeLevel(index: number): void;
+      addCriterion(): void;
+      removeCriterion(index: number): void;
+      levelsError(): string | null;
+      criteriaError(): string | null;
+    };
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -12,6 +21,8 @@ describe('CriterionEditorComponent', () => {
     }).compileComponents();
     fixture = TestBed.createComponent(CriterionEditorComponent);
     component = fixture.componentInstance;
+    // Standalone fixture: emulate the parent form initializing this CVA.
+    component.writeValue(null);
     fixture.detectChanges();
   });
 
@@ -26,47 +37,47 @@ describe('CriterionEditorComponent', () => {
 
   describe('addLevel', () => {
     it('agrega un nivel', () => {
+      testApi().removeLevel(0);
       const initial = component.levels.length;
-      component.addLevel();
+      testApi().addLevel();
       expect(component.levels.length).toBe(initial + 1);
     });
 
     it('no agrega más del máximo', () => {
       component.levels.clear();
-      for (let i = 0; i < 4; i++) component.addLevel();
-      component.addLevel();
+      for (let i = 0; i < 4; i++) testApi().addLevel();
+      testApi().addLevel();
       expect(component.levels.length).toBe(4);
     });
   });
 
   describe('removeLevel', () => {
     it('no quita si está en mínimo', () => {
-      const initial = component.levels.length;
-      while (component.levels.length > 0) {
-        component.removeLevel(0);
+      while (component.levels.length > 2) {
+        testApi().removeLevel(0);
       }
-      // Should still have minimum levels
+      expect(component.levels.length).toBe(2);
     });
   });
 
   describe('addCriterion', () => {
     it('agrega un criterio', () => {
       const initial = component.criteria.length;
-      component.addCriterion();
+      testApi().addCriterion();
       expect(component.criteria.length).toBe(initial + 1);
     });
   });
 
   describe('removeCriterion', () => {
     it('no quita si solo hay 1', () => {
-      component.removeCriterion(0);
+      testApi().removeCriterion(0);
       expect(component.criteria.length).toBe(1);
     });
   });
 
   describe('isValid', () => {
-    it('retorna true con valores por defecto', () => {
-      expect(component.isValid()).toBeTrue();
+    it('retorna false hasta que se complete el criterio por defecto', () => {
+      expect(component.isValid()).toBeFalse();
     });
   });
 
@@ -98,13 +109,13 @@ describe('CriterionEditorComponent', () => {
 
   describe('levelsError', () => {
     it('retorna null si niveles son válidos', () => {
-      expect(component.levelsError()).toBeNull();
+      expect(testApi().levelsError()).toBeNull();
     });
   });
 
   describe('criteriaError', () => {
     it('retorna null si criterios son válidos', () => {
-      expect(component.criteriaError()).toBeNull();
+      expect(testApi().criteriaError()).toBeNull();
     });
   });
 });

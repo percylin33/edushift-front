@@ -76,6 +76,11 @@ export enum Permission {
   // TENANT_ADMIN + TEACHER only (see `LmsRoleAuthorityMapper`).
   // -------------------------------------------------------------------------
   LmsAiGenerate = 'LMS_AI_GENERATE',
+  AiTutorUse = 'AI:TUTOR_USE',
+  AiTeacherUse = 'AI:TEACHER_USE',
+  AiFamilyUse = 'AI:FAMILY_USE',
+  AiSourceManage = 'AI:SOURCE_MANAGE',
+  AiPromptManage = 'AI:PROMPT_MANAGE',
 
   // -------------------------------------------------------------------------
   // AI usage visibility (Sprint 7c / BE-7c.2). Mirrors
@@ -94,8 +99,42 @@ export enum Permission {
   // `/payments/admin/*` surface (reconcile, refund, mark-paid-cash).
   // -------------------------------------------------------------------------
   LmsPaymentAdmin = 'LMS_PAYMENT_ADMIN',
+  StudentsReadGranular = 'STUDENTS:READ',
+  StudentsCreateGranular = 'STUDENTS:CREATE',
+  StudentsUpdateGranular = 'STUDENTS:UPDATE',
+  UsersProvisionStudent = 'USERS:PROVISION_STUDENT',
+  GuardiansRead = 'GUARDIANS:READ',
+  GuardiansManage = 'GUARDIANS:MANAGE',
+  UsersProvisionGuardian = 'USERS:PROVISION_GUARDIAN',
+  EnrollmentsRead = 'ENROLLMENTS:READ',
+  EnrollmentsManage = 'ENROLLMENTS:MANAGE',
+  AttendanceReadGranular = 'ATTENDANCE:READ',
+  AttendanceRegister = 'ATTENDANCE:REGISTER',
+  AttendanceCorrect = 'ATTENDANCE:CORRECT',
+  PaymentsReadGranular = 'PAYMENTS:READ',
+  PaymentsReceive = 'PAYMENTS:RECEIVE',
+  PaymentsReconcile = 'PAYMENTS:RECONCILE',
+  PaymentsIssue = 'PAYMENTS:ISSUE',
+  PaymentsRefund = 'PAYMENTS:REFUND',
+  PaymentsExport = 'PAYMENTS:EXPORT',
+  PaymentConceptsManage = 'PAYMENT_CONCEPTS:MANAGE',
+  AcademicReadGranular = 'ACADEMIC:READ',
+  ReportsReadGranular = 'REPORTS:READ',
   LmsFamilyRead = 'LMS_FAMILY_READ',
   LmsAttendanceJustify = 'LMS_ATTENDANCE_JUSTIFY',
+  LmsDisclosureRead = 'LMS_DISCLOSURE_READ',
+  LmsDisclosureManage = 'LMS_DISCLOSURE_MANAGE',
+  LmsDisclosureSubmit = 'LMS_DISCLOSURE_SUBMIT',
+  LmsDisclosureReview = 'LMS_DISCLOSURE_REVIEW',
+  LmsDisclosurePublish = 'LMS_DISCLOSURE_PUBLISH',
+  LmsAdmissionManage = 'LMS_ADMISSION_MANAGE',
+  AdmissionsInquiriesRead = 'ADMISSIONS_INQUIRIES_READ',
+  AdmissionsInquiriesManage = 'ADMISSIONS_INQUIRIES_MANAGE',
+  AdmissionsApplicationsRead = 'ADMISSIONS_APPLICATIONS_READ',
+  AdmissionsApplicationsManage = 'ADMISSIONS_APPLICATIONS_MANAGE',
+  AdmissionsDecide = 'ADMISSIONS_DECIDE',
+  AdmissionsOffersManage = 'ADMISSIONS_OFFERS_MANAGE',
+  AdmissionsEnroll = 'ADMISSIONS_ENROLL',
 
   // -------------------------------------------------------------------------
   // Student workspace (DEBT-STUDENT-PRIVACY / Fase 1-3). Authority names
@@ -109,4 +148,16 @@ export enum Permission {
   MeQrRead = 'ME_QR_READ',
   MePaymentsRead = 'ME_PAYMENTS_READ',
   MePaymentsCheckout = 'ME_PAYMENTS_CHECKOUT',
+
+  // -------------------------------------------------------------------------
+  // CRED-7 — mass provision of student/parent accounts for a section.
+  // Mirrors LmsAuthorities.USERS_PROVISION_SECTION. Granted to TENANT_ADMIN
+  // + STAFF by default.
+  // -------------------------------------------------------------------------
+  UsersProvisionSection = 'USERS_PROVISION_SECTION',
+
+  // Announcements. CREATE is school-wide (tenant admin). CREATE_OWN is a
+  // teacher limited to assigned sections and courses. Students never get either.
+  LmsAnnouncementsCreate = 'LMS_ANNOUNCEMENTS_CREATE',
+  LmsAnnouncementsCreateOwn = 'LMS_ANNOUNCEMENTS_CREATE_OWN',
 }

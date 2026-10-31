@@ -1,4 +1,4 @@
-const target = process.env['PROXY_TARGET'] || 'http://localhost:8081';
+const target = process.env['PROXY_TARGET'] || 'http://localhost:8080';
 
 export default [
   {

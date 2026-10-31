@@ -3,7 +3,6 @@ import { EnrollmentStatusBadgeComponent } from './enrollment-status-badge.compon
 import { EnrollmentStatus } from '@core/enums';
 
 describe('EnrollmentStatusBadgeComponent', () => {
-  let component: EnrollmentStatusBadgeComponent;
   let fixture: ComponentFixture<EnrollmentStatusBadgeComponent>;
 
   beforeEach(async () => {
@@ -12,7 +11,6 @@ describe('EnrollmentStatusBadgeComponent', () => {
     }).compileComponents();
 
     fixture = TestBed.createComponent(EnrollmentStatusBadgeComponent);
-    component = fixture.componentInstance;
   });
 
   it('muestra label en español para Enrolled', () => {

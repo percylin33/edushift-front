@@ -3,9 +3,13 @@ import { STORAGE_KEYS } from '@core/constants';
 import { Tenant, TenantBranding, resolveRadius } from '@core/models';
 import { buildPalette, getDocumentRoot } from './color.utils';
 import { ALL_TENANT_VARS, PALETTE_SHADES, THEME_TOKENS } from './theme-tokens';
+import { environment } from '@env/environment';
 
 const FAVICON_ELEMENT_ID = 'app-favicon';
-const DEFAULT_FAVICON_HREF = 'favicon.ico';
+const DEFAULT_FAVICON_HREF = 'branding/icons/icono.png';
+const MANIFEST_ELEMENT_ID = 'app-manifest';
+const APPLE_TOUCH_ICON_SELECTOR = 'link[rel="apple-touch-icon"]';
+const DEFAULT_APP_ICON_HREF = '/branding/icons/isotipo.png';
 
 /**
  * Applies the tenant's white-label branding to `<html>`.
@@ -20,6 +24,8 @@ const DEFAULT_FAVICON_HREF = 'favicon.ico';
  *   5. Write `--radius-base` if the tenant picks a radius preset.
  *   6. Swap the `<link rel="icon">` href, falling back to a generated SVG
  *      built from the primary color when no favicon URL is provided.
+ *   7. Set the PWA manifest and Apple touch icon to the tenant logo, with
+ *      the EduShift isotipo as the fallback.
  *
  * Symmetric `reset()` removes everything so switching tenants in the same
  * session always starts from a clean slate.
@@ -46,6 +52,7 @@ export class TenantThemeService {
     this.applyFont(root, branding.fontFamily);
     this.applyRadius(root, branding.radius);
     this.applyFavicon(branding, tenant.name);
+    this.applyInstallIdentity(tenant, branding);
   }
 
   reset(): void {
@@ -57,16 +64,35 @@ export class TenantThemeService {
       root.style.removeProperty(variable);
     }
     this.setFaviconHref(DEFAULT_FAVICON_HREF, /* cache */ false);
+    this.setManifestHref('manifest.webmanifest');
+    this.setAppleTouchIcon(DEFAULT_APP_ICON_HREF);
   }
 
   private applyPalette(root: HTMLElement, name: 'primary' | 'accent', color?: string): void {
     const vars = name === 'primary' ? THEME_TOKENS.primaryPalette : THEME_TOKENS.accentPalette;
     if (!color) {
+      if (name === 'primary') {
+        root.style.removeProperty(THEME_TOKENS.primaryAction);
+        root.style.removeProperty(THEME_TOKENS.primaryActionHover);
+      }
       for (const v of vars) root.style.removeProperty(v);
       return;
     }
     const palette = buildPalette(color);
     if (!palette) return;
+    if (name === 'primary') {
+      const shades = PALETTE_SHADES.filter((shade) => shade >= 600);
+      const accessible = shades.filter((shade) => {
+        const channels = palette[shade].split(' ').map(Number).map((value) => {
+          const channel = value / 255;
+          return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+        });
+        const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+        return 1.05 / (luminance + 0.05) >= 4.5;
+      });
+      root.style.setProperty(THEME_TOKENS.primaryAction, palette[accessible[0] ?? 950]);
+      root.style.setProperty(THEME_TOKENS.primaryActionHover, palette[accessible[1] ?? 950]);
+    }
     PALETTE_SHADES.forEach((shade) => {
       root.style.setProperty(`--color-${name}-${shade}`, palette[shade]);
     });
@@ -108,6 +134,46 @@ export class TenantThemeService {
     }
 
     this.setFaviconHref(DEFAULT_FAVICON_HREF, /* cache */ false);
+  }
+
+  /** Keep the browser's install surfaces branded for the currently resolved tenant. */
+  private applyInstallIdentity(tenant: Tenant, branding: TenantBranding): void {
+    if (typeof window === 'undefined') return;
+
+    const apiOrigin = environment.apiUrl.replace(/\/$/, '');
+    const manifestUrl = `${apiOrigin}/${environment.apiVersion}/tenants/by-slug/${encodeURIComponent(tenant.slug)}/manifest.webmanifest`;
+    this.setManifestHref(manifestUrl, new URL(manifestUrl, window.location.origin).origin !== window.location.origin);
+
+    const tenantIcon = branding.logo?.mark ?? branding.logo?.light;
+    this.setAppleTouchIcon(this.resolveTenantAssetUrl(tenantIcon) ?? DEFAULT_APP_ICON_HREF);
+  }
+
+  private resolveTenantAssetUrl(url: string | undefined): string | null {
+    const trimmed = url?.trim();
+    if (!trimmed || typeof window === 'undefined') return null;
+    try {
+      const apiOrigin = new URL(environment.apiUrl, window.location.origin).origin;
+      const parsed = new URL(trimmed, apiOrigin);
+      if (parsed.origin === apiOrigin) return `${parsed.pathname}${parsed.search}`;
+    } catch {
+      return trimmed;
+    }
+    return trimmed;
+  }
+
+  private setManifestHref(href: string, crossOrigin = false): void {
+    if (typeof document === 'undefined') return;
+    const link = document.getElementById(MANIFEST_ELEMENT_ID) as HTMLLinkElement | null;
+    if (!link) return;
+    if (crossOrigin) link.crossOrigin = 'anonymous';
+    else link.removeAttribute('crossorigin');
+    link.href = href;
+  }
+
+  private setAppleTouchIcon(href: string): void {
+    if (typeof document === 'undefined') return;
+    const link = document.querySelector(APPLE_TOUCH_ICON_SELECTOR) as HTMLLinkElement | null;
+    if (link) link.href = href;
   }
 
   /**

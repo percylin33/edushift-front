@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { NavbarComponent } from './navbar.component';
 import { LayoutService } from '../../services';
 
@@ -10,6 +11,7 @@ describe('NavbarComponent', () => {
     await TestBed.configureTestingModule({
       imports: [NavbarComponent],
       providers: [
+        provideHttpClient(),
         {
           provide: LayoutService,
           useValue: jasmine.createSpyObj('LayoutService', ['openSidebar']),

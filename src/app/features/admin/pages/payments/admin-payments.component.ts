@@ -30,6 +30,7 @@ import { AdminPaymentsService } from '../../services';
               <th class="px-4 py-3">Referencia</th>
               <th class="px-4 py-3">Estado</th>
               <th class="px-4 py-3">Fecha</th>
+              <th class="px-4 py-3">Acciones</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800">
@@ -46,10 +47,11 @@ import { AdminPaymentsService } from '../../services';
                   </span>
                 </td>
                 <td class="px-4 py-3 text-slate-400">{{ p.paidAt }}</td>
+                <td class="px-4 py-3">@if (p.status === 'APPROVED') { <button (click)="refund(p.publicUuid)" class="text-red-300 hover:text-red-200">Reembolsar</button> }</td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+                <td colspan="8" class="px-4 py-8 text-center text-slate-500">
                   {{ svc.loading() ? 'Cargando…' : 'No hay pagos registrados.' }}
                 </td>
               </tr>
@@ -57,13 +59,27 @@ import { AdminPaymentsService } from '../../services';
           </tbody>
         </table>
       </div>
+      @if (svc.totalPages() > 1) { <div class="mt-4 flex justify-end gap-2"><button (click)="changePage(page-1)" [disabled]="page===0" class="rounded border border-slate-700 px-3 py-1 disabled:opacity-40">Anterior</button><span class="px-2 py-1 text-sm text-slate-400">{{ page + 1 }} / {{ svc.totalPages() }}</span><button (click)="changePage(page+1)" [disabled]="page+1>=svc.totalPages()" class="rounded border border-slate-700 px-3 py-1 disabled:opacity-40">Siguiente</button></div> }
     </div>
   `,
 })
 export class AdminPaymentsComponent implements OnInit {
   protected readonly svc = inject(AdminPaymentsService);
+  protected page = 0;
 
   ngOnInit(): void {
-    this.svc.loadPayments();
+    this.svc.loadPayments({ page: this.page });
+  }
+
+  protected changePage(page: number): void {
+    if (page < 0 || page >= this.svc.totalPages()) return;
+    this.page = page;
+    this.svc.loadPayments({ page });
+  }
+
+  protected refund(uuid: string): void {
+    if (window.confirm('¿Confirmas el reembolso? Esta acción cambiará el estado del pago.')) {
+      this.svc.refundPayment(uuid, { reason: 'Reembolso aprobado por Super Admin' });
+    }
   }
 }

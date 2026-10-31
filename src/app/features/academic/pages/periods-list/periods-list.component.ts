@@ -9,13 +9,18 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
+import { NotificationService } from '@core/services';
+import {
+  ConfirmDialogService,
+  EmptyStateComponent,
+  IconComponent,
+  SpinnerComponent,
+} from '@shared/components';
 import {
   AcademicYearStatusBadgeComponent,
   PeriodFormModalComponent,
   PeriodTimelineComponent,
 } from '../../components';
-import { TimelinePreviewItem } from '../../components/period-timeline.component';
 import { AcademicStore } from '../../store';
 import {
   AcademicPeriodDetail,
@@ -127,7 +132,7 @@ import {
             [ngModel]="yearFilter()"
             (ngModelChange)="onYearChange($event)"
           >
-            <option [ngValue]="null">— Año activo —</option>
+            <option [ngValue]="null" disabled>— Sin año académico vigente —</option>
             @for (y of years(); track y.publicUuid) {
               <option [ngValue]="y.publicUuid">{{ y.name }} · {{ statusLabel(y.status) }}</option>
             }
@@ -301,6 +306,8 @@ export class PeriodsListComponent implements OnInit {
   private readonly store = inject(AcademicStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly notifications = inject(NotificationService);
 
   protected readonly years = this.store.years;
   protected readonly currentActive = this.store.currentActive;
@@ -367,19 +374,20 @@ export class PeriodsListComponent implements OnInit {
   // ===========================================================================
 
   async ngOnInit(): Promise<void> {
-    if (this.years().length === 0) await this.store.loadYears();
+    // The year picker needs the complete tenant catalog, regardless of filters on the years page.
+    await this.store.applyYearFilters({});
 
     const qp = this.route.snapshot.queryParamMap;
     this.yearFilter.set(qp.get('yearId'));
     const t = qp.get('periodType');
     this.typeFilter.set(this.parsePeriodType(t));
 
-    /* Saneamiento. */
     const yearId = this.yearFilter();
-    if (yearId && !this.years().some((y) => y.publicUuid === yearId)) {
-      this.yearFilter.set(null);
+    if (!yearId || !this.years().some((year) => year.publicUuid === yearId)) {
+      this.yearFilter.set(this.currentActive()?.publicUuid ?? null);
     }
 
+    this.syncUrl();
     await this.applyServerFilters();
   }
 
@@ -388,7 +396,7 @@ export class PeriodsListComponent implements OnInit {
   // ===========================================================================
 
   protected onYearChange(value: string | null): void {
-    this.yearFilter.set(value);
+    this.yearFilter.set(value ?? this.currentActive()?.publicUuid ?? null);
     void this.syncAndReload();
   }
 
@@ -450,11 +458,16 @@ export class PeriodsListComponent implements OnInit {
   }
 
   protected async confirmDelete(row: AcademicPeriodRow): Promise<void> {
-    const ok = confirm(
-      `¿Eliminar el periodo "${row.name}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar periodo',
+      message:
+        `¿Eliminar el periodo "${row.name}"?\n\n` +
         'Solo se puede borrar el último ordinal del par (año, tipo). Si\n' +
         'querés renumerar, borrá de mayor a menor y recreá los que falten.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.deletePeriod(row.publicUuid);
   }
@@ -464,10 +477,8 @@ export class PeriodsListComponent implements OnInit {
   // ---------------------------------------------------------------------------
 
   /**
-   * Confirm con preview del plan. Si ya hay periodos del mismo type
-   * en el año seleccionado, lo decimos explícitamente — el BE
-   * responderá 409 si los rangos colisionan, pero el plan lo decide
-   * el admin.
+   * Preview calendar ranges before creating periods. Existing periods of
+   * the selected type must be edited rather than regenerated.
    */
   protected async openBulkPreview(): Promise<void> {
     const year = this.resolvedYear();
@@ -480,16 +491,28 @@ export class PeriodsListComponent implements OnInit {
       (p) => p.academicYearPublicUuid === year.publicUuid && p.periodType === type,
     ).length;
 
+    if (existingSameType > 0) {
+      this.notifications.warning(
+        `Ya existen ${existingSameType} periodos de tipo ${PERIOD_TYPE_LABELS[type]} en este año. ` +
+        'Edita los periodos existentes o crea manualmente los que falten.',
+      );
+      return;
+    }
+
     const lines = plan.parts.map(
       (p) => `  • ${p.name} → ${this.formatDate(p.startDate)} - ${this.formatDate(p.endDate)}`,
     );
     const header =
-      existingSameType > 0
-        ? `Ya existen ${existingSameType} periodo(s) de tipo ${PERIOD_TYPE_LABELS[type]}.\n` +
-          'El backend rechazará los duplicados o solapamientos. ¿Continuar?\n\n'
-        : `Se crearán ${plan.parts.length} periodos de tipo ${PERIOD_TYPE_LABELS[type]}:\n\n`;
+      `Se crearán ${plan.parts.length} periodos de tipo ${PERIOD_TYPE_LABELS[type]}. ` +
+      'Las fechas dividen el año en rangos continuos; no descuentan vacaciones ni días no lectivos. ' +
+      'Puedes ajustar las fechas después de crearlos.\n\n';
 
-    const ok = confirm(header + lines.join('\n'));
+    const ok = await this.confirmDialog.open({
+      title: 'Generar periodos',
+      message: header + lines.join('\n'),
+      confirmLabel: 'Crear',
+      variant: 'default',
+    });
     if (!ok) return;
 
     const bulkInput = plan.parts.map((p) => ({
@@ -502,7 +525,7 @@ export class PeriodsListComponent implements OnInit {
 
     const result = await this.store.createPeriodsBulk(year.publicUuid, bulkInput);
     if (!result.success && result.failedAt !== undefined) {
-      alert(
+      this.notifications.error(
         `Se crearon ${result.failedAt - 1} periodo(s) y luego falló.\n` +
           'Revisa el banner de error y reintenta el resto manualmente.',
       );

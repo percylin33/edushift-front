@@ -47,12 +47,17 @@ export interface UserResponseRaw {
   publicUuid: string;
   firstName?: string | null;
   lastName?: string | null;
+  secondLastName?: string | null;
   fullName: string;
   email: string;
   phone?: string | null;
   avatarUrl?: string | null;
   status: UserStatus;
   emailVerified: boolean;
+  /** CRED-7: REAL | SYNTHETIC */
+  emailSource?: 'REAL' | 'SYNTHETIC' | null;
+  /** CRED-7: force password change after mass provision. */
+  mustChangePassword?: boolean;
   mfaEnabled: boolean;
   /**
    * Backend serializes role names (UPPER_CASE) as a JSON array. We accept the

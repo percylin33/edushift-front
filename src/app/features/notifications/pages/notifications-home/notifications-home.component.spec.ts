@@ -1,10 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 import { provideRouter } from '@angular/router';
 import { NotificationsHomeComponent } from './notifications-home.component';
 import { NotificationsStore } from '../../store';
 import { NotificationItem } from '../../models';
+import { provideHttpClient } from '@angular/common/http';
 
 /**
  * Unit tests for {@link NotificationsHomeComponent}.
@@ -39,7 +39,7 @@ describe('NotificationsHomeComponent', () => {
     // Stub the store's loadAll via dependency injection on the next tick.
     await TestBed.configureTestingModule({
       imports: [NotificationsHomeComponent],
-      providers: [NotificationsStore, provideRouter([])],
+      providers: [NotificationsStore, provideRouter([]), provideHttpClient()],
     })
       .overrideComponent(NotificationsHomeComponent, {
         set: { template: '<div></div>' },

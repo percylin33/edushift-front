@@ -30,6 +30,13 @@ describe('MeApiService', () => {
 
     service.listGrades().subscribe((response) => expect(response.data.length).toBe(0));
     http.expectOne('/api/v1/me/grades').flush({ data: [] });
+
+    service.gradesSummary('period-1').subscribe((response) => {
+      expect(response.data.courseCount).toBe(0);
+    });
+    const summary = http.expectOne('/api/v1/me/grades/summary?period=period-1');
+    expect(summary.request.method).toBe('GET');
+    summary.flush({ data: { courseCount: 0, courses: [], items: [] } });
   });
 
   it('lists attendance, qr and payments without a student uuid', () => {
@@ -50,6 +57,6 @@ describe('MeApiService', () => {
     });
     const request = http.expectOne('/api/v1/me/schedule');
     expect(request.request.method).toBe('GET');
-    request.flush({ data: { slots: [], nonTeachingBlocks: [] } });
+    request.flush({ data: { slots: [], nonTeachingBlocks: [], suggestedPeriods: [] } });
   });
 });

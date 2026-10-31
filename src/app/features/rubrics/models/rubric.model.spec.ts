@@ -10,8 +10,6 @@ import {
   uniqueLevelCodes,
   RubricResponseRaw,
   RubricListItemRaw,
-  RubricDetail,
-  RubricRow,
   CRITERION_KEY_PATTERN,
   WEIGHT_SUM_TARGET,
 } from './rubric.model';

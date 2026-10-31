@@ -8,7 +8,7 @@ import { Theme } from '@core/enums';
  *   - `dark`      → variant used when `.dark` class is on `<html>`. Falls
  *                   back to `light` if omitted.
  *   - `mark`      → square / icon-only logo for the sidebar collapsed mode,
- *                   the navbar mobile header and the favicon fallback.
+ *                   the navbar mobile header and install icon when available.
  *                   Falls back to `light`.
  *   - `markDark`  → dark-mode variant of `mark`. Falls back to `mark`.
  */

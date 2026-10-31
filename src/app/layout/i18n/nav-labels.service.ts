@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import '@angular/localize/init';
 
 /**
  * Centralized navigation labels (cierre-D / I4 bulk translation).
@@ -32,11 +31,11 @@ export class NavLabels {
 		// item `id`s). Legacy aliases kept so older keys still resolve.
 		switch (id) {
 			case 'workspace':
-				return $localize`:@@nav.group.workspace:Espacio de trabajo`;
+				return $localize`:@@nav.group.workspace:Institución`;
 			case 'academic':
 				return $localize`:@@nav.group.academic:Acad\u00e9mico`;
 			case 'lms':
-				return $localize`:@@nav.group.lms:Mis cursos`;
+				return $localize`:@@nav.group.lms:Aula virtual`;
 			case 'attendance':
 				return $localize`:@@nav.group.attendance:Asistencia`;
 			case 'payments':
@@ -50,6 +49,10 @@ export class NavLabels {
 			// Nav item labels.
 			case 'dashboard':
 				return $localize`:@@nav.item.dashboard:Panel`;
+			case 'admissions':
+				return $localize`:@@nav.item.admissions:Admisiones`;
+			case 'disclosures':
+				return $localize`:@@nav.item.disclosures:Información anual`;
 			case 'students':
 				return $localize`:@@nav.item.students:Estudiantes`;
 			case 'teachers':
@@ -69,6 +72,12 @@ export class NavLabels {
 			case 'academic-courses':
 			case 'courses':
 				return $localize`:@@nav.item.courses:Cursos`;
+			case 'academic-grade-register':
+			case 'grade-register':
+				return $localize`:@@nav.item.grade-register:Registro de notas`;
+			case 'academic-session-templates':
+			case 'session-templates':
+				return $localize`:@@nav.item.session-templates:Plantillas de sesi\u00f3n`;
 			case 'schedule':
 				return $localize`:@@nav.item.schedule:Horarios`;
 			case 'schedule-jornada':
@@ -81,13 +90,13 @@ export class NavLabels {
 			case 'sessions':
 				return $localize`:@@nav.item.sessions:Sesiones de clase`;
 			case 'evaluations':
-				return $localize`:@@nav.item.evaluations:Evaluaciones`;
+				return $localize`:@@nav.item.evaluations:Registros`;
 			case 'lms-mine':
 				return $localize`:@@nav.item.lms-mine:Mis cursos`;
 			case 'attendance-sessions':
 				return $localize`:@@nav.item.attendance-sessions:Sesiones`;
 			case 'attendance-scanner':
-				return $localize`:@@nav.item.attendance-scanner:Esc\u00e1ner QR`;
+				return $localize`:@@nav.item.attendance-scanner:Entrada / Esc\u00e1ner`;
 			case 'family':
 				return $localize`:@@nav.item.family:Mis hijos`;
 			case 'me':
@@ -107,6 +116,18 @@ export class NavLabels {
 			case 'payments-admin':
 			case 'reconciliation':
 				return $localize`:@@nav.item.reconciliation:Conciliaci\u00f3n`;
+			case 'payments-collections':
+				return $localize`:@@nav.item.payments-collections:Cobros`;
+			case 'payments-emit':
+				return $localize`:@@nav.item.payments-emit:Emitir cuotas`;
+			case 'payments-concepts':
+				return $localize`:@@nav.item.payments-concepts:Conceptos`;
+			case 'payments-plans':
+				return $localize`:@@nav.item.payments-plans:Planes autom\u00e1ticos`;
+			case 'payments-policy':
+				return $localize`:@@nav.item.payments-policy:Pol\u00edtica de cobro`;
+			case 'payments-methods':
+				return $localize`:@@nav.item.payments-methods:M\u00e9todos de pago`;
 			case 'ai':
 				return $localize`:@@nav.item.ai:Asistente IA`;
 			case 'reports':

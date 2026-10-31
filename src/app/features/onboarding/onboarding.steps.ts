@@ -7,6 +7,6 @@ import { OnboardingStep } from '@layout/models';
  */
 export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   { id: 'welcome', label: 'Bienvenida', description: 'Empieza aquí' },
-  { id: 'school', label: 'Institución', description: 'Branding del tenant' },
+  { id: 'school', label: 'Institución', description: 'Identidad del colegio' },
   { id: 'complete', label: 'Listo', description: 'Confirmación' },
 ];

@@ -15,3 +15,28 @@ export interface AuditFilterParams {
   page?: number;
   size?: number;
 }
+
+export interface AdminAuditEvent {
+  id: string;
+  occurredAt: string;
+  tenantId?: string | null;
+  actorId?: string | null;
+  actorName?: string | null;
+  actorEmail?: string | null;
+  action: string;
+  tenantName?: string | null;
+  tenantSlug?: string | null;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  summary?: string | null;
+  metadata?: Record<string, unknown> | null;
+  traceId?: string | null;
+}
+
+export interface AdminAuditPage {
+  content: AdminAuditEvent[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}

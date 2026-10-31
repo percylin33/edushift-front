@@ -22,7 +22,7 @@ export type PasswordAutocomplete = 'current-password' | 'new-password';
   template: `
     <div class="space-y-1.5">
       @if (label) {
-        <label [attr.for]="fieldId" class="block text-sm font-medium text-content">
+        <label [attr.for]="fieldId" [class]="theme === 'dark' ? 'block text-sm font-medium text-slate-300' : 'block text-sm font-medium text-content'">
           {{ label }}
         </label>
       }
@@ -37,7 +37,7 @@ export type PasswordAutocomplete = 'current-password' | 'new-password';
           [id]="fieldId"
           [type]="visible() ? 'text' : 'password'"
           [formControl]="control"
-          [placeholder]="placeholder || null"
+          [attr.placeholder]="placeholder || null"
           [attr.autocomplete]="autocomplete"
           [attr.maxlength]="maxlength || null"
           [attr.aria-invalid]="hasError() ? 'true' : null"

@@ -1,4 +1,4 @@
-import { Injectable, Optional, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { SocialAuthService } from '@abacritt/angularx-social-login';
 
 import { environment } from '@env/environment';

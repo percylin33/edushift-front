@@ -1,7 +1,9 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
+import { filter, startWith } from 'rxjs/operators';
 import { ROUTES } from '@core/constants';
 import { Permission } from '@core/enums';
 import { EmptyStateComponent, IconComponent } from '@shared/components';
@@ -46,19 +48,20 @@ import { QuizLifecycleBadgeComponent } from '../../components/quiz-lifecycle-bad
   template: `
     <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div class="min-w-0">
-        <h1 class="text-2xl font-semibold text-content">Quizzes de la sección</h1>
+        <h1 class="text-2xl font-semibold text-content">Prácticas de la sección</h1>
         <p class="text-sm text-content-muted">
-          Gestiona los quizzes que ven los alumnos enrolados.
+          Gestiona las prácticas que ven los alumnos enrolados.
         </p>
       </div>
 
       <a
         *appHasPermission="permission.LmsQuizCreate"
-        [routerLink]="newQuizRoute()"
+        [routerLink]="newQuizLink()"
+        [queryParams]="newQuizQuery()"
         class="btn btn-primary btn-sm self-start sm:self-auto"
       >
         <app-icon name="plus" [size]="16" />
-        <span class="hidden sm:inline">Nuevo quiz</span>
+        <span class="hidden sm:inline">Nueva práctica</span>
       </a>
     </header>
 
@@ -99,7 +102,7 @@ import { QuizLifecycleBadgeComponent } from '../../components/quiz-lifecycle-bad
       <div class="alert alert-danger mb-4" role="alert">
         <app-icon name="alert-circle" [size]="18" />
         <div class="flex-1">
-          <p class="font-medium">No pudimos cargar los quizzes.</p>
+          <p class="font-medium">No pudimos cargar las prácticas.</p>
           <p class="mt-1 text-xs opacity-80">{{ errorBanner() }}</p>
         </div>
         <button type="button" class="btn btn-ghost btn-sm" (click)="reload()">
@@ -115,11 +118,12 @@ import { QuizLifecycleBadgeComponent } from '../../components/quiz-lifecycle-bad
       >
         <a
           *appHasPermission="permission.LmsQuizCreate"
-          [routerLink]="newQuizRoute()"
+          [routerLink]="newQuizLink()"
+          [queryParams]="newQuizQuery()"
           class="btn btn-primary btn-sm"
         >
           <app-icon name="plus" [size]="16" />
-          Crear primer quiz
+          Crear primera práctica
         </a>
       </app-empty-state>
     } @else {
@@ -207,6 +211,7 @@ export class QuizListPageComponent implements OnInit {
   private readonly store = inject(QuizzesStore);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly rows = this.store.rows;
   protected readonly loading = this.store.loading;
@@ -219,21 +224,44 @@ export class QuizListPageComponent implements OnInit {
   private readonly _statusFilter = signal<QuizStatus | undefined>(undefined);
   protected readonly statusFilter = this._statusFilter.asReadonly();
 
+  #sectionUuid: string | null = null;
+  #assignmentUuid: string | null = null;
+
   ngOnInit(): void {
-    const sectionUuid = this.route.snapshot.paramMap.get('sectionUuid');
-    if (!sectionUuid) {
-      void this.router.navigate([ROUTES.DASHBOARD.ROOT]);
-      return;
-    }
-    this.#sectionUuid = sectionUuid;
-    void this.store.loadBySection(sectionUuid);
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        startWith(null),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => {
+        const sectionUuid = this.route.snapshot.paramMap.get('sectionUuid');
+        if (!sectionUuid) {
+          void this.router.navigate([ROUTES.DASHBOARD.ROOT]);
+          return;
+        }
+        const assignment = this.route.snapshot.queryParamMap.get('assignment');
+        const sectionChanged = sectionUuid !== this.#sectionUuid;
+        const assignmentChanged = assignment !== this.#assignmentUuid;
+        if (!sectionChanged && !assignmentChanged && this.#sectionUuid) return;
+        this.#sectionUuid = sectionUuid;
+        this.#assignmentUuid = assignment;
+        void this.store.loadBySection(sectionUuid, {
+          status: this._statusFilter(),
+          assignmentPublicUuid: assignment ?? undefined,
+        });
+      });
   }
 
-  #sectionUuid: string | null = null;
+  protected newQuizLink(): string[] {
+    return ['/lms', 'quizzes', 'new'];
+  }
 
-  protected newQuizRoute(): string {
-    if (!this.#sectionUuid) return ROUTES.LMS.ROOT;
-    return ROUTES.LMS.quizNew(this.#sectionUuid);
+  protected newQuizQuery(): { section: string; assignment?: string } | null {
+    if (!this.#sectionUuid) return null;
+    return this.#assignmentUuid
+      ? { section: this.#sectionUuid, assignment: this.#assignmentUuid }
+      : { section: this.#sectionUuid };
   }
 
   protected detailRoute(uuid: string): string {
@@ -249,18 +277,22 @@ export class QuizListPageComponent implements OnInit {
   }
 
   protected emptyTitle(): string {
-    return 'Aún no hay quizzes';
+    return 'Aún no hay prácticas';
   }
 
   protected emptyDescription(): string {
     return this._statusFilter()
-      ? 'No hay quizzes con ese estado. Cambia el filtro o crea uno nuevo.'
-      : 'Crea el primer quiz para que los alumnos puedan tomarlo.';
+      ? 'No hay prácticas con ese estado. Cambia el filtro o crea una nueva.'
+      : 'Crea la primera práctica para que los alumnos puedan tomarla.';
   }
 
   protected onStatusChange(value: QuizStatus | undefined): void {
     this._statusFilter.set(value);
-    this.store.setStatusFilter(value);
+    if (!this.#sectionUuid) return;
+    void this.store.loadBySection(this.#sectionUuid, {
+      status: value,
+      assignmentPublicUuid: this.#assignmentUuid ?? undefined,
+    });
   }
 
   protected reload(): void {
@@ -268,6 +300,7 @@ export class QuizListPageComponent implements OnInit {
     this.store.clearError();
     void this.store.loadBySection(this.#sectionUuid, {
       status: this._statusFilter(),
+      assignmentPublicUuid: this.#assignmentUuid ?? undefined,
     });
   }
 

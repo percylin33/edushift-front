@@ -3,10 +3,16 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
-import { EmptyStateComponent, IconComponent, SpinnerComponent } from '@shared/components';
-import { CourseFormModalComponent } from '../../components';
+import {
+  ConfirmDialogService,
+  EmptyStateComponent,
+  IconComponent,
+  SpinnerComponent,
+} from '@shared/components';
+import { CourseBulkSetupComponent, CourseFormModalComponent } from '../../components';
 import { AcademicStore } from '../../store';
 import { CourseDetail, CourseRow } from '../../models';
+import { courseChipForeground, resolveCourseVisual } from '../../utils/course-visual.util';
 
 /**
  * `/academic/courses` — listado, filtros y CRUD de cursos (BE-4.4).
@@ -20,8 +26,11 @@ import { CourseDetail, CourseRow } from '../../models';
  *       <em>client-side</em>; persistido en {@code ?q}.</li>
  * </ul>
  *
- * <h3>Acciones por fila</h3>
+ * <h3>Acciones</h3>
  * <ul>
+ *   <li><b>Cursos usuales (Perú)</b> — panel de catálogo con creación
+ *       masiva.</li>
+ *   <li><b>Nuevo curso</b> — modal unitario.</li>
  *   <li><b>Toggle isActive</b>: switch inline con UI optimista. Si el
  *       backend falla, el toggle hace rollback automático y muestra el
  *       error en el banner global del store.</li>
@@ -43,6 +52,7 @@ import { CourseDetail, CourseRow } from '../../models';
     EmptyStateComponent,
     IconComponent,
     SpinnerComponent,
+    CourseBulkSetupComponent,
     CourseFormModalComponent,
   ],
   template: `
@@ -50,8 +60,7 @@ import { CourseDetail, CourseRow } from '../../models';
       <div class="min-w-0">
         <h2 class="text-lg font-semibold text-content">Cursos</h2>
         <p class="text-sm text-content-muted">
-          Catálogo del workspace. Cada curso aplica a uno o más niveles y se asigna a docentes en
-          BE-4.7.
+          Catálogo de cursos de la institución. Cada curso puede corresponder a uno o más niveles.
         </p>
       </div>
       <button
@@ -63,6 +72,8 @@ import { CourseDetail, CourseRow } from '../../models';
         <span class="hidden sm:inline">Nuevo curso</span>
       </button>
     </header>
+
+    <app-course-bulk-setup (completed)="onBulkCompleted()" />
 
     <!-- Toolbar -->
     <section class="card mb-4">
@@ -156,9 +167,19 @@ import { CourseDetail, CourseRow } from '../../models';
               @for (row of filteredRows(); track row.publicUuid) {
                 <tr>
                   <td>
-                    <span class="font-mono text-xs font-semibold uppercase">
-                      {{ row.code }}
-                    </span>
+                    <div class="flex items-center gap-2.5">
+                      <span
+                        class="flex size-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset ring-black/10"
+                        [style.background-color]="courseAvatar(row).color"
+                        [style.color]="chipForeground(courseAvatar(row).color)"
+                        aria-hidden="true"
+                      >
+                        <app-icon [name]="courseAvatar(row).icon" [size]="16" />
+                      </span>
+                      <span class="font-mono text-xs font-semibold uppercase">
+                        {{ row.code }}
+                      </span>
+                    </div>
                   </td>
                   <td>
                     <p class="font-medium text-content">{{ row.name }}</p>
@@ -298,6 +319,7 @@ export class CoursesListComponent implements OnInit {
   private readonly store = inject(AcademicStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly levels = this.store.levels;
   protected readonly loading = this.store.loadingCourses;
@@ -309,6 +331,12 @@ export class CoursesListComponent implements OnInit {
 
   protected readonly detailRoute = (publicUuid: string): string =>
     ROUTES.ACADEMIC.COURSES.detail(publicUuid);
+
+  protected readonly chipForeground = courseChipForeground;
+
+  protected courseAvatar(row: CourseRow) {
+    return resolveCourseVisual(row.code, row.color, row.icon);
+  }
 
   protected readonly levelFilter = signal<string | null>(null);
   protected readonly activeFilter = signal<boolean | null>(null);
@@ -400,12 +428,21 @@ export class CoursesListComponent implements OnInit {
     await this.store.loadCourses();
   }
 
+  protected async onBulkCompleted(): Promise<void> {
+    await this.applyServerFilters();
+  }
+
   protected async confirmDelete(row: CourseRow): Promise<void> {
-    const ok = confirm(
-      `¿Eliminar el curso "${row.code} — ${row.name}"?\n\n` +
+    const ok = await this.confirmDialog.open({
+      title: 'Eliminar curso',
+      message:
+        `¿Eliminar el curso "${row.code} — ${row.name}"?\n\n` +
         'Esta operación es reversible solo desde el backend. Si el curso\n' +
         'tiene asignaciones de docentes, considera desactivarlo en su lugar.',
-    );
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+      icon: 'trash',
+    });
     if (!ok) return;
     await this.store.deleteCourse(row.publicUuid);
   }

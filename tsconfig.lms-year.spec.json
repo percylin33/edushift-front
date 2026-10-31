@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.spec.json",
+  "include": ["src/app/features/lms/services/lms-section-context.service.spec.ts", "src/**/*.d.ts"]
+}

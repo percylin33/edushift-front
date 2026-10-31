@@ -5,10 +5,12 @@ import { tenantInterceptor } from './tenant.interceptor';
 import { loadingInterceptor } from './loading.interceptor';
 import { tokenRefreshInterceptor } from './token-refresh.interceptor';
 import { errorInterceptor } from './error.interceptor';
+import { adminImpersonationInterceptor } from './admin-impersonation.interceptor';
 
 export {
   apiUrlInterceptor,
   authInterceptor,
+  adminImpersonationInterceptor,
   tenantInterceptor,
   loadingInterceptor,
   tokenRefreshInterceptor,
@@ -66,6 +68,7 @@ export const HTTP_INTERCEPTORS_CHAIN: HttpInterceptorFn[] = [
   tenantInterceptor,
   authInterceptor,
   loadingInterceptor,
+  adminImpersonationInterceptor,
   errorInterceptor,
   tokenRefreshInterceptor,
 ];

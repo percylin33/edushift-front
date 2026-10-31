@@ -6,23 +6,23 @@ describe('RUBRICS_ROUTES', () => {
   });
 
   it('ruta raíz carga RubricsListComponent', async () => {
-    const mod = await (RUBRICS_ROUTES[0].loadComponent! as () => Promise<any>)();
-    expect(mod.RubricsListComponent).toBeDefined();
+    const component = await RUBRICS_ROUTES[0].loadComponent!();
+    expect(component).toBeDefined();
   });
 
   it('ruta /new carga RubricFormComponent', async () => {
-    const mod = await (RUBRICS_ROUTES[1].loadComponent! as () => Promise<any>)();
-    expect(mod.RubricFormComponent).toBeDefined();
+    const component = await RUBRICS_ROUTES[1].loadComponent!();
+    expect(component).toBeDefined();
   });
 
   it('ruta /:publicUuid carga RubricDetailComponent', async () => {
-    const mod = await (RUBRICS_ROUTES[2].loadComponent! as () => Promise<any>)();
-    expect(mod.RubricDetailComponent).toBeDefined();
+    const component = await RUBRICS_ROUTES[2].loadComponent!();
+    expect(component).toBeDefined();
   });
 
   it('ruta /:publicUuid/edit carga RubricFormComponent', async () => {
-    const mod = await (RUBRICS_ROUTES[3].loadComponent! as () => Promise<any>)();
-    expect(mod.RubricFormComponent).toBeDefined();
+    const component = await RUBRICS_ROUTES[3].loadComponent!();
+    expect(component).toBeDefined();
   });
 
   it('todas las rutas tienen canActivate con roleGuard', () => {

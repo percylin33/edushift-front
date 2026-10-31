@@ -12,11 +12,17 @@ export interface ScheduleCourseRefRaw {
   publicUuid: string;
   code: string;
   name: string;
+  /** Optional hex `#RRGGBB` from Course; null → FE resolves by code. */
+  color?: string | null;
+  /** Optional Lucide icon key from Course; null → FE resolves by code. */
+  icon?: string | null;
 }
 
 export interface ScheduleSectionRefRaw {
   publicUuid: string;
   name: string;
+  /** Denormalised grade label (teacher/student week views). */
+  gradeName?: string | null;
 }
 
 export interface SchedulePeriodRefRaw {
@@ -126,6 +132,51 @@ export function formatTime(time: string): string {
   return time;
 }
 
+/** Grade label for schedule cells (line 1). */
+export function scheduleSectionGrade(
+  section?: Pick<ScheduleSectionRefRaw, 'name' | 'gradeName'> | null,
+): string {
+  return section?.gradeName?.trim() ?? '';
+}
+
+/** Section letter line for schedule cells (line 2, below grade). */
+export function scheduleSectionLine(
+  section?: Pick<ScheduleSectionRefRaw, 'name' | 'gradeName'> | null,
+): string {
+  const letter = section?.name?.trim();
+  return letter ? `Sección ${letter}` : '';
+}
+
+/** Single-line fallback: {@code Primaria · Sección A}. */
+export function formatScheduleSectionLabel(
+  section?: Pick<ScheduleSectionRefRaw, 'name' | 'gradeName'> | null,
+): string {
+  const grade = scheduleSectionGrade(section);
+  const line = scheduleSectionLine(section);
+  if (grade && line) return `${grade} · ${line}`;
+  if (grade) return grade;
+  return line;
+}
+
+/** Fills {@code gradeName} on slot sections from the tenant section catalog. */
+export function enrichScheduleSlotsWithGrades(
+  slots: readonly ScheduleSlotItem[],
+  sections: ReadonlyArray<{ publicUuid: string; gradeName: string }>,
+): ScheduleSlotItem[] {
+  if (slots.length === 0 || sections.length === 0) return [...slots];
+  const byUuid = new Map(sections.map((s) => [s.publicUuid, s.gradeName]));
+  return slots.map((slot) => {
+    const section = slot.section;
+    if (!section?.publicUuid || section.gradeName?.trim()) return slot;
+    const gradeName = byUuid.get(section.publicUuid);
+    if (!gradeName) return slot;
+    return {
+      ...slot,
+      section: { ...section, gradeName },
+    };
+  });
+}
+
 export function toScheduleSlotItem(raw: ScheduleSlotItemRaw): ScheduleSlotItem {
   return {
     slotPublicUuid: raw.slotPublicUuid,
@@ -135,7 +186,13 @@ export function toScheduleSlotItem(raw: ScheduleSlotItemRaw): ScheduleSlotItem {
     endTime: raw.endTime,
     classroom: raw.classroom ?? undefined,
     teacher: raw.teacher ?? undefined,
-    course: raw.course,
+    course: {
+      publicUuid: raw.course.publicUuid,
+      code: raw.course.code,
+      name: raw.course.name,
+      color: raw.course.color ?? null,
+      icon: raw.course.icon ?? null,
+    },
     section: raw.section ?? undefined,
     period: raw.period,
   };
@@ -165,6 +222,49 @@ export const DAY_BLOCK_TYPE_LABELS: Readonly<Record<DayBlockType, string>> = {
 export const RECESS_POLICY_LABELS: Readonly<Record<RecessPolicy, string>> = {
   SHARED: 'Compartido',
   STAGGERED: 'Escalonado',
+};
+
+export const RECESS_POLICY_HINTS: Readonly<Record<RecessPolicy, string>> = {
+  SHARED: 'Todos los niveles recrean a la misma hora.',
+  STAGGERED: 'Cada nivel recrea en horarios distintos para no saturar patios.',
+};
+
+/** Shift values stored in BE; labels shown to admin/secretaría. */
+export const DAY_TEMPLATE_SHIFT_OPTIONS: Readonly<
+  { value: string; label: string }[]
+> = [
+  { value: 'MORNING', label: 'Mañana' },
+  { value: 'AFTERNOON', label: 'Tarde' },
+  { value: 'FULL', label: 'Completa' },
+];
+
+export const DAY_TEMPLATE_SHIFT_LABELS: Readonly<Record<string, string>> = {
+  MORNING: 'Mañana',
+  AFTERNOON: 'Tarde',
+  FULL: 'Completa',
+};
+
+export const SCHEDULE_WARNING_LABELS: Readonly<Record<string, string>> = {
+  SCHEDULE_CONFLICT: 'Hay un cruce de horarios',
+  RECESS_OVERLAP: 'El recreo se superpone con una clase',
+  WORKLOAD_EXCEEDED: 'Un docente supera la carga horaria',
+  MISSING_HOMEROOM: 'Falta asignar docente tutor',
+  EMPTY_PERIOD: 'Hay periodos sin curso asignado',
+};
+
+export const SCHEDULE_WARNING_SEVERITY_LABELS: Readonly<Record<string, string>> = {
+  ERROR: 'Error',
+  WARNING: 'Advertencia',
+  WARN: 'Advertencia',
+  INFO: 'Información',
+};
+
+export const SCHEDULE_PARSE_STATUS_LABELS: Readonly<Record<string, string>> = {
+  PENDING: 'Pendiente de procesar',
+  PROCESSING: 'Procesando',
+  PARSED: 'Procesado',
+  FAILED: 'Error al procesar',
+  DRAFT: 'Borrador',
 };
 
 /** Non-teaching block in reverse week views (recess/lunch/assembly). */
@@ -240,6 +340,8 @@ export interface DayTemplate {
   dayStart?: string | null;
   dayEnd?: string | null;
   periodMinutes?: number | null;
+  reviewedAt?: string | null;
+  reviewedByUuid?: string | null;
   blocks: DayBlockItem[];
 }
 
@@ -253,6 +355,8 @@ export interface TeacherWorkloadItem {
   firstName: string;
   lastName: string;
   minutesPerWeek: number;
+  /** Slot minutes ÷ jornada periodMinutes (per section; fallback 45). */
+  academicHoursPerWeek?: number;
   slotCount: number;
   sectionCount: number;
   courseCount: number;
@@ -265,6 +369,23 @@ export interface ScheduleWarningItem {
   sectionUuid: string | null;
   gradeUuid: string | null;
   teacherUuid: string | null;
+}
+
+export function formatScheduleWarning(w: ScheduleWarningItem): string {
+  return SCHEDULE_WARNING_LABELS[w.code] ?? w.message ?? w.code;
+}
+
+export function formatScheduleWarningSeverity(severity: string): string {
+  return SCHEDULE_WARNING_SEVERITY_LABELS[severity.toUpperCase()] ?? severity;
+}
+
+export function formatScheduleParseStatus(status: string): string {
+  return SCHEDULE_PARSE_STATUS_LABELS[status.toUpperCase()] ?? status;
+}
+
+export function formatDayTemplateShift(shift: string | null | undefined): string {
+  if (!shift) return '';
+  return DAY_TEMPLATE_SHIFT_LABELS[shift.toUpperCase()] ?? shift;
 }
 
 export interface ScheduleSourceDocument {
@@ -305,6 +426,13 @@ export interface ApplyDayPlanRequest {
   periodMinutes: number;
   recesses: { startTime: string; endTime: string; label?: string }[];
   lunch?: { startTime: string; endTime: string; label?: string } | null;
+  activities: {
+    blockType: Extract<DayBlockType, 'ASSEMBLY' | 'GUIDANCE' | 'SPECIALIST_RESERVED'>;
+    dayOfWeek: number | null;
+    startTime: string;
+    endTime: string;
+    label: string;
+  }[];
 }
 
 export interface CreateDayBlockRequest {

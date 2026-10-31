@@ -4,7 +4,6 @@ import {
 	ChangeDetectionStrategy,
 	Component,
 	OnInit,
-	computed,
 	inject,
 	signal,
 } from '@angular/core';
@@ -271,7 +270,7 @@ import {
 
 							<div class="field">
 								<label class="label">Tipo de reporte *</label>
-								<select class="input" formControlName="reportType">
+								<select class="select" formControlName="reportType">
 									@for (opt of REPORT_TYPE_OPTIONS; track opt.value) {
 										<option [value]="opt.value">{{ opt.label }}</option>
 									}
@@ -280,7 +279,7 @@ import {
 
 							<div class="field">
 								<label class="label">Formato *</label>
-								<select class="input" formControlName="format">
+								<select class="select" formControlName="format">
 									<option value="PDF">PDF</option>
 									<option value="XLSX">XLSX</option>
 									<option value="CSV">CSV</option>

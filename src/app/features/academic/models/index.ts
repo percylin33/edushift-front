@@ -6,3 +6,5 @@ export * from './period.model';
 export * from './unit.model';
 export * from './competency.model';
 export * from './schedule.model';
+export * from './grade-register-template.model';
+export * from './session-template.model';

@@ -7,6 +7,7 @@ import { StudentsStore } from '../../store';
 import { StudentDetail } from '../../models';
 import { DocumentType, EnrollmentStatus, Gender } from '@core/enums';
 import { ROUTES } from '@core/constants';
+import { ConfirmDialogService } from '@shared/components';
 
 @Component({ template: '', standalone: true })
 class DummyComponent {}
@@ -14,6 +15,7 @@ class DummyComponent {}
 describe('StudentDetailComponent', () => {
   let fixture: ComponentFixture<StudentDetailComponent>;
   let component: StudentDetailComponent;
+  let fakeConfirm: jasmine.SpyObj<ConfirmDialogService>;
   let fakeStore: {
     selected: ReturnType<typeof signal<StudentDetail | null>>;
     loadingDetail: ReturnType<typeof signal<boolean>>;
@@ -54,11 +56,14 @@ describe('StudentDetailComponent', () => {
       loadDetail: jasmine.createSpy('loadDetail'),
       delete: jasmine.createSpy('delete'),
     };
+    fakeConfirm = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['open']);
+    fakeConfirm.open.and.returnValue(Promise.resolve(false));
     TestBed.configureTestingModule({
       imports: [StudentDetailComponent],
       providers: [
         provideRouter([{ path: '**', component: DummyComponent }]),
         { provide: StudentsStore, useValue: fakeStore },
+        { provide: ConfirmDialogService, useValue: fakeConfirm },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: (_key: string) => id } } },
@@ -91,54 +96,54 @@ describe('StudentDetailComponent', () => {
     configureModule();
     fixture.detectChanges();
     fakeStore.selected.set(student);
-    expect((component as any).student()?.fullName).toBe('Juan Perez');
+    expect(component['student']()?.fullName).toBe('Juan Perez');
     fakeStore.loadingDetail.set(true);
-    expect((component as any).loading()).toBeTrue();
+    expect(component['loading']()).toBeTrue();
     fakeStore.saving.set(true);
-    expect((component as any).saving()).toBeTrue();
+    expect(component['saving']()).toBeTrue();
     fakeStore.error.set('err');
-    expect((component as any).errorMessage()).toBe('err');
+    expect(component['errorMessage']()).toBe('err');
   });
 
   it('editLink retorna ruta correcta', () => {
     configureModule();
-    expect((component as any).editLink('s-1')).toBe('/students/s-1/edit');
+    expect(component['editLink']('s-1')).toBe('/students/s-1/edit');
   });
 
   it('documentLabel formatea tipo + número', () => {
     configureModule();
-    expect((component as any).documentLabel(student)).toBe('DNI · 12345678');
+    expect(component['documentLabel'](student)).toBe('DNI · 12345678');
   });
 
   it('formatGender mapea correctamente', () => {
     configureModule();
-    expect((component as any).formatGender(Gender.Male)).toBe('Masculino');
-    expect((component as any).formatGender(Gender.Female)).toBe('Femenino');
-    expect((component as any).formatGender(Gender.Other)).toBe('Otro');
-    expect((component as any).formatGender(Gender.NotSpecified)).toBe('Sin especificar');
-    expect((component as any).formatGender(undefined)).toBe('—');
+    expect(component['formatGender'](Gender.Male)).toBe('Masculino');
+    expect(component['formatGender'](Gender.Female)).toBe('Femenino');
+    expect(component['formatGender'](Gender.Other)).toBe('Otro');
+    expect(component['formatGender'](Gender.NotSpecified)).toBe('Sin especificar');
+    expect(component['formatGender'](undefined)).toBe('—');
   });
 
   it('ageText calcula edad', () => {
     configureModule();
     const birth = new Date('2010-05-15');
-    expect((component as any).ageText(birth)).toMatch(/^\d+ años$/);
+    expect(component['ageText'](birth)).toMatch(/^\d+ años$/);
   });
 
   it('ageText retorna — si sin fecha', () => {
     configureModule();
-    expect((component as any).ageText(undefined)).toBe('—');
+    expect(component['ageText'](undefined)).toBe('—');
   });
 
   it('onDelete confirma y navega al listado si ok', async () => {
     configureModule();
     fakeStore.selected.set(student);
     fakeStore.delete.and.returnValue(Promise.resolve(true));
-    spyOn(window, 'confirm').and.returnValue(true);
+    fakeConfirm.open.and.returnValue(Promise.resolve(true));
     const router = TestBed.inject(Router);
     spyOn(router, 'navigate');
 
-    await (component as any).onDelete(student);
+    await component['onDelete'](student);
     expect(fakeStore.delete).toHaveBeenCalledWith('s-1');
     expect(router.navigate).toHaveBeenCalledWith([ROUTES.STUDENTS.LIST]);
   });
@@ -146,13 +151,13 @@ describe('StudentDetailComponent', () => {
   it('onDelete no borra si confirm false', async () => {
     configureModule();
     fakeStore.selected.set(student);
-    spyOn(window, 'confirm').and.returnValue(false);
-    await (component as any).onDelete(student);
+    fakeConfirm.open.and.returnValue(Promise.resolve(false));
+    await component['onDelete'](student);
     expect(fakeStore.delete).not.toHaveBeenCalled();
   });
 
   it('listRoute es /students', () => {
     configureModule();
-    expect((component as any).listRoute).toBe('/students');
+    expect(component['listRoute']).toBe('/students');
   });
 });

@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/constants';
 import { AuthService } from '@core/services';
-import { UserRole } from '@core/enums';
+import { Permission, UserRole } from '@core/enums';
 import {
   EmptyStateComponent,
   IconComponent,
@@ -19,9 +19,13 @@ import {
   PageHeaderComponent,
   SpinnerComponent,
 } from '@shared/components';
-import { AttendanceStatusBadgeComponent, EditRecordModalComponent } from '../../components';
+import { AttendanceStatusBadgeComponent, EditRecordModalComponent, AttendanceExportActionsComponent } from '../../components';
 import { AttendanceStore } from '../../store';
 import { AttendanceRecord, UpdateRecordRequest } from '../../models';
+import { AttendancePrintService } from '../../services/attendance-print.service';
+import { AttendanceReportService } from '../../services/attendance-report.service';
+import { recordsToPrintRows } from '../../utils/attendance-print.helpers';
+import { ReportFormat } from '@features/reports/models/report.model';
 
 /**
  * `/attendance/sessions/:uuid` — roster of a single session
@@ -35,14 +39,9 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
  * {@link AttendanceStore#loadRecords} to fetch the snapshot from
  * the backend.
  *
- * <h3>Editing window</h3>
- * <ul>
- *   <li>{@code TEACHER}: can edit only if `closedAt` is within
- *       {@code edit-window-hours} (default 24h, configured BE-side).
- *       The "Editar" button stays disabled past the cutoff; the
- *       store call would otherwise return 403 EDIT_WINDOW_EXPIRED.</li>
- *   <li>{@code TENANT_ADMIN}: always (bypass the window).</li>
- * </ul>
+ * The backend is the source of truth for the editing window: non-admin
+ * editors may correct active sessions and are subject to the configured
+ * cutoff after the session closes.
  */
 @Component({
   selector: 'app-attendance-session-detail',
@@ -59,6 +58,7 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
     SpinnerComponent,
     AttendanceStatusBadgeComponent,
     EditRecordModalComponent,
+    AttendanceExportActionsComponent,
   ],
   template: `
     <app-page-container>
@@ -81,6 +81,14 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
             <app-icon name="lock" [size]="16" />
             <span class="hidden sm:inline">Cerrar sesión</span>
           </button>
+        }
+        @if (store.records().length) {
+          <app-attendance-export-actions
+            [disabled]="store.loadingRecords()"
+            [busy]="exportBusy()"
+            (printClick)="onPrint()"
+            (downloadClick)="onDownload($event)"
+          />
         }
       </app-page-header>
 
@@ -123,7 +131,8 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
             <input
               type="checkbox"
               class="checkbox checkbox-sm"
-              [(ngModel)]="onlyPending"
+              [ngModel]="onlyPending()"
+              (ngModelChange)="onlyPending.set($event)"
               name="onlyPending"
             />
             Mostrar solo pendientes
@@ -134,11 +143,11 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
         </div>
       </section>
 
-      <!-- Roster -->
+      <!-- Lista -->
       <section class="card overflow-hidden">
         @if (store.loadingRecords() && !store.records().length) {
           <div class="flex items-center justify-center py-16">
-            <app-spinner [size]="24" label="Cargando roster…" />
+            <app-spinner [size]="24" label="Cargando lista…" />
           </div>
         } @else if (filteredRecords().length === 0) {
           <app-empty-state
@@ -202,6 +211,7 @@ import { AttendanceRecord, UpdateRecordRequest } from '../../models';
     @if (editing(); as record) {
       <app-edit-record-modal
         [record]="record"
+        [saving]="store.savingRecord()"
         (save)="onSave(record, $event)"
         (cancelled)="closeEdit()"
       />
@@ -212,12 +222,16 @@ export class AttendanceSessionDetailPageComponent implements OnInit {
   protected readonly store = inject(AttendanceStore);
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
+  private readonly printService = inject(AttendancePrintService);
+  private readonly reportService = inject(AttendanceReportService);
+
+  protected readonly exportBusy = signal(false);
 
   protected readonly sessionsRoute = ROUTES.ATTENDANCE.SESSIONS;
   protected readonly scannerRoute = ROUTES.ATTENDANCE.SCANNER;
 
   protected readonly editing = signal<AttendanceRecord | null>(null);
-  protected onlyPending = false;
+  protected readonly onlyPending = signal(false);
 
   protected readonly title = computed(() => {
     const s = this.store.currentSession();
@@ -242,7 +256,7 @@ export class AttendanceSessionDetailPageComponent implements OnInit {
    */
   protected readonly filteredRecords = computed<AttendanceRecord[]>(() => {
     const records = this.store.records();
-    if (!this.onlyPending) return records;
+    if (!this.onlyPending()) return records;
     return records.filter((r) => r.status === 'ABSENT');
   });
 
@@ -259,26 +273,15 @@ export class AttendanceSessionDetailPageComponent implements OnInit {
     void this.store.closeCurrentSession();
   }
 
-  /**
-   * Mirrors the backend's edit window (BE-6.4):
-   * <ul>
-   *   <li>TENANT_ADMIN: always.</li>
-   *   <li>TEACHER: only if the session was closed within the
-   *       configured window (we can't read the BE setting here, so
-   *       we let the docente try and surface 403 EDIT_WINDOW_EXPIRED
-   *       on failure).</li>
-   * </ul>
-   */
-  protected canEdit(record: AttendanceRecord): boolean {
-    if (!this.auth.hasRole(UserRole.TenantAdmin, UserRole.Teacher)) {
-      return false;
-    }
+  /** The backend enforces session status, transitions, and the edit window. */
+  protected canEdit(_record: AttendanceRecord): boolean {
     if (this.auth.hasRole(UserRole.TenantAdmin)) {
       return true;
     }
-    // Teacher: only edits to CLOSED sessions, and we optimistically
-    // allow it; the server is the source of truth for the cutoff.
-    return this.store.currentSession()?.status === 'CLOSED';
+    return (
+      this.auth.hasRole(UserRole.Teacher) ||
+      this.auth.hasPermission(Permission.AttendanceCorrect)
+    );
   }
 
   protected openEdit(record: AttendanceRecord): void {
@@ -297,6 +300,44 @@ export class AttendanceSessionDetailPageComponent implements OnInit {
     // error interceptor is the safety net.
     if (updated) {
       await this.store.loadRecords(record.sessionPublicUuid);
+    }
+  }
+
+  protected onPrint(): void {
+    const rows = recordsToPrintRows(this.filteredRecords());
+    this.printService.print({
+      mode: 'sectionDaily',
+      meta: {
+        title: 'Asistencia — lista diaria',
+        subtitle: this.subtitle(),
+        generatedAt: new Date(),
+      },
+      rows,
+    });
+  }
+
+  protected async onDownload(format: ReportFormat): Promise<void> {
+    const session = this.store.currentSession();
+    const sessionUuid = session?.publicUuid ?? this.route.snapshot.paramMap.get('uuid');
+    if (!sessionUuid) return;
+    this.exportBusy.set(true);
+    try {
+      const dateStr =
+        session?.occurredOn.toISOString().slice(0, 10) ??
+        this.store.records()[0]?.occurredAt.toISOString().slice(0, 10);
+      const result = await this.reportService.requestInstitutionalExport(
+        {
+          scope: 'SECTION_DAILY',
+          sectionPublicUuid: session?.sectionPublicUuid,
+          sessionPublicUuid: sessionUuid,
+          from: dateStr,
+          to: dateStr,
+        },
+        format,
+      );
+      this.reportService.downloadJob(result.job.publicUuid, `asistencia-sesion.${format.toLowerCase()}`);
+    } finally {
+      this.exportBusy.set(false);
     }
   }
 }

@@ -1,11 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, UrlTree, provideRouter } from '@angular/router';
+import { UrlTree, provideRouter } from '@angular/router';
 import { guestGuard } from './guest.guard';
 import { AuthService } from '@core/services';
 
 describe('guestGuard', () => {
-  let router: Router;
-
   const configure = (isAuthenticated: boolean) => {
     TestBed.configureTestingModule({
       providers: [
@@ -20,7 +18,6 @@ describe('guestGuard', () => {
         },
       ],
     });
-    router = TestBed.inject(Router);
   };
 
   it('permite acceso cuando no está autenticado', () => {
