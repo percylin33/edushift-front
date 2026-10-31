@@ -21,12 +21,7 @@ export function resolveApiUrl(builtInApiUrl: string, hostname?: string): string 
   const host = (hostname ?? window.location.hostname).toLowerCase();
   // Production DNS serves Angular and its same-origin API through Contabo
   // Nginx. Keep auth cookies same-site and host-only on app and tenant hosts.
-  if (
-    host === 'educhief.pe' ||
-    host.endsWith('.educhief.pe') ||
-    host === 'edushift.pe' ||
-    host.endsWith('.edushift.pe')
-  ) {
+  if (host === 'edushift.pe' || host.endsWith('.edushift.pe')) {
     return '/api';
   }
   // Tenant pages on `<slug>.localhost` use a same-origin API URL. The dev
