@@ -4,27 +4,29 @@ import type { AppEnvironment } from './environment.model';
  * Runtime overrides for `apiUrl`. Used by the bundle to resolve the
  * backend host without hard-coding environment-specific URLs at build
  * time. The detection lives here (not in `environment.model.ts`) so that
- * production builds default to the production URL unless the page is
- * served from localhost, a tunnel, or a Vercel preview.
+ * production builds default to the Contabo application URL unless the page
+ * is served from a local development host or a public tunnel.
  *
- * <p>Why this exists: EduShift runs on Render (production) and locally
- * on Docker / docker-compose (development). Both backends are reachable
- * from any client over the internet, but the dev backend is on the
- * developer's machine only. If the build always bakes in the prod URL,
- * the developer cannot test from their own browser; if it always bakes
- * in localhost, the live site cannot talk to Render. The
+ * <p>Why this exists: EduShift runs on Contabo (production) and locally
+ * on Docker / docker-compose (development). If the build always bakes in
+ * localhost, the live site cannot reach the production backend. The
  * {@link resolveApiUrl} helper picks the right one based on
  * {@code window.location.hostname}.</p>
  */
-function resolveApiUrl(builtInApiUrl: string): string {
-  if (typeof window === 'undefined') {
+export function resolveApiUrl(builtInApiUrl: string, hostname?: string): string {
+  if (typeof window === 'undefined' && hostname === undefined) {
     // SSR or non-browser context — trust the build-time value.
     return builtInApiUrl;
   }
-  const host = window.location.hostname.toLowerCase();
-  // Production DNS serves the SPA and API behind the same Nginx host.
-  // Keep auth cookies same-site and host-only on root and tenant subdomains.
-  if (host === 'edushift.pe' || host.endsWith('.edushift.pe')) {
+  const host = (hostname ?? window.location.hostname).toLowerCase();
+  // Production DNS serves Angular and its same-origin API through Contabo
+  // Nginx. Keep auth cookies same-site and host-only on app and tenant hosts.
+  if (
+    host === 'educhief.pe' ||
+    host.endsWith('.educhief.pe') ||
+    host === 'edushift.pe' ||
+    host.endsWith('.edushift.pe')
+  ) {
     return '/api';
   }
   // Tenant pages on `<slug>.localhost` use a same-origin API URL. The dev
